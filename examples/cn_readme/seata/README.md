@@ -6,6 +6,7 @@
 + 该 Seata filter 仅支持 http1 协议。
 + 被协调的 http rest 服务，try、confirm、cancel 对应的接口请求参数应一致。
 + 被协调的 http rest 服务，try、confirm、cancel 对应的接口必须是 POST 接口。
++ 需要业务方传递 xid（全局事务id）到事务分支接口，通过 request header 传递。
 
 ## 准备
 
