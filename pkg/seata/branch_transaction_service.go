@@ -134,14 +134,13 @@ func (svc *BranchTransactionService) BranchCommit(ctx context.Context, request *
 			BranchID:     request.BranchID,
 			BranchStatus: apis.PhaseTwoCommitted,
 		}, nil
-	} else {
-		return &apis.BranchCommitResponse{
-			ResultCode:   apis.ResultCodeSuccess,
-			XID:          request.XID,
-			BranchID:     request.BranchID,
-			BranchStatus: apis.PhaseTwoCommitFailedRetryable,
-		}, nil
 	}
+	return &apis.BranchCommitResponse{
+		ResultCode:   apis.ResultCodeSuccess,
+		XID:          request.XID,
+		BranchID:     request.BranchID,
+		BranchStatus: apis.PhaseTwoCommitFailedRetryable,
+	}, nil
 }
 
 // BranchRollback rollback branch transaction
@@ -171,14 +170,13 @@ func (svc *BranchTransactionService) BranchRollback(ctx context.Context, request
 			BranchID:     request.BranchID,
 			BranchStatus: apis.PhaseTwoRolledBack,
 		}, nil
-	} else {
-		return &apis.BranchRollbackResponse{
-			ResultCode:   apis.ResultCodeSuccess,
-			XID:          request.XID,
-			BranchID:     request.BranchID,
-			BranchStatus: apis.PhaseTwoRollbackFailedRetryable,
-		}, nil
 	}
+	return &apis.BranchRollbackResponse{
+		ResultCode:   apis.ResultCodeSuccess,
+		XID:          request.XID,
+		BranchID:     request.BranchID,
+		BranchStatus: apis.PhaseTwoRollbackFailedRetryable,
+	}, nil
 }
 
 func doHttp1Request(requestContext *RequestContext, commit bool) (*resty.Response, error) {
