@@ -117,8 +117,8 @@ func computeInterval(t time.Duration) time.Duration {
 
 func (adsClient *ADSClient) reconnect() {
 
-	adsClient.AdsConfig.closeADSStreamClient()
 	adsClient.StreamClientMutex.Lock()
+	adsClient.AdsConfig.closeADSStreamClient()
 	adsClient.StreamClient = nil
 	adsClient.StreamClientMutex.Unlock()
 	log.DefaultLogger.Infof("[xds] [ads client] stream client closed")
@@ -127,13 +127,15 @@ func (adsClient *ADSClient) reconnect() {
 
 	for {
 		if !disableReconnect {
+			adsClient.StreamClientMutex.Lock()
 			sc := adsClient.AdsConfig.GetStreamClient()
 			if sc != nil {
-				adsClient.StreamClientMutex.Lock()
 				adsClient.StreamClient = sc
 				adsClient.StreamClientMutex.Unlock()
 				log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
 				return
+			} else {
+				adsClient.StreamClientMutex.Unlock()
 			}
 			log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect failed, retry after %v", interval)
 		}
