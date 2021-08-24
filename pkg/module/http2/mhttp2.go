@@ -983,6 +983,8 @@ type MClientConn struct {
 
 	Framer *MFramer
 	api.Connection
+
+	onceInitFrame sync.Once
 }
 
 // NewClientConn return Http2 Client conncetion
@@ -1014,25 +1016,29 @@ func NewClientConn(conn api.Connection) *MClientConn {
 	// henc in response to SETTINGS frames?
 	cc.henc = hpack.NewEncoder(&cc.hbuf)
 
-	initialSettings := []Setting{
-		{ID: SettingEnablePush, Val: 0},
-		{ID: SettingInitialWindowSize, Val: transportDefaultStreamFlow},
-	}
-	if max := http.DefaultMaxHeaderBytes; max != 0 {
-		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: uint32(max)})
-	}
-
-	//log.DefaultLogger.Infof("[network] [http2] New Client Connection & write %s", clientPreface)
-
-	err := cc.Connection.Write(buffer.NewIoBufferBytes(clientPreface))
-	if err != nil {
-		log.DefaultLogger.Errorf("[network] [http2] Connection Write error : %+v", err)
-	}
-	cc.Framer.writeSettings(initialSettings)
-	cc.Framer.writeWindowUpdate(0, transportDefaultConnFlow)
-	cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
-
 	return cc
+}
+
+func (cc *MClientConn) WriteInitFrame() {
+	cc.onceInitFrame.Do(func() {
+		initialSettings := []Setting{
+			{ID: SettingEnablePush, Val: 0},
+			{ID: SettingInitialWindowSize, Val: transportDefaultStreamFlow},
+		}
+		if max := http.DefaultMaxHeaderBytes; max != 0 {
+			initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: uint32(max)})
+		}
+
+		//log.DefaultLogger.Infof("[network] [http2] New Client Connection & write %s", clientPreface)
+
+		err := cc.Connection.Write(buffer.NewIoBufferBytes(clientPreface))
+		if err != nil {
+			log.DefaultLogger.Errorf("[network] [http2] Connection Write error : %+v", err)
+		}
+		cc.Framer.writeSettings(initialSettings)
+		cc.Framer.writeWindowUpdate(0, transportDefaultConnFlow)
+		cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
+	})
 }
 
 // WriteHeaders wirtes Headers Frame for Http2 Client
