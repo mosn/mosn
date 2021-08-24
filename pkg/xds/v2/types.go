@@ -50,6 +50,7 @@ type ADSConfig struct {
 	RefreshDelay *time.Duration
 	Services     []*ServiceConfig
 	StreamClient *StreamClient
+	StreamClientMutex sync.RWMutex
 }
 
 // ADSClient communicated with pilot

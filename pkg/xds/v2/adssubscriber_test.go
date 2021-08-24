@@ -18,17 +18,27 @@
 package v2
 
 import (
+	"fmt"
+	"math/rand"
+	"net"
+	"os/exec"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	clusterv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	envoy_api_bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"google.golang.org/grpc"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/pkg/utils"
 )
 
 func Test_Client(t *testing.T) {
@@ -166,4 +176,106 @@ func endpoints(addrs ...*envoy_api_v2_core.Address) []*envoy_api_v2_endpoint.Loc
 	return []*envoy_api_v2_endpoint.LocalityLbEndpoints{{
 		LbEndpoints: lbendpoints,
 	}}
+}
+
+func Test_Concurrent_reconnect(t *testing.T) {
+	log.DefaultLogger.SetLogLevel(log.WARN)
+	defer log.DefaultLogger.SetLogLevel(log.INFO)
+
+	r := rand.Intn(100)
+	xdsPort := 15555 + r
+	portStr := strconv.Itoa(xdsPort)
+
+	// 监听本地端口
+	lis, err := net.Listen("tcp", ":"+portStr)
+	if err != nil {
+		t.Errorf("监听端口失败: %s", err)
+		return
+	}
+
+	// 创建gRPC服务器
+	s := grpc.NewServer()
+	// 注册服务
+
+	go func() {
+		err = s.Serve(lis)
+		if err != nil {
+			t.Errorf("开启服务失败: %s", err)
+			return
+		}
+	}()
+
+	num := 10
+
+	wg := sync.WaitGroup{}
+
+	xdsConfig := XDSConfig{}
+	clusterName := "xds-cluster"
+	xdsAddr := "127.0.0.1"
+
+	dynamicResources := &envoy_api_bootstrap.Bootstrap_DynamicResources{
+		LdsConfig: configSource(clusterName),
+		CdsConfig: configSource(clusterName),
+		AdsConfig: configApiSource(clusterName),
+	}
+	staticResources := &envoy_api_bootstrap.Bootstrap_StaticResources{
+		Clusters: []*api.Cluster{{
+			Name:                 clusterName,
+			ConnectTimeout:       &duration.Duration{Seconds: 5},
+			ClusterDiscoveryType: &api.Cluster_Type{Type: api.Cluster_STRICT_DNS},
+			LbPolicy:             api.Cluster_ROUND_ROBIN,
+			LoadAssignment: &api.ClusterLoadAssignment{
+				ClusterName: clusterName,
+				Endpoints: endpoints(
+					socketAddress(xdsAddr, xdsPort),
+				),
+			},
+		},
+		}}
+
+	err = xdsConfig.Init(dynamicResources, staticResources)
+	if err != nil {
+		t.Errorf("xDS init failed: %v", err)
+	}
+
+	adsClient := &ADSClient{
+		AdsConfig:         xdsConfig.ADSConfig,
+		StreamClientMutex: sync.RWMutex{},
+		StreamClient:      nil,
+		SendControlChan:   make(chan int),
+		RecvControlChan:   make(chan int),
+		StopChan:          make(chan int),
+	}
+
+	adsClient.AdsConfig.Services[0].ClusterConfig.Address = []string{xdsAddr + ":" + portStr}
+
+	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
+
+	for i := 0; i < num; i++ {
+		wg.Add(1)
+		utils.GoWithRecover(func() {
+			for i := 0; i < 1000; i++ {
+				adsClient.Reconnect()
+			}
+			wg.Done()
+		}, func(r interface{}) {
+			t.Errorf("adsClient.Reconnect panic")
+			wg.Done()
+		})
+	}
+	wg.Wait()
+
+	time.Sleep(time.Second)
+	cmdStr := fmt.Sprintf("netstat -an | grep %s | grep ESTABLISHED | wc -l", portStr)
+	t.Logf(cmdStr)
+	c := exec.Command("bash", "-c", cmdStr)
+	output, err := c.CombinedOutput()
+	numStr := strings.Trim(strings.Trim(string(output), " "), "\n")
+	t.Logf("numStr %s", numStr)
+	numConn, err := strconv.Atoi(numStr)
+	// client<->server 2 conn
+	if numConn != 2 {
+		t.Errorf("Reconnect conn error numConn=%s %+v", numStr, err)
+	}
+	s.Stop()
 }

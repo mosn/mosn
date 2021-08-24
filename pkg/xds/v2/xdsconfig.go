@@ -178,8 +178,20 @@ func (c *ClusterConfig) GetEndpoint() (string, *time.Duration) {
 
 // GetStreamClient return a grpc stream client that connected to ads
 func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient {
-	if c.StreamClient != nil && c.StreamClient.Client != nil {
-		return c.StreamClient.Client
+	c.StreamClientMutex.RLock()
+	adsSc := c.StreamClient
+	c.StreamClientMutex.RUnlock()
+
+	if adsSc != nil && adsSc.Client != nil {
+		return adsSc.Client
+	}
+
+	c.StreamClientMutex.Lock()
+	defer c.StreamClientMutex.Unlock()
+
+	adsSc = c.StreamClient
+	if adsSc != nil && adsSc.Client != nil {
+		return adsSc.Client
 	}
 
 	sc := &StreamClient{}
@@ -190,13 +202,14 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	}
 	var endpoint string
 	var tlsContext *envoy_api_v2_auth.UpstreamTlsContext
-
+	var timeout *time.Duration
 	for _, service := range c.Services {
 		if service.ClusterConfig == nil {
 			continue
 		}
 		endpoint, _ = service.ClusterConfig.GetEndpoint()
 		if len(endpoint) > 0 {
+			timeout = service.ClusterConfig.ConnectTimeout
 			tlsContext = service.ClusterConfig.TlsContext
 			break
 		}
@@ -206,8 +219,20 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		return nil
 	}
 
+	var timeoutCtx context.Context
+	if timeout != nil && *timeout > 0 {
+		timeoutCtx, _ = context.WithTimeout(context.Background(), *timeout)
+	}
+
+	var conn *grpc.ClientConn
+	var err error
+
 	if tlsContext == nil || !featuregate.Enabled(featuregate.XdsMtlsEnable) {
-		conn, err := grpc.Dial(endpoint, grpc.WithInsecure(), generateDialOption())
+		if timeoutCtx != nil {
+			conn, err = grpc.DialContext(timeoutCtx, endpoint, grpc.WithInsecure(), generateDialOption())
+		} else {
+			conn, err = grpc.Dial(endpoint, grpc.WithInsecure(), generateDialOption())
+		}
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -221,7 +246,11 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 			return nil
 		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
+		if timeoutCtx != nil {
+			conn, err = grpc.DialContext(timeoutCtx, endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
+		} else {
+			conn, err = grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
+		}
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -230,8 +259,13 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		sc.Conn = conn
 	}
 	client := ads.NewAggregatedDiscoveryServiceClient(sc.Conn)
-
-	ctx, cancel := context.WithCancel(context.Background())
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeoutCtx == nil {
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		ctx, cancel = context.WithCancel(timeoutCtx)
+	}
 	sc.Cancel = cancel
 	streamClient, err := client.StreamAggregatedResources(ctx)
 	if err != nil {
@@ -289,16 +323,21 @@ func (c *ADSConfig) getADSRefreshDelay() *time.Duration {
 }
 
 func (c *ADSConfig) closeADSStreamClient() {
-	if c.StreamClient == nil {
+	c.StreamClientMutex.Lock()
+	sc := c.StreamClient
+	c.StreamClient = nil
+	c.StreamClientMutex.Unlock()
+
+	if sc == nil {
 		return
 	}
-	c.StreamClient.Cancel()
-	if c.StreamClient.Conn != nil {
-		c.StreamClient.Conn.Close()
-		c.StreamClient.Conn = nil
+	sc.Cancel()
+	if sc.Conn != nil {
+		sc.Conn.Close()
+		sc.Conn = nil
 	}
-	c.StreamClient.Client = nil
-	c.StreamClient = nil
+	sc.Client = nil
+	sc = nil
 }
 
 // [xds] [ads client] get resp timeout: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5193322 vs. 4194304), retry after 1s
