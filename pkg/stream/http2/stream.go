@@ -650,6 +650,9 @@ var errClosedClientConn = errors.New("http2: client conn is closed")
 func (conn *clientStreamConnection) OnEvent(event api.ConnectionEvent) {
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()
+	if event == api.Connected {
+		conn.mClientConn.WriteInitFrame()
+	}
 	if event.IsClose() || event.ConnectFailure() {
 		for _, stream := range conn.streams {
 			if buf := stream.recData; buf != nil {
@@ -1041,10 +1044,6 @@ func (s *clientStream) ResetStream(reason types.StreamResetReason) {
 		if log.DefaultLogger.GetLogLevel() >= log.WARN {
 			log.DefaultLogger.Warnf("http2 client reset by goaway, retry it, lastStream = %d, streamId = %d", s.sc.lastStream, s.id)
 		}
-		reason = types.StreamConnectionFailed
-	}
-	switch reason {
-	case types.StreamConnectionTermination:
 		reason = types.StreamConnectionFailed
 	}
 
