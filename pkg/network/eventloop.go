@@ -22,7 +22,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/mosn/easygo/netpoll"
+	"mosn.io/pkg/netpoll"
 	atomicex "go.uber.org/atomic"
 	"mosn.io/mosn/pkg/log"
 	mosnsync "mosn.io/mosn/pkg/sync"

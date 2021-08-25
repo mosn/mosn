@@ -25,10 +25,10 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	routerAdapter "mosn.io/mosn/pkg/router"
 
-	"github.com/mosn/binding"
-	dubboreg "github.com/mosn/registry/dubbo"
-	dubbocommon "github.com/mosn/registry/dubbo/common"
-	zkreg "github.com/mosn/registry/dubbo/zookeeper"
+	"mosn.io/pkg/binding"
+	dubboreg "mosn.io/pkg/registry/dubbo"
+	dubbocommon "mosn.io/pkg/registry/dubbo/common"
+	zkreg "mosn.io/pkg/registry/dubbo/zookeeper"
 	"github.com/valyala/fasttemplate"
 )
 

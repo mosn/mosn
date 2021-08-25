@@ -22,8 +22,8 @@ import (
 	"net/url"
 	"sync"
 
-	dubbocommon "github.com/mosn/registry/dubbo/common"
-	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
+	dubbocommon "mosn.io/pkg/registry/dubbo/common"
+	dubboconsts "mosn.io/pkg/registry/dubbo/common/constant"
 )
 
 // subscribe a service from registry
