@@ -23,7 +23,7 @@ import (
 	"path"
 
 	"github.com/go-chi/chi"
-	dubbologger "github.com/mosn/registry/dubbo/common/logger"
+	dubbologger "mosn.io/pkg/registry/dubbo/common/logger"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	routerAdapter "mosn.io/mosn/pkg/router"

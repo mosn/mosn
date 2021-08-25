@@ -232,10 +232,7 @@ func Test_convertHeaders(t *testing.T) {
 
 func NewBoolValue(val bool) *wrappers.BoolValue {
 	return &wrappers.BoolValue{
-		Value:                val,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Value: val,
 	}
 }
 

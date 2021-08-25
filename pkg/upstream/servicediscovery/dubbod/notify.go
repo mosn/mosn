@@ -17,8 +17,8 @@
 package dubbod
 
 import (
-	registry "github.com/mosn/registry/dubbo"
-	"github.com/mosn/registry/dubbo/remoting"
+	registry "mosn.io/pkg/registry/dubbo"
+	"mosn.io/pkg/registry/dubbo/remoting"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	clusterAdapter "mosn.io/mosn/pkg/upstream/cluster"
