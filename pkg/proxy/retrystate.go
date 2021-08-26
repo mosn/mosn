@@ -27,6 +27,7 @@ import (
 )
 
 type retryState struct {
+	disable          bool
 	retryPolicy      api.RetryPolicy
 	requestHeaders   types.HeaderMap // TODO: support retry policy by header
 	cluster          types.ClusterInfo
@@ -53,7 +54,22 @@ func newRetryState(retryPolicy api.RetryPolicy,
 	return rs
 }
 
+func (r *retryState) Enable() {
+	r.disable = false
+}
+
+func (r *retryState) Disable() {
+	r.disable = true
+}
+
+func (r *retryState) Status() bool {
+	return !r.disable
+}
+
 func (r *retryState) retry(ctx context.Context, headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
+	if r.disable {
+		return api.NoRetry
+	}
 	r.reset()
 
 	check := r.shouldRetry(ctx, headers, reason)

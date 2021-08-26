@@ -379,6 +379,9 @@ func (s *downStream) OnDestroyStream() {}
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
 	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
+	if useStream := mosnctx.Get(ctx, types.ContextKeyRequestUseStream); useStream != nil {
+		s.context = mosnctx.WithValue(s.context, types.ContextKeyRequestUseStream, useStream)
+	}
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 	s.tracks = track.TrackBufferByContext(ctx).Tracks
@@ -863,6 +866,7 @@ func (s *downStream) chooseHost(endStream bool) {
 	prot := s.getUpstreamProtocol()
 
 	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyRetryState, s.retryState)
 
 	// Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
