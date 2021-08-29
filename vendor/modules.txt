@@ -534,8 +534,6 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/errgo.v2 v2.1.0
 gopkg.in/errgo.v2/errors
 gopkg.in/errgo.v2/fmt/errors
-# gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
-## explicit
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.4.0
