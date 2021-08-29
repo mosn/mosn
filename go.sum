@@ -456,6 +456,8 @@ github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsq
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/opentrx/seata-golang/v2 v2.0.3 h1:9R79mUKG5XvG8bVso+i+nOtMmHM/9QPIqu6lBG0klik=
 github.com/opentrx/seata-golang/v2 v2.0.3/go.mod h1:RFumT72X03v7YA0fRNp9nlMOta87a/CXt0ZQCZ59ph4=
+github.com/opentrx/seata-golang/v2 v2.0.4 h1:WLzuIoZsVi6ZEJUoi0g891I74dlC6ENH7UlYmR9oQh8=
+github.com/opentrx/seata-golang/v2 v2.0.4/go.mod h1:uVMIDsvM4NBQXoZgtfHleBGrAqwkUry3jD3cf/JYi9k=
 github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5/go.mod h1:uVHyebswE1cCXr2A73cRM2frx5ld1RJUCJkFNZ90ZiI=
 github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5/go.mod h1:/wsWhb9smxSfWAKL3wpBW7V8scJMt8N8gnaMCS9E/cA=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=

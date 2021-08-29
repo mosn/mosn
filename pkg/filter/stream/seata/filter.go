@@ -3,6 +3,7 @@ package seata
 import (
 	"context"
 	"fmt"
+	"mosn.io/pkg/utils"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/seata"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
@@ -36,6 +36,7 @@ type filter struct {
 	sendHandler       api.StreamSenderFilterHandler
 	transactionClient apis.TransactionManagerServiceClient
 	resourceClient    apis.ResourceManagerServiceClient
+	branchMessages    chan *apis.BranchMessage
 }
 
 func NewFilter(conf *Seata) (*filter, error) {
@@ -55,7 +56,11 @@ func NewFilter(conf *Seata) (*filter, error) {
 		tccResources:      make(map[string]*TCCResource),
 		transactionClient: transactionManagerClient,
 		resourceClient:    resourceManagerClient,
+		branchMessages:    make(chan *apis.BranchMessage),
 	}
+	utils.GoWithRecover(func() {
+		f.branchCommunicate()
+	}, nil)
 
 	for _, ti := range conf.TransactionInfos {
 		f.transactionInfos[ti.RequestPath] = ti
@@ -189,7 +194,7 @@ func (f *filter) handleHttp1BranchRegister(ctx context.Context, headers api.Head
 		return api.StreamFiltertermination
 	}
 
-	requestContext := &seata.RequestContext{
+	requestContext := &RequestContext{
 		ActionContext: make(map[string]string),
 		Headers:       protocol.CommonHeader{},
 		Body:          buf.Clone(),
@@ -197,8 +202,8 @@ func (f *filter) handleHttp1BranchRegister(ctx context.Context, headers api.Head
 	}
 	host, _ := variable.GetString(ctx, types.VarHost)
 	requestContext.ActionContext[types.VarHost] = host
-	requestContext.ActionContext[seata.CommitRequestPath] = tccResource.CommitRequestPath
-	requestContext.ActionContext[seata.RollbackRequestPath] = tccResource.RollbackRequestPath
+	requestContext.ActionContext[CommitRequestPath] = tccResource.CommitRequestPath
+	requestContext.ActionContext[RollbackRequestPath] = tccResource.RollbackRequestPath
 	queryString, _ := variable.GetString(ctx, types.VarQueryString)
 	if queryString != "" {
 		requestContext.ActionContext[types.VarQueryString] = queryString

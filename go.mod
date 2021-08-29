@@ -31,7 +31,7 @@ require (
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.1.25
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/opentrx/seata-golang/v2 v2.0.3
+	github.com/opentrx/seata-golang/v2 v2.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/client_model v0.2.0

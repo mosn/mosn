@@ -232,7 +232,7 @@ func Test_convertHeaders(t *testing.T) {
 
 func NewBoolValue(val bool) *wrappers.BoolValue {
 	return &wrappers.BoolValue{
-		Value:                val,
+		Value: val,
 	}
 }
 

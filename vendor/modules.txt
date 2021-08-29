@@ -273,7 +273,7 @@ github.com/oklog/run
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
-# github.com/opentrx/seata-golang/v2 v2.0.3
+# github.com/opentrx/seata-golang/v2 v2.0.4
 ## explicit
 github.com/opentrx/seata-golang/v2/pkg/apis
 # github.com/pkg/errors v0.9.1

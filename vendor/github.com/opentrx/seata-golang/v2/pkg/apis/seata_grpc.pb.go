@@ -246,6 +246,7 @@ var TransactionManagerService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ResourceManagerServiceClient interface {
+	BranchCommunicate(ctx context.Context, opts ...grpc.CallOption) (ResourceManagerService_BranchCommunicateClient, error)
 	BranchRegister(ctx context.Context, in *BranchRegisterRequest, opts ...grpc.CallOption) (*BranchRegisterResponse, error)
 	BranchReport(ctx context.Context, in *BranchReportRequest, opts ...grpc.CallOption) (*BranchReportResponse, error)
 	LockQuery(ctx context.Context, in *GlobalLockQueryRequest, opts ...grpc.CallOption) (*GlobalLockQueryResponse, error)
@@ -257,6 +258,37 @@ type resourceManagerServiceClient struct {
 
 func NewResourceManagerServiceClient(cc grpc.ClientConnInterface) ResourceManagerServiceClient {
 	return &resourceManagerServiceClient{cc}
+}
+
+func (c *resourceManagerServiceClient) BranchCommunicate(ctx context.Context, opts ...grpc.CallOption) (ResourceManagerService_BranchCommunicateClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ResourceManagerService_ServiceDesc.Streams[0], "/apis.ResourceManagerService/BranchCommunicate", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &resourceManagerServiceBranchCommunicateClient{stream}
+	return x, nil
+}
+
+type ResourceManagerService_BranchCommunicateClient interface {
+	Send(*BranchMessage) error
+	Recv() (*BranchMessage, error)
+	grpc.ClientStream
+}
+
+type resourceManagerServiceBranchCommunicateClient struct {
+	grpc.ClientStream
+}
+
+func (x *resourceManagerServiceBranchCommunicateClient) Send(m *BranchMessage) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *resourceManagerServiceBranchCommunicateClient) Recv() (*BranchMessage, error) {
+	m := new(BranchMessage)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *resourceManagerServiceClient) BranchRegister(ctx context.Context, in *BranchRegisterRequest, opts ...grpc.CallOption) (*BranchRegisterResponse, error) {
@@ -290,6 +322,7 @@ func (c *resourceManagerServiceClient) LockQuery(ctx context.Context, in *Global
 // All implementations should embed UnimplementedResourceManagerServiceServer
 // for forward compatibility
 type ResourceManagerServiceServer interface {
+	BranchCommunicate(ResourceManagerService_BranchCommunicateServer) error
 	BranchRegister(context.Context, *BranchRegisterRequest) (*BranchRegisterResponse, error)
 	BranchReport(context.Context, *BranchReportRequest) (*BranchReportResponse, error)
 	LockQuery(context.Context, *GlobalLockQueryRequest) (*GlobalLockQueryResponse, error)
@@ -299,6 +332,9 @@ type ResourceManagerServiceServer interface {
 type UnimplementedResourceManagerServiceServer struct {
 }
 
+func (UnimplementedResourceManagerServiceServer) BranchCommunicate(ResourceManagerService_BranchCommunicateServer) error {
+	return status.Errorf(codes.Unimplemented, "method BranchCommunicate not implemented")
+}
 func (UnimplementedResourceManagerServiceServer) BranchRegister(context.Context, *BranchRegisterRequest) (*BranchRegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BranchRegister not implemented")
 }
@@ -318,6 +354,32 @@ type UnsafeResourceManagerServiceServer interface {
 
 func RegisterResourceManagerServiceServer(s grpc.ServiceRegistrar, srv ResourceManagerServiceServer) {
 	s.RegisterService(&ResourceManagerService_ServiceDesc, srv)
+}
+
+func _ResourceManagerService_BranchCommunicate_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ResourceManagerServiceServer).BranchCommunicate(&resourceManagerServiceBranchCommunicateServer{stream})
+}
+
+type ResourceManagerService_BranchCommunicateServer interface {
+	Send(*BranchMessage) error
+	Recv() (*BranchMessage, error)
+	grpc.ServerStream
+}
+
+type resourceManagerServiceBranchCommunicateServer struct {
+	grpc.ServerStream
+}
+
+func (x *resourceManagerServiceBranchCommunicateServer) Send(m *BranchMessage) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *resourceManagerServiceBranchCommunicateServer) Recv() (*BranchMessage, error) {
+	m := new(BranchMessage)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _ResourceManagerService_BranchRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -394,126 +456,13 @@ var ResourceManagerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ResourceManagerService_LockQuery_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "seata.proto",
-}
-
-// BranchTransactionServiceClient is the client API for BranchTransactionService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type BranchTransactionServiceClient interface {
-	BranchCommit(ctx context.Context, in *BranchCommitRequest, opts ...grpc.CallOption) (*BranchCommitResponse, error)
-	BranchRollback(ctx context.Context, in *BranchRollbackRequest, opts ...grpc.CallOption) (*BranchRollbackResponse, error)
-}
-
-type branchTransactionServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewBranchTransactionServiceClient(cc grpc.ClientConnInterface) BranchTransactionServiceClient {
-	return &branchTransactionServiceClient{cc}
-}
-
-func (c *branchTransactionServiceClient) BranchCommit(ctx context.Context, in *BranchCommitRequest, opts ...grpc.CallOption) (*BranchCommitResponse, error) {
-	out := new(BranchCommitResponse)
-	err := c.cc.Invoke(ctx, "/apis.BranchTransactionService/BranchCommit", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *branchTransactionServiceClient) BranchRollback(ctx context.Context, in *BranchRollbackRequest, opts ...grpc.CallOption) (*BranchRollbackResponse, error) {
-	out := new(BranchRollbackResponse)
-	err := c.cc.Invoke(ctx, "/apis.BranchTransactionService/BranchRollback", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// BranchTransactionServiceServer is the server API for BranchTransactionService service.
-// All implementations should embed UnimplementedBranchTransactionServiceServer
-// for forward compatibility
-type BranchTransactionServiceServer interface {
-	BranchCommit(context.Context, *BranchCommitRequest) (*BranchCommitResponse, error)
-	BranchRollback(context.Context, *BranchRollbackRequest) (*BranchRollbackResponse, error)
-}
-
-// UnimplementedBranchTransactionServiceServer should be embedded to have forward compatible implementations.
-type UnimplementedBranchTransactionServiceServer struct {
-}
-
-func (UnimplementedBranchTransactionServiceServer) BranchCommit(context.Context, *BranchCommitRequest) (*BranchCommitResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BranchCommit not implemented")
-}
-func (UnimplementedBranchTransactionServiceServer) BranchRollback(context.Context, *BranchRollbackRequest) (*BranchRollbackResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BranchRollback not implemented")
-}
-
-// UnsafeBranchTransactionServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to BranchTransactionServiceServer will
-// result in compilation errors.
-type UnsafeBranchTransactionServiceServer interface {
-	mustEmbedUnimplementedBranchTransactionServiceServer()
-}
-
-func RegisterBranchTransactionServiceServer(s grpc.ServiceRegistrar, srv BranchTransactionServiceServer) {
-	s.RegisterService(&BranchTransactionService_ServiceDesc, srv)
-}
-
-func _BranchTransactionService_BranchCommit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BranchCommitRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BranchTransactionServiceServer).BranchCommit(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/apis.BranchTransactionService/BranchCommit",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BranchTransactionServiceServer).BranchCommit(ctx, req.(*BranchCommitRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BranchTransactionService_BranchRollback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BranchRollbackRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BranchTransactionServiceServer).BranchRollback(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/apis.BranchTransactionService/BranchRollback",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BranchTransactionServiceServer).BranchRollback(ctx, req.(*BranchRollbackRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// BranchTransactionService_ServiceDesc is the grpc.ServiceDesc for BranchTransactionService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var BranchTransactionService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "apis.BranchTransactionService",
-	HandlerType: (*BranchTransactionServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "BranchCommit",
-			Handler:    _BranchTransactionService_BranchCommit_Handler,
-		},
-		{
-			MethodName: "BranchRollback",
-			Handler:    _BranchTransactionService_BranchRollback_Handler,
+			StreamName:    "BranchCommunicate",
+			Handler:       _ResourceManagerService_BranchCommunicate_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "seata.proto",
 }
