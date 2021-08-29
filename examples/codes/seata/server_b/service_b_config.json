@@ -39,7 +39,7 @@
 						{
 							"type": "seata",
 							"config": {
-								"addressing": "localhost:3047",
+								"addressing": "service-b",
 								"serverAddressing": "localhost:8091",
 								"commitRetryCount": 5,
 								"rollbackRetryCount": 5,
