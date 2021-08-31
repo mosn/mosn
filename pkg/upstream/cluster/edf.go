@@ -54,14 +54,14 @@ func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) in
 	if len(edf.items) == 0 {
 		return nil
 	}
-	entry := heap.Pop(&edf.items).(*edfEntry)
+	entry := edf.items[0]
 	edf.currentTime = entry.deadline
 	weight := weightFunc(entry.item)
 	// update the index、deadline and put into priorityQueue again
 	entry.deadline = entry.deadline + 1.0/weight
 	entry.weight = weight
 	entry.queuedTime = time.Now()
-	heap.Push(&edf.items, entry)
+	heap.Fix(&edf.items, 0)
 	return entry.item
 }
 
