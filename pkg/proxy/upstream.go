@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
@@ -111,10 +110,6 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	if code, err := protocol.MappingHeaderStatusCode(r.downStream.context, r.protocol, headers); err == nil {
 		r.downStream.requestInfo.SetResponseCode(code)
-	}
-
-	if useStream, ok := mosnctx.Get(ctx, types.ContextKeyResponseUseStream).(bool); ok {
-		r.downStream.context = mosnctx.WithValue(r.downStream.context, types.ContextKeyResponseUseStream, useStream)
 	}
 
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())

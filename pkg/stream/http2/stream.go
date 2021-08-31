@@ -368,14 +368,16 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.trailer = &mhttp2.HeaderMap{}
 	}
 
-	// data
-	if data != nil {
+	if stream == nil {
 		stream = conn.onStreamRecv(ctx, id, endStream)
 		if stream == nil {
 			log.Proxy.Errorf(ctx, "http2 server OnStreamRecv error, invaild id = %d", id)
 			return
 		}
+	}
 
+	// data
+	if data != nil {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "http2 server receive data: %d", id)
 		}
@@ -386,7 +388,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			} else {
 				stream.recData = buffer.NewPipeBuffer(len(data))
 				stream.reqUseStream = true
-				stream.ctx = mosnctx.WithValue(stream.ctx, types.ContextKeyRequestUseStream, stream.reqUseStream)
+				variable.Set(stream.ctx, types.VarHttp2RequestUseStream, stream.reqUseStream)
 				stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 			}
 		}
@@ -412,6 +414,9 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		if stream.reqUseStream {
 			stream.recData.CloseWithError(io.EOF)
 		} else {
+			if stream.recData == nil {
+				stream.recData = buffer.GetIoBuffer(0)
+			}
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -498,8 +503,10 @@ type serverStream struct {
 
 // types.StreamSender
 func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
-	if useStream, ok := mosnctx.Get(ctx, types.ContextKeyResponseUseStream).(bool); ok {
-		s.respUseStream = useStream
+	if useStream, err := variable.Get(ctx, types.VarHttp2ResponseUseStream); err == nil {
+		if h2UseStream, ok := useStream.(bool); ok {
+			s.respUseStream = h2UseStream
+		}
 	}
 	var rsp *http.Response
 
@@ -733,8 +740,10 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	stream.sc = conn
 	stream.receiver = receiver
 	stream.conn = conn.conn
-	if useStream, ok := mosnctx.Get(ctx, types.ContextKeyRequestUseStream).(bool); ok {
-		stream.reqUseStream = useStream
+	if useStream, err := variable.Get(ctx, types.VarHttp2RequestUseStream); err == nil {
+		if h2UseStream, ok := useStream.(bool); ok {
+			stream.reqUseStream = h2UseStream
+		}
 	}
 
 	return stream
@@ -823,7 +832,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 			} else {
 				stream.recData = buffer.NewPipeBuffer(len(data))
 				stream.respUseStream = true
-				stream.ctx = mosnctx.WithValue(stream.ctx, types.ContextKeyResponseUseStream, stream.respUseStream)
+				variable.Set(stream.ctx, types.VarHttp2ResponseUseStream, stream.respUseStream)
 				stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 			}
 		}
@@ -848,6 +857,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		if stream.respUseStream {
 			stream.recData.CloseWithError(io.EOF)
 		} else if stream.receiver != nil {
+			if stream.recData == nil {
+				stream.recData = buffer.GetIoBuffer(0)
+			}
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -1033,14 +1045,12 @@ func (s *clientStream) endStream() {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.ctx, "http2 client SendRequest id = %d", s.id)
 	}
+	if s.reqUseStream {
+		variable.Set(s.ctx, types.VarProxyDisableRetry, true)
+	}
 	// send body and trailer
 	_, err = s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err == nil {
-		if s.reqUseStream {
-			if retryState, ok := mosnctx.Get(s.ctx, types.ContextKeyRetryState).(types.BoolSwitch); ok {
-				retryState.Disable()
-			}
-		}
 		return
 	}
 

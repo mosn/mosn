@@ -208,15 +208,14 @@ func TestServerH2ReqUseStream(t *testing.T) {
 			fp(ctx, headers, data, trailers)
 		})
 
-	ctx := variable.NewVariableContext(context.Background())
-
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
 
 	serverCallbacks := mock.NewMockServerStreamConnectionEventListener(ctrl)
 
 	serverCallbacks.EXPECT().NewStreamDetect(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(streamReceiver)
 
 	sc := newServerStreamConnection(ctx, connection, serverCallbacks).(*serverStreamConnection)
+	sc.cm.Next()
 
 	monkey.PatchInstanceMethod(reflect.TypeOf(sc.sc), "HandleError", func(sc *mhttp2.MServerConn, ctx context.Context, f mhttp2.Frame, err error) {
 		t.Fatalf("HandleError %v", err)
@@ -225,9 +224,12 @@ func TestServerH2ReqUseStream(t *testing.T) {
 	for _, testcase := range testcases {
 
 		fp = func(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
-			if useStream, ok := mosnctx.Get(ctx, types.ContextKeyRequestUseStream).(bool); ok {
-				if useStream && !testcase.useStream {
-					t.Fatalf("unexpected use stream, expect: %v, actual: %v", testcase.useStream, useStream)
+
+			if useStream, err := variable.Get(ctx, types.VarHttp2RequestUseStream); err == nil {
+				if h2UseStream, ok := useStream.(bool); ok {
+					if h2UseStream && !testcase.useStream {
+						t.Fatalf("unexpected use stream, expect: %v, actual: %v", testcase.useStream, useStream)
+					}
 				}
 				return
 			}
@@ -252,9 +254,12 @@ func TestServerH2ReqUseStream(t *testing.T) {
 			},
 		}
 
+		ctx := sc.cm.Get()
 		sc.handleFrame(ctx, mh, nil)
-
+		sc.cm.Next()
+		ctx = sc.cm.Get()
 		sc.handleFrame(ctx, testcase.dataFrame, nil)
+		sc.cm.Next()
 	}
 }
 
@@ -293,9 +298,7 @@ func TestClientH2ReqUseStream(t *testing.T) {
 		},
 	}
 
-	ctx := variable.NewVariableContext(context.Background())
-
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().AddConnectionEventListener(gomock.Any()).AnyTimes()
@@ -328,16 +331,8 @@ func TestClientH2ReqUseStream(t *testing.T) {
 			}
 			return nil, nil
 		}
-		ctx := mosnctx.Clone(ctx)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyRequestUseStream, testcase.useStream)
-
-		retryState := mock.NewMockBoolSwitch(ctrl)
-		if !testcase.retryEnable {
-			retryState.EXPECT().Disable().Times(1)
-		} else {
-			retryState.EXPECT().Disable().Times(0)
-		}
-		mosnctx.WithValue(ctx, types.ContextKeyRetryState, retryState)
+		ctx := variable.NewVariableContext(context.Background())
+		variable.Set(ctx, types.VarHttp2RequestUseStream, testcase.useStream)
 
 		clientStream := sc.NewStream(ctx, responseReceiveListener)
 		err := clientStream.AppendHeaders(ctx, &phttp2.ReqHeader{
@@ -348,6 +343,15 @@ func TestClientH2ReqUseStream(t *testing.T) {
 		}, false)
 		assert.Nil(t, err)
 		clientStream.AppendTrailers(ctx, nil)
+		var retryDisabled bool
+		if disable, err := variable.Get(ctx, types.VarProxyDisableRetry); err == nil {
+			if retryDisable, ok := disable.(bool); ok && retryDisable {
+				retryDisabled = true
+			}
+		}
+		if retryDisabled != !testcase.retryEnable {
+			t.Fatalf("unexpected retry disable expected: %v, actual: %v", !testcase.retryEnable, retryDisabled)
+		}
 	}
 }
 
@@ -407,13 +411,12 @@ func TestClientH2RespUseStream(t *testing.T) {
 			fp(ctx, headers, data, trailers)
 		})
 
-	ctx := variable.NewVariableContext(context.Background())
-
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
 
 	clientCallbacks := mock.NewMockStreamConnectionEventListener(ctrl)
 
 	sc := newClientStreamConnection(ctx, connection, clientCallbacks).(*clientStreamConnection)
+	sc.cm.Next()
 
 	//monkey.PatchInstanceMethod(reflect.TypeOf(sc.mClientConn), "HandleError", func(sc *mhttp2.MClientConn, ctx context.Context, f mhttp2.Frame, err error) {
 	//	t.Fatalf("HandleError %v", err)
@@ -421,7 +424,7 @@ func TestClientH2RespUseStream(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://127.0.0.1:80/", nil)
 
 	for _, testcase := range testcases {
-		ctx := mosnctx.Clone(ctx)
+		ctx = sc.cm.Get()
 		mClientStream, _ := sc.mClientConn.WriteHeaders(ctx, req, "", false)
 		testcase.dataFrame.StreamID = mClientStream.ID
 		sClientStream := sc.NewStream(ctx, streamReceiver).(*clientStream)
@@ -429,11 +432,13 @@ func TestClientH2RespUseStream(t *testing.T) {
 		sc.streams[sClientStream.id] = sClientStream
 
 		fp = func(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
-			if useStream, ok := mosnctx.Get(ctx, types.ContextKeyResponseUseStream).(bool); ok {
-				if useStream && !testcase.useStream {
-					t.Fatalf("unexpected use stream, expect: %v, actual: %v", testcase.useStream, useStream)
+			if useStream, err := variable.Get(ctx, types.VarHttp2ResponseUseStream); err == nil {
+				if h2UseStream, ok := useStream.(bool); ok {
+					if h2UseStream && !testcase.useStream {
+						t.Fatalf("unexpected use stream, expect: %v, actual: %v", testcase.useStream, useStream)
+					}
+					return
 				}
-				return
 			}
 			if testcase.useStream {
 				t.Fatalf("unexpected use stream, expect: %v, actual: %v", testcase.useStream, false)
@@ -453,10 +458,13 @@ func TestClientH2RespUseStream(t *testing.T) {
 				{Name: ":status", Value: "200"},
 			},
 		}
-
+		sc.cm.Next()
+		ctx = sc.cm.Get()
 		sc.handleFrame(ctx, mh, nil)
-
+		sc.cm.Next()
+		ctx = sc.cm.Get()
 		sc.handleFrame(ctx, testcase.dataFrame, nil)
+		sc.cm.Next()
 	}
 }
 
@@ -513,7 +521,7 @@ func TestServerH2RespUseStream(t *testing.T) {
 			return nil, nil
 		}
 		ctx := mosnctx.Clone(ctx)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyResponseUseStream, testcase.useStream)
+		variable.Set(ctx, types.VarHttp2ResponseUseStream, testcase.useStream)
 
 		h2s := &mhttp2.MStream{}
 		monkey.PatchInstanceMethod(reflect.TypeOf(h2s), "ID", func(cc *mhttp2.MStream) uint32 {
