@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	SEATA    = "seata"
-	XID      = "x_seata_xid"
-	BranchID = "x_seata_branch_id"
+	SEATA        = "seata"
+	XID          = "x_seata_xid"
+	BranchID     = "x_seata_branch_id"
+	ResponseFlag = 0x600
 )
 
 type filter struct {
@@ -77,13 +78,15 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	if f.receiveHandler.RequestInfo().Protocol() == protocol.HTTP1 {
 		path, err := variable.GetString(ctx, types.VarPath)
 		if err != nil {
-			log.DefaultLogger.Errorf("failed to get path, err: %v", err)
-			return api.StreamFiltertermination
+			log.Proxy.Errorf(ctx, "failed to get request path, err: %v", err)
+			f.abort(ctx, http.StatusNotAcceptable, headers, `{"error":"failed to get request path"}`)
+			return api.StreamFilterStop
 		}
 		method, err := variable.GetString(ctx, types.VarMethod)
 		if err != nil {
-			log.DefaultLogger.Errorf("failed to get method, err: %v", err)
-			return api.StreamFiltertermination
+			log.Proxy.Errorf(ctx, "failed to get method, err: %v", err)
+			f.abort(ctx, http.StatusMethodNotAllowed, headers, `{"error":"failed to get http method"}`)
+			return api.StreamFilterStop
 		}
 
 		if method != fasthttp.MethodPost {
@@ -127,12 +130,12 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 				if header.StatusCode() == http.StatusOK {
 					err = f.globalCommit(ctx, xid)
 					if err != nil {
-						log.DefaultLogger.Errorf(err.Error())
+						log.Proxy.Errorf(ctx, err.Error())
 					}
 				} else {
 					err = f.globalRollback(ctx, xid)
 					if err != nil {
-						log.DefaultLogger.Errorf(err.Error())
+						log.Proxy.Errorf(ctx, err.Error())
 					}
 				}
 			}
@@ -149,7 +152,7 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 				if header.StatusCode() != http.StatusOK {
 					err := f.branchReport(ctx, xid, branchID, apis.TCC, apis.PhaseOneFailed, nil)
 					if err != nil {
-						log.DefaultLogger.Errorf(err.Error())
+						log.Proxy.Errorf(ctx, err.Error())
 					}
 				}
 			}
@@ -178,8 +181,11 @@ func (f *filter) handleHttp1GlobalBegin(ctx context.Context, headers api.HeaderM
 	// todo support transaction isolation level
 	xid, err := f.globalBegin(ctx, transactionInfo.RequestPath, transactionInfo.Timeout)
 	if err != nil {
-		log.DefaultLogger.Errorf("failed to begin global transaction, transaction info: %v, err: %v", transactionInfo, err)
-		return api.StreamFiltertermination
+		log.Proxy.Errorf(ctx, "failed to begin global transaction, transaction info: %v, err: %v",
+			transactionInfo, err)
+		f.abort(ctx, http.StatusInternalServerError, headers,
+			fmt.Sprintf(`{"error":"failed to begin global transaction, %v"}`, err))
+		return api.StreamFilterStop
 	}
 	headers.Add(XID, xid)
 	variable.Set(ctx, XID, xid)
@@ -190,8 +196,10 @@ func (f *filter) handleHttp1BranchRegister(ctx context.Context, headers api.Head
 	trailers api.HeaderMap, tccResource *TCCResource) api.StreamFilterStatus {
 	xid, ok := headers.Get(XID)
 	if !ok {
-		log.DefaultLogger.Errorf("failed to get xid from request header")
-		return api.StreamFiltertermination
+		log.Proxy.Errorf(ctx, "failed to get xid from request header")
+		f.abort(ctx, http.StatusInternalServerError, headers,
+			`{"error":"failed to get xid from request header"}`)
+		return api.StreamFilterStop
 	}
 
 	requestContext := &RequestContext{
@@ -223,14 +231,18 @@ func (f *filter) handleHttp1BranchRegister(ctx context.Context, headers api.Head
 
 	data, err := requestContext.Encode()
 	if err != nil {
-		log.DefaultLogger.Errorf("encode request context failed, request context: %v, err: %v", requestContext, err)
-		return api.StreamFiltertermination
+		log.Proxy.Errorf(ctx, "encode request context failed, request context: %v, err: %v", requestContext, err)
+		f.abort(ctx, http.StatusInternalServerError, headers,
+			fmt.Sprintf(`{"error":"encode request context failed, %v"}`, err))
+		return api.StreamFilterStop
 	}
 
 	branchID, err := f.branchRegister(ctx, xid, tccResource.PrepareRequestPath, apis.TCC, data, "")
 	if err != nil {
-		log.DefaultLogger.Errorf("branch transaction register failed, xid: %s, err: %v", xid, err)
-		return api.StreamFiltertermination
+		log.Proxy.Errorf(ctx, "branch transaction register failed, xid: %s, err: %v", xid, err)
+		f.abort(ctx, http.StatusInternalServerError, headers,
+			fmt.Sprintf(`{"error":"branch transaction register failed, %v"}`, err))
+		return api.StreamFilterStop
 	}
 
 	variable.Set(ctx, XID, xid)
@@ -266,7 +278,8 @@ func (f *filter) globalCommit(ctx context.Context, xid string) error {
 	for retry > 0 {
 		status, err = f.commit(ctx, xid)
 		if err != nil {
-			log.DefaultLogger.Errorf("failed to report global commit [%s],Retry Countdown: %d, reason: %s", xid, retry, err.Error())
+			log.Proxy.Errorf(ctx, "failed to report global commit [%s],Retry Countdown: %d, reason: %s",
+				xid, retry, err.Error())
 		} else {
 			break
 		}
@@ -275,7 +288,7 @@ func (f *filter) globalCommit(ctx context.Context, xid string) error {
 			return errors.New("failed to report global commit")
 		}
 	}
-	log.DefaultLogger.Infof("[%s] commit status: %s", xid, status.String())
+	log.Proxy.Infof(ctx, "[%s] commit status: %s", xid, status.String())
 	return nil
 }
 
@@ -291,7 +304,8 @@ func (f *filter) globalRollback(ctx context.Context, xid string) error {
 	for retry > 0 {
 		status, err = f.rollback(ctx, xid)
 		if err != nil {
-			log.DefaultLogger.Errorf("failed to report global rollback [%s],Retry Countdown: %d, reason: %s", xid, retry, err.Error())
+			log.Proxy.Errorf(ctx, "failed to report global rollback [%s],Retry Countdown: %d, reason: %s",
+				xid, retry, err.Error())
 		} else {
 			break
 		}
@@ -300,7 +314,7 @@ func (f *filter) globalRollback(ctx context.Context, xid string) error {
 			return errors.New("failed to report global rollback")
 		}
 	}
-	log.DefaultLogger.Infof("[%s] rollback status: %s", xid, status.String())
+	log.Proxy.Infof(ctx, "[%s] rollback status: %s", xid, status.String())
 	return nil
 }
 
@@ -366,4 +380,12 @@ func (f *filter) branchReport(ctx context.Context, xid string, branchID int64,
 		return fmt.Errorf(resp.Message)
 	}
 	return nil
+}
+
+func (f *filter) abort(ctx context.Context, code int, headers api.HeaderMap, body string) {
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, "[stream filter] [seata] abort")
+	}
+	f.receiveHandler.RequestInfo().SetResponseFlag(ResponseFlag)
+	f.receiveHandler.SendHijackReplyWithBody(code, headers, body)
 }

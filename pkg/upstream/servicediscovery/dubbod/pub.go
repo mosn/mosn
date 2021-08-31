@@ -21,9 +21,9 @@ import (
 	"net/http"
 	"net/url"
 
+	"mosn.io/mosn/pkg/trace"
 	dubbocommon "mosn.io/pkg/registry/dubbo/common"
 	dubboconsts "mosn.io/pkg/registry/dubbo/common/constant"
-	"mosn.io/mosn/pkg/trace"
 )
 
 var mosnPubPort = "33333" // default
