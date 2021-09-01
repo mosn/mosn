@@ -28,6 +28,11 @@ const (
 	RequestResult string = "requestResult"
 )
 
+const (
+	SUCCESS string = "success"
+	FAIL    string = "fail"
+)
+
 var (
 	builtinVariables = []variable.Variable{
 		variable.NewStringVariable(grpcName+"_"+ServiceName, nil, nil, variable.DefaultStringSetter, 0),

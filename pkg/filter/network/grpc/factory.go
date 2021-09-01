@@ -84,7 +84,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 
 	//
 	opts := []grpc.ServerOption{
-		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
+		grpc.ChainUnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
 	srv, err := f.handler.Start(ln, f.config.GrpcConfig, opts...)
@@ -172,9 +172,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		responseHeader.Set(k, v[0])
 	}
 	responseHeader.Set(ServiceName, info.FullMethod)
-	responseHeader.Set(RequestResult, "t")
+	responseHeader.Set(RequestResult, SUCCESS)
 	if err != nil {
-		responseHeader.Set(RequestResult, "f")
+		responseHeader.Set(RequestResult, FAIL)
 	}
 	responseTrailer := header.CommonHeader{}
 	for k, v := range wrapper.trailer {
