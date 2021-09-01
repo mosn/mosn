@@ -2,6 +2,7 @@
 	"servers":[
 		{
 			"default_log_path":"stdout",
+			"default_log_level": "DEBUG",
 			"routers":[
 				{
 					"router_config_name":"server_router",

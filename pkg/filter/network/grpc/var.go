@@ -23,13 +23,14 @@ import (
 )
 
 const (
-	grpcName    string = "gRPC"
-	serviceName string = "serviceName"
+	grpcName      string = "gRPC"
+	ServiceName   string = "serviceName"
+	RequestResult string = "requestResult"
 )
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewStringVariable(grpcName+"_"+serviceName, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewStringVariable(grpcName+"_"+ServiceName, nil, nil, variable.DefaultStringSetter, 0),
 	}
 )
 
@@ -38,5 +39,5 @@ func init() {
 		variable.Register(builtinVariables[idx])
 	}
 
-	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, serviceName)
+	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, ServiceName)
 }

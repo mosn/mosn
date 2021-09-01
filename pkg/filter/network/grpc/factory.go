@@ -141,7 +141,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(serviceName, info.FullMethod)
+	requestHeader.Set(ServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
@@ -154,7 +154,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetString(ctx, grpcName+"_"+serviceName, info.FullMethod)
+	variable.SetString(ctx, grpcName+"_"+ServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
@@ -167,12 +167,15 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 	//do biz logic
 	resp, err = handler(newCtx, req)
-
 	responseHeader := header.CommonHeader{}
 	for k, v := range wrapper.header {
 		responseHeader.Set(k, v[0])
 	}
-
+	responseHeader.Set(ServiceName, info.FullMethod)
+	responseHeader.Set(RequestResult, "t")
+	if err != nil {
+		responseHeader.Set(RequestResult, "f")
+	}
 	responseTrailer := header.CommonHeader{}
 	for k, v := range wrapper.trailer {
 		responseTrailer.Set(k, v[0])
@@ -188,12 +191,10 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 // StreamInterceptorFilter is an implementation of grpc.StreamServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-
 	//TODO
 	//to use mosn stream filter here, we must
 	//1. only support intercept when the first request come and before the last response send (this maybe the standard implementation?)
 	//2. support intercept every stream recv/send
-
 	return handler(srv, ss)
 }
 
