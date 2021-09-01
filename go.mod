@@ -13,9 +13,10 @@ require (
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
 	github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
 	github.com/dchest/siphash v1.2.1
-	github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad
+	github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-chi/chi v4.1.0+incompatible
+	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/mock v1.4.4
@@ -29,6 +30,7 @@ require (
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.1.25
 	github.com/opentracing/opentracing-go v1.1.0
+	github.com/opentrx/seata-golang/v2 v2.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/client_model v0.2.0
@@ -44,17 +46,19 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
-	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
+	golang.org/x/tools v0.1.4
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
-	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c
 	mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36
 	mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
+	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
+	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
