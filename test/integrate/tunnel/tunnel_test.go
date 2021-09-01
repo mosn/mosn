@@ -3,6 +3,7 @@ package tunnel
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/filter/network/tunnel"
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -39,11 +41,72 @@ func (c *CustomServerLister) List(string) chan []string {
 	return ch
 }
 
-func TestTunnel(t *testing.T) {
+type CustomConnectionValidator struct {
+}
+
+func (c *CustomConnectionValidator) Validate(credential string, host string, cluster string) bool {
+	return strings.Contains(credential, cluster)
+}
+
+func TestTunnelWithCredential(t *testing.T) {
+	util.MeshLogLevel = "DEBUG"
+	appaddr := "127.0.0.1:8080"
+	ext.RegisterConnectionCredentialGetter("test_credential", func(cluster string) string {
+		return "TestTunnelWithCredential" + cluster
+	})
+	ext.RegisterConnectionValidator("test_credential", &CustomConnectionValidator{})
+	util.NewRPCServer(t, appaddr, bolt.ProtocolName)
+	agentMeshAddr := "127.0.0.1:2045"
+	tunnelServerListenerAddr := initAddrs[0]
+	bootConf := &tunnel.AgentBootstrapConfig{
+		Enable:           true,
+		ConnectionNum:    1,
+		Cluster:          "clientCluster",
+		HostingListener:  "serverListener",
+		CredentialPolicy: "test_credential",
+		StaticServerList: []string{tunnelServerListenerAddr},
+	}
+	serverMeshAddr1 := "127.0.0.1:2046"
+
+	if os.Getenv("_AGENT_SERVER_") == "1" {
+		t.Logf("start1")
+		stop := make(chan struct{})
+		agentServerConf1 := CreateMeshAgentServer(serverMeshAddr1, tunnelServerListenerAddr, bolt.ProtocolName)
+		agentServer1 := mosn.NewMosn(agentServerConf1)
+		agentServer1.Start()
+		log.DefaultLogger.Infof("start agent server success")
+		<-stop
+		return
+	}
+	agenConf := CreateMeshWithAgent(agentMeshAddr, appaddr, bootConf, bolt.ProtocolName)
+	agentMesh := mosn.NewMosn(agenConf)
+	agentMesh.Start()
+
+	pid1 := forkMeshAgentServer("1")
+	if pid1 == 0 {
+		t.Fatal("fork error")
+		return
+	}
+	defer syscall.Kill(pid1, syscall.SIGKILL)
+
+	time.Sleep(time.Second * 10)
+
+	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
+	tc.ClientMeshAddr = serverMeshAddr1
+	tc.AppServer.GoServe()
+	defer tc.AppServer.Close()
+	go tc.RunCase(1, 0)
+	err := <-tc.C
+	if err != nil {
+		t.Fatal(" error is expected to be empty")
+	}
+	time.Sleep(10 * time.Second)
+}
+
+func TestTunnelDynamicServerList(t *testing.T) {
 	util.MeshLogLevel = "DEBUG"
 	ext.RegisterServerLister("custom_lister", &CustomServerLister{})
 	appaddr := "127.0.0.1:8080"
-	util.NewRPCServer(t, appaddr, bolt.ProtocolName)
 	agentMeshAddr := "127.0.0.1:2045"
 	bootConf := &tunnel.AgentBootstrapConfig{
 		Enable:          true,
@@ -99,8 +162,11 @@ func TestTunnel(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 
+	appServer := util.NewRPCServer(t, appaddr, bolt.ProtocolName)
+	appServer.GoServe()
+	defer appServer.Close()
+	// agent server list is empty, will fail
 	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
-	tc.ClientMeshAddr = serverMeshAddr1
 	go tc.RunCase(1, 0)
 	err := <-tc.C
 	if err == nil {
@@ -111,7 +177,6 @@ func TestTunnel(t *testing.T) {
 	// Wait for connection is established
 	time.Sleep(time.Second * 5)
 	tc = integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
-	tc.AppServer.GoServe()
 	tc.ClientMeshAddr = serviceMeshAddr2
 	go tc.RunCase(1, 0)
 	err = <-tc.C
