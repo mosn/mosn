@@ -52,7 +52,7 @@ import (
 * flag: (bit offset)
 * 8           7           6           5           4           3           2           1           0
 * +-----------+-----------+-----------+-----------------------------------------------------------+
-* |   req/rsp | two way   |  e^ent    |              serialization id                             |
+* |   req/rsp | two way   |  event    |              serialization id                             |
 * +-----------+-----------+-----------+-----------------------------------------------------------+
 * event: 1 mean ping
 * two way: 1 mean req & rsp pair
