@@ -3,7 +3,6 @@ package seata
 import (
 	"context"
 	"fmt"
-	"mosn.io/pkg/utils"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 const (
