@@ -3,10 +3,9 @@ package grpc
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/filter/network/grpc"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/filter/network/grpc"
 	"mosn.io/pkg/buffer"
 )
 
@@ -53,7 +52,7 @@ func (d *grpcFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	stats.RequestServiceTotle.Inc(1)
+	stats.RequestServiceTootle.Inc(1)
 	if result == grpc.SUCCESS {
 		stats.ResponseSuccess.Inc(1)
 	} else {

@@ -9,34 +9,34 @@ import (
 )
 
 var (
-	ServiceInfo  = "request_total"
-	ResponseSucc = "response_succ_total"
-	ResponseFail = "response_fail_total"
-	serviceKey   = "service"
-	metricPre    = "grpc"
+	ServiceReqNum = "request_total"
+	ResponseSucc  = "response_succ_total"
+	ResponseFail  = "response_fail_total"
+	serviceKey    = "service"
+	metricPre     = "grpc"
 )
 
 var (
-	l            sync.RWMutex
+	mux          sync.RWMutex
 	statsFactory = make(map[string]*Stats)
 )
 
 type Stats struct {
-	RequestServiceTotle gometrics.Counter
-	ResponseSuccess     gometrics.Counter
-	ResponseFail        gometrics.Counter
+	RequestServiceTootle gometrics.Counter
+	ResponseSuccess      gometrics.Counter
+	ResponseFail         gometrics.Counter
 }
 
 func getStats(service string) *Stats {
 	key := service
-	l.RLock()
+	mux.RLock()
 	s, ok := statsFactory[key]
-	l.RUnlock()
+	mux.RUnlock()
 	if ok {
 		return s
 	}
-	l.Lock()
-	defer l.Unlock()
+	mux.Lock()
+	defer mux.Unlock()
 	if s, ok = statsFactory[key]; ok {
 		return s
 	}
@@ -51,9 +51,9 @@ func getStats(service string) *Stats {
 	}
 
 	s = &Stats{
-		RequestServiceTotle: mts.Counter(ServiceInfo),
-		ResponseSuccess:     mts.Counter(ResponseSucc),
-		ResponseFail:        mts.Counter(ResponseFail),
+		RequestServiceTootle: mts.Counter(ServiceReqNum),
+		ResponseSuccess:      mts.Counter(ResponseSucc),
+		ResponseFail:         mts.Counter(ResponseFail),
 	}
 	statsFactory[key] = s
 	return s
