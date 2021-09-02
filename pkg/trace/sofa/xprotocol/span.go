@@ -112,7 +112,7 @@ func (s *SofaRPCSpan) SetStartTime(startTime time.Time) {
 }
 
 func (s *SofaRPCSpan) String() string {
-	return fmt.Sprintf("TraceId:%s;SpanId:%s;Duration:%s;ProtocolName:%s;GrpcServiceName:%s;requestSize:%s;responseSize:%s;upstreamHostAddress:%s;downstreamRemoteHostAdress:%s",
+	return fmt.Sprintf("TraceId:%s;SpanId:%s;Duration:%s;ProtocolName:%s;ServiceName:%s;requestSize:%s;responseSize:%s;upstreamHostAddress:%s;downstreamRemoteHostAdress:%s",
 		s.tags[TRACE_ID],
 		s.tags[SPAN_ID],
 		strconv.FormatInt(s.endTime.Sub(s.startTime).Nanoseconds()/1000000, 10),
