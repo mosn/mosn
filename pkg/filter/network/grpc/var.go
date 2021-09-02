@@ -19,23 +19,13 @@ package grpc
 
 import (
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-)
-
-const (
-	grpcName      string = "gRPC"
-	ServiceName   string = "serviceName"
-	RequestResult string = "requestResult"
-)
-
-const (
-	SUCCESS string = "success"
-	FAIL    string = "fail"
 )
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewStringVariable(grpcName+"_"+ServiceName, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewStringVariable(types.GrpcName+"_"+types.GrpcServiceName, nil, nil, variable.DefaultStringSetter, 0),
 	}
 )
 
@@ -44,5 +34,5 @@ func init() {
 		variable.Register(builtinVariables[idx])
 	}
 
-	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, ServiceName)
+	variable.RegisterProtocolResource(api.ProtocolName(types.GrpcName), api.PATH, types.GrpcServiceName)
 }

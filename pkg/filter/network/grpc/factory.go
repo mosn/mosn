@@ -141,7 +141,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(ServiceName, info.FullMethod)
+	requestHeader.Set(types.GrpcServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
@@ -150,11 +150,11 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(types.GrpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetString(ctx, grpcName+"_"+ServiceName, info.FullMethod)
+	variable.SetString(ctx, types.GrpcName+"_"+types.GrpcServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
@@ -171,10 +171,10 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	for k, v := range wrapper.header {
 		responseHeader.Set(k, v[0])
 	}
-	responseHeader.Set(ServiceName, info.FullMethod)
-	responseHeader.Set(RequestResult, SUCCESS)
+	responseHeader.Set(types.GrpcServiceName, info.FullMethod)
+	responseHeader.Set(types.GrpcRequestResult, types.SUCCESS)
 	if err != nil {
-		responseHeader.Set(RequestResult, FAIL)
+		responseHeader.Set(types.GrpcRequestResult, types.FAIL)
 	}
 	responseTrailer := header.CommonHeader{}
 	for k, v := range wrapper.trailer {

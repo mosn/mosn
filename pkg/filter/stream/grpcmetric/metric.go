@@ -1,16 +1,17 @@
-package grpc
+package grpcmetric
 
 import (
 	"context"
 
+	"mosn.io/mosn/pkg/types"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/network/grpc"
 	"mosn.io/pkg/buffer"
 )
 
 func init() {
-	api.RegisterStream(v2.GRPCStreamFilter, buildStream)
+	api.RegisterStream(v2.GrpcMetricFilter, buildStream)
 }
 
 type factory struct{}
@@ -20,31 +21,31 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := &grpcFilter{}
+	filter := &metricFilter{}
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
-type grpcFilter struct {
+type metricFilter struct {
 	handler api.StreamReceiverFilterHandler
 }
 
-func (d *grpcFilter) OnDestroy() {}
+func (d *metricFilter) OnDestroy() {}
 
-func (d *grpcFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+func (d *metricFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	return api.StreamFilterContinue
 }
 
-func (d *grpcFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	d.handler = handler
 }
 
-func (d *grpcFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	service, ok := headers.Get(grpc.ServiceName)
+func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+	service, ok := headers.Get(types.GrpcServiceName)
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	result, ok := headers.Get(grpc.RequestResult)
+	result, ok := headers.Get(types.GrpcRequestResult)
 	if !ok {
 		return api.StreamFilterContinue
 	}
@@ -53,7 +54,7 @@ func (d *grpcFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 		return api.StreamFilterContinue
 	}
 	stats.RequestServiceTootle.Inc(1)
-	if result == grpc.SUCCESS {
+	if result == types.SUCCESS {
 		stats.ResponseSuccess.Inc(1)
 	} else {
 		stats.ResponseFail.Inc(1)
@@ -61,6 +62,6 @@ func (d *grpcFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 	return api.StreamFilterContinue
 }
 
-func (d *grpcFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
+func (d *metricFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 
 }

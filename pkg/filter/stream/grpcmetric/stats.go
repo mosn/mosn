@@ -1,4 +1,4 @@
-package grpc
+package grpcmetric
 
 import (
 	"sync"
