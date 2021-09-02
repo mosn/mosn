@@ -84,7 +84,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 
 	//
 	opts := []grpc.ServerOption{
-		grpc.ChainUnaryInterceptor(f.UnaryInterceptorFilter),
+		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
 	srv, err := f.handler.Start(ln, f.config.GrpcConfig, opts...)
