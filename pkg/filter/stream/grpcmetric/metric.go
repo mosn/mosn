@@ -50,18 +50,18 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	if err != nil {
 		return api.StreamFilterContinue
 	}
-	success, err := variable.Get(ctx, grpc.GrpcRequestResult)
+	reqResult, err := variable.Get(ctx, grpc.GrpcRequestResult)
 	if err != nil {
 		return api.StreamFilterContinue
 	}
 	svcName := service.(string)
-	reqResult := success.(bool)
+	success := reqResult.(bool)
 	stats := d.ft.s.getStats(svcName)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
 	stats.requestServiceTootle.Inc(1)
-	if reqResult {
+	if success {
 		stats.responseSuccess.Inc(1)
 	} else {
 		stats.responseFail.Inc(1)
