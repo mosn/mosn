@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/filter/network/grpc"
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
 
@@ -47,37 +48,39 @@ func TestFactory(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	mf := &metricFilter{}
+	f, _ := buildStream(nil)
+	mf := &metricFilter{ft: f.(*factory)}
 	h := &header.CommonHeader{}
-	r := mf.Append(context.Background(), h, nil, nil)
+	ctx := variable.NewVariableContext(context.TODO())
+	r := mf.Append(ctx, h, nil, nil)
 	assert.Equal(t, api.StreamFilterContinue, r)
-	assert.Equal(t, len(statsFactory), 0)
+	assert.Equal(t, len(mf.ft.s.statsFactory), 0)
 
-	h.Set(types.GrpcServiceName, "service1")
-	h.Set(types.GrpcRequestResult, types.SUCCESS)
-	mf.Append(context.Background(), h, nil, nil)
-	state := statsFactory["service1"]
-	assert.Equal(t, int(state.ResponseSuccess.Count()), 1)
-	assert.Equal(t, int(state.RequestServiceTootle.Count()), 1)
-	assert.Equal(t, int(state.ResponseFail.Count()), 0)
+	variable.Set(ctx, grpc.GrpcServiceName, "service1")
+	variable.Set(ctx, grpc.GrpcRequestResult, true)
+	mf.Append(ctx, h, nil, nil)
+	state := mf.ft.s.getStats("service1")
+	assert.Equal(t, int(state.responseSuccess.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
+	assert.Equal(t, int(state.responseFail.Count()), 0)
 
-	h.Set(types.GrpcServiceName, "service1")
-	h.Set(types.GrpcRequestResult, types.FAIL)
-	mf.Append(context.Background(), h, nil, nil)
-	state = statsFactory["service1"]
-	assert.Equal(t, int(state.ResponseSuccess.Count()), 1)
-	assert.Equal(t, int(state.RequestServiceTootle.Count()), 2)
-	assert.Equal(t, int(state.ResponseFail.Count()), 1)
+	variable.Set(ctx, grpc.GrpcServiceName, "service1")
+	variable.Set(ctx, grpc.GrpcRequestResult, false)
+	mf.Append(ctx, h, nil, nil)
+	state = mf.ft.s.getStats("service1")
+	assert.Equal(t, int(state.responseSuccess.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTootle.Count()), 2)
+	assert.Equal(t, int(state.responseFail.Count()), 1)
 
-	h.Set(types.GrpcServiceName, "service2")
-	h.Set(types.GrpcRequestResult, types.SUCCESS)
-	mf.Append(context.Background(), h, nil, nil)
-	state = statsFactory["service1"]
-	assert.Equal(t, int(state.ResponseSuccess.Count()), 1)
-	assert.Equal(t, int(state.RequestServiceTootle.Count()), 2)
-	assert.Equal(t, int(state.ResponseFail.Count()), 1)
-	state = statsFactory["service2"]
-	assert.Equal(t, int(state.ResponseSuccess.Count()), 1)
-	assert.Equal(t, int(state.RequestServiceTootle.Count()), 1)
-	assert.Equal(t, int(state.ResponseFail.Count()), 0)
+	variable.Set(ctx, grpc.GrpcServiceName, "service2")
+	variable.Set(ctx, grpc.GrpcRequestResult, true)
+	mf.Append(ctx, h, nil, nil)
+	state = mf.ft.s.getStats("service1")
+	assert.Equal(t, int(state.responseSuccess.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTootle.Count()), 2)
+	assert.Equal(t, int(state.responseFail.Count()), 1)
+	state = mf.ft.s.getStats("service2")
+	assert.Equal(t, int(state.responseSuccess.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
+	assert.Equal(t, int(state.responseFail.Count()), 0)
 }

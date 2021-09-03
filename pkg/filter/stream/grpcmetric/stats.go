@@ -9,36 +9,40 @@ import (
 )
 
 var (
-	ServiceReqNum = "request_total"
-	ResponseSucc  = "response_succ_total"
-	ResponseFail  = "response_fail_total"
+	serviceReqNum = "request_total"
+	responseSucc  = "response_succ_total"
+	responseFail  = "response_fail_total"
 	serviceKey    = "service"
 	metricPre     = "grpc"
 )
 
-var (
-	mux          sync.RWMutex
-	statsFactory = make(map[string]*Stats)
-)
-
-type Stats struct {
-	RequestServiceTootle gometrics.Counter
-	ResponseSuccess      gometrics.Counter
-	ResponseFail         gometrics.Counter
+type stats struct {
+	requestServiceTootle gometrics.Counter
+	responseSuccess      gometrics.Counter
+	responseFail         gometrics.Counter
 }
 
-func getStats(service string) *Stats {
+type state struct {
+	mux          sync.RWMutex
+	statsFactory map[string]*stats
+}
+
+func newState() *state {
+	return &state{statsFactory: make(map[string]*stats)}
+}
+
+func (s *state) getStats(service string) *stats {
 	key := service
-	mux.RLock()
-	s, ok := statsFactory[key]
-	mux.RUnlock()
+	s.mux.RLock()
+	stat, ok := s.statsFactory[key]
+	s.mux.RUnlock()
 	if ok {
-		return s
+		return stat
 	}
-	mux.Lock()
-	defer mux.Unlock()
-	if s, ok = statsFactory[key]; ok {
-		return s
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	if stat, ok = s.statsFactory[key]; ok {
+		return stat
 	}
 	labels := map[string]string{
 		serviceKey: key,
@@ -46,15 +50,15 @@ func getStats(service string) *Stats {
 	mts, err := metrics.NewMetrics(metricPre, labels)
 	if err != nil {
 		log.DefaultLogger.Errorf("create metrics fail: labels:%v, err: %v", labels, err)
-		statsFactory[key] = nil
+		s.statsFactory[key] = nil
 		return nil
 	}
 
-	s = &Stats{
-		RequestServiceTootle: mts.Counter(ServiceReqNum),
-		ResponseSuccess:      mts.Counter(ResponseSucc),
-		ResponseFail:         mts.Counter(ResponseFail),
+	stat = &stats{
+		requestServiceTootle: mts.Counter(serviceReqNum),
+		responseSuccess:      mts.Counter(responseSucc),
+		responseFail:         mts.Counter(responseFail),
 	}
-	statsFactory[key] = s
-	return s
+	s.statsFactory[key] = stat
+	return stat
 }

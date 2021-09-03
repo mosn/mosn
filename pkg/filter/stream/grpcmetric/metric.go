@@ -3,7 +3,9 @@ package grpcmetric
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+
+	"mosn.io/mosn/pkg/filter/network/grpc"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -14,20 +16,23 @@ func init() {
 	api.RegisterStream(v2.GrpcMetricFilter, buildStream)
 }
 
-type factory struct{}
+type factory struct {
+	s *state
+}
 
 func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	return &factory{}, nil
+	return &factory{s: newState()}, nil
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := &metricFilter{}
+	filter := &metricFilter{ft: f}
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type metricFilter struct {
 	handler api.StreamReceiverFilterHandler
+	ft      *factory
 }
 
 func (d *metricFilter) OnDestroy() {}
@@ -41,23 +46,25 @@ func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterH
 }
 
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	service, ok := headers.Get(types.GrpcServiceName)
-	if !ok {
+	service, err := variable.Get(ctx, grpc.GrpcServiceName)
+	if err != nil {
 		return api.StreamFilterContinue
 	}
-	result, ok := headers.Get(types.GrpcRequestResult)
-	if !ok {
+	success, err := variable.Get(ctx, grpc.GrpcRequestResult)
+	if err != nil {
 		return api.StreamFilterContinue
 	}
-	stats := getStats(service)
+	svcName := service.(string)
+	reqResult := success.(bool)
+	stats := d.ft.s.getStats(svcName)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	stats.RequestServiceTootle.Inc(1)
-	if result == types.SUCCESS {
-		stats.ResponseSuccess.Inc(1)
+	stats.requestServiceTootle.Inc(1)
+	if reqResult {
+		stats.responseSuccess.Inc(1)
 	} else {
-		stats.ResponseFail.Inc(1)
+		stats.responseFail.Inc(1)
 	}
 	return api.StreamFilterContinue
 }
