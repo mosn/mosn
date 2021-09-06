@@ -34,6 +34,7 @@
 
 - `Makefile`，便于快速调整istio版本对接情况的脚本，非必须实现，但是建议实现。通常建议将最新的Istio版本作为默认的版本。
 - 集成测试相关，在`etc/script/report.sh`中追加对应的运行测试脚本，通常来说预期应该是确保多个版本兼容。
+- `ISTIO_VERSION`修改为对应的版本号
 
 
 ## 实际案例（Istio v1.5.2）
@@ -51,3 +52,4 @@
   - `Makefile` 中新增了 `istio-1.5.2`和`unit-test-istio-1.5.2`，其中`istio-1.5.2`会将默认的支持的istio版本调整为v1.5.2。
   - 在`etc/script/report.sh`中追加对应的运行测试命令。
 - 当前默认的主干中，是执行了`make istio-1.5.2`的结果
+  - `ISTIO_VERSION`修改为了1.5.2
