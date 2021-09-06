@@ -56,9 +56,11 @@ func (set *HashSet) Contains(items ...interface{}) bool {
 	}
 	return true
 }
+
 func (set *HashSet) Empty() bool {
 	return set.Size() == 0
 }
+
 func (set *HashSet) Size() int {
 	return len(set.Items)
 }
@@ -76,6 +78,7 @@ func (set *HashSet) Values() []interface{} {
 	}
 	return values
 }
+
 func (set *HashSet) String() string {
 	str := "HashSet\n"
 	var items []string

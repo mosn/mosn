@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -382,4 +383,51 @@ func TestMetadataMatchCriteria(t *testing.T) {
 	variable.Set(ctx, types.VarRouterMeta, map[string]string{"a": "aa"})
 	assert.Equal(t, len(s.MetadataMatchCriteria().MetadataMatchCriteria()), 2)
 	assert.Equal(t, s.MetadataMatchCriteria().MetadataMatchCriteria()[0].MetadataValue(), "aa")
+}
+
+func TestRetryEmptyUpstreamHosts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := variable.NewVariableContext(context.Background())
+
+	cluster := mock.NewMockClusterInfo(ctrl)
+	cluster.EXPECT().Name().AnyTimes()
+
+	clusterManager := mock.NewMockClusterManager(ctrl)
+	clusterManager.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+
+	responseSender := mock.NewMockStreamSender(ctrl)
+	responseSender.EXPECT().AppendHeaders(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+
+	requestInfo := &network.RequestInfo{}
+
+	s := &downStream{
+		ID:      1,
+		cluster: cluster,
+		upstreamRequest: &upstreamRequest{
+			setupRetry: true,
+		},
+		responseSender: responseSender,
+		requestInfo:    requestInfo,
+		proxy: &proxy{
+			config: &v2.Proxy{
+				UpstreamProtocol: "HTTP2",
+			},
+			clusterManager: clusterManager,
+			stats:          globalStats,
+			listenerStats:  newListenerStats("test"),
+		},
+		streamFilterChain: streamFilterChain{
+			DefaultStreamFilterChainImpl: &streamfilter.DefaultStreamFilterChainImpl{},
+		},
+	}
+	s.upstreamRequest.downStream = s
+	phase, _ := s.processError(1)
+	assert.Equal(t, types.Retry, phase)
+	phase = s.receive(ctx, 1, phase)
+	assert.Equal(t, types.UpFilter, phase)
+	phase = s.receive(ctx, 1, phase)
+	assert.Equal(t, types.End, phase)
+	assert.Equal(t, true, s.processDone())
 }

@@ -22,9 +22,7 @@ import (
 	"sync"
 )
 
-var (
-	defaultPool *ObjectPool
-)
+var defaultPool *ObjectPool
 
 func init() {
 	defaultPool = NewObjectPool(func() PoolObject {

@@ -19,7 +19,6 @@ package v2
 
 import (
 	"encoding/json"
-
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/golang/protobuf/jsonpb"

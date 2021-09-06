@@ -11,14 +11,14 @@ import (
 
 	monkey "github.com/cch123/supermonkey"
 	"github.com/go-chi/chi"
-	registry "github.com/mosn/registry/dubbo"
-	dubbocommon "github.com/mosn/registry/dubbo/common"
-	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
-	"github.com/mosn/registry/dubbo/remoting"
-	zkreg "github.com/mosn/registry/dubbo/zookeeper"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	_ "mosn.io/mosn/pkg/upstream/cluster"
+	registry "mosn.io/pkg/registry/dubbo"
+	dubbocommon "mosn.io/pkg/registry/dubbo/common"
+	dubboconsts "mosn.io/pkg/registry/dubbo/common/constant"
+	"mosn.io/pkg/registry/dubbo/remoting"
+	zkreg "mosn.io/pkg/registry/dubbo/zookeeper"
 )
 
 func init() {
