@@ -25,7 +25,7 @@ import (
 const (
 	ProtocolName    types.ProtocolName = "boltv2" // protocol
 	ProtocolCode    byte               = 2
-	ProtocolVersion byte               = 2
+	ProtocolVersion byte               = 1 // see details in: https://github.com/sofastack/sofa-bolt/blob/master/src/main/java/com/alipay/remoting/rpc/protocol/RpcCommandEncoderV2.java
 
 	RequestHeaderLen  int = 24 // protocol header fields length
 	ResponseHeaderLen int = 22
