@@ -34,4 +34,6 @@ const (
 	RequestIdIndex         = 6
 	RequestHeaderLenIndex  = 18
 	ResponseHeaderLenIndex = 16
+
+	ProtocolVersion1 byte = 0x01 // define in https://github.com/sofastack/sofa-bolt/blob/master/src/main/java/com/alipay/remoting/rpc/protocol/RpcProtocolV2.java
 )

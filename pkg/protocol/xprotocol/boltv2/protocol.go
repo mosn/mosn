@@ -130,7 +130,7 @@ func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (i
 func (proto *boltv2Protocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
-			Version1: 0x01,
+			Version1: ProtocolVersion1,
 			RequestHeader: bolt.RequestHeader{
 				Protocol:  ProtocolCode,
 				CmdType:   bolt.CmdTypeRequest,
@@ -147,7 +147,7 @@ func (proto *boltv2Protocol) Trigger(ctx context.Context, requestId uint64) api.
 func (proto *boltv2Protocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
-			Version1: 0x01,
+			Version1: ProtocolVersion1,
 			ResponseHeader: bolt.ResponseHeader{
 				Protocol:       ProtocolCode,
 				CmdType:        bolt.CmdTypeResponse,
@@ -165,7 +165,7 @@ func (proto *boltv2Protocol) Reply(ctx context.Context, request api.XFrame) api.
 func (proto *boltv2Protocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
-			Version1: 0x01,
+			Version1: ProtocolVersion1,
 			ResponseHeader: bolt.ResponseHeader{
 				Protocol:       ProtocolCode,
 				CmdType:        bolt.CmdTypeResponse,
