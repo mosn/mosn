@@ -37,7 +37,6 @@ var (
 		variable.NewStringVariable(types.VarHttp2RequestScheme, nil, schemeGetter, nil, 0),
 		variable.NewVariable(types.VarHttp2RequestUseStream, nil, nil, variable.DefaultSetter, 0),
 		variable.NewVariable(types.VarHttp2ResponseUseStream, nil, nil, variable.DefaultSetter, 0),
-		variable.NewVariable(types.VarProxyDisableRetry, nil, nil, variable.DefaultSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
