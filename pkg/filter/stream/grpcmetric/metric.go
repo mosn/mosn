@@ -63,10 +63,10 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	success := reqResult.(bool)
 	costTimeNs := costTime.(int64)
 	stats := d.ft.s.getStats(svcName)
-	stats.costTime.Update(costTimeNs)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
+	stats.costTime.Update(costTimeNs)
 	stats.requestServiceTootle.Inc(1)
 	if success {
 		stats.responseSuccess.Inc(1)
