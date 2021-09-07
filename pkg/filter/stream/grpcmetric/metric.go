@@ -3,12 +3,13 @@ package grpcmetric
 import (
 	"context"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
+
 	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/filter/network/grpc"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/pkg/buffer"
 )
 
@@ -54,9 +55,15 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	if err != nil {
 		return api.StreamFilterContinue
 	}
+	costTime, err := variable.Get(ctx, grpc.GrpcServiceCostTime)
+	if err != nil {
+		return api.StreamFilterContinue
+	}
 	svcName := service.(string)
 	success := reqResult.(bool)
+	costTimeNs := costTime.(int64)
 	stats := d.ft.s.getStats(svcName)
+	stats.costTime.Update(costTimeNs)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}

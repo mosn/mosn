@@ -4,14 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/filter/network/grpc"
 	"mosn.io/mosn/pkg/variable"
 
-	"github.com/stretchr/testify/assert"
-
 	"mosn.io/pkg/header"
-
-	"mosn.io/api"
 )
 
 type mockMetricFilter struct {
@@ -58,6 +57,7 @@ func TestAppend(t *testing.T) {
 
 	variable.Set(ctx, grpc.GrpcServiceName, "service1")
 	variable.Set(ctx, grpc.GrpcRequestResult, true)
+	variable.Set(ctx, grpc.GrpcServiceCostTime, int64(123))
 	mf.Append(ctx, h, nil, nil)
 	state := mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -66,6 +66,7 @@ func TestAppend(t *testing.T) {
 
 	variable.Set(ctx, grpc.GrpcServiceName, "service1")
 	variable.Set(ctx, grpc.GrpcRequestResult, false)
+	variable.Set(ctx, grpc.GrpcServiceCostTime, int64(123))
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -74,6 +75,7 @@ func TestAppend(t *testing.T) {
 
 	variable.Set(ctx, grpc.GrpcServiceName, "service2")
 	variable.Set(ctx, grpc.GrpcRequestResult, true)
+	variable.Set(ctx, grpc.GrpcServiceCostTime, int64(123))
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -83,4 +85,17 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
 	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
 	assert.Equal(t, int(state.responseFail.Count()), 0)
+}
+
+func BenchmarkWithTimer(b *testing.B) {
+	f, _ := buildStream(nil)
+	mf := &metricFilter{ft: f.(*factory)}
+	h := &header.CommonHeader{}
+	ctx := variable.NewVariableContext(context.TODO())
+	variable.Set(ctx, grpc.GrpcServiceName, "service1")
+	variable.Set(ctx, grpc.GrpcRequestResult, true)
+	variable.Set(ctx, grpc.GrpcServiceCostTime, int64(12312312312312))
+	for n := 0; n < b.N; n++ {
+		mf.Append(ctx, h, nil, nil)
+	}
 }

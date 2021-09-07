@@ -124,6 +124,7 @@ func (f *grpcServerFilterFactory) close() error {
 
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	recvTimer := time.Now()
 	defer func() {
 		// add recover, or process will be crashed if handler cause a panic
 		if r := recover(); r != nil {
@@ -167,6 +168,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 	//do biz logic
 	resp, err = handler(newCtx, req)
+
+	variable.Set(ctx, GrpcServiceCostTime, time.Now().Sub(recvTimer).Nanoseconds())
+
 	responseHeader := header.CommonHeader{}
 	for k, v := range wrapper.header {
 		responseHeader.Set(k, v[0])
