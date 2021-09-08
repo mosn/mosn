@@ -43,7 +43,7 @@ func (adsClient *ADSClient) sendThread() {
 	err := adsClient.reqClusters(adsClient.StreamClient)
 	if err != nil {
 		log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
-		adsClient.reconnect()
+		adsClient.Reconnect()
 	}
 
 	refreshDelay := adsClient.AdsConfig.RefreshDelay
@@ -59,7 +59,7 @@ func (adsClient *ADSClient) sendThread() {
 			err := adsClient.reqClusters(adsClient.StreamClient)
 			if err != nil {
 				log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
-				adsClient.reconnect()
+				adsClient.Reconnect()
 			}
 			t1.Reset(*refreshDelay)
 		}
@@ -115,7 +115,7 @@ func computeInterval(t time.Duration) time.Duration {
 	return t
 }
 
-func (adsClient *ADSClient) reconnect() {
+func (adsClient *ADSClient) Reconnect() {
 
 	adsClient.AdsConfig.closeADSStreamClient()
 	adsClient.StreamClientMutex.Lock()
