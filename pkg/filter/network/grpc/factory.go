@@ -124,6 +124,7 @@ func (f *grpcServerFilterFactory) close() error {
 
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	wr := &wrapper{}
 	recvTimer := time.Now()
 	defer func() {
 		// add recover, or process will be crashed if handler cause a panic
@@ -159,20 +160,18 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
-		return nil, ss.err
+		err = ss.err
+	} else {
+		stream := grpc.ServerTransportStreamFromContext(ctx)
+		wr = &wrapper{stream, nil, nil}
+		newCtx := grpc.NewContextWithServerTransportStream(ctx, wr)
+		//do biz logic
+		resp, err = handler(newCtx, req)
 	}
 
-	stream := grpc.ServerTransportStreamFromContext(ctx)
-	wrapper := &wrapper{stream, nil, nil}
-	newCtx := grpc.NewContextWithServerTransportStream(ctx, wrapper)
-
-	//do biz logic
-	resp, err = handler(newCtx, req)
-
 	variable.Set(ctx, GrpcServiceCostTime, time.Now().Sub(recvTimer).Nanoseconds())
-
 	responseHeader := header.CommonHeader{}
-	for k, v := range wrapper.header {
+	for k, v := range wr.header {
 		responseHeader.Set(k, v[0])
 	}
 	variable.Set(ctx, GrpcServiceName, info.FullMethod)
@@ -181,15 +180,15 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		variable.Set(ctx, GrpcRequestResult, false)
 	}
 	responseTrailer := header.CommonHeader{}
-	for k, v := range wrapper.trailer {
+	for k, v := range wr.trailer {
 		responseTrailer.Set(k, v[0])
 	}
-
 	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
-		return nil, ss.err
+		if err == nil {
+			err = ss.err
+		}
 	}
-
 	return
 }
 
