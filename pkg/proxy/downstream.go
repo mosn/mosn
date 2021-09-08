@@ -1648,6 +1648,9 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.upstreamRequest != nil && s.upstreamRequest.setupRetry {
+		// https://github.com/mosn/mosn/issues/1750
+		s.upstreamRequest.setupRetry = false
+
 		phase = types.Retry
 		err = types.ErrExit
 		return

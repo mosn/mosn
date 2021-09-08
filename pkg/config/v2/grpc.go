@@ -54,4 +54,3 @@ type GRPCConfig struct {
 	// a registered grpc server, which can be any types, usually json.
 	GrpcConfig json.RawMessage `json:"grpc_config"`
 }
-

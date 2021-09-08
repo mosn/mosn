@@ -30,7 +30,7 @@ type BytesPool struct {
 
 var defaultBytesPool = NewBytesPool([]int{512, 1 << 10, 4 << 10, 16 << 10, 64 << 10})
 
-// NewBytesPool ...
+// NewBytesPool creates a memory pool.
 func NewBytesPool(slotSize []int) *BytesPool {
 	bp := &BytesPool{}
 	bp.sizes = slotSize
