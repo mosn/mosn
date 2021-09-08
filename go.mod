@@ -27,7 +27,6 @@ require (
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
-	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.1.25
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/opentrx/seata-golang/v2 v2.0.4

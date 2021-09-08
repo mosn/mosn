@@ -1,8 +1,6 @@
 package server
 
-import (
-	. "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-)
+import "mosn.io/mosn/pkg/config/v2"
 
 /*
 {
@@ -17,5 +15,5 @@ import (
 }
 */
 type Config interface {
-	GetAdmin() *Admin
+	GetAdmin() *v2.Admin
 }
