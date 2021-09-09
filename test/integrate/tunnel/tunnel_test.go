@@ -50,14 +50,14 @@ func (c *CustomConnectionValidator) Validate(credential string, host string, clu
 
 func TestTunnelWithCredential(t *testing.T) {
 	util.MeshLogLevel = "DEBUG"
-	appaddr := "127.0.0.1:8080"
+	appaddr := "127.0.0.1:8081"
 	ext.RegisterConnectionCredentialGetter("test_credential", func(cluster string) string {
 		return "TestTunnelWithCredential" + cluster
 	})
 	ext.RegisterConnectionValidator("test_credential", &CustomConnectionValidator{})
 	util.NewRPCServer(t, appaddr, bolt.ProtocolName)
-	agentMeshAddr := "127.0.0.1:2045"
-	tunnelServerListenerAddr := initAddrs[0]
+	agentMeshAddr := "127.0.0.1:2145"
+	tunnelServerListenerAddr := "127.0.0.1:8000"
 	bootConf := &tunnel.AgentBootstrapConfig{
 		Enable:           true,
 		ConnectionNum:    1,
@@ -66,7 +66,7 @@ func TestTunnelWithCredential(t *testing.T) {
 		CredentialPolicy: "test_credential",
 		StaticServerList: []string{tunnelServerListenerAddr},
 	}
-	serverMeshAddr1 := "127.0.0.1:2046"
+	serverMeshAddr1 := "127.0.0.1:2146"
 
 	if os.Getenv("_AGENT_SERVER_") == "1" {
 		t.Logf("start1")
