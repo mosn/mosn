@@ -87,6 +87,8 @@ var stopChan = make(chan struct{})
 func stopAllPeers() {
 	close(stopChan)
 	peerMap.Range(func(key, value interface{}) bool {
+		log.DefaultLogger.Infof("[agent] try to delete all peer, key: %v",key)
+		peerMap.Delete(key)
 		value.(*AgentPeer).Stop()
 		return true
 	})

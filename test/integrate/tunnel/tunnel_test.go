@@ -48,62 +48,11 @@ func (c *CustomConnectionValidator) Validate(credential string, host string, clu
 	return strings.Contains(credential, cluster)
 }
 
-func TestTunnelWithCredential(t *testing.T) {
-	util.MeshLogLevel = "DEBUG"
-	appaddr := "127.0.0.1:8081"
-	ext.RegisterConnectionCredentialGetter("test_credential", func(cluster string) string {
-		return "TestTunnelWithCredential" + cluster
-	})
-	ext.RegisterConnectionValidator("test_credential", &CustomConnectionValidator{})
-	util.NewRPCServer(t, appaddr, bolt.ProtocolName)
-	agentMeshAddr := "127.0.0.1:2145"
-	tunnelServerListenerAddr := "127.0.0.1:8000"
-	bootConf := &tunnel.AgentBootstrapConfig{
-		Enable:           true,
-		ConnectionNum:    1,
-		Cluster:          "clientCluster",
-		HostingListener:  "serverListener",
-		CredentialPolicy: "test_credential",
-		StaticServerList: []string{tunnelServerListenerAddr},
-	}
-	serverMeshAddr1 := "127.0.0.1:2146"
-
-	if os.Getenv("_AGENT_SERVER_") == "1" {
-		t.Logf("start1")
-		stop := make(chan struct{})
-		agentServerConf1 := CreateMeshAgentServer(serverMeshAddr1, tunnelServerListenerAddr, bolt.ProtocolName)
-		agentServer1 := mosn.NewMosn(agentServerConf1)
-		agentServer1.Start()
-		log.DefaultLogger.Infof("start agent server success")
-		<-stop
-		return
-	}
-	agenConf := CreateMeshWithAgent(agentMeshAddr, appaddr, bootConf, bolt.ProtocolName)
-	agentMesh := mosn.NewMosn(agenConf)
-	agentMesh.Start()
-
-	pid1 := forkMeshAgentServer("1")
-	if pid1 == 0 {
-		t.Fatal("fork error")
-		return
-	}
-	defer syscall.Kill(pid1, syscall.SIGKILL)
-
-	time.Sleep(time.Second * 10)
-
-	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
-	tc.ClientMeshAddr = serverMeshAddr1
-	tc.AppServer.GoServe()
-	defer tc.AppServer.Close()
-	go tc.RunCase(1, 0)
-	err := <-tc.C
-	if err != nil {
-		t.Fatal(" error is expected to be empty")
-	}
-	time.Sleep(10 * time.Second)
-}
-
 func TestTunnelDynamicServerList(t *testing.T) {
+	if os.Getenv("_AGENT_SERVER_") != "" && !strings.Contains(os.Getenv("_AGENT_SERVER_"), "TestTunnelDynamicServerList") {
+		return
+	}
+
 	util.MeshLogLevel = "DEBUG"
 	ext.RegisterServerLister("custom_lister", &CustomServerLister{})
 	appaddr := "127.0.0.1:8080"
@@ -120,7 +69,7 @@ func TestTunnelDynamicServerList(t *testing.T) {
 		},
 	}
 	serverMeshAddr1, serviceMeshAddr2 := "127.0.0.1:2046", "127.0.0.1:2047"
-	if os.Getenv("_AGENT_SERVER_") == "1" {
+	if os.Getenv("_AGENT_SERVER_") == "TestTunnelDynamicServerList1" {
 		t.Logf("start1")
 		stop := make(chan struct{})
 		agentServerConf1 := CreateMeshAgentServer(serverMeshAddr1, initAddrs[0], bolt.ProtocolName)
@@ -130,7 +79,7 @@ func TestTunnelDynamicServerList(t *testing.T) {
 		return
 	}
 
-	if os.Getenv("_AGENT_SERVER_") == "2" {
+	if os.Getenv("_AGENT_SERVER_") == "TestTunnelDynamicServerList2" {
 		t.Logf("start2")
 		stop := make(chan struct{})
 		agentServerConf2 := CreateMeshAgentServer(serviceMeshAddr2, initAddrs[1], bolt.ProtocolName)
@@ -144,7 +93,7 @@ func TestTunnelDynamicServerList(t *testing.T) {
 	agentMesh := mosn.NewMosn(agenConf)
 	agentMesh.Start()
 
-	pid1 := forkMeshAgentServer("1")
+	pid1 := forkMeshAgentServer("TestTunnelDynamicServerList1")
 	if pid1 == 0 {
 		t.Fatal("fork error")
 		return
@@ -152,7 +101,7 @@ func TestTunnelDynamicServerList(t *testing.T) {
 
 	defer syscall.Kill(pid1, syscall.SIGKILL)
 
-	pid2 := forkMeshAgentServer("2")
+	pid2 := forkMeshAgentServer("TestTunnelDynamicServerList2")
 	if pid2 == 0 {
 		t.Fatal("fork error")
 		return
@@ -207,7 +156,7 @@ func TestTunnelDynamicServerList(t *testing.T) {
 func forkMeshAgentServer(value string) int {
 	// Set a flag for the new process start process
 	os.Setenv("_AGENT_SERVER_", value)
-
+	log.DefaultLogger.Infof("try to fork %v", value)
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
 		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
