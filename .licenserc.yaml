@@ -9,7 +9,7 @@ header:
   paths-ignore:
     - '**/*.json'
     - '**/*.pb.go'
-    - ’**/*.pb'
+    - '**/*.proto'
     - '**/*.yaml'
     - '**/go.mod'
     - '**/go.sum'
