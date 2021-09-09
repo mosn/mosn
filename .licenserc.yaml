@@ -15,7 +15,7 @@ header:
     - '**/go.sum'
     - 'pkg/networkextention'
     - 'pkg/module/'
-    - 'pkg/mtls/'
+    - 'pkg/mtls/crypto/'
     - 'pkg/mock/'
     - '**/.gitkeep'
     - '**/mock**'
