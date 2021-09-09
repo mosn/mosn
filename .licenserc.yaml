@@ -1,0 +1,35 @@
+header:
+  license:
+    spdx-id: Apache-2.0
+    copyright-owner: Apache Software Foundation
+
+  paths:
+    - 'pkg/'
+
+  paths-ignore:
+    - '**/*.json'
+    - '**/*.pb.go'
+    - ’**/*.pb'
+    - '**/*.yaml'
+    - '**/go.mod'
+    - '**/go.sum'
+    - 'pkg/networkextention'
+    - 'pkg/module/'
+    - 'pkg/mtls/'
+    - 'pkg/mock/'
+    - '**/.gitkeep'
+    - 'dist'
+    - 'licenses'
+    - '**/*.md'
+    - 'LICENSE'
+    - 'NOTICE'
+    - 'vendor/'
+    - 'examples/'
+    - 'configs/'
+    - '.github/'
+
+  comment: on-failure
+
+dependency:
+  files:
+    - go.mod
