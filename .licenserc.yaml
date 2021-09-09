@@ -18,6 +18,7 @@ header:
     - 'pkg/mtls/'
     - 'pkg/mock/'
     - '**/.gitkeep'
+    - '**/mock**/
     - 'dist'
     - 'licenses'
     - '**/*.md'
