@@ -159,7 +159,12 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	variable.SetString(ctx, GrpcName+"_"+GrpcServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
-	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
+	if status == api.StreamFiltertermination {
+		return nil, ss.err
+	}
+
+	if status == api.StreamFilterStop && ss.err != nil {
 		err = ss.err
 	} else {
 		stream := grpc.ServerTransportStreamFromContext(ctx)
