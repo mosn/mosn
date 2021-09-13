@@ -15,7 +15,7 @@
         <skip_maven_deploy>true</skip_maven_deploy>
         <slf4j-log4j12.version>1.7.25</slf4j-log4j12.version>
         <curator.version>2.12.0</curator.version>
-        <dubbo.version>2.7.3</dubbo.version>
+        <dubbo.version>2.7.13</dubbo.version>
     </properties>
     <dependencies>
         <dependency>
