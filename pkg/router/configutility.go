@@ -218,7 +218,7 @@ func (m queryParameterMatcherImpl) Matches(ctx context.Context, queryParams type
 // NewConfigImpl return an configImpl instance contains requestHeadersParser and responseHeadersParser
 func NewConfigImpl(routerConfig *v2.RouterConfiguration) *configImpl {
 	return &configImpl{
-		requestHeadersParser:  getHeaderParser(routerConfig.RequestHeadersToAdd, nil),
+		requestHeadersParser:  getHeaderParser(routerConfig.RequestHeadersToAdd, routerConfig.RequestHeadersToRemove),
 		responseHeadersParser: getHeaderParser(routerConfig.ResponseHeadersToAdd, routerConfig.ResponseHeadersToRemove),
 	}
 }

@@ -18,6 +18,8 @@
 package wasm
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"runtime"
 	"sync"
@@ -29,10 +31,11 @@ import (
 )
 
 var (
-	ErrEngineNotFound = errors.New("fail to get wasm engine")
-	ErrWasmBytesLoad  = errors.New("fail to load wasm bytes")
-	ErrInstanceCreate = errors.New("fail to create wasm instance")
-	ErrModuleCreate   = errors.New("fail to create wasm module")
+	ErrEngineNotFound     = errors.New("fail to get wasm engine")
+	ErrWasmBytesLoad      = errors.New("fail to load wasm bytes")
+	ErrWasmBytesIncorrect = errors.New("incorrect hash of wasm bytes")
+	ErrInstanceCreate     = errors.New("fail to create wasm instance")
+	ErrModuleCreate       = errors.New("fail to create wasm module")
 )
 
 type pluginWrapper struct {
@@ -153,6 +156,16 @@ func NewWasmPlugin(wasmConfig v2.WasmPluginConfig) (types.WasmPlugin, error) {
 	if len(wasmBytes) == 0 {
 		log.DefaultLogger.Errorf("[wasm][plugin] NewWasmPlugin fail to load wasm bytes, config: %v", wasmConfig)
 		return nil, ErrWasmBytesLoad
+	}
+
+	md5Bytes := md5.Sum(wasmBytes)
+	newMd5 := hex.EncodeToString(md5Bytes[:])
+	if wasmConfig.VmConfig.Md5 == "" {
+		wasmConfig.VmConfig.Md5 = newMd5
+	} else if newMd5 != wasmConfig.VmConfig.Md5 {
+		log.DefaultLogger.Errorf("[wasm][plugin] NewWasmPlugin the hash(MD5) of wasm bytes is incorrect, config: %v, real hash: %s",
+			wasmConfig, newMd5)
+		return nil, ErrWasmBytesIncorrect
 	}
 
 	// create wasm module

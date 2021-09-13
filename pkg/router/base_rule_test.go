@@ -418,6 +418,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 								},
 							},
 						},
+						headersToRemove: []string{"remove_route_level"},
 					},
 					vHost: &VirtualHostImpl{
 						requestHeadersParser: &headerParser{
@@ -437,6 +438,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 									},
 								},
 							},
+							headersToRemove: []string{"remove_host_level"},
 						},
 						globalRouteConfig: &configImpl{
 							requestHeadersParser: &headerParser{
@@ -460,7 +462,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "remove_route_level": "route", "remove_host_level": "host"},
 				requestInfo: nil,
 			},
 			want: &finalizeResult{
@@ -471,6 +473,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					"host":  "xxx.default.svc.cluster.local",
 					"level": "1,2,3",
 					"route": "true", "vhost": "true", "global": "true",
+					"remove_route_level": "", "remove_host_level": "",
 				},
 			},
 		},

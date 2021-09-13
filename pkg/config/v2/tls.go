@@ -17,13 +17,6 @@
 
 package v2
 
-import (
-	"bytes"
-
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/golang/protobuf/jsonpb"
-)
-
 // TLSConfig is a configuration of tls context
 type TLSConfig struct {
 	Status            bool                   `json:"status,omitempty"`
@@ -52,24 +45,8 @@ type SdsConfig struct {
 }
 
 type SecretConfigWrapper struct {
-	Config *auth.SdsSecretConfig
-}
-
-func (sc SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
-	newData := &bytes.Buffer{}
-	marshaler := &jsonpb.Marshaler{}
-	err = marshaler.Marshal(newData, sc.Config)
-	return newData.Bytes(), err
-}
-
-func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
-	secretConfig := &auth.SdsSecretConfig{}
-	err := jsonpb.Unmarshal(bytes.NewReader(b), secretConfig)
-	if err != nil {
-		return err
-	}
-	sc.Config = secretConfig
-	return nil
+	Name      string      `json:"name"`
+	SdsConfig interface{} `json:"sdsConfig"`
 }
 
 // Valid checks the whether the SDS Config is valid or not
