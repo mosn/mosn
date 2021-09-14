@@ -172,7 +172,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		}
 	}
 
-	conn.filterManager = newFilterManager(conn)
+	conn.filterManager = NewFilterManager(conn)
 
 	return conn
 }
@@ -1076,7 +1076,7 @@ func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientCon
 		connectTimeout: connectTimeout,
 	}
 
-	conn.filterManager = newFilterManager(conn)
+	conn.filterManager = NewFilterManager(conn)
 
 	if conn.remoteAddr != nil {
 		conn.network = conn.remoteAddr.Network()
