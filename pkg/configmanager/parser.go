@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
@@ -382,14 +383,16 @@ func setMaxProcsWithProcessor(procs interface{}) {
 	}
 }
 
-// GetListenerFilters returns a listener filter factory by filter.Type
-func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
+var listenerFilterFactoryMap = sync.Map{}
+
+// AddOrUpdateListenerFilterFactories adds or updates the listener filter factories of a listener
+func AddOrUpdateListenerFilterFactories(listenerName string, configs []v2.Filter) []api.ListenerFilterChainFactory {
 	var factories []api.ListenerFilterChainFactory
 
 	for _, c := range configs {
 		sfcc, err := api.CreateListenerFilterChainFactory(c.Type, c.Config)
 		if err != nil {
-			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
+			log.StartLogger.Errorf("[config] AddOrUpdateListenerFilterFactories failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 		if sfcc != nil {
@@ -397,11 +400,38 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 		}
 	}
 
+	if len(factories) == 0 {
+		log.StartLogger.Errorf("[config] AddOrUpdateListenerFilterFactories factories len is 0, listenerName: %v", listenerName)
+		return nil
+	}
+
+	listenerFilterFactoryMap.Store(listenerName, factories)
+
 	return factories
 }
 
-// GetNetworkFilters returns a network filter factory by filter.Type
-func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
+// GetListenerFilterFactories returns a listener filter factory by filter.Type
+func GetListenerFilterFactories(listenerName string) []api.ListenerFilterChainFactory {
+	if listenerName == "" {
+		return nil
+	}
+
+	if v, ok := listenerFilterFactoryMap.Load(listenerName); ok {
+		return v.([]api.ListenerFilterChainFactory)
+	}
+
+	return nil
+}
+
+var networkFilterFactoryMap = sync.Map{}
+
+// AddOrUpdateNetworkFilterFactories adds or updates the network filter factories of a listener
+func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChainFactory {
+	if ln == nil || ln.Name == "" {
+		log.StartLogger.Errorf("[config] network filter create failed, error: nil listener or empty name")
+		return nil
+	}
+
 	var factories []api.NetworkFilterChainFactory
 	c := ln.FilterChains[0]
 	for _, f := range c.Filters {
@@ -420,5 +450,26 @@ func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
 			factories = append(factories, factory)
 		}
 	}
+
+	if len(factories) == 0 {
+		log.StartLogger.Errorf("[config] network filter factories len is 0, listener name: %v", ln.Name)
+		return nil
+	}
+
+	networkFilterFactoryMap.Store(ln.Name, factories)
+
 	return factories
+}
+
+// GetNetworkFilterFactories returns a network filter factory by filter.Type
+func GetNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChainFactory {
+	if ln == nil || ln.Name == "" {
+		return nil
+	}
+
+	if v, ok := networkFilterFactoryMap.Load(ln.Name); ok {
+		return v.([]api.NetworkFilterChainFactory)
+	}
+
+	return nil
 }
