@@ -101,6 +101,7 @@ const (
 	DubboStream                = "dubbo_stream"
 	JwtAuthn                   = "jwt_authn"
 	GoPluginStreamFilterSuffix = "so_plugin"
+	GrpcMetricFilter           = "grpc_metric"
 )
 
 // HealthCheckFilter

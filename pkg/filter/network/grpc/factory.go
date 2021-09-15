@@ -23,7 +23,9 @@ import (
 	"errors"
 	"net"
 	"runtime/debug"
+	"strconv"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -99,6 +101,8 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	wr := &wrapper{}
+	recvTimer := time.Now()
 	defer func() {
 		// add recover, or process will be crashed if handler cause a panic
 		if r := recover(); r != nil {
@@ -116,7 +120,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(serviceName, info.FullMethod)
+	requestHeader.Set(GrpcServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
@@ -125,39 +129,58 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(GrpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetVariableValue(ctx, grpcName+"_"+serviceName, info.FullMethod)
+	variable.SetVariableValue(ctx, GrpcName+"_"+GrpcServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
-	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
+	if status == api.StreamFiltertermination {
 		return nil, ss.err
 	}
+	if status == api.StreamFilterStop && ss.err != nil {
+		err = ss.err
+	} else {
+		stream := grpc.ServerTransportStreamFromContext(ctx)
+		wr = &wrapper{stream, nil, nil}
+		newCtx := grpc.NewContextWithServerTransportStream(ctx, wr)
+		//do biz logic
+		resp, err = handler(newCtx, req)
+	}
+
+	variable.SetVariableValue(ctx, GrpcServiceCostTime, strconv.FormatInt(time.Now().Sub(recvTimer).Nanoseconds(), 10))
 
 	stream := grpc.ServerTransportStreamFromContext(ctx)
-	wrapper := &wrapper{stream, nil, nil}
-	newCtx := grpc.NewContextWithServerTransportStream(ctx, wrapper)
+	wr = &wrapper{stream, nil, nil}
+	newCtx := grpc.NewContextWithServerTransportStream(ctx, wr)
 
 	//do biz logic
 	resp, err = handler(newCtx, req)
 
 	responseHeader := header.CommonHeader{}
-	for k, v := range wrapper.header {
+	for k, v := range wr.header {
 		responseHeader.Set(k, v[0])
 	}
 
 	responseTrailer := header.CommonHeader{}
-	for k, v := range wrapper.trailer {
+	for k, v := range wr.trailer {
 		responseTrailer.Set(k, v[0])
+	}
+
+	variable.SetVariableValue(ctx, GrpcServiceName, info.FullMethod)
+	variable.SetVariableValue(ctx, GrpcRequestResult, "true")
+	if err != nil {
+		variable.SetVariableValue(ctx, GrpcRequestResult, "false")
 	}
 
 	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
-		return nil, ss.err
+		if err == nil {
+			err = ss.err
+		}
 	}
-
 	return
 }
 
