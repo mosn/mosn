@@ -336,7 +336,7 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 
 func setMaxProcsWithProcessor(procs interface{}) {
 	// env variable has the highest priority.
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 {
 		runtime.GOMAXPROCS(n)
 		return
 	}
