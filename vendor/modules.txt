@@ -246,9 +246,6 @@ github.com/lestrrat/go-jwx/jwk
 # github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8
 ## explicit
 github.com/lestrrat/go-pdebug
-# github.com/lyft/protoc-gen-validate v0.0.14
-## explicit
-github.com/lyft/protoc-gen-validate/validate
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.7

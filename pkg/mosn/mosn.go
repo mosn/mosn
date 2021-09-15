@@ -25,13 +25,13 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/xds"
 	"mosn.io/pkg/utils"
 )
 
@@ -49,7 +49,7 @@ type Mosn struct {
 	Config         *v2.MOSNConfig
 	// internal data
 	servers   []server.Server
-	xdsClient *xds.Client
+	xdsClient *istio.ADSClient
 	wg        sync.WaitGroup
 }
 
@@ -270,11 +270,16 @@ func (m *Mosn) CleanUpgrade() {
 func (m *Mosn) StartXdsClient() {
 	c := m.Config
 	log.StartLogger.Infof("[mosn start] mosn start xds client")
-	xdsClient := &xds.Client{}
-	utils.GoWithRecover(func() {
-		xdsClient.Start(c)
-	}, nil)
-	m.xdsClient = xdsClient
+	xdsClient, err := istio.NewAdsClient(c)
+	if err != nil {
+		log.StartLogger.Errorf("start xds failed: %v", err)
+	} else {
+		utils.GoWithRecover(func() {
+			xdsClient.Start()
+		}, nil)
+		m.xdsClient = xdsClient
+	}
+
 }
 
 func (m *Mosn) HandleExtendConfig() {

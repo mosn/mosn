@@ -24,6 +24,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type retryState struct {
@@ -89,6 +90,14 @@ func (r *retryState) shouldRetry(ctx context.Context, headers api.HeaderMap, rea
 }
 
 func (r *retryState) doRetryCheck(ctx context.Context, headers types.HeaderMap, reason types.StreamResetReason) bool {
+	if ctx != nil {
+		if disable, err := variable.Get(ctx, types.VarProxyDisableRetry); err == nil {
+			if retryDisable, ok := disable.(bool); ok && retryDisable {
+				return false
+			}
+		}
+	}
+
 	if reason == types.StreamOverflow {
 		return false
 	}
