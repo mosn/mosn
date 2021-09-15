@@ -430,8 +430,8 @@ func GetListenerFilterFactories(listenerName string) []api.ListenerFilterChainFa
 var networkFilterFactoryMap = sync.Map{}
 
 // AddOrUpdateNetworkFilterFactories adds or updates the network filter factories of a listener
-func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChainFactory {
-	if ln == nil || ln.Name == "" {
+func AddOrUpdateNetworkFilterFactories(listenerName string, ln *v2.Listener) []api.NetworkFilterChainFactory {
+	if ln == nil || listenerName == "" {
 		log.DefaultLogger.Errorf("[config] network filter create failed, error: nil listener or empty name")
 		return nil
 	}
@@ -456,25 +456,25 @@ func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChain
 	}
 
 	if len(factories) == 0 {
-		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", ln.Name)
+		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", listenerName)
 		return nil
 	}
 
-	networkFilterFactoryMap.Store(ln.Name, factories)
+	networkFilterFactoryMap.Store(listenerName, factories)
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[config] AddOrUpdateNetworkFilterFactories store network filter factories, name: %v", ln.Name)
+		log.DefaultLogger.Debugf("[config] AddOrUpdateNetworkFilterFactories store network filter factories, name: %v", listenerName)
 	}
 
 	return factories
 }
 
 // GetNetworkFilterFactories returns a network filter factory by filter.Type
-func GetNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChainFactory {
-	if ln == nil || ln.Name == "" {
+func GetNetworkFilterFactories(listenerName string) []api.NetworkFilterChainFactory {
+	if listenerName == "" {
 		return nil
 	}
 
-	if v, ok := networkFilterFactoryMap.Load(ln.Name); ok {
+	if v, ok := networkFilterFactoryMap.Load(listenerName); ok {
 		return v.([]api.NetworkFilterChainFactory)
 	}
 

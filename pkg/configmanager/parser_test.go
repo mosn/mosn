@@ -328,12 +328,12 @@ func TestNetworkFilterFactories(t *testing.T) {
 		},
 	}
 
-	factoryNil := GetNetworkFilterFactories(listenerConfig)
+	factoryNil := GetNetworkFilterFactories("test_listener")
 	assert.Nil(t, factoryNil)
 
-	factory := AddOrUpdateNetworkFilterFactories(listenerConfig)
-	factory1 := GetNetworkFilterFactories(listenerConfig)
-	factory2 := GetNetworkFilterFactories(listenerConfig)
+	factory := AddOrUpdateNetworkFilterFactories("test_listener", listenerConfig)
+	factory1 := GetNetworkFilterFactories("test_listener")
+	factory2 := GetNetworkFilterFactories("test_listener")
 	assert.NotNil(t, factory)
 	assert.Equal(t, factory, factory1)
 	assert.Equal(t, factory1, factory2)
