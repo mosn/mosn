@@ -392,7 +392,7 @@ func AddOrUpdateListenerFilterFactories(listenerName string, configs []v2.Filter
 	for _, c := range configs {
 		sfcc, err := api.CreateListenerFilterChainFactory(c.Type, c.Config)
 		if err != nil {
-			log.StartLogger.Errorf("[config] AddOrUpdateListenerFilterFactories failed, type: %s, error: %v", c.Type, err)
+			log.DefaultLogger.Errorf("[config] AddOrUpdateListenerFilterFactories failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 		if sfcc != nil {
@@ -401,11 +401,15 @@ func AddOrUpdateListenerFilterFactories(listenerName string, configs []v2.Filter
 	}
 
 	if len(factories) == 0 {
-		log.StartLogger.Errorf("[config] AddOrUpdateListenerFilterFactories factories len is 0, listenerName: %v", listenerName)
+		log.DefaultLogger.Errorf("[config] AddOrUpdateListenerFilterFactories factories len is 0, listenerName: %v", listenerName)
 		return nil
 	}
 
 	listenerFilterFactoryMap.Store(listenerName, factories)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[config] AddOrUpdateListenerFilterFactories store listener factory, name: %v, config: %v",
+			listenerName, configs)
+	}
 
 	return factories
 }
@@ -428,7 +432,7 @@ var networkFilterFactoryMap = sync.Map{}
 // AddOrUpdateNetworkFilterFactories adds or updates the network filter factories of a listener
 func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChainFactory {
 	if ln == nil || ln.Name == "" {
-		log.StartLogger.Errorf("[config] network filter create failed, error: nil listener or empty name")
+		log.DefaultLogger.Errorf("[config] network filter create failed, error: nil listener or empty name")
 		return nil
 	}
 
@@ -437,12 +441,12 @@ func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChain
 	for _, f := range c.Filters {
 		factory, err := api.CreateNetworkFilterChainFactory(f.Type, f.Config)
 		if err != nil {
-			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
+			log.DefaultLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
 		if initializer, ok := factory.(api.FactoryInitializer); ok {
 			if err := initializer.Init(ln); err != nil {
-				log.StartLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
+				log.DefaultLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
 				continue
 			}
 		}
@@ -452,11 +456,14 @@ func AddOrUpdateNetworkFilterFactories(ln *v2.Listener) []api.NetworkFilterChain
 	}
 
 	if len(factories) == 0 {
-		log.StartLogger.Errorf("[config] network filter factories len is 0, listener name: %v", ln.Name)
+		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", ln.Name)
 		return nil
 	}
 
 	networkFilterFactoryMap.Store(ln.Name, factories)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[config] AddOrUpdateNetworkFilterFactories store network filter factories, name: %v", ln.Name)
+	}
 
 	return factories
 }
