@@ -31,10 +31,8 @@ import (
 )
 
 type Connection struct {
-	// Reader channel
-	r chan buffer.IoBuffer
-	// endRead channel send messages that read finished
-	endRead chan struct{}
+	// databuf sends connection data
+	databuf buffer.IoBuffer
 	// raw connections
 	raw api.Connection
 	//
@@ -44,8 +42,7 @@ type Connection struct {
 
 func NewConn(c api.Connection) *Connection {
 	conn := &Connection{
-		r:       make(chan buffer.IoBuffer),
-		endRead: make(chan struct{}),
+		databuf: buffer.NewPipeBuffer(0),
 		raw:     c,
 	}
 	// the connection should be closed when real connection is closed
@@ -56,10 +53,14 @@ func NewConn(c api.Connection) *Connection {
 var _ net.Conn = (*Connection)(nil)
 
 func (c *Connection) Read(b []byte) (n int, err error) {
-	data, ok := <-c.r
-	if !ok { // connection closed
+	n, err = c.databuf.Read(b)
+	if err != nil {
+		errmsg := err.Error()
+		if err == io.EOF { // connection closed
+			errmsg = string(c.event) // connections closed by close event
+		}
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("grpc connection read error: %s", c.event)
+			log.DefaultLogger.Debugf("grpc connection read error: %s", errmsg)
 		}
 		if c.event == api.RemoteClose {
 			return 0, io.EOF
@@ -70,12 +71,10 @@ func (c *Connection) Read(b []byte) (n int, err error) {
 			Net:    rc.LocalAddr().Network(),
 			Source: rc.LocalAddr(),
 			Addr:   rc.RemoteAddr(),
-			Err:    fmt.Errorf("connection has been closed by %s", c.event),
+			Err:    fmt.Errorf("connection has been closed by %s", errmsg),
 		}
+
 	}
-	n = copy(b, data.Bytes())
-	data.Drain(n)
-	c.endRead <- struct{}{}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("grpc connection read data:  %d, %v", n, err)
 	}
@@ -106,8 +105,7 @@ func (c *Connection) Close() error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("grpc connection: closed")
 	}
-	close(c.r)
-	close(c.endRead)
+	c.databuf.CloseWithError(io.EOF)
 	c.raw.Close(api.NoFlush, api.LocalClose)
 	return nil
 }
@@ -156,13 +154,15 @@ func (c *Connection) OnEvent(event api.ConnectionEvent) {
 
 // Send awakes connection Read, and will wait Read finished.
 func (c *Connection) Send(buf buffer.IoBuffer) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.DefaultLogger.Errorf("[grpc] connection has closed. local %v, remote %v, error: %v", c.raw.LocalAddr(), c.raw.RemoteAddr(), err)
-		}
-	}()
-	for buf.Len() > 0 {
-		c.r <- buf
-		<-c.endRead
+	// copy data to the data buffer
+	// TODO: limit the data buffer, or shrink the data buffer when the connection is idle
+	b := make([]byte, buf.Len())
+	copy(b, buf.Bytes())
+	buf.Drain(buf.Len())
+	if _, err := c.databuf.Write(b); err != nil {
+		log.DefaultLogger.Errorf("[grpc] connection write error. local %v, remote %v, error: %v", c.raw.LocalAddr(), c.raw.RemoteAddr(), err)
+	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[grpc] grpc send data to the data buffer")
 	}
 }
