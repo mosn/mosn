@@ -156,7 +156,7 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 					}
 				}
 			} else {
-				// service crash, there is no response，thus, the headers are request headers
+				// If service crashes, there will be no response. Thus the headers are request headers
 				err = f.globalRollback(ctx, xid)
 				if err != nil {
 					log.Proxy.Errorf(ctx, err.Error())
@@ -179,7 +179,7 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 					}
 				}
 			} else {
-				// service crash, there is no response，thus, the headers are request headers
+				// If service crashes, there will be no response. Thus the headers are request headers
 				err := f.branchReport(ctx, xid, branchID, apis.TCC, apis.PhaseOneFailed, nil)
 				if err != nil {
 					log.Proxy.Errorf(ctx, err.Error())
