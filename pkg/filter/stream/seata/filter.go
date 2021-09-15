@@ -138,6 +138,12 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 						log.Proxy.Errorf(ctx, err.Error())
 					}
 				}
+			} else {
+				// 服务宕机，没有 response，此时 header 为 request header
+				err = f.globalRollback(ctx, xid)
+				if err != nil {
+					log.Proxy.Errorf(ctx, err.Error())
+				}
 			}
 		}
 
@@ -154,6 +160,12 @@ func (f *filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 					if err != nil {
 						log.Proxy.Errorf(ctx, err.Error())
 					}
+				}
+			} else {
+				// 服务宕机，没有 response，此时 header 为 request header
+				err := f.branchReport(ctx, xid, branchID, apis.TCC, apis.PhaseOneFailed, nil)
+				if err != nil {
+					log.Proxy.Errorf(ctx, err.Error())
 				}
 			}
 		}
