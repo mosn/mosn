@@ -117,9 +117,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	// set listener filter , network filter and stream filter
 	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
-	if len(lc.ListenerFilters) > 0 {
-		listenerFiltersFactories = configmanager.AddOrUpdateListenerFilterFactories(listenerName, lc.ListenerFilters)
-	}
+	listenerFiltersFactories = configmanager.AddOrUpdateListenerFilterFactories(listenerName, lc.ListenerFilters)
 	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 	networkFiltersFactories = configmanager.AddOrUpdateNetworkFilterFactories(listenerName, lc)
 

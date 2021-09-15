@@ -387,6 +387,10 @@ var listenerFilterFactoryMap = sync.Map{}
 
 // AddOrUpdateListenerFilterFactories adds or updates the listener filter factories of a listener
 func AddOrUpdateListenerFilterFactories(listenerName string, configs []v2.Filter) []api.ListenerFilterChainFactory {
+	if listenerName == "" || len(configs) == 0 {
+		return nil
+	}
+
 	var factories []api.ListenerFilterChainFactory
 
 	for _, c := range configs {
