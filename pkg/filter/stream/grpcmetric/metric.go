@@ -85,7 +85,7 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	}
 	stats.costTime.Update(int64(ct))
 	stats.requestServiceTootle.Inc(1)
-	if success == "success" {
+	if success == "true" {
 		stats.responseSuccess.Inc(1)
 	} else {
 		stats.responseFail.Inc(1)
