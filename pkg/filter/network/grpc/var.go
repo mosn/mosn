@@ -32,7 +32,6 @@ const (
 var (
 	builtinVariables = []variable.Variable{
 		variable.NewIndexedVariable(VarGrpcServiceName, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(grpcServiceName, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(VarGrpcRequestResult, nil, nil, variable.BasicSetter, 0),
 	}
 )

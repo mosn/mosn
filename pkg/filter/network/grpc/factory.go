@@ -117,7 +117,6 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(grpcServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
