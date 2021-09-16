@@ -32,15 +32,12 @@ import (
 
 type mockMetricFilter struct {
 	api.StreamFilterChainFactoryCallbacks
-	rf api.StreamReceiverFilter
 	sf api.StreamSenderFilter
-	p1 api.ReceiverFilterPhase
 	p2 api.SenderFilterPhase
 }
 
 func (m *mockMetricFilter) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
-	m.rf = filter
-	m.p1 = p
+
 }
 
 func (m *mockMetricFilter) AddStreamSenderFilter(filter api.StreamSenderFilter, p api.SenderFilterPhase) {
@@ -55,9 +52,6 @@ func TestFactory(t *testing.T) {
 	}
 	cb := &mockMetricFilter{}
 	fac.CreateFilterChain(context.TODO(), cb)
-	if cb.rf == nil || cb.p1 != api.AfterRoute {
-		t.Fatalf("create filter chain failed")
-	}
 	if cb.sf == nil || cb.p2 != api.BeforeSend {
 		t.Fatalf("create filter chain failed")
 	}
@@ -65,45 +59,45 @@ func TestFactory(t *testing.T) {
 
 func TestAppend(t *testing.T) {
 	f, _ := buildStream(nil)
-	mf := &metricFilter{ft: f.(*factory)}
+	mf := &metricFilter{st: f.(*factory).s}
 	h := &header.CommonHeader{}
 	ctx := variable.NewVariableContext(context.TODO())
 	r := mf.Append(ctx, h, nil, nil)
 	assert.Equal(t, api.StreamFilterContinue, r)
-	assert.Equal(t, len(mf.ft.s.statsFactory), 0)
+	assert.Equal(t, len(mf.st.statsFactory), 0)
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
 	mf.Append(ctx, h, nil, nil)
-	state := mf.ft.s.getStats("service1")
+	state := mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
-	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTotle.Count()), 1)
 	assert.Equal(t, int(state.responseFail.Count()), 0)
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "false")
 	mf.Append(ctx, h, nil, nil)
-	state = mf.ft.s.getStats("service1")
+	state = mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
-	assert.Equal(t, int(state.requestServiceTootle.Count()), 2)
+	assert.Equal(t, int(state.requestServiceTotle.Count()), 2)
 	assert.Equal(t, int(state.responseFail.Count()), 1)
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service2")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
 	mf.Append(ctx, h, nil, nil)
-	state = mf.ft.s.getStats("service1")
+	state = mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
-	assert.Equal(t, int(state.requestServiceTootle.Count()), 2)
+	assert.Equal(t, int(state.requestServiceTotle.Count()), 2)
 	assert.Equal(t, int(state.responseFail.Count()), 1)
-	state = mf.ft.s.getStats("service2")
+	state = mf.st.getStats("service2")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
-	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
+	assert.Equal(t, int(state.requestServiceTotle.Count()), 1)
 	assert.Equal(t, int(state.responseFail.Count()), 0)
 }
 
 func BenchmarkWithTimer(b *testing.B) {
 	f, _ := buildStream(nil)
-	mf := &metricFilter{ft: f.(*factory)}
+	mf := &metricFilter{st: f.(*factory).s}
 	h := &header.CommonHeader{}
 	ctx := variable.NewVariableContext(context.TODO())
 	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")

@@ -34,9 +34,9 @@ var (
 )
 
 type stats struct {
-	requestServiceTootle gometrics.Counter
-	responseSuccess      gometrics.Counter
-	responseFail         gometrics.Counter
+	requestServiceTotle gometrics.Counter
+	responseSuccess     gometrics.Counter
+	responseFail        gometrics.Counter
 }
 
 type state struct {
@@ -72,9 +72,9 @@ func (s *state) getStats(service string) *stats {
 	}
 
 	stat = &stats{
-		requestServiceTootle: mts.Counter(serviceReqNum),
-		responseSuccess:      mts.Counter(responseSucc),
-		responseFail:         mts.Counter(responseFail),
+		requestServiceTotle: mts.Counter(serviceReqNum),
+		responseSuccess:     mts.Counter(responseSucc),
+		responseFail:        mts.Counter(responseFail),
 	}
 	s.statsFactory[key] = stat
 	return stat

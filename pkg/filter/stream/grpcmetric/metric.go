@@ -40,15 +40,14 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := &metricFilter{ft: f}
-	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
+	filter := &metricFilter{st: f.s}
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type metricFilter struct {
 	receiveHandler api.StreamReceiverFilterHandler
 	sendHandler    api.StreamSenderFilterHandler
-	ft             *factory
+	st             *state
 }
 
 func (d *metricFilter) OnDestroy() {}
@@ -71,11 +70,11 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 		return api.StreamFilterContinue
 	}
 
-	stats := d.ft.s.getStats(svcName)
+	stats := d.st.getStats(svcName)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	stats.requestServiceTootle.Inc(1)
+	stats.requestServiceTotle.Inc(1)
 	if success == "true" {
 		stats.responseSuccess.Inc(1)
 	} else {
