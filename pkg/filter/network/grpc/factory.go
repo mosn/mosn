@@ -152,13 +152,6 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 	variable.SetVariableValue(ctx, GrpcServiceCostTime, strconv.FormatInt(time.Now().Sub(recvTimer).Nanoseconds(), 10))
 
-	stream := grpc.ServerTransportStreamFromContext(ctx)
-	wr = &wrapper{stream, nil, nil}
-	newCtx := grpc.NewContextWithServerTransportStream(ctx, wr)
-
-	//do biz logic
-	resp, err = handler(newCtx, req)
-
 	responseHeader := header.CommonHeader{}
 	for k, v := range wr.header {
 		responseHeader.Set(k, v[0])
