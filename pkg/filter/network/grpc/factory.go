@@ -117,7 +117,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(GrpcServiceName, info.FullMethod)
+	requestHeader.Set(grpcServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
@@ -126,11 +126,11 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(GrpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetVariableValue(ctx, GrpcServiceNameWithProtocol, info.FullMethod)
+	variable.SetVariableValue(ctx, VarGrpcServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
@@ -157,9 +157,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		responseTrailer.Set(k, v[0])
 	}
 
-	variable.SetVariableValue(ctx, GrpcRequestResult, "true")
+	variable.SetVariableValue(ctx, VarGrpcRequestResult, "true")
 	if err != nil {
-		variable.SetVariableValue(ctx, GrpcRequestResult, "false")
+		variable.SetVariableValue(ctx, VarGrpcRequestResult, "false")
 	}
 
 	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)

@@ -45,9 +45,8 @@ func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFil
 }
 
 type metricFilter struct {
-	receiveHandler api.StreamReceiverFilterHandler
-	sendHandler    api.StreamSenderFilterHandler
-	st             *state
+	sendHandler api.StreamSenderFilterHandler
+	st          *state
 }
 
 func (d *metricFilter) OnDestroy() {}
@@ -56,16 +55,12 @@ func (d *metricFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf
 	return api.StreamFilterContinue
 }
 
-func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	d.receiveHandler = handler
-}
-
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	svcName, err := variable.GetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol)
+	svcName, err := variable.GetVariableValue(ctx, grpc.VarGrpcServiceName)
 	if err != nil {
 		return api.StreamFilterContinue
 	}
-	success, err := variable.GetVariableValue(ctx, grpc.GrpcRequestResult)
+	success, err := variable.GetVariableValue(ctx, grpc.VarGrpcRequestResult)
 	if err != nil {
 		return api.StreamFilterContinue
 	}
@@ -74,7 +69,7 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	stats.requestServiceTotle.Inc(1)
+	stats.requestServiceTotal.Inc(1)
 	if success == "true" {
 		stats.responseSuccess.Inc(1)
 	} else {
