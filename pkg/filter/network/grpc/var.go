@@ -41,5 +41,5 @@ func init() {
 		variable.RegisterVariable(builtinVariables[idx])
 	}
 
-	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, grpcServiceName)
+	variable.RegisterProtocolResource(grpcName, api.PATH, grpcServiceName)
 }
