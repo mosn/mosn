@@ -23,14 +23,15 @@ import (
 )
 
 const (
-	GrpcName          string = "gRPC"
-	GrpcServiceName   string = "serviceName"
-	GrpcRequestResult string = "requestResult"
+	GrpcName                    = "gRPC"
+	GrpcServiceName             = "serviceName"
+	GrpcRequestResult           = "requestResult"
+	GrpcServiceNameWithProtocol = GrpcName + "_" + GrpcServiceName
 )
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(GrpcName+"_"+GrpcServiceName, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(GrpcServiceNameWithProtocol, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(GrpcServiceName, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(GrpcRequestResult, nil, nil, variable.BasicSetter, 0),
 	}

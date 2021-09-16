@@ -62,7 +62,7 @@ func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterH
 }
 
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	svcName, err := variable.GetVariableValue(ctx, grpc.GrpcServiceName)
+	svcName, err := variable.GetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol)
 	if err != nil {
 		return api.StreamFilterContinue
 	}

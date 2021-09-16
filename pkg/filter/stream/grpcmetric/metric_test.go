@@ -72,7 +72,7 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, api.StreamFilterContinue, r)
 	assert.Equal(t, len(mf.ft.s.statsFactory), 0)
 
-	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
+	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
 	mf.Append(ctx, h, nil, nil)
 	state := mf.ft.s.getStats("service1")
@@ -80,7 +80,7 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, int(state.requestServiceTootle.Count()), 1)
 	assert.Equal(t, int(state.responseFail.Count()), 0)
 
-	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
+	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "false")
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
@@ -88,7 +88,7 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, int(state.requestServiceTootle.Count()), 2)
 	assert.Equal(t, int(state.responseFail.Count()), 1)
 
-	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service2")
+	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service2")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
@@ -106,7 +106,7 @@ func BenchmarkWithTimer(b *testing.B) {
 	mf := &metricFilter{ft: f.(*factory)}
 	h := &header.CommonHeader{}
 	ctx := variable.NewVariableContext(context.TODO())
-	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
+	variable.SetVariableValue(ctx, grpc.GrpcServiceNameWithProtocol, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
 	for n := 0; n < b.N; n++ {
 		mf.Append(ctx, h, nil, nil)
