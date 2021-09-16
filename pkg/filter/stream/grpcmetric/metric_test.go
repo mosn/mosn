@@ -19,7 +19,6 @@ package grpcmetric
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,7 +74,6 @@ func TestAppend(t *testing.T) {
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
-	variable.SetVariableValue(ctx, grpc.GrpcServiceCostTime, strconv.FormatInt(123, 10))
 	mf.Append(ctx, h, nil, nil)
 	state := mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -84,7 +82,6 @@ func TestAppend(t *testing.T) {
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "false")
-	variable.SetVariableValue(ctx, grpc.GrpcServiceCostTime, strconv.FormatInt(123, 10))
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -93,7 +90,6 @@ func TestAppend(t *testing.T) {
 
 	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service2")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
-	variable.SetVariableValue(ctx, grpc.GrpcServiceCostTime, strconv.FormatInt(123, 10))
 	mf.Append(ctx, h, nil, nil)
 	state = mf.ft.s.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -112,7 +108,6 @@ func BenchmarkWithTimer(b *testing.B) {
 	ctx := variable.NewVariableContext(context.TODO())
 	variable.SetVariableValue(ctx, grpc.GrpcServiceName, "service1")
 	variable.SetVariableValue(ctx, grpc.GrpcRequestResult, "true")
-	variable.SetVariableValue(ctx, grpc.GrpcServiceCostTime, strconv.FormatInt(12312421421412, 10))
 	for n := 0; n < b.N; n++ {
 		mf.Append(ctx, h, nil, nil)
 	}

@@ -23,10 +23,9 @@ import (
 )
 
 const (
-	GrpcName            string = "gRPC"
-	GrpcServiceName     string = "serviceName"
-	GrpcRequestResult   string = "requestResult"
-	GrpcServiceCostTime string = "costTime"
+	GrpcName          string = "gRPC"
+	GrpcServiceName   string = "serviceName"
+	GrpcRequestResult string = "requestResult"
 )
 
 var (
@@ -34,7 +33,6 @@ var (
 		variable.NewIndexedVariable(GrpcName+"_"+GrpcServiceName, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(GrpcServiceName, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(GrpcRequestResult, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(GrpcServiceCostTime, nil, nil, variable.BasicSetter, 0),
 	}
 )
 

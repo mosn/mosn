@@ -19,7 +19,6 @@ package grpcmetric
 
 import (
 	"context"
-	"strconv"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -47,8 +46,9 @@ func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFil
 }
 
 type metricFilter struct {
-	handler api.StreamReceiverFilterHandler
-	ft      *factory
+	receiveHandler api.StreamReceiverFilterHandler
+	sendHandler    api.StreamSenderFilterHandler
+	ft             *factory
 }
 
 func (d *metricFilter) OnDestroy() {}
@@ -58,7 +58,7 @@ func (d *metricFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf
 }
 
 func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	d.handler = handler
+	d.receiveHandler = handler
 }
 
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
@@ -70,20 +70,11 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	if err != nil {
 		return api.StreamFilterContinue
 	}
-	costTimeNs, err := variable.GetVariableValue(ctx, grpc.GrpcServiceCostTime)
-	if err != nil {
-		return api.StreamFilterContinue
-	}
 
 	stats := d.ft.s.getStats(svcName)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	ct, err := strconv.Atoi(costTimeNs)
-	if err != nil {
-		return api.StreamFilterContinue
-	}
-	stats.costTime.Update(int64(ct))
 	stats.requestServiceTootle.Inc(1)
 	if success == "true" {
 		stats.responseSuccess.Inc(1)
@@ -94,5 +85,5 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 }
 
 func (d *metricFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
-
+	d.sendHandler = handler
 }
