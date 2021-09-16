@@ -51,10 +51,6 @@ type metricFilter struct {
 
 func (d *metricFilter) OnDestroy() {}
 
-func (d *metricFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	return api.StreamFilterContinue
-}
-
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	svcName, err := variable.GetVariableValue(ctx, grpc.VarGrpcServiceName)
 	if err != nil {
