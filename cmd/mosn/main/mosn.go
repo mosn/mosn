@@ -35,6 +35,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
 	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
+	_ "mosn.io/mosn/pkg/filter/stream/grpcmetric"
 	_ "mosn.io/mosn/pkg/filter/stream/gzip"
 	_ "mosn.io/mosn/pkg/filter/stream/jwtauthn"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
