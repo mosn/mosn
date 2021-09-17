@@ -142,7 +142,7 @@ func (ads *AdsConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticRe
 		config := ClusterConfig{}
 		config.TlsContext = cluster.TlsContext
 		if cluster.LbPolicy != envoy_api_v2.Cluster_RANDOM {
-			log.DefaultLogger.Warnf("only random lbPoliy supported, convert to random")
+			log.DefaultLogger.Warnf("only random lbPolicy supported, convert to random")
 		}
 		config.LbPolicy = envoy_api_v2.Cluster_RANDOM
 		if cluster.ConnectTimeout.GetSeconds() <= 0 {

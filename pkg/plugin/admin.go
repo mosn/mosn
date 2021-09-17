@@ -41,7 +41,7 @@ func CheckPluginStatus(name string) (string, error) {
 		pluginLock.Unlock()
 
 		if client == nil {
-			return "", errors.New("pulgin " + name + " no register")
+			return "", errors.New("plugin " + name + " no register")
 		}
 
 		enable, on := client.Status()
@@ -56,7 +56,7 @@ func ClosePlugin(name string) error {
 	pluginLock.Unlock()
 
 	if client == nil {
-		return errors.New("pulgin " + name + " no register")
+		return errors.New("plugin " + name + " no register")
 	}
 	return client.disable()
 }
@@ -68,7 +68,7 @@ func OpenPlugin(name string) error {
 	pluginLock.Unlock()
 
 	if client == nil {
-		return errors.New("pulgin " + name + " no register")
+		return errors.New("plugin " + name + " no register")
 	}
 	return client.open()
 }
