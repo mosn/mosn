@@ -156,12 +156,10 @@ func (c *Connection) OnEvent(event api.ConnectionEvent) {
 func (c *Connection) Send(buf buffer.IoBuffer) {
 	// copy data to the data buffer
 	// TODO: limit the data buffer, or shrink the data buffer when the connection is idle
-	b := make([]byte, buf.Len())
-	copy(b, buf.Bytes())
-	buf.Drain(buf.Len())
-	if _, err := c.databuf.Write(b); err != nil {
+	if _, err := c.databuf.Write(buf.Bytes()); err != nil {
 		log.DefaultLogger.Errorf("[grpc] connection write error. local %v, remote %v, error: %v", c.raw.LocalAddr(), c.raw.RemoteAddr(), err)
 	}
+	buf.Drain(buf.Len())
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[grpc] grpc send data to the data buffer")
 	}
