@@ -125,7 +125,6 @@ func (f *grpcServerFilterFactory) close() error {
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	wr := &wrapper{}
-	recvTimer := time.Now()
 	defer func() {
 		// add recover, or process will be crashed if handler cause a panic
 		if r := recover(); r != nil {
@@ -143,7 +142,6 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
 	requestHeader := header.CommonHeader{}
-	requestHeader.Set(GrpcServiceName, info.FullMethod)
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
@@ -152,11 +150,11 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(GrpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetString(ctx, GrpcName+"_"+GrpcServiceName, info.FullMethod)
+	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
@@ -174,15 +172,14 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		resp, err = handler(newCtx, req)
 	}
 
-	variable.Set(ctx, GrpcServiceCostTime, time.Now().Sub(recvTimer).Nanoseconds())
 	responseHeader := header.CommonHeader{}
 	for k, v := range wr.header {
 		responseHeader.Set(k, v[0])
 	}
-	variable.Set(ctx, GrpcServiceName, info.FullMethod)
-	variable.Set(ctx, GrpcRequestResult, true)
+	variable.Set(ctx, grpcServiceName, info.FullMethod)
+	variable.Set(ctx, VarGrpcRequestResult, true)
 	if err != nil {
-		variable.Set(ctx, GrpcRequestResult, false)
+		variable.Set(ctx, VarGrpcRequestResult, false)
 	}
 	responseTrailer := header.CommonHeader{}
 	for k, v := range wr.trailer {

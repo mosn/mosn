@@ -26,19 +26,17 @@ import (
 )
 
 var (
-	serviceReqNum   = "request_total"
-	responseSucc    = "response_succ_total"
-	responseFail    = "response_fail_total"
-	serviceKey      = "service"
-	serviceCostTime = "cost_time"
-	metricPre       = "grpc"
+	serviceReqNum = "request_total"
+	responseSucc  = "response_succ_total"
+	responseFail  = "response_fail_total"
+	serviceKey    = "service"
+	metricPre     = "grpc"
 )
 
 type stats struct {
-	costTime             gometrics.Histogram
-	requestServiceTootle gometrics.Counter
-	responseSuccess      gometrics.Counter
-	responseFail         gometrics.Counter
+	requestServiceTotal gometrics.Counter
+	responseSuccess     gometrics.Counter
+	responseFail        gometrics.Counter
 }
 
 type state struct {
@@ -74,10 +72,9 @@ func (s *state) getStats(service string) *stats {
 	}
 
 	stat = &stats{
-		requestServiceTootle: mts.Counter(serviceReqNum),
-		responseSuccess:      mts.Counter(responseSucc),
-		responseFail:         mts.Counter(responseFail),
-		costTime:             mts.Histogram(serviceCostTime),
+		requestServiceTotal: mts.Counter(serviceReqNum),
+		responseSuccess:     mts.Counter(responseSucc),
+		responseFail:        mts.Counter(responseFail),
 	}
 	s.statsFactory[key] = stat
 	return stat

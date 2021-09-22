@@ -40,48 +40,33 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := &metricFilter{ft: f}
-	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
+	filter := &metricFilter{st: f.s}
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type metricFilter struct {
-	handler api.StreamReceiverFilterHandler
-	ft      *factory
+	sendHandler api.StreamSenderFilterHandler
+	st          *state
 }
 
 func (d *metricFilter) OnDestroy() {}
 
-func (d *metricFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	return api.StreamFilterContinue
-}
-
-func (d *metricFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	d.handler = handler
-}
-
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	service, err := variable.Get(ctx, grpc.GrpcServiceName)
+	svcName, err := variable.Get(ctx, grpc.VarGrpcServiceName)
 	if err != nil {
 		return api.StreamFilterContinue
 	}
-	reqResult, err := variable.Get(ctx, grpc.GrpcRequestResult)
+	res, err := variable.Get(ctx, grpc.VarGrpcRequestResult)
 	if err != nil {
 		return api.StreamFilterContinue
 	}
-	costTime, err := variable.Get(ctx, grpc.GrpcServiceCostTime)
-	if err != nil {
-		return api.StreamFilterContinue
-	}
-	svcName := service.(string)
-	success := reqResult.(bool)
-	costTimeNs := costTime.(int64)
-	stats := d.ft.s.getStats(svcName)
+	serviceName := svcName.(string)
+	success := res.(bool)
+	stats := d.st.getStats(serviceName)
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
-	stats.costTime.Update(costTimeNs)
-	stats.requestServiceTootle.Inc(1)
+	stats.requestServiceTotal.Inc(1)
 	if success {
 		stats.responseSuccess.Inc(1)
 	} else {
@@ -91,5 +76,5 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 }
 
 func (d *metricFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
-
+	d.sendHandler = handler
 }
