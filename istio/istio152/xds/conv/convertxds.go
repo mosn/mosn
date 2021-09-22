@@ -94,7 +94,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -787,7 +787,9 @@ func convertFilterConfig(filter *xdslistener.Filter, rh routeHandler) map[string
 	}
 
 	// get proxy
-	proxyConfig.RouterConfigName = routerConfig.RouterConfigName
+	if routerConfig != nil {
+		proxyConfig.RouterConfigName = routerConfig.RouterConfigName
+	}
 	filtersConfigParsed[v2.DEFAULT_NETWORK_FILTER] = toMap(proxyConfig)
 	return filtersConfigParsed
 }
