@@ -1,18 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package extract
 
 import (
 	"context"
-	"encoding/base64"
 	"net"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
-	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -177,65 +189,6 @@ func TestExtractAttributes(t *testing.T) {
 			},
 			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
 		},
-		{
-			args: args{
-				varCtx: variable.NewVariableContext(context.Background()),
-				reqHeaders: protocol.CommonHeader{
-					utils.KIstioAttributeHeader: func() string {
-						b, _ := proto.Marshal(&v1.Attributes{
-							Attributes: map[string]*v1.Attributes_AttributeValue{
-								"source.workload.name": {
-									Value: &v1.Attributes_AttributeValue_StringValue{
-										StringValue: "name",
-									},
-								},
-							},
-						})
-						return base64.StdEncoding.EncodeToString(b)
-					}(),
-				},
-				respHeaders: protocol.CommonHeader{},
-				requestInfo: &MockRequestInfo{
-					startTime: now,
-					endTime:   now,
-				},
-				buf: buf,
-			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(63), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "source.workload.name": "name"},
-		},
-		{
-			args: args{
-				varCtx: variable.NewVariableContext(context.Background()),
-				reqHeaders: protocol.CommonHeader{
-					utils.KIstioAttributeHeader: `Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFodHRwYmluLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2h0dHBiaW4KKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdAolChhkZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWUSCRIHaHR0cGJpbgo6Cgpzb3VyY2UudWlkEiwSKmt1YmVybmV0ZXM6Ly9zbGVlcC03YjlmOGJmY2QtMmRqeDUuZGVmYXVsdAo6ChNkZXN0aW5hdGlvbi5zZXJ2aWNlEiMSIWh0dHBiaW4uZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbA==`,
-				},
-				respHeaders: protocol.CommonHeader{},
-				requestInfo: &MockRequestInfo{
-					startTime: now,
-					endTime:   now,
-				},
-				buf: buf,
-			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(463), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service": "httpbin.default.svc.cluster.local", "destination.service.host": "httpbin.default.svc.cluster.local", "destination.service.name": "httpbin", "destination.service.namespace": "default", "destination.service.uid": "istio://default/services/httpbin", "source.uid": "kubernetes://sleep-7b9f8bfcd-2djx5.default"},
-		},
-		{
-			args: args{
-				varCtx: variable.NewVariableContext(context.Background()),
-				reqHeaders: protocol.CommonHeader{
-					utils.KIstioAttributeHeader: `Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFodHRwYmluLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2h0dHBiaW4KKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdAolChhkZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWUSCRIHaHR0cGJpbgo6Cgpzb3VyY2UudWlkEiwSKmt1YmVybmV0ZXM6Ly9zbGVlcC03YjlmOGJmY2QtMmRqeDUuZGVmYXVsdAo6ChNkZXN0aW5hdGlvbi5zZXJ2aWNlEiMSIWh0dHBiaW4uZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbA==`,
-				},
-				respHeaders: protocol.CommonHeader{},
-				requestInfo: &MockRequestInfo{
-					startTime: now,
-					endTime:   now,
-					routerRule: &MockRouteRule{
-						clusterName: "outbound|12220|0.0.1|hellomeshfacade-poc-test-client.default2.svc.cluster.local",
-					},
-				},
-				buf: buf,
-			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(463), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service.host": "hellomeshfacade-poc-test-client.default2.svc.cluster.local", "destination.service.name": "hellomeshfacade-poc-test-client", "destination.service.namespace": "default2", "context.reporter.kind": "outbound"},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -244,159 +197,6 @@ func TestExtractAttributes(t *testing.T) {
 				if g, ok := got.Get(k); !ok || !reflect.DeepEqual(g, v) {
 					t.Errorf("ExtractAttributes() key %q = %v, want %v", k, g, v)
 				}
-			}
-		})
-	}
-}
-
-func Test_attributesToStringInterfaceMap(t *testing.T) {
-	type args struct {
-		attributes v1.Attributes
-	}
-	tests := []struct {
-		name string
-		args args
-		want map[string]interface{}
-	}{
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_StringValue{
-								StringValue: "string",
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": "string",
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_Int64Value{
-								Int64Value: 1,
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": int64(1),
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_DoubleValue{
-								DoubleValue: 1.1,
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": 1.1,
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_BoolValue{
-								BoolValue: true,
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": true,
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_BytesValue{
-								BytesValue: []byte{1},
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": []byte{1},
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_TimestampValue{
-								TimestampValue: &types.Timestamp{Seconds: 1, Nanos: 2},
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": time.Unix(1, 2),
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_DurationValue{
-								DurationValue: &types.Duration{Seconds: 1, Nanos: 2},
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": time.Second + 2,
-			},
-		},
-		{
-			args: args{
-				attributes: v1.Attributes{
-					Attributes: map[string]*v1.Attributes_AttributeValue{
-						"key": {
-							Value: &v1.Attributes_AttributeValue_StringMapValue{
-								StringMapValue: &v1.Attributes_StringMap{
-									Entries: map[string]string{
-										"vk": "vv",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			want: map[string]interface{}{
-				"key": protocol.CommonHeader(map[string]string{
-					"vk": "vv",
-				}),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := attributesToStringInterfaceMap(nil, tt.args.attributes); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("attributesToStringInterfaceMap() = %v, want %v", got, tt.want)
 			}
 		})
 	}
