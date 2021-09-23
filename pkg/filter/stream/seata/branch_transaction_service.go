@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gogo/protobuf/types"
@@ -44,6 +45,7 @@ func (f *filter) branchCommunicate() {
 		ctx := metadata.AppendToOutgoingContext(context.Background(), "addressing", f.conf.Addressing)
 		stream, err := f.resourceClient.BranchCommunicate(ctx)
 		if err != nil {
+			time.Sleep(time.Second)
 			continue
 		}
 
