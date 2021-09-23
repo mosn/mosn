@@ -39,14 +39,14 @@ const (
 )
 
 func init() {
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarDirection, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarScheme, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHost, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarPath, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarPathOriginal, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarQueryString, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarMethod, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarDirection, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarScheme, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarHost, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarPath, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarPathOriginal, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarQueryString, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarMethod, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarIstioHeaderHost, nil, nil, variable.DefaultStringSetter, 0))
 }
 
 // TODO: move CommonHeader to common, not only in protocol

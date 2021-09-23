@@ -90,7 +90,8 @@ func TestTransfer(t *testing.T) {
 
 	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
 
-	tc.ClientMeshAddr = "127.0.0.1:12101"
+	os.Remove("/tmp/client.sock")
+	tc.ClientMeshAddr = "/tmp/client.sock"
 	tc.ServerMeshAddr = "127.0.0.1:12102"
 
 	if os.Getenv("_MOSN_TEST_TRANSFER") == "true" {

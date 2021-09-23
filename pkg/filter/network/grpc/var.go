@@ -38,7 +38,7 @@ var (
 
 func init() {
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 
 	variable.RegisterProtocolResource(grpcName, api.PATH, grpcServiceName)

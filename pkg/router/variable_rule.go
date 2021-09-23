@@ -70,7 +70,7 @@ func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.Header
 	for _, v := range vrri.Variables {
 		walkVarName = v.name
 		curStepRes := false
-		actual, _ := variable.GetVariableValue(ctx, v.name)
+		actual, _ := variable.GetString(ctx, v.name)
 		if v.value != nil {
 			curStepRes = *v.value == actual
 		}

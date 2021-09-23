@@ -22,20 +22,20 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/router"
-	"mosn.io/mosn/pkg/variable"
-
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
-
-	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -106,7 +106,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "500" {
+				if code, err := variable.GetString(ctx, types.VarHeaderStatus); err != nil || code != "500" {
 					t.Error("response status code not expected")
 				}
 			},
@@ -124,7 +124,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "400" {
+				if code, err := variable.GetString(ctx, types.VarHeaderStatus); err != nil || code != "400" {
 					t.Error("response status code not expected")
 				}
 				if client.data == nil {
@@ -351,4 +351,83 @@ func TestProcessError(t *testing.T) {
 	if p != types.ChooseHost || e != types.ErrExit {
 		t.Errorf("TestprocessError Error")
 	}
+}
+
+func TestMetadataMatchCriteria(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := variable.NewVariableContext(context.Background())
+
+	cluster := mock.NewMockClusterInfo(ctrl)
+	cluster.EXPECT().Name().AnyTimes()
+
+	routeEntry := mock.NewMockRouteRule(ctrl)
+	routeEntryMeta := router.NewMetadataMatchCriteriaImpl(map[string]string{
+		"a": "b",
+		"b": "bb",
+	})
+	routeEntry.EXPECT().MetadataMatchCriteria(gomock.Any()).AnyTimes().Return(routeEntryMeta)
+
+	requestInfo := &network.RequestInfo{}
+	requestInfo.SetRouteEntry(routeEntry)
+
+	s := &downStream{
+		context:     ctx,
+		requestInfo: requestInfo,
+		cluster:     cluster,
+	}
+
+	assert.Equal(t, s.MetadataMatchCriteria(), routeEntryMeta)
+
+	variable.Set(ctx, types.VarRouterMeta, map[string]string{"a": "aa"})
+	assert.Equal(t, len(s.MetadataMatchCriteria().MetadataMatchCriteria()), 2)
+	assert.Equal(t, s.MetadataMatchCriteria().MetadataMatchCriteria()[0].MetadataValue(), "aa")
+}
+
+func TestRetryEmptyUpstreamHosts(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := variable.NewVariableContext(context.Background())
+
+	cluster := mock.NewMockClusterInfo(ctrl)
+	cluster.EXPECT().Name().AnyTimes()
+
+	clusterManager := mock.NewMockClusterManager(ctrl)
+	clusterManager.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+
+	responseSender := mock.NewMockStreamSender(ctrl)
+	responseSender.EXPECT().AppendHeaders(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+
+	requestInfo := &network.RequestInfo{}
+
+	s := &downStream{
+		ID:      1,
+		cluster: cluster,
+		upstreamRequest: &upstreamRequest{
+			setupRetry: true,
+		},
+		responseSender: responseSender,
+		requestInfo:    requestInfo,
+		proxy: &proxy{
+			config: &v2.Proxy{
+				UpstreamProtocol: "HTTP2",
+			},
+			clusterManager: clusterManager,
+			stats:          globalStats,
+			listenerStats:  newListenerStats("test"),
+		},
+		streamFilterChain: streamFilterChain{
+			DefaultStreamFilterChainImpl: &streamfilter.DefaultStreamFilterChainImpl{},
+		},
+	}
+	s.upstreamRequest.downStream = s
+	phase, _ := s.processError(1)
+	assert.Equal(t, types.Retry, phase)
+	phase = s.receive(ctx, 1, phase)
+	assert.Equal(t, types.UpFilter, phase)
+	phase = s.receive(ctx, 1, phase)
+	assert.Equal(t, types.End, phase)
+	assert.Equal(t, true, s.processDone())
 }

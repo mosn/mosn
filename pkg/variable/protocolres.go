@@ -23,9 +23,8 @@ import (
 	"fmt"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -63,7 +62,7 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 			v = fmt.Sprintf("%s%s", v, data[0])
 		}
 
-		return GetVariableValue(ctx, v)
+		return GetString(ctx, v)
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))
 	}

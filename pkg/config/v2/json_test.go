@@ -275,7 +275,8 @@ func TestRouterActionUnmarshal(t *testing.T) {
 					"value": "ok"
 				}
 			}
-		]
+		],
+		"request_headers_to_remove":["test"]
 	}`
 	routerAction := &RouteAction{}
 	if err := json.Unmarshal([]byte(cfgStr), routerAction); err != nil {
@@ -291,7 +292,9 @@ func TestRouterActionUnmarshal(t *testing.T) {
 		routerAction.RetryPolicy.RetryTimeout == time.Second &&
 		len(routerAction.RequestHeadersToAdd) == 1 &&
 		routerAction.RequestHeadersToAdd[0].Header.Key == "test" &&
-		routerAction.RequestHeadersToAdd[0].Header.Value == "ok") {
+		routerAction.RequestHeadersToAdd[0].Header.Value == "ok" &&
+		len(routerAction.RequestHeadersToRemove) == 1 &&
+		routerAction.RequestHeadersToRemove[0] == "test") {
 
 		t.Errorf("unmarshal is not expected, %v", routerAction)
 	}

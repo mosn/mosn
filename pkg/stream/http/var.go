@@ -38,31 +38,31 @@ var (
 	argIndex    = len(types.VarPrefixHttpArg)
 
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
-		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
+		variable.NewStringVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
+		variable.NewStringVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
+		variable.NewStringVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 
 func init() {
 	// register built-in variables
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 
 	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
 	for idx := range prefixVariables {
-		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+		variable.RegisterPrefix(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
 
 	// register protocol resource

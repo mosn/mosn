@@ -204,7 +204,7 @@ func (l *listener) Stop() error {
 	if !l.bindToPort {
 		return nil
 	}
-
+	l.cb.OnClose()
 	var err error
 	switch l.network {
 	case "udp":

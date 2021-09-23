@@ -26,10 +26,8 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	xdsbootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/golang/protobuf/jsonpb"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClusterConfigParse(t *testing.T) {
@@ -200,6 +198,7 @@ func TestClusterConfigConflict(t *testing.T) {
 func TestAdminConfig(t *testing.T) {
 	mosnConfig := `{
 		"admin": {
+			"access_log_path": "/dev/null",
 			"address": {
 				"socket_address": {
 					"address": "0.0.0.0",
@@ -212,12 +211,10 @@ func TestAdminConfig(t *testing.T) {
 	if err := json.Unmarshal([]byte(mosnConfig), cfg); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.GetAdmin() == nil {
-		t.Error("no admin config got")
-	}
-	if cfg.Mode() != File {
-		t.Fatalf("config mode is %d", cfg.Mode())
-	}
+	adminConfig := cfg.GetAdmin()
+	require.NotNil(t, adminConfig)
+	require.Equal(t, "0.0.0.0", adminConfig.GetAddress())
+	require.Equal(t, uint32(34901), adminConfig.GetPortValue())
 }
 
 func TestMosnXdsMode(t *testing.T) {
@@ -371,35 +368,5 @@ func BenchmarkConfigMarshal(b *testing.B) {
 	b.Run("json-iterator testing", iterBench)
 
 	b.Run("std json testing", stdBench)
-
-}
-
-func TestLoadSdsConfig(t *testing.T) {
-	cfg := &MOSNConfig{}
-	content := []byte(xdsSdsConfig)
-	if err := json.Unmarshal(content, cfg); err != nil {
-		t.Fatal("json unmarshal config failed, ", xdsSdsConfig, "", err)
-	}
-
-	staticResource := &xdsbootstrap.Bootstrap_StaticResources{}
-	jContent, err := cfg.RawStaticResources.MarshalJSON()
-	if err != nil {
-		t.Fatalf("parse pilot address fail: %v", err)
-	}
-
-	err = jsonpb.UnmarshalString(string(jContent), staticResource)
-	if err != nil {
-		t.Fatalf("unmarshal static resource fail %v", err)
-	}
-
-	if staticResource.Clusters[0].Name != "xds-grpc" {
-		t.Fatal("cluster name should be xds-grpc")
-	}
-
-	firstHost := staticResource.Clusters[0].Hosts[0]
-	hAddress := firstHost.Address.(*core.Address_SocketAddress)
-	if hAddress.SocketAddress.Address != "pilot.test" {
-		t.Fatal("parse pilot name fail")
-	}
 
 }

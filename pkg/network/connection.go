@@ -201,6 +201,15 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 	c.newIdleChecker(readTimeout, idleTimeout)
 }
 
+func (conn *connection) OnConnectionEvent(event api.ConnectionEvent) {
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
+	}
+	for _, listener := range conn.connCallbacks {
+		listener.OnEvent(event)
+	}
+}
+
 func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
 	c.poll.eventLoop = attach()
@@ -215,7 +224,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		defer c.poll.readBufferMux.Unlock()
 
 		// shrink read buffer
-		// this shrink logic may happen concurrent with read callback
+		// this shrink logic may happen concurrent with read callback,
 		// so we should protect this under readBufferMux
 		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 			c.readBuffer.Free()
@@ -666,7 +675,7 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 			c.Close(api.NoFlush, api.OnWriteTimeout)
 		}
 
-		//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
+		//other write errs not close connection, because readbuffer may have unread data, wait for readloop close connection,
 
 		return
 	}
@@ -741,7 +750,7 @@ func (c *connection) startWriteLoop() {
 			if c.network == "udp" && strings.Contains(err.Error(), "connection refused") {
 				c.Close(api.NoFlush, api.RemoteClose)
 			}
-			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
+			//other write errs not close connection, because readbuffer may have unread data, wait for readloop close connection,
 
 			return
 		}
@@ -781,7 +790,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
-		//todo: writev(runtime) has memroy leak.
+		//todo: writev(runtime) has memory leak.
 		switch c.network {
 		case "unix":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
@@ -1000,7 +1009,7 @@ func (c *connection) LocalAddressRestored() bool {
 	return c.localAddressRestored
 }
 
-// BufferSource
+// GetWriteBuffer get write buffer
 func (c *connection) GetWriteBuffer() []buffer.IoBuffer {
 	return c.curWriteBufferData
 }

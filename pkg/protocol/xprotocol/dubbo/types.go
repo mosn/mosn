@@ -47,7 +47,7 @@ const (
 )
 
 /*
- * https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
+ * https://dubbo.apache.org/zh/docs/v2.7/dev/implementation/#%E8%BF%9C%E7%A8%8B%E9%80%9A%E8%AE%AF%E7%BB%86%E8%8A%82
  * 20 - OK
  * 30 - CLIENT_TIMEOUT
  * 31 - SERVER_TIMEOUT

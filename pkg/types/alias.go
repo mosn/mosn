@@ -22,7 +22,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-// use alias to keep compatiable
+// IoBuffer use alias to keep compatible
 type IoBuffer = buffer.IoBuffer
 
 type ProtocolName = api.ProtocolName

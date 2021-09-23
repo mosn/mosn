@@ -13,7 +13,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	metrics "github.com/rcrowley/go-metrics"
 	api "mosn.io/api"
-	buffer "mosn.io/pkg/buffer"
 )
 
 // MockConnection is a mock of Connection interface
@@ -66,7 +65,7 @@ func (mr *MockConnectionMockRecorder) Start(lctx interface{}) *gomock.Call {
 }
 
 // Write mocks base method
-func (m *MockConnection) Write(buf ...buffer.IoBuffer) error {
+func (m *MockConnection) Write(buf ...api.IoBuffer) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range buf {
@@ -147,6 +146,18 @@ func (m *MockConnection) AddConnectionEventListener(listener api.ConnectionEvent
 func (mr *MockConnectionMockRecorder) AddConnectionEventListener(listener interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddConnectionEventListener", reflect.TypeOf((*MockConnection)(nil).AddConnectionEventListener), listener)
+}
+
+// OnConnectionEvent mocks base method
+func (m *MockConnection) OnConnectionEvent(event api.ConnectionEvent) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnConnectionEvent", event)
+}
+
+// OnConnectionEvent indicates an expected call of OnConnectionEvent
+func (mr *MockConnectionMockRecorder) OnConnectionEvent(event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnConnectionEvent", reflect.TypeOf((*MockConnection)(nil).OnConnectionEvent), event)
 }
 
 // AddBytesReadListener mocks base method
@@ -304,10 +315,10 @@ func (mr *MockConnectionMockRecorder) LocalAddressRestored() *gomock.Call {
 }
 
 // GetWriteBuffer mocks base method
-func (m *MockConnection) GetWriteBuffer() []buffer.IoBuffer {
+func (m *MockConnection) GetWriteBuffer() []api.IoBuffer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetWriteBuffer")
-	ret0, _ := ret[0].([]buffer.IoBuffer)
+	ret0, _ := ret[0].([]api.IoBuffer)
 	return ret0
 }
 
@@ -318,10 +329,10 @@ func (mr *MockConnectionMockRecorder) GetWriteBuffer() *gomock.Call {
 }
 
 // GetReadBuffer mocks base method
-func (m *MockConnection) GetReadBuffer() buffer.IoBuffer {
+func (m *MockConnection) GetReadBuffer() api.IoBuffer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetReadBuffer")
-	ret0, _ := ret[0].(buffer.IoBuffer)
+	ret0, _ := ret[0].(api.IoBuffer)
 	return ret0
 }
 
@@ -398,7 +409,7 @@ func (mr *MockConnectionMockRecorder) State() *gomock.Call {
 }
 
 // OnRead mocks base method
-func (m *MockConnection) OnRead(buffer buffer.IoBuffer) {
+func (m *MockConnection) OnRead(buffer api.IoBuffer) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnRead", buffer)
 }

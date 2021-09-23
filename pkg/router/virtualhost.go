@@ -137,7 +137,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 	vhImpl := &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,
 		fastIndex:             make(map[string]map[string]api.Route),
-		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
+		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, virtualHost.RequestHeadersToRemove),
 		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
 		perFilterConfig:       virtualHost.PerFilterConfig,
 	}

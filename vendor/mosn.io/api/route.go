@@ -40,7 +40,7 @@ type RouteRule interface {
 	VirtualHost() VirtualHost
 
 	// ClusterName returns the route's cluster name
-	ClusterName() string
+	ClusterName(ctx context.Context) string
 
 	// UpstreamProtocol returns the protocol that route's cluster supported
 	// If it is configured, the protocol will replace the proxy config's upstream protocol
@@ -180,7 +180,7 @@ type MetadataMatchCriteria interface {
 	// to be matched against upstream endpoints when load balancing
 	MetadataMatchCriteria() []MetadataMatchCriterion
 
-	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
+	MergeMatchCriteria(metadataMatches map[string]string) MetadataMatchCriteria
 }
 
 // PathMatchType defines the path match pattern

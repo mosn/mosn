@@ -27,6 +27,7 @@ type WasmVmConfig struct {
 	Engine string `json:"engine,omitempty"`
 	Path   string `json:"path,omitempty"`
 	Url    string `json:"url,omitempty"`
+	Md5    string `json:"md5,omitempty"`
 	Cpu    int    `json:"cpu,omitempty"`
 	Mem    int    `json:"mem,omitempty"`
 }

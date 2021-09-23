@@ -19,6 +19,9 @@ package mtls
 
 import (
 	"fmt"
+
+	"mosn.io/mosn/pkg/mtls/sds"
+	"mosn.io/mosn/pkg/types"
 )
 
 const defaultFactoryName = ""
@@ -51,4 +54,11 @@ type defaultFactory struct{}
 
 func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) ConfigHooks {
 	return &defaultConfigHooks{}
+}
+
+// for test
+var getSdsClientFunc func(cfg interface{}) types.SdsClient = sds.NewSdsClientSingleton
+
+func GetSdsClient(cfg interface{}) types.SdsClient {
+	return getSdsClientFunc(cfg)
 }

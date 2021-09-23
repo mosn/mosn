@@ -26,8 +26,8 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
@@ -102,14 +102,14 @@ func TestGzipNewStreamFilter(t *testing.T) {
 
 	// check switch
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "off")
+	variable.SetString(ctx, types.VarProxyGzipSwitch, "off")
 	f.OnReceive(ctx, reqHeaders, nil, nil)
 
 	if f.needGzip {
 		t.Error("gzip switch off.")
 	}
 
-	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "on")
+	variable.SetString(ctx, types.VarProxyGzipSwitch, "on")
 	f.OnReceive(ctx, reqHeaders, nil, nil)
 	if !f.needGzip {
 		t.Error("gzip switch on.")

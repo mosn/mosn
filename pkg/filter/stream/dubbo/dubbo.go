@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dubbo
 
 import (
@@ -6,11 +23,12 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -42,6 +60,12 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
+	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
+	if subProtocol == nil || dubbo.ProtocolName != subProtocol.(string) {
+
+		return api.StreamFilterContinue
+	}
+
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
@@ -51,20 +75,20 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	}
 
 	// adapte dubbo service to http host
-	variable.SetVariableValue(ctx, types.VarHost, service)
+	variable.SetString(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
-	variable.SetVariableValue(ctx, types.VarPath, "/")
+	variable.SetString(ctx, types.VarPath, "/")
 
 	method, _ := headers.Get(dubbo.MethodNameHeader)
 	stats := getStats(listener, service, method)
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		variable.SetVariableValue(ctx, VarDubboRequestService, service)
-		variable.SetVariableValue(ctx, VarDubboRequestMethod, method)
+		variable.SetString(ctx, VarDubboRequestService, service)
+		variable.SetString(ctx, VarDubboRequestMethod, method)
 	}
 
-	for k, v := range types.GetPodLabels() {
+	for k, v := range istio.GetPodLabels() {
 		headers.Set(k, v)
 	}
 
@@ -77,12 +101,12 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
+	service, err := variable.GetString(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)
 		return api.StreamFilterContinue
 	}
-	method, err := variable.GetVariableValue(ctx, VarDubboRequestMethod)
+	method, err := variable.GetString(ctx, VarDubboRequestMethod)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request method info failed: %+v", err)
 		return api.StreamFilterContinue

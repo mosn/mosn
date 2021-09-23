@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"sync"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -55,7 +55,9 @@ func (w *wasmManagerImpl) shouldCreateNewPlugin(newConfig v2.WasmPluginConfig, o
 
 	if newConfig.VmConfig.Engine != oldConfig.VmConfig.Engine ||
 		newConfig.VmConfig.Path != oldConfig.VmConfig.Path ||
-		newConfig.VmConfig.Url != oldConfig.VmConfig.Url {
+		newConfig.VmConfig.Url != oldConfig.VmConfig.Url ||
+		newConfig.VmConfig.Md5 == "" ||
+		newConfig.VmConfig.Md5 != oldConfig.VmConfig.Md5 {
 		return true
 	}
 
