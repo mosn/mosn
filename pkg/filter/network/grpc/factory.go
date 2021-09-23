@@ -154,7 +154,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.Set(ctx, VarGrpcServiceName, info.FullMethod)
+	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
 	if status == api.StreamFiltertermination {
