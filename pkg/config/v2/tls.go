@@ -17,6 +17,14 @@
 
 package v2
 
+import (
+	"bytes"
+	"encoding/json"
+
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+)
+
 // TLSConfig is a configuration of tls context
 type TLSConfig struct {
 	Status            bool                   `json:"status,omitempty"`
@@ -45,11 +53,43 @@ type SdsConfig struct {
 }
 
 type SecretConfigWrapper struct {
-	Name      string      `json:"name"`
-	SdsConfig interface{} `json:"sdsConfig"`
+	Name      string      `json:"-"`
+	SdsConfig interface{} `json:"-"`
+	raw       SecretConfigWrapperConfig
+}
+
+func (scw SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
+	// if we build SecretConfigWrapper directly, we should use a proto.Message to build it.
+	if pm, ok := scw.SdsConfig.(proto.Message); ok {
+		var buf bytes.Buffer
+		marshaler := &jsonpb.Marshaler{}
+		_ = marshaler.Marshal(&buf, pm)
+		// use jsonpb format to marshal
+		m := map[string]interface{}{}
+		json.Unmarshal(buf.Bytes(), &m)
+		scw.raw.SdsConfig = m
+	}
+	scw.raw.Name = scw.Name
+	return json.Marshal(scw.raw)
+}
+
+func (scw *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
+	cfg := SecretConfigWrapperConfig{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return err
+	}
+	scw.Name = cfg.Name
+	scw.SdsConfig = cfg.SdsConfig
+	scw.raw = cfg
+	return nil
 }
 
 // Valid checks the whether the SDS Config is valid or not
 func (c *SdsConfig) Valid() bool {
 	return c != nil && c.CertificateConfig != nil && c.ValidationConfig != nil
+}
+
+type SecretConfigWrapperConfig struct {
+	Name      string                 `json:"name"`
+	SdsConfig map[string]interface{} `json:"sdsConfig"`
 }
