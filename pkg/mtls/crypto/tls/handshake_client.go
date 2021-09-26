@@ -853,7 +853,6 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 		opts := x509.VerifyOptions{
 			Roots:         c.config.RootCAs,
 			CurrentTime:   c.config.time(),
-			DNSName:       c.config.ServerName,
 			Intermediates: x509.NewCertPool(),
 		}
 		if verifyDNSName {

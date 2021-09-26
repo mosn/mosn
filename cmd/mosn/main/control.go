@@ -124,13 +124,13 @@ var (
 				Name:  "log-format-prefix-with-location",
 				Usage: "log-format-prefix-with-location, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
-				Name:  "bootstrap-version", // 目前没用，就是 v3
+				Name:  "bootstrap-version",
 				Usage: "API version to parse the bootstrap config as (e.g. 3). If unset, all known versions will be attempted",
 			}, cli.StringFlag{
-				Name:  "drain-strategy", // 目前没用，immediate
+				Name:  "drain-strategy",
 				Usage: "immediate",
 			}, cli.BoolTFlag{
-				Name:  "disable-hot-restart", // 目前没用，
+				Name:  "disable-hot-restart",
 				Usage: "disable-hot-restart",
 			},
 		},

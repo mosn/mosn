@@ -1473,7 +1473,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 					log.DefaultLogger.Warnf("convertTLS MatchSubjectAltNames GetExact empty, sans: %v", sans)
 				}
 			} else {
-				log.DefaultLogger.Warnf("convertTLS MatchSubjectAltNames lenth is not 1, sans %v", sans)
+				log.DefaultLogger.Warnf("convertTLS MatchSubjectAltNames lenth is not 1, server name: %s, sans %v", config.ServerName, sans)
 			}
 		}
 		isUpstream = true
