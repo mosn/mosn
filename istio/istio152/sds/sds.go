@@ -164,14 +164,25 @@ type SdsStreamConfig struct {
 
 func convertConfig(config interface{}) (SdsStreamConfig, error) {
 	sdsConfig := SdsStreamConfig{}
-	data, err := json.Marshal(config)
-	if err != nil {
-		return sdsConfig, err
-	}
 	source := &envoy_api_v2_core.ConfigSource{}
-	if err := jsonpb.Unmarshal(bytes.NewReader(data), source); err != nil {
-		return sdsConfig, err
+
+	switch v := config.(type) {
+	case map[string]interface{}:
+		// config from json unmarshal, we should transfer it with jsonpb
+		data, err := json.Marshal(config)
+		if err != nil {
+			return sdsConfig, err
+		}
+		if err := jsonpb.Unmarshal(bytes.NewReader(data), source); err != nil {
+			return sdsConfig, err
+		}
+	case *envoy_api_v2_core.ConfigSource:
+		// config from directly build
+		source = v
+	default:
+		return sdsConfig, errors.New("invalid config type")
 	}
+
 	if apiConfig, ok := source.ConfigSourceSpecifier.(*envoy_api_v2_core.ConfigSource_ApiConfigSource); ok {
 		if apiConfig.ApiConfigSource.GetApiType() == envoy_api_v2_core.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()

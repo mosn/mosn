@@ -18,25 +18,32 @@
 package sds
 
 import (
-	"bytes"
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/require"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/sds"
 	"mosn.io/mosn/pkg/types"
 )
 
-func InitSdsSecertConfig(sdsUdsPath string) interface{} {
+func InitSdsSecertConfig(sdsUdsPath string) proto.Message {
 	gRPCConfig := &envoy_api_v2_core.GrpcService_GoogleGrpc{
 		TargetUri:  sdsUdsPath,
 		StatPrefix: "sds-prefix",
 		ChannelCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials{
 			CredentialSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
 				LocalCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
+			},
+		},
+		CallCredentials: []*envoy_api_v2_core.GrpcService_GoogleGrpc_CallCredentials{
+			{
+				CredentialSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_CallCredentials_GoogleComputeEngine{},
 			},
 		},
 	}
@@ -55,12 +62,7 @@ func InitSdsSecertConfig(sdsUdsPath string) interface{} {
 		},
 	}
 
-	var buf bytes.Buffer
-	marshaler := &jsonpb.Marshaler{}
-	_ = marshaler.Marshal(&buf, source)
-	m := map[string]interface{}{}
-	json.Unmarshal(buf.Bytes(), &m)
-	return m
+	return source
 
 }
 
@@ -113,4 +115,69 @@ func Test_AddUpdateCallback(t *testing.T) {
 	case <-time.After(time.Second * 10):
 		t.Errorf("callback reponse timeout")
 	}
+}
+
+const sdsJson = `{
+	"name": "default",
+	"sdsConfig": {
+		"apiConfigSource": {
+			"apiType": "GRPC",
+			"grpcServices": [
+				{
+					"googleGrpc": {
+						"targetUri": "@/var/run/test",
+						"channelCredentials": {"localCredentials": {}},
+						"callCredentials": [{"googleComputeEngine": {}}],
+						"statPrefix": "sds-prefix"
+					}
+				}
+			]
+		}
+	}
+}`
+
+func equalJsonStr(s1, s2 string) bool {
+	var o1 interface{}
+	if err := json.Unmarshal([]byte(s1), &o1); err != nil {
+		return false
+	}
+	var o2 interface{}
+	if err := json.Unmarshal([]byte(s2), &o2); err != nil {
+		return false
+	}
+	return reflect.DeepEqual(o1, o2)
+}
+
+func TestConvertFromJson(t *testing.T) {
+	t.Run("got from json string", func(t *testing.T) {
+		scw := &v2.SecretConfigWrapper{}
+		if err := json.Unmarshal([]byte(sdsJson), scw); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		sdsConfig, err := convertConfig(scw.SdsConfig)
+		require.Nil(t, err)
+		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
+		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)
+
+		// To Json string
+		b, err := json.Marshal(scw)
+		require.Nil(t, err)
+		require.True(t, equalJsonStr(sdsJson, string(b)))
+	})
+
+	t.Run("got from xds", func(t *testing.T) {
+		scw := &v2.SecretConfigWrapper{
+			Name:      "default",
+			SdsConfig: InitSdsSecertConfig("@/var/run/test"),
+		}
+		sdsConfig, err := convertConfig(scw.SdsConfig)
+		require.Nil(t, err)
+		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
+		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)
+
+		// To Json string
+		b, err := json.Marshal(scw)
+		require.Nil(t, err)
+		require.True(t, equalJsonStr(sdsJson, string(b)))
+	})
 }
