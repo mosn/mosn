@@ -29,8 +29,8 @@ import (
 	"mosn.io/mosn/pkg/wasm/abi"
 	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 type Filter struct {

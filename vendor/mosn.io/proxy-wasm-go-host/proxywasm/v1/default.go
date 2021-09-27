@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
 import (
 	"fmt"
@@ -23,13 +23,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 type DefaultImportsHandler struct{}
 
 // for golang host environment, no-op
-func (d *DefaultImportsHandler) Wait() {}
+func (d *DefaultImportsHandler) Wait() Action { return ActionContinue }
 
 // utils
 func (d *DefaultImportsHandler) GetRootContextID() int32 { return 0 }
@@ -128,8 +128,8 @@ func (d *DefaultImportsHandler) GetGrpcReceiveTrailerMetaData() common.HeaderMap
 
 // foreign
 
-func (d *DefaultImportsHandler) CallForeignFunction(funcName string, param string) (string, WasmResult) {
-	return "", WasmResultUnimplemented
+func (d *DefaultImportsHandler) CallForeignFunction(funcName string, param []byte) ([]byte, WasmResult) {
+	return nil, WasmResultUnimplemented
 }
 
 func (d *DefaultImportsHandler) GetFuncCallData() common.IoBuffer { return nil }
