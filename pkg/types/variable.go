@@ -52,6 +52,7 @@ const (
 	VarProxyHijackStatus     string = "proxy_hijack_status"
 	VarProxyGzipSwitch       string = "proxy_gzip_switch"
 	VarProxyIsDirectResponse string = "proxy_direct_response"
+	VarProxyDisableRetry     string = "proxy_disable_retry"
 	VarDirection             string = "x-mosn-direction"
 	VarScheme                string = "x-mosn-scheme"
 	VarHost                  string = "x-mosn-host"
@@ -82,6 +83,8 @@ const (
 	VarProtocolRequestArgPrefix    = "request_arg_"
 	VarProtocolRequestArg          = "request_arg"
 	VarProtocolRequestUri          = "request_uri"
+	VarProtocolRequestUseStream    = "request_use_stream"
+	VarProtocolResponseUseStream   = "response_use_stream"
 )
 
 // [Protocol]: http1
@@ -111,6 +114,8 @@ const (
 	VarHttp2RequestPath         = http2ProtocolName + "_" + VarProtocolRequestPath
 	VarHttp2RequestPathOriginal = http2ProtocolName + "_" + VarProtocolRequestPathOriginal
 	VarHttp2RequestArg          = http2ProtocolName + "_" + VarProtocolRequestArg
+	VarHttp2RequestUseStream    = http2ProtocolName + "_" + VarProtocolRequestUseStream
+	VarHttp2ResponseUseStream   = http2ProtocolName + "_" + VarProtocolResponseUseStream
 	VarPrefixHttp2Header        = http2ProtocolName + "_" + VarProtocolRequestHeader
 	VarPrefixHttp2Arg           = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttp2Cookie        = http2ProtocolName + "_" + VarProtocolCookie

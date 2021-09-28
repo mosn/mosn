@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"testing"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
@@ -36,26 +35,22 @@ type mockSdsClient struct {
 
 var mockSdsClientInstance *mockSdsClient
 
-func (c *mockSdsClient) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
-	c.callback[sdsConfig.Name] = f
+func (c *mockSdsClient) AddUpdateCallback(name string, f types.SdsUpdateCallbackFunc) error {
+	c.callback[name] = f
 	return nil
 }
 
-func (c *mockSdsClient) SetSecret(name string, secret *auth.Secret) {
-	// nothing
-}
-
-func (c *mockSdsClient) setSecret(name string, secret *types.SdsSecret) {
+func (c *mockSdsClient) SetSecret(name string, secret *types.SdsSecret) {
 	if f, ok := c.callback[name]; ok {
 		f(name, secret)
 	}
 }
 
-func (c *mockSdsClient) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
+func (c *mockSdsClient) DeleteUpdateCallback(name string) error {
 	return nil
 }
 
-func getMockSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
+func getMockSdsClient(cfg interface{}) types.SdsClient {
 	if mockSdsClientInstance == nil {
 		mockSdsClientInstance = &mockSdsClient{
 			callback: make(map[string]types.SdsUpdateCallbackFunc),

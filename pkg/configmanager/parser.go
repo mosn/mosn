@@ -336,7 +336,7 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 
 func setMaxProcsWithProcessor(procs interface{}) {
 	// env variable has the highest priority.
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 {
 		runtime.GOMAXPROCS(n)
 		return
 	}
@@ -410,8 +410,8 @@ func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
-		if initialzer, ok := factory.(api.FactoryInitializer); ok {
-			if err := initialzer.Init(ln); err != nil {
+		if initializer, ok := factory.(api.FactoryInitializer); ok {
+			if err := initializer.Init(ln); err != nil {
 				log.StartLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
 				continue
 			}

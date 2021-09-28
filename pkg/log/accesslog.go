@@ -23,9 +23,9 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
-	"mosn.io/mosn/pkg/variable"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
@@ -37,7 +37,7 @@ var (
 	ErrEmptyVarDef        = errors.New("access log format error: empty variable definition")
 	ErrUnclosedVarDef     = errors.New("access log format error: unclosed variable definition")
 
-	UnknowDefaultValue = "-"
+	UnknownDefaultValue = "-"
 )
 
 const AccessLogLen = 1 << 8
@@ -157,8 +157,8 @@ func parseFormat(format string) ([]*logEntry, error) {
 					varName := format[lastMark+1 : pos]
 					_, err := variable.Check(varName)
 					if err != nil {
-						// adapte istio unknow fields
-						entries = append(entries, &logEntry{text: UnknowDefaultValue})
+						// adapt istio unknown fields
+						entries = append(entries, &logEntry{text: UnknownDefaultValue})
 					} else {
 						entries = append(entries, &logEntry{name: varName})
 					}

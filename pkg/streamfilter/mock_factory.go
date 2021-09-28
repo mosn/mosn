@@ -2,6 +2,7 @@
 // Source: ./factory.go
 
 // Package streamfilter is a generated GoMock package.
+
 package streamfilter
 
 import (

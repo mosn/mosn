@@ -19,23 +19,20 @@ package extract
 
 import (
 	"context"
-	"encoding/base64"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/cel/attribute"
-	"mosn.io/mosn/pkg/istio/utils"
+	"mosn.io/mosn/pkg/istio"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func ExtractAttributes(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, buf buffer.IoBuffer, trailers api.HeaderMap, now time.Time) attribute.Bag {
@@ -73,20 +70,20 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	}
 
 	switch name {
-	case utils.KOriginIP:
+	case istio.KOriginIP:
 		addr := e.requestInfo.DownstreamLocalAddress()
 		if addr != nil {
 			ip, _, ret := getIPPort(addr.String())
 			if ret {
 				v := net.ParseIP(ip)
-				e.extracted[utils.KOriginIP] = v
+				e.extracted[istio.KOriginIP] = v
 				return v, true
 			}
 		}
-		e.extracted[utils.KOriginIP] = nil
-	case utils.KRequestTime:
+		e.extracted[istio.KOriginIP] = nil
+	case istio.KRequestTime:
 		return e.requestInfo.StartTime(), true
-	case utils.KContextProtocol:
+	case istio.KContextProtocol:
 		proto := "http"
 		switch t := e.requestInfo.Protocol(); t {
 		case protocol.HTTP1:
@@ -98,32 +95,32 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 				proto = string(t)
 			}
 		}
-		e.extracted[utils.KContextProtocol] = proto
+		e.extracted[istio.KContextProtocol] = proto
 		return proto, true
-	case utils.KDestinationIP, utils.KDestinationPort:
+	case istio.KDestinationIP, istio.KDestinationPort:
 		hostInfo := e.requestInfo.UpstreamHost()
 		if hostInfo != nil {
 			address := hostInfo.AddressString()
 			ip, port, ret := getIPPort(address)
 			if ret {
-				e.extracted[utils.KDestinationIP] = net.ParseIP(ip)
-				e.extracted[utils.KDestinationPort] = int64(port)
+				e.extracted[istio.KDestinationIP] = net.ParseIP(ip)
+				e.extracted[istio.KDestinationPort] = int64(port)
 				return e.extracted[name], true
 			}
 		}
-		e.extracted[utils.KDestinationIP] = nil
-		e.extracted[utils.KDestinationPort] = nil
-	case utils.KRequestHeaders:
+		e.extracted[istio.KDestinationIP] = nil
+		e.extracted[istio.KDestinationPort] = nil
+	case istio.KRequestHeaders:
 		return e.reqHeaders, true
-	case utils.KResponseHeaders:
+	case istio.KResponseHeaders:
 		return e.respHeaders, true
-	case utils.KResponseTime:
+	case istio.KResponseTime:
 		return e.now, true
-	case utils.KRequestBodySize:
+	case istio.KRequestBodySize:
 		return int64(e.requestInfo.BytesReceived()), true
-	case utils.KResponseBodySize:
+	case istio.KResponseBodySize:
 		return int64(e.requestInfo.BytesSent()), true
-	case utils.KRequestTotalSize:
+	case istio.KRequestTotalSize:
 		var sum int64
 		if e.reqHeaders != nil {
 			sum += int64(e.reqHeaders.ByteSize())
@@ -134,83 +131,79 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		if e.trailers != nil {
 			sum += int64(e.trailers.ByteSize())
 		}
-		e.extracted[utils.KRequestTotalSize] = sum
+		e.extracted[istio.KRequestTotalSize] = sum
 		return sum, true
-	case utils.KResponseTotalSize:
+	case istio.KResponseTotalSize:
 		return int64(e.requestInfo.BytesSent() + e.respHeaders.ByteSize()), true
-	case utils.KResponseDuration:
+	case istio.KResponseDuration:
 		return e.requestInfo.Duration(), true
-	case utils.KResponseCode:
+	case istio.KResponseCode:
 		return int64(e.requestInfo.ResponseCode()), true
-	case utils.KRequestPath:
+	case istio.KRequestPath:
 		path, err := variable.GetString(e.ctx, types.VarPath)
 		if err != nil || path == "" {
 			return nil, false
 		}
 		return path, true
-	case utils.KRequestQueryParms:
+	case istio.KRequestQueryParams:
 		query, err := variable.GetString(e.ctx, types.VarQueryString)
 		if err == nil && query != "" {
 			v, err := parseQuery(query)
 			if err == nil {
 				v := protocol.CommonHeader(v)
-				e.extracted[utils.KRequestQueryParms] = v
+				e.extracted[istio.KRequestQueryParams] = v
 				return e.extracted[name], true
 			}
 		}
-		e.extracted[utils.KRequestQueryParms] = nil
-	case utils.KRequestUrlPath:
+		e.extracted[istio.KRequestQueryParams] = nil
+	case istio.KRequestUrlPath:
 		path, err := variable.GetString(e.ctx, types.VarPath)
 		if err == nil && path != "" {
 			query, err := variable.GetString(e.ctx, types.VarQueryString)
 			if err == nil && query != "" {
 				url := path + "?" + query
-				e.extracted[utils.KRequestUrlPath] = url
+				e.extracted[istio.KRequestUrlPath] = url
 				return e.extracted[name], true
 			}
-			e.extracted[utils.KRequestUrlPath] = path
+			e.extracted[istio.KRequestUrlPath] = path
 			return e.extracted[name], true
 		}
-		e.extracted[utils.KRequestUrlPath] = nil
-	case utils.KRequestMethod:
+		e.extracted[istio.KRequestUrlPath] = nil
+	case istio.KRequestMethod:
 		method, err := variable.GetString(e.ctx, types.VarMethod)
 		if err != nil || method == "" {
 			return nil, false
 		}
 		return method, true
-	case utils.KRequestHost:
+	case istio.KRequestHost:
 		host, err := variable.GetString(e.ctx, types.VarHost)
 		if err != nil || host == "" {
 			return nil, false
 		}
 		return host, true
-	case utils.KDestinationServiceHost, utils.KDestinationServiceName, utils.KDestinationServiceNamespace, utils.KContextReporterKind:
+	case istio.KDestinationServiceHost, istio.KDestinationServiceName, istio.KDestinationServiceNamespace, istio.KContextReporterKind:
 		routeEntry := e.requestInfo.RouteEntry()
 		if routeEntry != nil {
 			clusterName := routeEntry.ClusterName(e.ctx)
 			if clusterName != "" {
 				info := paresClusterName(clusterName)
-				e.extracted[utils.KDestinationServiceHost] = info.Host
-				e.extracted[utils.KDestinationServiceName] = info.Name
-				e.extracted[utils.KDestinationServiceNamespace] = info.Namespace
-				e.extracted[utils.KContextReporterKind] = info.Kind
+				e.extracted[istio.KDestinationServiceHost] = info.Host
+				e.extracted[istio.KDestinationServiceName] = info.Name
+				e.extracted[istio.KDestinationServiceNamespace] = info.Namespace
+				e.extracted[istio.KContextReporterKind] = info.Kind
 				return e.extracted[name], true
 			}
 		}
 		fallthrough
 	default:
 		if e.attributes == nil {
-			e.attributes = map[string]interface{}{}
-			val, ret := e.reqHeaders.Get(utils.KIstioAttributeHeader)
+			val, ret := e.reqHeaders.Get(istio.KIstioAttributeHeader)
 			if ret {
-				d, err := base64.StdEncoding.DecodeString(val)
-				if err == nil {
-					var attibutes v1.Attributes
-					err = proto.Unmarshal(d, &attibutes)
-					if err == nil {
-						e.attributes = attributesToStringInterfaceMap(e.attributes, attibutes)
-					}
-				}
+				e.attributes = generateDefaultAttributes(val)
+			}
+			// generateDefaultAttributes maybe returns a nil
+			if e.attributes == nil {
+				e.attributes = map[string]interface{}{}
 			}
 		}
 		v, ok = e.attributes[name]
@@ -219,6 +212,19 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+var defaultAttributeGenerator = func(s string) map[string]interface{} {
+	log.DefaultLogger.Warnf("[cel] no default attribute generator functions.")
+	return nil
+}
+
+func RegisterAttributeGenerator(f func(s string) map[string]interface{}) {
+	defaultAttributeGenerator = f
+}
+
+func generateDefaultAttributes(s string) map[string]interface{} {
+	return defaultAttributeGenerator(s)
 }
 
 // getIPPort return ip and port of address
@@ -238,37 +244,6 @@ func getIPPort(address string) (ip string, port int32, ret bool) {
 	port = int32(p)
 	ret = true
 	return
-}
-
-func attributesToStringInterfaceMap(out map[string]interface{}, attributes v1.Attributes) map[string]interface{} {
-	if out == nil {
-		out = map[string]interface{}{}
-	}
-	for key, val := range attributes.Attributes {
-		var v interface{}
-		switch t := val.Value.(type) {
-		case *v1.Attributes_AttributeValue_StringValue:
-			v = t.StringValue
-		case *v1.Attributes_AttributeValue_Int64Value:
-			v = t.Int64Value
-		case *v1.Attributes_AttributeValue_DoubleValue:
-			v = t.DoubleValue
-		case *v1.Attributes_AttributeValue_BoolValue:
-			v = t.BoolValue
-		case *v1.Attributes_AttributeValue_BytesValue:
-			v = t.BytesValue
-		case *v1.Attributes_AttributeValue_TimestampValue:
-			v = time.Unix(t.TimestampValue.Seconds, int64(t.TimestampValue.Nanos))
-		case *v1.Attributes_AttributeValue_DurationValue:
-			v = time.Duration(t.DurationValue.Seconds)*time.Second + time.Duration(t.DurationValue.Nanos)*time.Nanosecond
-		case *v1.Attributes_AttributeValue_StringMapValue:
-			v = protocol.CommonHeader(t.StringMapValue.Entries)
-		}
-		if v != nil {
-			out[key] = v
-		}
-	}
-	return out
 }
 
 var outbound = "outbound"

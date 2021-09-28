@@ -183,6 +183,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	for k, v := range wr.trailer {
 		responseTrailer.Set(k, v[0])
 	}
+
 	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
 		if err == nil {

@@ -22,10 +22,10 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"mosn.io/pkg/netpoll"
 	atomicex "go.uber.org/atomic"
 	"mosn.io/mosn/pkg/log"
 	mosnsync "mosn.io/mosn/pkg/sync"
+	"mosn.io/pkg/netpoll"
 )
 
 var (

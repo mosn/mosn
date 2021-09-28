@@ -52,6 +52,7 @@ type metricFilter struct {
 func (d *metricFilter) OnDestroy() {}
 
 func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+
 	serviceName, err := variable.GetString(ctx, grpc.VarGrpcServiceName)
 	if err != nil {
 		return api.StreamFilterContinue
@@ -62,10 +63,12 @@ func (d *metricFilter) Append(ctx context.Context, headers api.HeaderMap, buf bu
 	}
 	success := res.(bool)
 	stats := d.st.getStats(serviceName)
+
 	if stats == nil {
 		return api.StreamFilterContinue
 	}
 	stats.requestServiceTotal.Inc(1)
+
 	if success {
 		stats.responseSuccess.Inc(1)
 	} else {

@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"net"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 
@@ -125,28 +123,11 @@ type SdsSecret struct {
 type SdsUpdateCallbackFunc func(name string, secret *SdsSecret)
 
 type SdsClient interface {
-	AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
-	DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error
+	AddUpdateCallback(name string, callback SdsUpdateCallbackFunc) error
+	DeleteUpdateCallback(name string) error
 	SecretProvider
 }
 
 type SecretProvider interface {
-	SetSecret(name string, secret *auth.Secret)
-}
-
-func SecretConvert(raw *auth.Secret) *SdsSecret {
-	secret := &SdsSecret{
-		Name: raw.Name,
-	}
-	if validateSecret, ok := raw.Type.(*auth.Secret_ValidationContext); ok {
-		ds := validateSecret.ValidationContext.TrustedCa.Specifier.(*core.DataSource_InlineBytes)
-		secret.ValidationPEM = string(ds.InlineBytes)
-	}
-	if tlsCert, ok := raw.Type.(*auth.Secret_TlsCertificate); ok {
-		certSpec, _ := tlsCert.TlsCertificate.CertificateChain.Specifier.(*core.DataSource_InlineBytes)
-		priKey, _ := tlsCert.TlsCertificate.PrivateKey.Specifier.(*core.DataSource_InlineBytes)
-		secret.CertificatePEM = string(certSpec.InlineBytes)
-		secret.PrivateKeyPEM = string(priKey.InlineBytes)
-	}
-	return secret
+	SetSecret(name string, secret *SdsSecret)
 }
