@@ -56,6 +56,7 @@ func (ca *MngAdapter) TriggerClusterHostUpdate(clusterName string, hosts []v2.Ho
 	return ca.UpdateClusterHosts(clusterName, hosts)
 }
 
+
 func (ca *MngAdapter) TriggerHostDel(clusterName string, hosts []string) error {
 	return ca.RemoveClusterHosts(clusterName, hosts)
 }

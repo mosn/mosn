@@ -41,14 +41,12 @@ func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.
 	subsetLB := &subsetLoadBalancer{
 		lbType:  info.LbType(),
 		stats:   info.Stats(),
-		subSets: make(map[string]types.ValueSubsetMap),
 		hostSet: hostSet,
 		fullLb:  NewLoadBalancer(info, hostSet),
 	}
-	// create fallback
-	subsetLB.createFallbackSubset(info, subsetInfo.FallbackPolicy(), subsetInfo.DefaultSubset())
-	// create subsets
-	subsetLB.createSubsets(info, subsetInfo.SubsetKeys())
+	builder := NewSubsetLoadBalancerBuilder(info, hostSet, subsetMergeKeys(subsetInfo.SubsetKeys(), subsetInfo.DefaultSubset()))
+	subsetLB.createFallbackSubset(info, subsetInfo.FallbackPolicy(), builder, subsetInfo.DefaultSubset())
+	subsetLB.createSubsets(builder, subsetInfo.SubsetKeys())
 	return subsetLB
 }
 
@@ -145,32 +143,13 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 }
 
 // createSubsets creates the sslb.subSets
-func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys []types.SortedStringSetType) {
-	hosts := sslb.hostSet.Hosts()
-	var kvs types.SubsetMetadata
-	var subsSetCount int64 = 0
-	for _, host := range hosts {
-		for _, subSetKey := range subSetKeys {
-			// one keys will create one subset
-			kvs = ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata(), kvs[:0])
-			if len(kvs) > 0 {
-				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
-				if !entry.Initialized() {
-					subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
-						return HostMatches(kvs, host)
-					})
-					subsSetCount += 1
-					entry.CreateLoadBalancer(info, subHostset)
-				}
-			}
-		}
-	}
-	sslb.stats.LBSubsetsCreated.Update(subsSetCount)
+func (sslb *subsetLoadBalancer) createSubsets(builder *subsetLoadBalancerBuilder, subSetKeys []types.SortedStringSetType) {
+	sslb.subSets = builder.Build(subSetKeys)
+	sslb.stats.LBSubsetsCreated.Update(builder.GetSubSetCount())
 }
 
 // createFallbackSubset creates a LBSubsetEntryImpl as fallbackSubset
-func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
-	hostSet := sslb.hostSet
+func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, policy types.FallBackPolicy, subsetLbBuilder *subsetLoadBalancerBuilder, meta types.SubsetMetadata) {
 	switch policy {
 	case types.NoFallBack:
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -181,16 +160,13 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, pol
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil,         // no child
 			lb:       sslb.fullLb, // reuse the full loadbalancer
-			hostSet:  hostSet,
+			hostSet:  sslb.hostSet,
 		}
 	case types.DefaultSubset:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
-			return HostMatches(meta, host)
-		})
-		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
+		sslb.fallbackSubset.CreateLoadBalancer(info, &hostSet{allHosts: subsetLbBuilder.FilterHosts(meta)})
 	}
 }
 
@@ -211,74 +187,6 @@ func (sslb *subsetLoadBalancer) findSubset(matchCriteria []api.MetadataMatchCrit
 		subSets = vsEntry.Children()
 	}
 	return nil
-}
-
-func (sslb *subsetLoadBalancer) findOrCreateSubset(subsets types.LbSubsetMap, kvs types.SubsetMetadata, idx uint32) types.LBSubsetEntry {
-	name := kvs[idx].T1
-	value := kvs[idx].T2
-	var entry types.LBSubsetEntry
-
-	if vsMap, ok := subsets[name]; ok {
-		lbEntry, ok := vsMap[value]
-		if !ok {
-			lbEntry = &LBSubsetEntryImpl{
-				children: make(map[string]types.ValueSubsetMap),
-			}
-			vsMap[value] = lbEntry
-			subsets[name] = vsMap
-		}
-		entry = lbEntry
-	} else {
-		entry = &LBSubsetEntryImpl{
-			children: make(map[string]types.ValueSubsetMap),
-		}
-		subsets[name] = types.ValueSubsetMap{
-			value: entry,
-		}
-	}
-	idx++
-	if idx == uint32(len(kvs)) {
-		return entry
-	}
-	return sslb.findOrCreateSubset(entry.Children(), kvs, idx)
-}
-
-// if subsetKeys are all contained in the host metadata
-func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata, kvs types.SubsetMetadata) types.SubsetMetadata {
-	for _, key := range subsetKeys {
-		value, ok := metadata[key]
-		if !ok {
-			return kvs[:0]
-		}
-		kvs = append(kvs, types.Pair{
-			T1: key,
-			T2: value,
-		})
-	}
-	return kvs
-}
-
-func CreateSubset(hosts []types.Host, predicate types.HostPredicate) types.HostSet {
-	var subHosts []types.Host
-	for _, h := range hosts {
-		if predicate(h) {
-			subHosts = append(subHosts, h)
-		}
-	}
-	sub := &hostSet{}
-	sub.setFinalHost(subHosts)
-	return sub
-}
-
-func HostMatches(kvs types.SubsetMetadata, host types.Host) bool {
-	meta := host.Metadata()
-	for _, kv := range kvs {
-		value, ok := meta[kv.T1]
-		if !ok || value != kv.T2 {
-			return false
-		}
-	}
-	return true
 }
 
 type LBSubsetEntryImpl struct {

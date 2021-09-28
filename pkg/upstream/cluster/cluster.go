@@ -143,7 +143,6 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	if sc.healthChecker != nil {
 		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
-
 }
 
 func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
