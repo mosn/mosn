@@ -97,6 +97,7 @@ const (
 	Mirror                     = "mirror"
 	DubboStream                = "dubbo_stream"
 	GoPluginStreamFilterSuffix = "so_plugin"
+	GrpcMetricFilter           = "grpc_metric"
 )
 
 // HealthCheckFilter
