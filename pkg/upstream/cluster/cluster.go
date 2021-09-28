@@ -127,7 +127,11 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	// load balance
 	var lb types.LoadBalancer
 	if info.lbSubsetInfo.IsEnabled() {
-		lb = NewSubsetLoadBalancer(info, hostSet)
+		if getSubsetBuildMode() == SubsetPreIndexBuildMode {
+			lb = NewSubsetLoadBalancerPreIndex(info, hostSet)
+		} else {
+			lb = NewSubsetLoadBalancer(info, hostSet)
+		}
 	} else {
 		lb = NewLoadBalancer(info, hostSet)
 	}
@@ -143,7 +147,6 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	if sc.healthChecker != nil {
 		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
-
 }
 
 func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {

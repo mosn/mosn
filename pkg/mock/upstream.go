@@ -1453,3 +1453,17 @@ func (mr *MockLBOriDstInfoMockRecorder) IsEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEnabled", reflect.TypeOf((*MockLBOriDstInfo)(nil).IsEnabled))
 }
+
+// IsReplaceLocal mocks base method.
+func (m *MockLBOriDstInfo) IsReplaceLocal() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsReplaceLocal")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsReplaceLocal indicates an expected call of IsReplaceLocal.
+func (mr *MockLBOriDstInfoMockRecorder) IsReplaceLocal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReplaceLocal", reflect.TypeOf((*MockLBOriDstInfo)(nil).IsReplaceLocal))
+}
