@@ -244,7 +244,10 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	}()
 	go func() {
 		var hosts []types.Host
-		hosts = append(hosts, cluster.Snapshot().HostSet().Hosts()...)
+		cluster.Snapshot().HostSet().Range(func(host types.Host) bool {
+			hosts = append(hosts, host)
+			return true
+		})
 		newConfig := v2.Host{
 			HostConfig: v2.HostConfig{
 				Address: snew.hostConfig.Address,
@@ -281,8 +284,8 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 		}
 	}
 	var delHosts []types.Host // host after deleted
-	removed := cluster.Snapshot().HostSet().Hosts()[0]
-	delHosts = append(delHosts, cluster.Snapshot().HostSet().Hosts()[1:]...)
+	removed := cluster.Snapshot().HostSet().Get(0)
+	delHosts = append(delHosts, types.ListHostSet(cluster.Snapshot().HostSet())[1:]...)
 	cluster.UpdateHosts(delHosts)
 	// clear results
 	for addr := range results {

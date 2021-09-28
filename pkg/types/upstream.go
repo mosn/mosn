@@ -138,8 +138,18 @@ type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
 type HostSet interface {
-	// Hosts returns all hosts that make up the set at the current time.
-	Hosts() []Host
+	Size() int
+	Get(int) Host
+	Range(func(Host) bool)
+}
+
+func ListHostSet(hs HostSet) []Host {
+	ret := make([]Host, 0, hs.Size())
+	hs.Range(func(host Host) bool {
+		ret = append(ret, host)
+		return true
+	})
+	return ret
 }
 
 // Host is an upstream host

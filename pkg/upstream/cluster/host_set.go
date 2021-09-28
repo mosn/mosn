@@ -31,6 +31,22 @@ type hostSet struct {
 	allHosts []types.Host
 }
 
+func (hs *hostSet) Size() int {
+	return len(hs.allHosts)
+}
+
+func (hs *hostSet) Get(i int) types.Host {
+	return hs.allHosts[i]
+}
+
+func (hs *hostSet) Range(f func(types.Host) bool) {
+	for _, h := range hs.allHosts {
+		if !f(h) {
+			return
+		}
+	}
+}
+
 // Hosts do not needs lock, becasue it "immutable"
 func (hs *hostSet) Hosts() []types.Host {
 	return hs.allHosts

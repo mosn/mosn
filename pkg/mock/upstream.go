@@ -491,6 +491,20 @@ func (m *MockHostSet) EXPECT() *MockHostSetMockRecorder {
 	return m.recorder
 }
 
+// Get mocks base method.
+func (m *MockHostSet) Get(arg0 int) types.Host {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", arg0)
+	ret0, _ := ret[0].(types.Host)
+	return ret0
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockHostSetMockRecorder) Get(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockHostSet)(nil).Get), arg0)
+}
+
 // Hosts mocks base method.
 func (m *MockHostSet) Hosts() []types.Host {
 	m.ctrl.T.Helper()
@@ -503,6 +517,32 @@ func (m *MockHostSet) Hosts() []types.Host {
 func (mr *MockHostSetMockRecorder) Hosts() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hosts", reflect.TypeOf((*MockHostSet)(nil).Hosts))
+}
+
+// Range mocks base method.
+func (m *MockHostSet) Range(arg0 func(types.Host) bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Range", arg0)
+}
+
+// Range indicates an expected call of Range.
+func (mr *MockHostSetMockRecorder) Range(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Range", reflect.TypeOf((*MockHostSet)(nil).Range), arg0)
+}
+
+// Size mocks base method.
+func (m *MockHostSet) Size() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Size")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// Size indicates an expected call of Size.
+func (mr *MockHostSetMockRecorder) Size() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockHostSet)(nil).Size))
 }
 
 // MockHost is a mock of Host interface.

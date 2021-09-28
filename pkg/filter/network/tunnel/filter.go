@@ -110,7 +110,10 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 		for _, hc := range hostConfigs {
 			hosts = append(hosts, NewHost(hc, snap.ClusterInfo(), CreateAgentBackendConnection(conn)))
 		}
-		hosts = append(hosts, snap.HostSet().Hosts()...)
+		snap.HostSet().Range(func(h types.Host) bool {
+			hosts = append(hosts, h)
+			return true
+		})
 		c.UpdateHosts(hosts)
 	})
 	t.connInitialized = true

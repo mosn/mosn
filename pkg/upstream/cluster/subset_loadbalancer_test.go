@@ -236,11 +236,11 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 			}
 			if entry.Initialized() {
 				e := entry.(*LBSubsetEntryImpl)
-				hosts := e.hostSet.Hosts()
 				hostsNode := []string{}
-				for _, h := range hosts {
-					hostsNode = append(hostsNode, h.Hostname())
-				}
+				e.hostSet.Range(func(host types.Host) bool {
+					hostsNode = append(hostsNode, host.Hostname())
+					return true
+				})
 				r.result[p] = hostsNode
 			}
 		}
@@ -248,7 +248,7 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 }
 func newSubsetLoadBalancers(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) map[string]*subsetLoadBalancer {
 	return map[string]*subsetLoadBalancer{
-		"default": newSubsetLoadBalancer(lbType, hosts, stats, subsets),
+		"default":  newSubsetLoadBalancer(lbType, hosts, stats, subsets),
 		"preIndex": newSubsetLoadBalancerPreIndex(lbType, hosts, stats, subsets),
 	}
 }

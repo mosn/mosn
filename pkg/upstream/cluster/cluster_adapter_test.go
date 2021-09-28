@@ -348,8 +348,8 @@ func TestClusterAppendHostWithSnapshot(t *testing.T) {
 		},
 	})
 	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	if !(len(oldSnap.HostSet().Hosts()) == 2 && len(newSnap.HostSet().Hosts()) == 3) {
-		t.Fatalf("append hosts snapshot check failed, old: %d, new: %d ", len(oldSnap.HostSet().Hosts()), len(newSnap.HostSet().Hosts()))
+	if !(oldSnap.HostSet().Size() == 2 && newSnap.HostSet().Size() == 3) {
+		t.Fatalf("append hosts snapshot check failed, old: %d, new: %d ", oldSnap.HostSet().Size(), newSnap.HostSet().Size())
 	}
 }
 
@@ -358,7 +358,7 @@ func TestClusterRemoveHostWithSnapshot(t *testing.T) {
 	oldSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
 	GetClusterMngAdapterInstance().TriggerHostDel("test1", []string{"127.0.0.1:10001"})
 	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	if !(len(oldSnap.HostSet().Hosts()) == 2 && len(newSnap.HostSet().Hosts()) == 1) {
+	if !(oldSnap.HostSet().Size() == 2 && newSnap.HostSet().Size() == 1) {
 		t.Fatal("remove hosts snapshot check failed")
 	}
 }

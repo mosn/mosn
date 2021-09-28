@@ -112,13 +112,14 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	// verify
 	snap := cluster.Snapshot()
-	hostSet := snap.HostSet().Hosts()
-	assert.Equal(t, len(hostSet), 6)
-	for _, host := range hostSet {
+	hostSet := snap.HostSet()
+	assert.Equal(t, hostSet.Size(), 6)
+	snap.HostSet().Range(func(host types.Host) bool {
 		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	host := v2.Host{
 		HostConfig: v2.HostConfig{
@@ -134,12 +135,12 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	cluster.UpdateHosts(hosts)
 	// The domain will be re-parsed when UpdateHosts, So need sleep more time
 	time.Sleep(3 * time.Second)
-	hostSet = cluster.Snapshot().HostSet().Hosts()
-	for _, host := range hostSet {
+	cluster.Snapshot().HostSet().Range(func(host types.Host) bool {
 		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	host = v2.Host{
 		HostConfig: v2.HostConfig{
@@ -154,12 +155,12 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	h = NewSimpleHost(host, cluster.Snapshot().ClusterInfo())
 	hosts = []types.Host{h}
 	cluster.UpdateHosts(hosts)
-	hostSet = cluster.Snapshot().HostSet().Hosts()
-	for _, host := range hostSet {
+	cluster.Snapshot().HostSet().Range(func(host types.Host) bool {
 		if !strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	ip1 := []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"}
 	ip2 := []string{"1.1.1.1", "2.2.2.2"}
@@ -247,7 +248,6 @@ func TestMultipleDnsHostsInOneCluster(t *testing.T) {
 
 	// verify
 	snap := cluster.Snapshot()
-	hostSet := snap.HostSet().Hosts()
 
-	assert.Equal(t, len(hostSet), 4)
+	assert.Equal(t, snap.HostSet().Size(), 4)
 }

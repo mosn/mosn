@@ -236,7 +236,7 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 		}
 		sdc.simpleCluster.UpdateHosts(allHosts)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns result updated, cluster_name:%s, address:%s", sdc.simpleCluster.info.name, rt.dnsAddress)
+			log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns result updated, cluster_name:%s, address:%s", sdc.simpleCluster.info.Name(), rt.dnsAddress)
 		}
 	}
 }
