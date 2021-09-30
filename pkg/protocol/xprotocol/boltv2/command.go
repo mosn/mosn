@@ -26,8 +26,8 @@ import (
 
 type RequestHeader struct {
 	bolt.RequestHeader
-	Version1   byte //00
-	SwitchCode byte
+	Version1   byte // default 0x01, 0x02 will use crc
+	SwitchCode byte // version1 should be 0x02, not support yet.
 }
 
 // Request is the cmd struct of bolt v2 request

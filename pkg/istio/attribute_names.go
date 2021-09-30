@@ -58,8 +58,8 @@ const (
 	KRequestPath = "request.path"
 	// KRequestUrlPath const string
 	KRequestUrlPath = "request.url_path"
-	// KRequestQueryParms const string
-	KRequestQueryParms = "request.query_params"
+	// KRequestQueryParams const string
+	KRequestQueryParams = "request.query_params"
 	// KRequestMethod const string
 	KRequestMethod = "request.method"
 	// KRequestHost const string

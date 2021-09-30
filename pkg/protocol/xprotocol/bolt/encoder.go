@@ -45,13 +45,22 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	// 2.1 calculate frame length
 	if request.Class != "" {
 		request.ClassLen = uint16(len(request.Class))
+	} else {
+		request.ClassLen = 0
 	}
+
 	if len(request.Header.Kvs) != 0 {
 		request.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&request.Header))
+	} else {
+		request.HeaderLen = 0
 	}
+
 	if request.Content != nil {
 		request.ContentLen = uint32(request.Content.Len())
+	} else {
+		request.ContentLen = 0
 	}
+
 	frameLen := RequestHeaderLen + int(request.ClassLen) + int(request.HeaderLen) + int(request.ContentLen)
 
 	// 2.2 alloc encode buffer, this buffer will be recycled after connection.Write
@@ -105,13 +114,22 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	// 2.1 calculate frame length
 	if response.Class != "" {
 		response.ClassLen = uint16(len(response.Class))
+	} else {
+		response.ClassLen = 0
 	}
+
 	if len(response.Header.Kvs) != 0 {
 		response.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&response.Header))
+	} else {
+		response.HeaderLen = 0
 	}
+
 	if response.Content != nil {
 		response.ContentLen = uint32(response.Content.Len())
+	} else {
+		response.ContentLen = 0
 	}
+
 	frameLen := ResponseHeaderLen + int(response.ClassLen) + int(response.HeaderLen) + int(response.ContentLen)
 
 	// 2.2 alloc encode buffer, this buffer will be recycled after connection.Write

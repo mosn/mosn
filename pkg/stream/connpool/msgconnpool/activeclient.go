@@ -49,21 +49,21 @@ func (ac *activeClient) getConnData() *types.CreateConnectionData {
 }
 
 // setHeartBeater set the heart beat for an active client
-func (ac *activeClient) setHeartBeater(kp KeepAlive) {
+func (ac *activeClient) setHeartBeater(kp KeepAlive, connection types.ClientConnection) {
 	if kp == nil {
 		return
 	}
 
 	kp.SaveHeartBeatFailCallback(func() {
-		ac.getConnData().Connection.Close(api.NoFlush, api.LocalClose)
+		connection.Close(api.NoFlush, api.LocalClose)
 	})
 
 	ac.keepAlive = &keepAliveListener{
 		keepAlive: kp,
-		conn:      ac.getConnData().Connection,
+		conn:      connection,
 	}
 
-	ac.getConnData().Connection.AddConnectionEventListener(ac.keepAlive)
+	connection.AddConnectionEventListener(ac.keepAlive)
 }
 
 func (ac *activeClient) clearHeartBeater() {
@@ -120,6 +120,18 @@ func (ac *activeClient) initConnectionLocked(initReason string) {
 	createConnData := ac.pool.Host().CreateConnection(context.Background())
 	createConnData.Connection.AddConnectionEventListener(ac)
 
+	// init read filters and keep alive
+	if ac.pool.getReadFilterAndKeepalive != nil {
+		readFilterList, keepalive := ac.pool.getReadFilterAndKeepalive()
+
+		for _, rf := range readFilterList {
+			createConnData.Connection.FilterManager().AddReadFilter(rf)
+		}
+
+		// set the new keepalive
+		ac.setHeartBeater(keepalive, createConnData.Connection)
+	}
+
 	// connect the new connection
 	err := createConnData.Connection.Connect()
 
@@ -143,18 +155,6 @@ func (ac *activeClient) initConnectionLocked(initReason string) {
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[connpool] connect succeed after %v tries, host: %v, connData: %v, init reason: %v",
 			ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
-	}
-
-	// init read filters and keep alive
-	if ac.pool.getReadFilterAndKeepalive != nil {
-		readFilterList, keepalive := ac.pool.getReadFilterAndKeepalive()
-
-		for _, rf := range readFilterList {
-			ac.getConnData().Connection.FilterManager().AddReadFilter(rf)
-		}
-
-		// set the new keepalive
-		ac.setHeartBeater(keepalive)
 	}
 
 	// two scenes

@@ -267,7 +267,8 @@ func (m *Mosn) CleanUpgrade() {
 	}
 }
 
-func (m *Mosn) StartXdsClient() {
+// StartXdsClient returns a ADSClient, support some extensions on it.
+func (m *Mosn) StartXdsClient() *istio.ADSClient {
 	c := m.Config
 	log.StartLogger.Infof("[mosn start] mosn start xds client")
 	xdsClient, err := istio.NewAdsClient(c)
@@ -279,6 +280,7 @@ func (m *Mosn) StartXdsClient() {
 		}, nil)
 		m.xdsClient = xdsClient
 	}
+	return xdsClient
 
 }
 
