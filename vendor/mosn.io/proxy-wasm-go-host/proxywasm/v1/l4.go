@@ -15,35 +15,18 @@
  * limitations under the License.
  */
 
-package proxywasm010
+package v1
 
-import (
-	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/proxywasm/common"
-)
+import "mosn.io/proxy-wasm-go-host/proxywasm/common"
 
-// HeaderMapWrapper wraps api.HeaderMap into proxy-wasm-go-host/common.HeaderMap
-// implement common.HeaderMap
-type HeaderMapWrapper struct {
-	api.HeaderMap
+func ProxyResumeDownstream(instance common.WasmInstance) int32 {
+	ctx := getImportHandler(instance)
+
+	return ctx.ResumeDownstream().Int32()
 }
 
-func (h HeaderMapWrapper) Clone() common.HeaderMap {
-	return &HeaderMapWrapper{h.HeaderMap}
-}
+func ProxyResumeUpstream(instance common.WasmInstance) int32 {
+	ctx := getImportHandler(instance)
 
-// HeaderMapWrapperBack wraps proxy-wasm-go-host/common.HeaderMap into api.HeaderMap
-type HeaderMapWrapperBack struct {
-	common.HeaderMap
-}
-
-func (h HeaderMapWrapperBack) Clone() api.HeaderMap {
-	return nil
-}
-
-// IoBufferWrapper  wraps buffer.IoBuffer into proxy-wasm-go-host/common.IoBuffer
-// implement common.IoBuffer
-type IoBufferWrapper struct {
-	buffer.IoBuffer
+	return ctx.ResumeUpstream().Int32()
 }
