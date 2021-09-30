@@ -357,16 +357,10 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-
-	s.resetReason.Store(reason)
-	// If it's already beyond the WaitNotify phase, there is no need to notify.
-	if s.phase > types.WaitNotify {
-		return
-	}
-
 	if log.DefaultLogger.GetLogLevel() >= log.WARN {
 		log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	}
+	s.resetReason.Store(reason)
 
 	s.sendNotify()
 }
