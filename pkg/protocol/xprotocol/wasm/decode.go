@@ -28,7 +28,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 func (proto *wasmProtocol) decodeCommand(context context.Context, data types.IoBuffer) (interface{}, error) {

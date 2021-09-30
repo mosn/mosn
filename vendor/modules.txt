@@ -569,10 +569,11 @@ mosn.io/pkg/registry/dubbo/remoting
 mosn.io/pkg/registry/dubbo/remoting/zookeeper
 mosn.io/pkg/registry/dubbo/zookeeper
 mosn.io/pkg/utils
-# mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
+# mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 ## explicit
-mosn.io/proxy-wasm-go-host/common
-mosn.io/proxy-wasm-go-host/proxywasm
+mosn.io/proxy-wasm-go-host/proxywasm/common
+mosn.io/proxy-wasm-go-host/proxywasm/v1
+mosn.io/proxy-wasm-go-host/proxywasm/v2
 # vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 ## explicit
 vimagination.zapto.org/byteio

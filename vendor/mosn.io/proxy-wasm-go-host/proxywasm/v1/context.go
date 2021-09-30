@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
 import (
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 const ProxyWasmABI_0_1_0 string = "proxy_abi_version_0_1_0"

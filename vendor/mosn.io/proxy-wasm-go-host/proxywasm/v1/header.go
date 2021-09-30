@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
 import (
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 func GetMap(instance common.WasmInstance, mapType MapType) common.HeaderMap {
@@ -115,7 +115,7 @@ func ProxySetHeaderMapPairs(instance common.WasmInstance, mapType int32, ptr int
 		return WasmResultInvalidMemoryAccess.Int32()
 	}
 
-	newMap := DecodeMap(newMapContent)
+	newMap := common.DecodeMap(newMapContent)
 
 	for k, v := range newMap {
 		headerMap.Set(k, v)
