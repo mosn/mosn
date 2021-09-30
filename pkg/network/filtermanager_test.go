@@ -62,7 +62,7 @@ func Test_filtermgr(t *testing.T) {
 	conn.readBuffer = buffer.GetIoBuffer(10)
 	conn.readBuffer.WriteByte(1)
 
-	fm := newFilterManager(conn)
+	fm := NewFilterManager(conn)
 	tf := &testFilter{}
 	fm.AddReadFilter(tf)
 	fm.AddWriteFilter(tf)

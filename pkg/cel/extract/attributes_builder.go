@@ -145,17 +145,17 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 			return nil, false
 		}
 		return path, true
-	case istio.KRequestQueryParms:
+	case istio.KRequestQueryParams:
 		query, err := variable.GetString(e.ctx, types.VarQueryString)
 		if err == nil && query != "" {
 			v, err := parseQuery(query)
 			if err == nil {
 				v := protocol.CommonHeader(v)
-				e.extracted[istio.KRequestQueryParms] = v
+				e.extracted[istio.KRequestQueryParams] = v
 				return e.extracted[name], true
 			}
 		}
-		e.extracted[istio.KRequestQueryParms] = nil
+		e.extracted[istio.KRequestQueryParams] = nil
 	case istio.KRequestUrlPath:
 		path, err := variable.GetString(e.ctx, types.VarPath)
 		if err == nil && path != "" {
@@ -215,7 +215,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 }
 
 var defaultAttributeGenerator = func(s string) map[string]interface{} {
-	log.DefaultLogger.Warnf("[cel] no defaul attribute generator functions.")
+	log.DefaultLogger.Warnf("[cel] no default attribute generator functions.")
 	return nil
 }
 

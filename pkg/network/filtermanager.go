@@ -29,7 +29,7 @@ type filterManager struct {
 	host              api.HostInfo
 }
 
-func newFilterManager(conn api.Connection) api.FilterManager {
+func NewFilterManager(conn api.Connection) api.FilterManager {
 	return &filterManager{
 		conn:              conn,
 		upstreamFilters:   make([]*activeReadFilter, 0, 8),

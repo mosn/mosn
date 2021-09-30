@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
 import (
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 func ProxyResumeHttpRequest(instance common.WasmInstance) int32 {
@@ -51,7 +51,7 @@ func ProxySendHttpResponse(instance common.WasmInstance, respCode int32, respCod
 		return WasmResultInvalidMemoryAccess.Int32()
 	}
 
-	additionalHeaderMap := DecodeMap(additionalHeaderMapData)
+	additionalHeaderMap := common.DecodeMap(additionalHeaderMapData)
 
 	ctx := getImportHandler(instance)
 
@@ -74,7 +74,7 @@ func ProxyHttpCall(instance common.WasmInstance, uriPtr int32, uriSize int32,
 	if err != nil {
 		return WasmResultInvalidMemoryAccess.Int32()
 	}
-	headerMap := DecodeMap(headerMapData)
+	headerMap := common.DecodeMap(headerMapData)
 
 	body, err := instance.GetMemory(uint64(bodyPtr), uint64(bodySize))
 	if err != nil {
@@ -85,7 +85,7 @@ func ProxyHttpCall(instance common.WasmInstance, uriPtr int32, uriSize int32,
 	if err != nil {
 		return WasmResultInvalidMemoryAccess.Int32()
 	}
-	trailerMap := DecodeMap(trailerMapData)
+	trailerMap := common.DecodeMap(trailerMapData)
 
 	ctx := getImportHandler(instance)
 
