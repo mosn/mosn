@@ -62,24 +62,24 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, api.StreamFilterContinue, r)
 	assert.Equal(t, len(mf.st.statsFactory), 0)
 
-	variable.SetVariableValue(ctx, grpc.VarGrpcServiceName, "service1")
-	variable.SetVariableValue(ctx, grpc.VarGrpcRequestResult, "true")
+	variable.Set(ctx, grpc.VarGrpcServiceName, "service1")
+	variable.Set(ctx, grpc.VarGrpcRequestResult, true)
 	mf.Append(ctx, h, nil, nil)
 	state := mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
 	assert.Equal(t, int(state.requestServiceTotal.Count()), 1)
 	assert.Equal(t, int(state.responseFail.Count()), 0)
 
-	variable.SetVariableValue(ctx, grpc.VarGrpcServiceName, "service1")
-	variable.SetVariableValue(ctx, grpc.VarGrpcRequestResult, "false")
+	variable.Set(ctx, grpc.VarGrpcServiceName, "service1")
+	variable.Set(ctx, grpc.VarGrpcRequestResult, false)
 	mf.Append(ctx, h, nil, nil)
 	state = mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
 	assert.Equal(t, int(state.requestServiceTotal.Count()), 2)
 	assert.Equal(t, int(state.responseFail.Count()), 1)
 
-	variable.SetVariableValue(ctx, grpc.VarGrpcServiceName, "service2")
-	variable.SetVariableValue(ctx, grpc.VarGrpcRequestResult, "true")
+	variable.Set(ctx, grpc.VarGrpcServiceName, "service2")
+	variable.Set(ctx, grpc.VarGrpcRequestResult, true)
 	mf.Append(ctx, h, nil, nil)
 	state = mf.st.getStats("service1")
 	assert.Equal(t, int(state.responseSuccess.Count()), 1)
@@ -96,8 +96,8 @@ func BenchmarkWithTimer(b *testing.B) {
 	mf := &metricFilter{st: f.(*factory).s}
 	h := &header.CommonHeader{}
 	ctx := variable.NewVariableContext(context.TODO())
-	variable.SetVariableValue(ctx, grpc.VarGrpcServiceName, "service1")
-	variable.SetVariableValue(ctx, grpc.VarGrpcRequestResult, "true")
+	variable.Set(ctx, grpc.VarGrpcServiceName, "service1")
+	variable.Set(ctx, grpc.VarGrpcRequestResult, true)
 	for n := 0; n < b.N; n++ {
 		mf.Append(ctx, h, nil, nil)
 	}

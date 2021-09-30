@@ -31,8 +31,8 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarGrpcServiceName, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(VarGrpcRequestResult, nil, nil, variable.BasicSetter, 0),
+		variable.NewStringVariable(VarGrpcServiceName, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewVariable(VarGrpcRequestResult, nil, nil, variable.DefaultSetter, 0),
 	}
 )
 
@@ -40,6 +40,5 @@ func init() {
 	for idx := range builtinVariables {
 		variable.Register(builtinVariables[idx])
 	}
-
 	variable.RegisterProtocolResource(grpcName, api.PATH, grpcServiceName)
 }

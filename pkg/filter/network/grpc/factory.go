@@ -154,13 +154,13 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetVariableValue(ctx, VarGrpcServiceName, info.FullMethod)
-
+	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	// when filter return StreamFiltertermination, should assign value to ss.err, Interceptor return directly
 	if status == api.StreamFiltertermination {
 		return nil, ss.err
 	}
+
 	if status == api.StreamFilterStop && ss.err != nil {
 		err = ss.err
 	} else {
@@ -175,15 +175,13 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	for k, v := range wr.header {
 		responseHeader.Set(k, v[0])
 	}
-
+	variable.Set(ctx, VarGrpcRequestResult, true)
+	if err != nil {
+		variable.Set(ctx, VarGrpcRequestResult, false)
+	}
 	responseTrailer := header.CommonHeader{}
 	for k, v := range wr.trailer {
 		responseTrailer.Set(k, v[0])
-	}
-
-	variable.SetVariableValue(ctx, VarGrpcRequestResult, "true")
-	if err != nil {
-		variable.SetVariableValue(ctx, VarGrpcRequestResult, "false")
 	}
 
 	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
@@ -197,12 +195,10 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 // StreamInterceptorFilter is an implementation of grpc.StreamServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-
 	//TODO
 	//to use mosn stream filter here, we must
 	//1. only support intercept when the first request come and before the last response send (this maybe the standard implementation?)
 	//2. support intercept every stream recv/send
-
 	return handler(srv, ss)
 }
 
