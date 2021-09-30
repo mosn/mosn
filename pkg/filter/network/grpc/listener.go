@@ -18,6 +18,7 @@
 package grpc
 
 import (
+	"errors"
 	"net"
 	"syscall"
 	"time"
@@ -75,13 +76,15 @@ func (l *Listener) Close() error {
 	return nil
 }
 
-func (l *Listener) NewConnection(conn net.Conn) {
+func (l *Listener) NewConnection(conn net.Conn) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[grpc] listener has been closed, send on closed channel")
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[grpc] listener has been closed, %v", r)
 			}
+			conn.Close()
+			err = errors.New("listener closed")
 		}
 	}()
 	timer := time.NewTimer(3 * time.Second)
@@ -93,5 +96,8 @@ func (l *Listener) NewConnection(conn net.Conn) {
 		}
 	case <-timer.C:
 		log.DefaultLogger.Errorf("[grpc] connection buffer full, and timeout")
+		conn.Close()
+		err = errors.New("accept connection timeout")
 	}
+	return
 }
