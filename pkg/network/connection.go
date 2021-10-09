@@ -172,7 +172,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		}
 	}
 
-	conn.filterManager = newFilterManager(conn)
+	conn.filterManager = NewFilterManager(conn)
 
 	return conn
 }
@@ -1040,6 +1040,19 @@ func (c *connection) State() api.ConnState {
 	return api.ConnInit
 }
 
+type ClientConnFactory func(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection
+
+var defaultClientConnFactory ClientConnFactory = newClientConnection
+
+func RegisterClientConnFactory(factory ClientConnFactory) {
+	defaultClientConnFactory = factory
+}
+
+// NewClientConnection new client-side connection
+func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+	return defaultClientConnFactory(connectTimeout, tlsMng, remoteAddr, stopChan)
+}
+
 type clientConnection struct {
 	connection
 
@@ -1048,8 +1061,7 @@ type clientConnection struct {
 	connectOnce sync.Once
 }
 
-// NewClientConnection new client-side connection
-func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+func newClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
@@ -1076,7 +1088,7 @@ func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientCon
 		connectTimeout: connectTimeout,
 	}
 
-	conn.filterManager = newFilterManager(conn)
+	conn.filterManager = NewFilterManager(conn)
 
 	if conn.remoteAddr != nil {
 		conn.network = conn.remoteAddr.Network()

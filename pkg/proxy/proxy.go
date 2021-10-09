@@ -70,6 +70,10 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 	return nil
 }
 
+func GetWorkerPool() mosnsync.WorkerPool {
+	return pool
+}
+
 func initGlobalStats() {
 	globalStats = newProxyStats(types.GlobalProxyName)
 }
