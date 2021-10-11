@@ -666,7 +666,7 @@ func (c *Conn) handleNewSessionTicket(msg *newSessionTicketMsgTLS13) error {
 		ageAdd:             msg.ageAdd,
 	}
 
-	cacheKey := clientSessionCacheKey(c.conn.RemoteAddr(), c.config)
+	cacheKey := clientSessionCacheKey(c.conn.RemoteAddr(), c.serverName)
 	c.config.ClientSessionCache.Put(cacheKey, session)
 
 	return nil

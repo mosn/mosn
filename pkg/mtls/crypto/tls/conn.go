@@ -57,6 +57,8 @@ type Conn struct {
 	verifiedChains [][]*x509.Certificate
 	// serverName contains the server name indicated by the client, if any.
 	serverName string
+	// serverSan subject alt name used to verify server
+	serverSan string
 	// secureRenegotiation is true if the server echoed the secure
 	// renegotiation extension. (This is meaningless as a server because
 	// renegotiation is not supported in that case.)
@@ -150,6 +152,17 @@ func (c *Conn) SetReadDeadline(t time.Time) error {
 // After a Write has timed out, the TLS state is corrupt and all future writes will return the same error.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
+}
+
+// SetServerName called before handshake as a client
+func (c *Conn) SetServerName(s string) {
+	c.serverName = s
+
+}
+
+// SetServerSan called before handshake as a client
+func (c *Conn) SetServerSan(s string) {
+	c.serverSan = s
 }
 
 // A halfConn represents one direction of the record layer

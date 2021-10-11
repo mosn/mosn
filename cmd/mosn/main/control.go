@@ -120,6 +120,18 @@ var (
 			}, cli.IntFlag{
 				Name:  "concurrency",
 				Usage: "concurrency, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "log-format-prefix-with-location",
+				Usage: "log-format-prefix-with-location, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "bootstrap-version",
+				Usage: "API version to parse the bootstrap config as (e.g. 3). If unset, all known versions will be attempted",
+			}, cli.StringFlag{
+				Name:  "drain-strategy",
+				Usage: "immediate",
+			}, cli.BoolTFlag{
+				Name:  "disable-hot-restart",
+				Usage: "disable-hot-restart",
 			},
 		},
 		Action: func(c *cli.Context) error {

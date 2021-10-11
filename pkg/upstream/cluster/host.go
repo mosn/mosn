@@ -136,6 +136,9 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	if sh.SupportTLS() {
 		tlsMng = sh.ClusterInfo().TLSMng()
 	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[simpleHost] tlsMng: %v", tlsMng)
+	}
 	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
@@ -205,7 +208,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	if addr, err = net.ResolveTCPAddr("tcp", addrstr); err != nil {
 		// try to resolve addr by unix
 		// as a UNIX-domain socket path specified after the “unix:” prefix.
-		if strings.HasSuffix(addrstr, "unix:") {
+		if strings.HasSuffix(addrstr, "unix:") || addrstr == "./etc/istio/proxy/SDS" || addrstr == "./etc/istio/proxy/XDS" {
 			addr, err = net.ResolveUnixAddr("unix", addrstr)
 			if err != nil {
 				err = errors.New("failed to resolve address in tcp and unix model")
@@ -258,7 +261,16 @@ func GetOrCreateUDPAddr(addrstr string) net.Addr {
 		}
 	}
 
-	addr, err = net.ResolveUDPAddr("udp", addrstr)
+	if addr, err = net.ResolveUDPAddr("udp", addrstr); err != nil {
+		// try to resolve addr by unix
+		// as a UNIX-domain socket path specified after the “unix:” prefix.
+		if strings.HasSuffix(addrstr, "unix:") {
+			addr, err = net.ResolveUnixAddr("unix", addrstr)
+			if err != nil {
+				err = errors.New("failed to resolve address in tcp and unix model")
+			}
+		}
+	}
 	if err != nil {
 		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
 		UDPAddrStore.Set(addrstr, err, 15*time.Second)
