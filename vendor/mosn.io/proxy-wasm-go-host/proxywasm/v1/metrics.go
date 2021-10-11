@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
 import (
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 func ProxyDefineMetric(instance common.WasmInstance, metricType int32, namePtr int32, nameSize int32, returnMetricId int32) int32 {

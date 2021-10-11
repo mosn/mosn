@@ -20,7 +20,7 @@ package proxywasm010
 import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 func init() {

@@ -53,7 +53,9 @@ func (f *grpcFilter) OnNewConnection() api.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("grpc filter send a new connection to grpc server")
 	}
-	f.ln.NewConnection(f.conn)
+	if err := f.ln.NewConnection(f.conn); err != nil {
+		return api.Stop
+	}
 	return api.Continue
 }
 

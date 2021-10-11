@@ -94,7 +94,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -171,12 +171,15 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
-			ConnectTimeout:       &api.DurationConfig{convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
+			ConnectTimeout:       &api.DurationConfig{Duration: convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:     convertSpec(xdsCluster),
-			TLS:      convertTLS(xdsCluster.GetTlsContext()),
-			LbConfig: convertLbConfig(xdsCluster.LbConfig),
+			Hosts:           convertClusterHosts(xdsCluster.GetHosts()),
+			Spec:            convertSpec(xdsCluster),
+			TLS:             convertTLS(xdsCluster.GetTlsContext()),
+			LbConfig:        convertLbConfig(xdsCluster.LbConfig),
+			RespectDnsTTL:   xdsCluster.GetRespectDnsTtl(),
+			DnsRefreshRate:  &api.DurationConfig{Duration: convertTimeDurPoint2TimeDur(xdsCluster.GetDnsRefreshRate())},
+			DnsLookupFamily: convertDnsLookupFamily(xdsCluster.GetDnsLookupFamily()),
 		}
 
 		if ass := xdsCluster.GetLoadAssignment(); ass != nil {
@@ -190,6 +193,18 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 
 	return clusters
+}
+
+func convertDnsLookupFamily(family xdsapi.Cluster_DnsLookupFamily) v2.DnsLookupFamily {
+	switch family {
+	case xdsapi.Cluster_AUTO:
+		return v2.V4Only
+	case xdsapi.Cluster_V4_ONLY:
+		return v2.V4Only
+	case xdsapi.Cluster_V6_ONLY:
+		return v2.V6Only
+	}
+	return v2.V4Only
 }
 
 // TODO support more LB converter
@@ -787,7 +802,9 @@ func convertFilterConfig(filter *xdslistener.Filter, rh routeHandler) map[string
 	}
 
 	// get proxy
-	proxyConfig.RouterConfigName = routerConfig.RouterConfigName
+	if routerConfig != nil {
+		proxyConfig.RouterConfigName = routerConfig.RouterConfigName
+	}
 	filtersConfigParsed[v2.DEFAULT_NETWORK_FILTER] = toMap(proxyConfig)
 	return filtersConfigParsed
 }

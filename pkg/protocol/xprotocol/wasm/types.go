@@ -20,7 +20,7 @@ package wasm
 import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 const (
