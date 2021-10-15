@@ -98,6 +98,7 @@ const (
 	DubboStream                = "dubbo_stream"
 	GoPluginStreamFilterSuffix = "so_plugin"
 	GrpcMetricFilter           = "grpc_metric"
+	IPAccess                   = "ip_access"
 )
 
 // HealthCheckFilter
