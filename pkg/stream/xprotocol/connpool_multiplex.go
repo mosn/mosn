@@ -140,6 +140,10 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		p.init(client, subProtocol, int(clientIdx))
 	}
 
+	if atomic.LoadUint32(&client.state) == Connected {
+		return true
+	}
+
 	return false
 }
 
