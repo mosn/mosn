@@ -118,6 +118,26 @@ type Conn struct {
 	info *TransferTLSInfo
 }
 
+func (c *Conn) SetTlsVersion(version uint16) {
+	c.vers = version
+}
+
+func (c *Conn) SetCipherSuite(cipher uint16) {
+	c.cipherSuite = cipher
+}
+
+func (c *Conn) SetPeerCertificates(cert []*x509.Certificate) {
+	c.peerCertificates = cert
+}
+
+func (c *Conn) SetNegotiatedProtocol(p string) {
+	c.clientProtocol = p
+}
+
+func (c *Conn) SetHandShakeStatus(status uint32) {
+	atomic.StoreUint32(&c.handshakeStatus, status)
+}
+
 // Access to net.Conn methods.
 // Cannot just embed net.Conn because that would
 // export the struct field too.
