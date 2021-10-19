@@ -54,7 +54,7 @@ require (
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c
-	mosn.io/pkg v0.0.0-20210908054737-3981532e980c
+	mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
