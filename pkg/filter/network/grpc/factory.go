@@ -48,11 +48,10 @@ func init() {
 // The registered grpc server needs to be implemented independently by the user, and registered to factory.
 // A MOSN can contains multiple registered grpc servers, each grpc server has only one instance.
 type grpcServerFilterFactory struct {
-	server              RegisteredServer
 	config              *v2.GRPC
 	handler             *Handler
+	server              *registerServerWrapper
 	streamFilterFactory streamfilter.StreamFilterFactory
-	ln                  *Listener
 }
 
 var _ api.NetworkFilterChainFactory = (*grpcServerFilterFactory)(nil)
@@ -62,7 +61,7 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("create a new grpc filter")
 	}
-	rf := NewGrpcFilter(ctx, f.ln)
+	rf := NewGrpcFilter(ctx, f.server.ln)
 	callbacks.AddReadFilter(rf)
 }
 
@@ -75,10 +74,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	if addr == "" {
 		addr = cfg.Addr.String()
 	}
-	ln, err := NewListener(addr)
-	if err != nil {
-		return err
-	}
+
 	// GetStreamFilters from listener name
 	f.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
 
@@ -87,38 +83,14 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
-	srv, err := f.handler.Start(ln, f.config.GrpcConfig, opts...)
+	sw, err := f.handler.New(addr, f.config.GrpcConfig, opts...)
 	if err != nil {
 		return err
 	}
+	// start server with timeout
+	sw.Start(f.config.GracefulStopTimeout)
+	f.server = sw
 	log.DefaultLogger.Debugf("grpc server filter initialized success")
-	// we keep the server but it is not be used currently.
-	// maybe it will be used when server stop/restart are supported
-	f.server = srv
-	f.ln = ln
-	// stop grpc server when mosn process shutdown
-	keeper.OnProcessShutDown(func() error {
-		return f.close()
-	})
-	return nil
-}
-
-func (f *grpcServerFilterFactory) close() error {
-	// use default timeout
-	gracefulStopTimeout := v2.GrpcDefaultGracefulStopTimeout
-	if f.config.GracefulStopTimeout > 0 {
-		// use the user-set timeout
-		gracefulStopTimeout = f.config.GracefulStopTimeout
-	}
-	// sync stop grpc server
-	timer := time.AfterFunc(gracefulStopTimeout, func() {
-		f.server.Stop()
-		log.DefaultLogger.Errorf("[grpc networkFilter] force stop grpc server: %v", f.config.ServerName)
-	})
-	defer timer.Stop()
-	log.DefaultLogger.Infof("[grpc networkFilter] graceful stopping grpc server: %v", f.config.ServerName)
-	f.server.GracefulStop()
-	log.DefaultLogger.Infof("[grpc networkFilter] graceful stoped grpc server success: %v", f.config.ServerName)
 	return nil
 }
 
@@ -203,9 +175,8 @@ func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss gr
 }
 
 var (
-	ErrUnknownServer    = errors.New("cannot found the grpc server")
-	ErrDuplicateStarted = errors.New("grpc server has already started")
-	ErrInvalidConfig    = errors.New("invalid config for grpc listener")
+	ErrUnknownServer = errors.New("cannot found the grpc server")
+	ErrInvalidConfig = errors.New("invalid config for grpc listener")
 )
 
 // CreateGRPCServerFilterFactory returns a grpc network filter factory.
@@ -250,35 +221,78 @@ type NewRegisteredServer func(config json.RawMessage, options ...grpc.ServerOpti
 
 // Handler is a wrapper to call NewRegisteredServer
 type Handler struct {
-	once sync.Once
-	f    NewRegisteredServer
+	f       NewRegisteredServer
+	mutex   sync.Mutex
+	servers map[string]*registerServerWrapper // support different listener start different grpc server
 }
 
-// Start call the grpc server Serves. If the server is already started returns an error
-func (s *Handler) Start(ln net.Listener, conf json.RawMessage, options ...grpc.ServerOption) (srv RegisteredServer, err error) {
-	err = ErrDuplicateStarted
-	s.once.Do(func() {
-		srv, err = s.f(conf, options...)
-		if err != nil {
-			log.DefaultLogger.Errorf("start a registered server failed: %v", err)
-			return
-		}
+// New a grpc server with address. Same address returns same server, which can be start only once.
+func (s *Handler) New(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	sw, ok := s.servers[addr]
+	if ok {
+		return sw, nil
+	}
+	ln, err := NewListener(addr)
+	if err != nil {
+		log.DefaultLogger.Errorf("create a listener failed: %v", err)
+		return nil, err
+	}
+	srv, err := s.f(conf, options...)
+	if err != nil {
+		log.DefaultLogger.Errorf("create a registered server failed: %v", err)
+		return nil, err
+	}
+	sw = &registerServerWrapper{
+		server: srv,
+		ln:     ln,
+	}
+	s.servers[addr] = sw
+	return sw, nil
+}
+
+// registerServerWrapper wraps a registered server and its listener
+type registerServerWrapper struct {
+	once   sync.Once
+	server RegisteredServer
+	ln     *Listener
+}
+
+// Start call the grpc server Serves. If the server is already started, ignore it.
+// TODO: support restart and dynamic update, which are not supported at time.
+func (rsw *registerServerWrapper) Start(graceful time.Duration) {
+	rsw.once.Do(func() {
 		go func() {
-			// TODO: support restart and dynamic update, which are not supported at time.
-			if r := srv.Serve(ln); r != nil {
-				log.DefaultLogger.Errorf("grpc server serves error: %v", r)
+			if err := rsw.server.Serve(rsw.ln); err != nil {
+				log.DefaultLogger.Errorf("grpc server serves error: %v", err)
 			}
 		}()
-		err = nil
+		// stop grpc server when mosn process shutdown
+		keeper.OnProcessShutDown(func() error {
+			if graceful <= 0 {
+				graceful = v2.GrpcDefaultGracefulStopTimeout // use default timeout
+			}
+			// sync stop grpc server
+			timer := time.AfterFunc(graceful, func() {
+				rsw.server.Stop()
+				log.DefaultLogger.Errorf("[grpc networkFilter] force stop grpc server: %s", rsw.ln.Addr().String())
+			})
+			defer timer.Stop()
+			log.DefaultLogger.Infof("[grpc networkFilter] graceful stopping grpc server: %s", rsw.ln.Addr().String())
+			rsw.server.GracefulStop()
+			log.DefaultLogger.Infof("[grpc networkFilter] graceful stoped grpc server success:  %s", rsw.ln.Addr().String())
+			return nil
+		})
 	})
-	return srv, err
 }
 
 var stores sync.Map
 
 func RegisterServerHandler(name string, f NewRegisteredServer) bool {
 	_, loaded := stores.LoadOrStore(name, &Handler{
-		f: f,
+		f:       f,
+		servers: map[string]*registerServerWrapper{},
 	})
 	// loaded means duplicate name registered
 	ok := !loaded
