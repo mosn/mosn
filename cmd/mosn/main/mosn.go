@@ -44,6 +44,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/grpcmetric"
 	_ "mosn.io/mosn/pkg/filter/stream/gzip"
 	_ "mosn.io/mosn/pkg/filter/stream/headertometadata"
+	_ "mosn.io/mosn/pkg/filter/stream/ipaccess"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
