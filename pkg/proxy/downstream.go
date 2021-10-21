@@ -1649,7 +1649,9 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if s.upstreamRequest != nil && s.upstreamRequest.setupRetry {
 		// https://github.com/mosn/mosn/issues/1750
-		s.upstreamRequest.setupRetry = false
+		// Can't set setupRetry to false directly, beacause the old response should be skip when the new upstream
+		// request has been sent out.
+		s.upstreamRequest = nil
 
 		phase = types.Retry
 		err = types.ErrExit
