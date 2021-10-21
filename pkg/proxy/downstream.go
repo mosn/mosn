@@ -1374,6 +1374,11 @@ func (s *downStream) doRetry() {
 	host, pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
+		// https://github.com/mosn/mosn/issues/1750
+		if s.upstreamRequest != nil {
+			s.upstreamRequest.setupRetry = false
+		}
+
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
@@ -1648,11 +1653,6 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.upstreamRequest != nil && s.upstreamRequest.setupRetry {
-		// https://github.com/mosn/mosn/issues/1750
-		// Can't set setupRetry to false directly, beacause the old response should be skip when the new upstream
-		// request has been sent out.
-		s.upstreamRequest = nil
-
 		phase = types.Retry
 		err = types.ErrExit
 		return
