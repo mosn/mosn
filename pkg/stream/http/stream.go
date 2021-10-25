@@ -737,10 +737,6 @@ func (s *clientStream) handleResponse() {
 				s.receiver.OnReceive(s.ctx, header, nil, nil)
 			}
 		}
-
-		//TODO cannot recycle immediately, headers might be used by proxy logic
-		s.request = nil
-		s.response = nil
 	}
 }
 
