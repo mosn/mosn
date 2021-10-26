@@ -45,11 +45,11 @@ const (
 	ContextKeyVariables
 	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
+	ContextKeyUpStreamProtocol
 	ContextKeyConfigDownStreamProtocol
 	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
-	ContextKeyUpStreamProtocol
 	ContextKeyEnd
 )
 

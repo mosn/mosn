@@ -404,6 +404,7 @@ func TestRetryEmptyUpstreamHosts(t *testing.T) {
 
 	s := &downStream{
 		ID:      1,
+		context: ctx,
 		cluster: cluster,
 		upstreamRequest: &upstreamRequest{
 			setupRetry: true,

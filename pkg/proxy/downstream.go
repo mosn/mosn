@@ -727,17 +727,17 @@ func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 	configProtocol := s.proxy.config.UpstreamProtocol
 
+	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
+	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
+		configProtocol = s.route.RouteRule().UpstreamProtocol()
+	}
+
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
 	proto := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol)
 	if proto != nil {
 		if p, ok := proto.(string); ok {
-			return types.ProtocolName(p)
+			configProtocol = p
 		}
-	}
-
-	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
-	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
-		configProtocol = s.route.RouteRule().UpstreamProtocol()
 	}
 
 	// Auto means same as downstream protocol
