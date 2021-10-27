@@ -432,3 +432,48 @@ func TestRetryEmptyUpstreamHosts(t *testing.T) {
 	assert.Equal(t, types.End, phase)
 	assert.Equal(t, true, s.processDone())
 }
+
+func TestGetUpstreamProtocol(t *testing.T) {
+	route := &mockRoute{
+		rule: &mockRouteRule{
+			upstreamProtocol: "HTTP1",
+		},
+	}
+
+	testCases := []struct {
+		ctx              context.Context
+		route            types.Route
+		expectedProtocol types.ProtocolName
+	}{
+		{
+			ctx:              mosnctx.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, "X"),
+			route:            route,
+			expectedProtocol: "X",
+		},
+		{
+			ctx:              context.Background(),
+			route:            route,
+			expectedProtocol: api.ProtocolName(route.rule.UpstreamProtocol()),
+		},
+		{
+			ctx:              context.Background(),
+			route:            nil,
+			expectedProtocol: "HTTP2",
+		},
+	}
+
+	for _, tc := range testCases {
+		s := &downStream{
+			ID:      1,
+			context: tc.ctx,
+			route:   tc.route,
+			proxy: &proxy{
+				config: &v2.Proxy{
+					UpstreamProtocol: "HTTP2",
+				},
+			},
+		}
+		currentProtocol := s.getUpstreamProtocol()
+		assert.Equal(t, tc.expectedProtocol, currentProtocol)
+	}
+}
