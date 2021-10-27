@@ -733,11 +733,8 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) 
 	}
 
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
-	proto := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol)
-	if proto != nil {
-		if p, ok := proto.(string); ok {
-			configProtocol = p
-		}
+	if proto, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(string); ok {
+		configProtocol = proto
 	}
 
 	// Auto means same as downstream protocol
