@@ -41,6 +41,50 @@ type poolBinding struct {
 
 	clientMux   sync.Mutex
 	idleClients map[uint64]*activeClientBinding // connection id --> client
+
+	listenerOnce      sync.Once
+	connEventListener *bindConnEventListener
+}
+
+// bindConnEventListener listens for an event on the binding connection
+type bindConnEventListener struct {
+	m                  sync.Mutex
+	connEventListeners []api.ConnectionEventListener
+}
+
+func (t *bindConnEventListener) addListener(listener api.ConnectionEventListener) {
+	t.m.Lock()
+	defer t.m.Unlock()
+	t.connEventListeners = append(t.connEventListeners, listener)
+}
+
+func (t *bindConnEventListener) removeListener(listener api.ConnectionEventListener) {
+	t.m.Lock()
+	defer t.m.Unlock()
+
+	idx := -1
+	for i, cb := range t.connEventListeners {
+		if cb == listener {
+			idx = i
+			break
+		}
+	}
+
+	if idx > -1 {
+		t.connEventListeners = append(t.connEventListeners[:idx], t.connEventListeners[idx+1:]...)
+	}
+}
+
+func (t *bindConnEventListener) OnEvent(event api.ConnectionEvent) {
+	t.m.Lock()
+	defer t.m.Unlock()
+	for _, listener := range t.connEventListeners {
+		listener.OnEvent(event)
+	}
+}
+
+func newTcpConnEventListener() *bindConnEventListener {
+	return &bindConnEventListener{connEventListeners: make([]api.ConnectionEventListener, 0)}
 }
 
 // NewPoolBinding generates a binding connection pool
@@ -59,11 +103,21 @@ func (p *poolBinding) CheckAndInit(ctx context.Context) bool {
 
 type downstreamCloseListener struct {
 	upstreamClient *activeClientBinding
+	containers     *bindConnEventListener
+}
+
+func (d *downstreamCloseListener) OnResetStream(reason types.StreamResetReason) {
+	d.upstreamClient.OnResetStream(reason)
+}
+
+func (d *downstreamCloseListener) OnDestroyStream() {
+	d.upstreamClient.OnDestroyStream()
+	d.containers.removeListener(d)
 }
 
 var downstreamClosed = errors.New("downstream closed conn")
 
-func (d downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
+func (d *downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() && d.upstreamClient != nil {
 		d.upstreamClient.Close(downstreamClosed)
 	}
@@ -81,11 +135,16 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	downstreamConn := getDownstreamConn(ctx)
 	c.downstreamConn = downstreamConn
-	downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: c})
+	p.listenerOnce.Do(func() {
+		p.connEventListener = newTcpConnEventListener()
+		downstreamConn.AddConnectionEventListener(p.connEventListener)
+	})
+	closeListener := &downstreamCloseListener{upstreamClient: c, containers: p.connEventListener}
+	p.connEventListener.addListener(closeListener)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
-	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
+	streamSender.GetStream().AddEventListener(closeListener) // OnResetStream, OnDestroyStream
 
 	// FIXME one way
 	// is there any need to skip the metrics?
