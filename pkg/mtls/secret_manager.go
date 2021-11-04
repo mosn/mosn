@@ -27,15 +27,30 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+type ProviderSide int
+
+const (
+	ProviderSideServer ProviderSide = 0 // server side provider
+	ProviderSideClient ProviderSide = 1 // client side provider
+)
+
+type ProviderUpdateCallback func(side ProviderSide, provider types.TLSProvider, config *v2.TLSConfig,
+	newCaCert string, newCertChain string, newPrivateKey string)
+
 var (
 	secretManagerInstance = &secretManager{
 		validations: make(map[string]*validation),
 	}
-	sdsCallbacks = []func(*v2.TLSConfig){}
+	sdsCallbacks            = []func(*v2.TLSConfig){}
+	providerUpdateCallbacks = []ProviderUpdateCallback{}
 )
 
 func RegisterSdsCallback(f func(*v2.TLSConfig)) {
 	sdsCallbacks = append(sdsCallbacks, f)
+}
+
+func RegisterProviderUpdateCallback(cb ProviderUpdateCallback) {
+	providerUpdateCallbacks = append(providerUpdateCallbacks, cb)
 }
 
 type validation struct {
@@ -136,6 +151,7 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 // sdsProvider stored a tls context that makes by sds
 // do not support delete certificate for sds api
 type sdsProvider struct {
+	side   ProviderSide
 	value  atomic.Value // stored tlsContext
 	config atomic.Value // store *v2.TLSConfig
 	info   *secretInfo
@@ -175,6 +191,9 @@ func (p *sdsProvider) update() {
 	// notify certificates updates
 	for _, cb := range sdsCallbacks {
 		cb(cfg)
+	}
+	for _, cb := range providerUpdateCallbacks {
+		cb(p.side, p, cfg, p.info.Validation, p.info.Certificate, p.info.PrivateKey)
 	}
 }
 

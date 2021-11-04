@@ -38,7 +38,7 @@ func (p *staticProvider) Empty() bool {
 
 // NewProvider returns a types.Provider.
 // we support sds provider and static provider.
-func NewProvider(cfg *v2.TLSConfig) (types.TLSProvider, error) {
+func NewProvider(side ProviderSide, cfg *v2.TLSConfig) (types.TLSProvider, error) {
 	if !cfg.Status {
 		return nil, nil
 	}
@@ -46,7 +46,9 @@ func NewProvider(cfg *v2.TLSConfig) (types.TLSProvider, error) {
 		if !cfg.SdsConfig.Valid() {
 			return nil, ErrorNoCertConfigure
 		}
-		return getOrCreateProvider(cfg), nil
+		provider := getOrCreateProvider(cfg)
+		provider.side = side // server side or client side provider
+		return provider, nil
 	} else {
 		// static provider
 		secret := &secretInfo{
@@ -58,8 +60,14 @@ func NewProvider(cfg *v2.TLSConfig) (types.TLSProvider, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &staticProvider{
+		provider := &staticProvider{
 			tlsContext: ctx,
-		}, nil
+		}
+
+		for _, cb := range providerUpdateCallbacks {
+			cb(side, provider, cfg, cfg.CACert, cfg.CertChain, cfg.PrivateKey)
+		}
+
+		return provider, nil
 	}
 }
