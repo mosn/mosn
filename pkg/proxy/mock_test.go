@@ -83,6 +83,7 @@ func (r *mockRoute) DirectResponseRule() api.DirectResponseRule {
 
 type mockRouteRule struct {
 	api.RouteRule
+	upstreamProtocol string
 }
 
 func (r *mockRouteRule) ClusterName(ctx context.Context) string {
@@ -90,7 +91,7 @@ func (r *mockRouteRule) ClusterName(ctx context.Context) string {
 }
 
 func (r *mockRouteRule) UpstreamProtocol() string {
-	return ""
+	return r.upstreamProtocol
 }
 
 func (c *mockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
