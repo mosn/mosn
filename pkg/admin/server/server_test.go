@@ -532,7 +532,7 @@ func TestHelpAPI(t *testing.T) {
 	for _, addr := range []string{"/", "/not_exists"} {
 		s := query(t, addr)
 		s = strings.TrimSuffix(s, "\n")
-		apis := strings.Split(s, "\n")[1:] // the first line is "support apis:"
+		apis := strings.Split(s, "\n")[1:] // the first line is "supported APIs:"
 		if len(apis) != 7 {                // exclued "/"
 			t.Errorf("apis count is not expected: %v, length is %d", apis, len(apis))
 		}
