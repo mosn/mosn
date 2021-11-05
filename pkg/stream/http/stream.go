@@ -202,10 +202,12 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 }
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
+	// because streamConnection's Read will do some processing depends it.
+	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
 	close(conn.connClosed)
-	conn.resetReason = reason
 }
 
 // types.ClientStreamConnection
