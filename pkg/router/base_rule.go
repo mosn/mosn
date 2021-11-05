@@ -273,7 +273,7 @@ func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers ap
 
 func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
 
-	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
+	if len(rri.prefixRewrite) == 0 && len(rri.regexRewrite.Pattern.Regex) == 0 {
 		return
 	}
 
@@ -282,7 +282,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 
 		//If both prefix_rewrite and regex_rewrite are configured
 		//prefix rewrite by default
-		if len(rri.prefixRewrite) > 1 {
+		if len(rri.prefixRewrite) != 0 {
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
 				headers.Set(types.HeaderOriginalPath, path)
@@ -295,7 +295,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		}
 
 		// regex rewrite path if configured
-		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
+		if len(rri.regexRewrite.Pattern.Regex) != 0 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(types.HeaderOriginalPath, path)
