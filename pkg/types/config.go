@@ -77,3 +77,23 @@ end:
 	os.MkdirAll(MosnLogBasePath, 0755)
 	os.MkdirAll(MosnConfigPath, 0755)
 }
+
+
+func InitUDSdir(dir string){
+	if dir == "" {
+		return
+	}
+
+	unixDomainSocketDir, err := filepath.Abs(dir)
+	if err != nil {
+		return
+	}
+
+	os.MkdirAll(unixDomainSocketDir, 0755)
+
+	ReconfigureDomainSocket = unixDomainSocketDir + string(os.PathSeparator) + "reconfig.sock"
+	TransferConnDomainSocket = unixDomainSocketDir + string(os.PathSeparator) + "conn.sock"
+	TransferStatsDomainSocket = unixDomainSocketDir + string(os.PathSeparator) + "stats.sock"
+	TransferListenDomainSocket = unixDomainSocketDir + string(os.PathSeparator) + "listen.sock"
+	TransferMosnconfigDomainSocket = unixDomainSocketDir + string(os.PathSeparator) + "mosnconfig.sock"
+}

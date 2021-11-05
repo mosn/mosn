@@ -99,6 +99,10 @@ func initializeMetrics(config v2.MetricsConfig) {
 	}
 }
 
+func InitUDSdir (c *v2.MOSNConfig) {
+	types.InitUDSdir(c.UDSdir)
+}
+
 func InitializePidFile(c *v2.MOSNConfig) {
 	initializePidFile(c.Pid)
 }

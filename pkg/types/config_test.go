@@ -54,3 +54,37 @@ func TestInitDefaultPath(t *testing.T) {
 	// clean
 	os.RemoveAll(testPath)
 }
+
+
+func TestInitUDSdir(t *testing.T) {
+	ReconfigureDomainSocket = "/home/admin/mosn/conf/reconfig.sock"
+	testCases := []struct {
+		name         string
+		udsDir       string
+		expectedPath string
+	}{
+		{
+			name:         "empty_dir",
+			udsDir:       "",
+			expectedPath: "/home/admin/mosn/conf/reconfig.sock",
+		},
+		{
+			name:         "normal_dir",
+			udsDir:       "/tmp/mosn/socks",
+			expectedPath: "/tmp/mosn/socks/reconfig.sock",
+		},
+		{
+			name:         "multiple_separator",
+			udsDir:       "/tmp//mosn/sock//",
+			expectedPath: "/tmp/mosn/sock/reconfig.sock",
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			InitUDSdir(testCase.udsDir)
+			if ReconfigureDomainSocket != testCase.expectedPath {
+				t.Errorf("expected path: %s, got: %s", testCase.expectedPath, ReconfigureDomainSocket)
+			}
+		})
+	}
+}
