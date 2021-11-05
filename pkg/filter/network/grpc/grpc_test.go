@@ -164,7 +164,8 @@ func (cb *MockReadFilterCallbacks) Connection() api.Connection {
 
 type MockConnection struct {
 	api.Connection
-	raw net.Conn
+	raw    net.Conn
+	closed bool
 }
 
 func (c *MockConnection) Write(buf ...buffer.IoBuffer) error {
@@ -178,10 +179,16 @@ func (c *MockConnection) Write(buf ...buffer.IoBuffer) error {
 }
 
 func (c *MockConnection) LocalAddr() net.Addr {
+	if c.raw == nil {
+		return nil
+	}
 	return c.raw.LocalAddr()
 }
 
 func (c *MockConnection) RemoteAddr() net.Addr {
+	if c.raw == nil {
+		return nil
+	}
 	return c.raw.RemoteAddr()
 }
 
@@ -193,5 +200,9 @@ func (c *MockConnection) AddConnectionEventListener(api.ConnectionEventListener)
 }
 
 func (c *MockConnection) Close(_ api.ConnectionCloseType, _ api.ConnectionEvent) error {
+	c.closed = true
+	if c.raw == nil {
+		return nil
+	}
 	return c.raw.Close()
 }

@@ -106,6 +106,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	f.receiveHandler.SetRequestHeaders(outHeaders)
 	f.receiveHandler.SetRequestData(outBuf)
 	f.receiveHandler.SetRequestTrailers(outTrailers)
+	f.receiveHandler.SetConvert(false)
 	return api.StreamFilterContinue
 }
 

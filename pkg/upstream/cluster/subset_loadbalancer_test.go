@@ -19,10 +19,13 @@ package cluster
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 	"reflect"
 	"sort"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -802,4 +805,61 @@ func TestNoFallbackWithEmpty(t *testing.T) {
 		}
 	}
 
+}
+
+func benchHostConfigs(hostCount int, keyValues int) []v2.Host {
+	ret := make([]v2.Host, 0, hostCount)
+	keyValues = int(math.Max(float64(keyValues), 1))
+	rand.Seed(time.Now().UnixNano())
+	keys := []string{"zone", "physics", "mosn_aig", "mosn_version"}
+	for i := 0; i < hostCount; i++ {
+
+		metadata := make(map[string]string)
+		for _, key := range keys {
+			r := rand.Intn(keyValues + 1)
+			if r < keyValues {
+				metadata[key] = fmt.Sprintf("%s-%d", key, r)
+			}
+		}
+		host := v2.Host{
+			HostConfig: v2.HostConfig{
+				Hostname: fmt.Sprintf("e%d", i),
+				Address:  fmt.Sprintf("127.0.0.1:%d", i),
+			},
+			MetaData: metadata,
+		}
+		ret = append(ret, host)
+	}
+	return ret
+}
+
+func benchSubsetConfig() *v2.LBSubsetConfig {
+	return &v2.LBSubsetConfig{
+		SubsetSelectors: [][]string{
+			{"zone", "physics"},
+			{"zone"},
+			{"physics"},
+			{"zone", "physics", "mosn_aig"},
+			{"zone", "physics", "mosn_version"},
+			{"zone", "physics", "mosn_aig", "mosn_version"},
+			{"zone", "mosn_aig"},
+			{"zone", "mosn_version"},
+			{"zone", "mosn_aig", "mosn_version"},
+			{"physics", "mosn_aig"},
+			{"physics", "mosn_version"},
+			{"physics", "mosn_aig", "mosn_version"},
+			{"mosn_aig"},
+			{"mosn_version"},
+			{"mosn_aig", "mosn_version"},
+		}}
+}
+
+func BenchmarkSubsetLoadBalancer(b *testing.B) {
+	ps := createHostset(benchHostConfigs(8000, 2))
+	subsetConfig := benchSubsetConfig()
+	b.Run("subsetLoadBalancer", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("BenchmarkSubsetLoadBalancer"), NewLBSubsetInfo(subsetConfig))
+		}
+	})
 }

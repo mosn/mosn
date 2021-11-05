@@ -153,7 +153,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 				"w1/w2  = %d", dcCount, w1Count/w2Count)
 
 		}
-		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
+		t.Log("default = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
 }
 
@@ -200,7 +200,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 	type args struct {
 		originalPath string // request path which will be setted into var for match
-		matchedPath  string // macthed path is mocked for router match
+		matchedPath  string // matched path is mocked for router match
 	}
 
 	type testCase struct {

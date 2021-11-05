@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"istio.io/api/mixer/v1/config/client"
 	"mosn.io/api"
 )
 
@@ -90,17 +89,16 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER                      = "mixer"
 	FaultStream                = "fault"
 	PayloadLimit               = "payload_limit"
 	Gzip                       = "gzip"
 	FaultTolerance             = "fault_tolerance"
-	IstioStats                 = "istio.stats"
 	DSL                        = "dsl"
 	Mirror                     = "mirror"
 	DubboStream                = "dubbo_stream"
-	JwtAuthn                   = "jwt_authn"
 	GoPluginStreamFilterSuffix = "so_plugin"
+	GrpcMetricFilter           = "grpc_metric"
+	IPAccess                   = "ip_access"
 )
 
 // HealthCheckFilter
@@ -181,8 +179,4 @@ func (d *DelayInject) UnmarshalJSON(b []byte) error {
 type AbortInject struct {
 	Status  int    `json:"status,omitempty"`
 	Percent uint32 `json:"percentage,omitempty"`
-}
-
-type Mixer struct {
-	client.HttpClientConfig
 }

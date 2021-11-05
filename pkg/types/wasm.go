@@ -19,7 +19,7 @@ package types
 
 import (
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 //

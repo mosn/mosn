@@ -147,11 +147,12 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 // createSubsets creates the sslb.subSets
 func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys []types.SortedStringSetType) {
 	hosts := sslb.hostSet.Hosts()
+	var kvs types.SubsetMetadata
 	var subsSetCount int64 = 0
 	for _, host := range hosts {
 		for _, subSetKey := range subSetKeys {
 			// one keys will create one subset
-			kvs := ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata())
+			kvs = ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata(), kvs[:0])
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
@@ -243,12 +244,11 @@ func (sslb *subsetLoadBalancer) findOrCreateSubset(subsets types.LbSubsetMap, kv
 }
 
 // if subsetKeys are all contained in the host metadata
-func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata) types.SubsetMetadata {
-	var kvs types.SubsetMetadata
+func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata, kvs types.SubsetMetadata) types.SubsetMetadata {
 	for _, key := range subsetKeys {
 		value, ok := metadata[key]
 		if !ok {
-			return nil
+			return kvs[:0]
 		}
 		kvs = append(kvs, types.Pair{
 			T1: key,
