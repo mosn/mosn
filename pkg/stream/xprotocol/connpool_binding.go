@@ -42,28 +42,37 @@ type poolBinding struct {
 	clientMux   sync.Mutex
 	idleClients map[uint64]*activeClientBinding // connection id --> client
 
-	listenerOnce      sync.Once
-	connEventListener *bindConnEventListener
+	listeners sync.Map
 }
 
 // bindConnEventListener listens for an event on the binding connection
 type bindConnEventListener struct {
-	m                  sync.Mutex
-	connEventListeners []api.ConnectionEventListener
+	addConnListenerOnce sync.Once
+	m                   sync.Mutex
+	connEventListeners  []api.ConnectionEventListener
 }
 
-func (t *bindConnEventListener) addListener(listener api.ConnectionEventListener) {
-	t.m.Lock()
-	defer t.m.Unlock()
-	t.connEventListeners = append(t.connEventListeners, listener)
+func (b *bindConnEventListener) getStreamEventListener(c *activeClientBinding, downstreamConn api.Connection) types.StreamEventListener {
+	b.addConnListenerOnce.Do(func() {
+		downstreamConn.AddConnectionEventListener(b)
+	})
+	closeListener := &downstreamCloseListener{upstreamClient: c, containers: b}
+	b.addListener(closeListener)
+	return closeListener
 }
 
-func (t *bindConnEventListener) removeListener(listener api.ConnectionEventListener) {
-	t.m.Lock()
-	defer t.m.Unlock()
+func (b *bindConnEventListener) addListener(listener api.ConnectionEventListener) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	b.connEventListeners = append(b.connEventListeners, listener)
+}
+
+func (b *bindConnEventListener) removeListener(listener api.ConnectionEventListener) {
+	b.m.Lock()
+	defer b.m.Unlock()
 
 	idx := -1
-	for i, cb := range t.connEventListeners {
+	for i, cb := range b.connEventListeners {
 		if cb == listener {
 			idx = i
 			break
@@ -71,19 +80,19 @@ func (t *bindConnEventListener) removeListener(listener api.ConnectionEventListe
 	}
 
 	if idx > -1 {
-		t.connEventListeners = append(t.connEventListeners[:idx], t.connEventListeners[idx+1:]...)
+		b.connEventListeners = append(b.connEventListeners[:idx], b.connEventListeners[idx+1:]...)
 	}
 }
 
-func (t *bindConnEventListener) OnEvent(event api.ConnectionEvent) {
-	t.m.Lock()
-	defer t.m.Unlock()
-	for _, listener := range t.connEventListeners {
+func (b *bindConnEventListener) OnEvent(event api.ConnectionEvent) {
+	b.m.Lock()
+	defer b.m.Unlock()
+	for _, listener := range b.connEventListeners {
 		listener.OnEvent(event)
 	}
 }
 
-func newTcpConnEventListener() *bindConnEventListener {
+func newBindingConnEventListener() *bindConnEventListener {
 	return &bindConnEventListener{connEventListeners: make([]api.ConnectionEventListener, 0)}
 }
 
@@ -135,12 +144,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	downstreamConn := getDownstreamConn(ctx)
 	c.downstreamConn = downstreamConn
-	p.listenerOnce.Do(func() {
-		p.connEventListener = newTcpConnEventListener()
-		downstreamConn.AddConnectionEventListener(p.connEventListener)
-	})
-	closeListener := &downstreamCloseListener{upstreamClient: c, containers: p.connEventListener}
-	p.connEventListener.addListener(closeListener)
+	closeListener := p.getEventListener(c, downstreamConn)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -157,6 +161,14 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	host.ClusterInfo().ResourceManager().Requests().Increase()
 
 	return host, streamSender, ""
+}
+
+func (p *poolBinding) getEventListener(c *activeClientBinding, downstreamConn api.Connection) types.StreamEventListener {
+	load, ok := p.listeners.Load(downstreamConn.ID())
+	if !ok {
+		load, _ = p.listeners.LoadOrStore(downstreamConn.ID(), newBindingConnEventListener())
+	}
+	return load.(*bindConnEventListener).getStreamEventListener(c, downstreamConn)
 }
 
 // GetActiveClient get a avail client
