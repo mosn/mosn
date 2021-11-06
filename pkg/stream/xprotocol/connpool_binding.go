@@ -42,58 +42,7 @@ type poolBinding struct {
 	clientMux   sync.Mutex
 	idleClients map[uint64]*activeClientBinding // connection id --> client
 
-	listeners sync.Map
-}
-
-// bindConnEventListener listens for an event on the binding connection
-type bindConnEventListener struct {
-	addConnListenerOnce sync.Once
-	m                   sync.Mutex
-	connEventListeners  []api.ConnectionEventListener
-}
-
-func (b *bindConnEventListener) getStreamEventListener(c *activeClientBinding, downstreamConn api.Connection) types.StreamEventListener {
-	b.addConnListenerOnce.Do(func() {
-		downstreamConn.AddConnectionEventListener(b)
-	})
-	closeListener := &downstreamCloseListener{upstreamClient: c, containers: b}
-	b.addListener(closeListener)
-	return closeListener
-}
-
-func (b *bindConnEventListener) addListener(listener api.ConnectionEventListener) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	b.connEventListeners = append(b.connEventListeners, listener)
-}
-
-func (b *bindConnEventListener) removeListener(listener api.ConnectionEventListener) {
-	b.m.Lock()
-	defer b.m.Unlock()
-
-	idx := -1
-	for i, cb := range b.connEventListeners {
-		if cb == listener {
-			idx = i
-			break
-		}
-	}
-
-	if idx > -1 {
-		b.connEventListeners = append(b.connEventListeners[:idx], b.connEventListeners[idx+1:]...)
-	}
-}
-
-func (b *bindConnEventListener) OnEvent(event api.ConnectionEvent) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	for _, listener := range b.connEventListeners {
-		listener.OnEvent(event)
-	}
-}
-
-func newBindingConnEventListener() *bindConnEventListener {
-	return &bindConnEventListener{connEventListeners: make([]api.ConnectionEventListener, 0)}
+	listenerFuncs sync.Map
 }
 
 // NewPoolBinding generates a binding connection pool
@@ -110,23 +59,29 @@ func (p *poolBinding) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
+type AddConnListenerFunc func(downstreamConn api.Connection, binding *activeClientBinding)
+
+func (p *poolBinding) addConnListenerOnce(downstreamConn api.Connection, binding *activeClientBinding) {
+	id := downstreamConn.ID()
+	_, ok := p.listenerFuncs.Load(id)
+	if ok {
+		return
+	}
+	store, loaded := p.listenerFuncs.LoadOrStore(id, AddConnListenerFunc(func(downstreamConn api.Connection, binding *activeClientBinding) {
+		downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: binding})
+	}))
+	if !loaded {
+		store.(AddConnListenerFunc)(downstreamConn, binding)
+	}
+}
+
 type downstreamCloseListener struct {
 	upstreamClient *activeClientBinding
-	containers     *bindConnEventListener
-}
-
-func (d *downstreamCloseListener) OnResetStream(reason types.StreamResetReason) {
-	d.upstreamClient.OnResetStream(reason)
-}
-
-func (d *downstreamCloseListener) OnDestroyStream() {
-	d.upstreamClient.OnDestroyStream()
-	d.containers.removeListener(d)
 }
 
 var downstreamClosed = errors.New("downstream closed conn")
 
-func (d *downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
+func (d downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() && d.upstreamClient != nil {
 		d.upstreamClient.Close(downstreamClosed)
 	}
@@ -144,11 +99,11 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	downstreamConn := getDownstreamConn(ctx)
 	c.downstreamConn = downstreamConn
-	closeListener := p.getEventListener(c, downstreamConn)
+	p.addConnListenerOnce(downstreamConn, c)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
-	streamSender.GetStream().AddEventListener(closeListener) // OnResetStream, OnDestroyStream
+	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
 
 	// FIXME one way
 	// is there any need to skip the metrics?
@@ -161,14 +116,6 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	host.ClusterInfo().ResourceManager().Requests().Increase()
 
 	return host, streamSender, ""
-}
-
-func (p *poolBinding) getEventListener(c *activeClientBinding, downstreamConn api.Connection) types.StreamEventListener {
-	load, ok := p.listeners.Load(downstreamConn.ID())
-	if !ok {
-		load, _ = p.listeners.LoadOrStore(downstreamConn.ID(), newBindingConnEventListener())
-	}
-	return load.(*bindConnEventListener).getStreamEventListener(c, downstreamConn)
 }
 
 // GetActiveClient get a avail client
