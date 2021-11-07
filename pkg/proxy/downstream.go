@@ -533,6 +533,12 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
 				s.printPhaseInfo(phase, id)
+
+				// detect websocket protocol, if true return directly
+				if s.detectWebsocketProtocol(ctx) {
+					return types.End
+				}
+
 				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -1669,4 +1675,24 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	return
+}
+
+func (s *downStream) detectWebsocketProtocol(ctx context.Context) bool {
+	args := ctx.Value(types.ProxyWebsocketArgKey)
+	if args == nil {
+		return false
+	}
+
+	if args.(types.WebsocketProxyArgs).GetType() == types.ProxyTypeWebsocket {
+		websocketArgs, ok := args.(*types.ProxyWebsocketArgs)
+		if !ok {
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] proxyOtherProto assert websocket error, proxyId: %d", s.ID)
+			return false
+		}
+		s.cleanNotify()
+		wsProxy:= createWebsocketProxy(s, websocketArgs)
+		wsProxy.handleWebsocket()
+	}
+
+	return true
 }

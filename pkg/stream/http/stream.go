@@ -31,6 +31,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/mosn/pkg/stream/websocket"
 	"mosn.io/mosn/pkg/variable"
 
 	"github.com/valyala/fasthttp"
@@ -479,6 +480,8 @@ func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 }
 
 func (conn *serverStreamConnection) serve() {
+	firstRequest := true
+
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.contextManager.Get()
@@ -558,6 +561,24 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
+
+		if firstRequest {
+			// upgrade websocket
+			if websocket.IsUpgradeWebSocket(request) {
+				injectCtxVarFromProtocolHeaders(ctx, s.header, s.request.URI())
+
+				args := &types.ProxyWebsocketArgs{
+					CurrentBufferReader: conn.br,
+					Request:             request,
+				}
+				s.ctx = context.WithValue(s.ctx, types.ProxyWebsocketArgKey, args)
+				s.receiver.OnReceive(s.ctx, s.header, nil, nil)
+
+				return
+			}
+
+			firstRequest = false
+		}
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleRequest(s.stream.ctx)
