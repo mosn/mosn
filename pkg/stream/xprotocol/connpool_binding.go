@@ -61,20 +61,6 @@ func (p *poolBinding) CheckAndInit(ctx context.Context) bool {
 
 type AddConnListenerFunc func(downstreamConn api.Connection, binding *activeClientBinding)
 
-func (p *poolBinding) addConnListenerOnce(downstreamConn api.Connection, binding *activeClientBinding) {
-	id := downstreamConn.ID()
-	_, ok := p.listenerFuncs.Load(id)
-	if ok {
-		return
-	}
-	store, loaded := p.listenerFuncs.LoadOrStore(id, AddConnListenerFunc(func(downstreamConn api.Connection, binding *activeClientBinding) {
-		downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: binding})
-	}))
-	if !loaded {
-		store.(AddConnListenerFunc)(downstreamConn, binding)
-	}
-}
-
 type downstreamCloseListener struct {
 	upstreamClient *activeClientBinding
 }
@@ -99,7 +85,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	downstreamConn := getDownstreamConn(ctx)
 	c.downstreamConn = downstreamConn
-	p.addConnListenerOnce(downstreamConn, c)
+	c.addDownConnListenerOnce()
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -242,6 +228,14 @@ type activeClientBinding struct {
 	codecClient        stream.Client
 	host               types.CreateConnectionData
 	downstreamConn     api.Connection
+
+	downConnListenerOnce sync.Once
+}
+
+func (ac *activeClientBinding) addDownConnListenerOnce() {
+	ac.downConnListenerOnce.Do(func() {
+		ac.downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: ac})
+	})
 }
 
 // Close close the client
