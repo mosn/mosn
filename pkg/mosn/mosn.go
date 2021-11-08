@@ -101,6 +101,7 @@ func (m *Mosn) upgradeCheck() {
 			c.ClusterManager = oldMosnConfig.ClusterManager
 			c.Extends = oldMosnConfig.Extends
 		}
+		m.Config = c
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
