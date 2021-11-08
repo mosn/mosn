@@ -57,8 +57,6 @@ func (p *poolBinding) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-type AddConnListenerFunc func(downstreamConn api.Connection, binding *activeClientBinding)
-
 type downstreamCloseListener struct {
 	upstreamClient *activeClientBinding
 }
