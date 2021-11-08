@@ -41,8 +41,6 @@ type poolBinding struct {
 
 	clientMux   sync.Mutex
 	idleClients map[uint64]*activeClientBinding // connection id --> client
-
-	listenerFuncs sync.Map
 }
 
 // NewPoolBinding generates a binding connection pool
