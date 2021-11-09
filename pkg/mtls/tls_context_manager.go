@@ -48,7 +48,7 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 	}
 	for _, c := range cfg.FilterChains {
 		for _, tlsCfg := range c.TLSContexts {
-			provider, err := NewProvider(ProviderSideServer, &tlsCfg)
+			provider, err := NewProvider(ProviderSideServer, &tlsCfg, cfg.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -142,7 +142,7 @@ type clientContextManager struct {
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
 func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
-	provider, err := NewProvider(ProviderSideClient, cfg)
+	provider, err := NewProvider(ProviderSideClient, cfg, "")
 	if err != nil {
 		return nil, err
 	}

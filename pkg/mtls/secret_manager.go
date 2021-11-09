@@ -34,8 +34,8 @@ const (
 	ProviderSideClient ProviderSide = 1 // client side provider
 )
 
-type ProviderUpdateCallback func(side ProviderSide, provider types.TLSProvider, config *v2.TLSConfig,
-	newCaCert string, newCertChain string, newPrivateKey string)
+type ProviderUpdateCallback func(side ProviderSide, provider types.TLSProvider, listenerName string,
+	config *v2.TLSConfig, newCaCert string, newCertChain string, newPrivateKey string)
 
 var (
 	secretManagerInstance = &secretManager{
@@ -151,10 +151,11 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 // sdsProvider stored a tls context that makes by sds
 // do not support delete certificate for sds api
 type sdsProvider struct {
-	side   ProviderSide
-	value  atomic.Value // stored tlsContext
-	config atomic.Value // store *v2.TLSConfig
-	info   *secretInfo
+	side         ProviderSide
+	listenerName string
+	value        atomic.Value // stored tlsContext
+	config       atomic.Value // store *v2.TLSConfig
+	info         *secretInfo
 }
 
 func (p *sdsProvider) setValidation(v string) {
@@ -193,7 +194,7 @@ func (p *sdsProvider) update() {
 		cb(cfg)
 	}
 	for _, cb := range providerUpdateCallbacks {
-		cb(p.side, p, cfg, p.info.Validation, p.info.Certificate, p.info.PrivateKey)
+		cb(p.side, p, p.listenerName, cfg, p.info.Validation, p.info.Certificate, p.info.PrivateKey)
 	}
 }
 
