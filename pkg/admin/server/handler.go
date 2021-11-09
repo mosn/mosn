@@ -55,7 +55,7 @@ type APIHandler struct {
 	// the real handler function
 	handler func(http.ResponseWriter, *http.Request)
 	// chains for auth action, different auth can be combined for different handler.
-	// one of the auths check returns false, the
+	// one of the auths check returns false, the handler will not be called.
 	auths []*Auth
 }
 
