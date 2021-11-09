@@ -53,18 +53,18 @@ func DeleteRegisteredAdminHandler(pattern string) {
 func init() {
 	// default admin api
 	apiHandlerStore = map[string]*APIHandler{
-		"/api/v1/config_dump":     NewAPIHandler(configDump, nil),
-		"/api/v1/stats":           NewAPIHandler(statsDump, nil),
-		"/api/v1/stats_glob":      NewAPIHandler(statsDumpProxyTotal, nil),
-		"/api/v1/update_loglevel": NewAPIHandler(updateLogLevel, nil),
-		"/api/v1/get_loglevel":    NewAPIHandler(getLoggerInfo, nil),
-		"/api/v1/enable_log":      NewAPIHandler(enableLogger, nil),
-		"/api/v1/disable_log":     NewAPIHandler(disableLogger, nil),
-		"/api/v1/states":          NewAPIHandler(getState, nil),
-		"/api/v1/plugin":          NewAPIHandler(pluginApi, nil),
-		"/api/v1/features":        NewAPIHandler(knownFeatures, nil),
-		"/api/v1/env":             NewAPIHandler(getEnv, nil),
-		"/":                       NewAPIHandler(help, nil),
+		"/api/v1/config_dump":     NewAPIHandler(ConfigDump, nil),
+		"/api/v1/stats":           NewAPIHandler(StatsDump, nil),
+		"/api/v1/stats_glob":      NewAPIHandler(StatsDumpProxyTotal, nil),
+		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel, nil),
+		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo, nil),
+		"/api/v1/enable_log":      NewAPIHandler(EnableLogger, nil),
+		"/api/v1/disable_log":     NewAPIHandler(DisableLogger, nil),
+		"/api/v1/states":          NewAPIHandler(GetState, nil),
+		"/api/v1/plugin":          NewAPIHandler(PluginApi, nil),
+		"/api/v1/features":        NewAPIHandler(KnownFeatures, nil),
+		"/api/v1/env":             NewAPIHandler(GetEnv, nil),
+		"/":                       NewAPIHandler(Help, nil),
 	}
 }
 
