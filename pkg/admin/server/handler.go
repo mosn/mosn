@@ -23,15 +23,40 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
+// Auth contains two parts: check function and failed function.
+// if check function returns false, the Auth.Check will returns false and
+// call failed function. if failed function is nil, use default instead.
+// default function will write a http forbidden without body
+type Auth struct {
+	checkAction  func(*http.Request) bool
+	failedAction func(http.ResponseWriter)
+}
+
+func NewAuth(check func(*http.Request) bool, failed func(http.ResponseWriter)) *Auth {
+	if failed == nil {
+		failed = defaultFailedFunc
+	}
+	return &Auth{
+		checkAction:  check,
+		failedAction: failed,
+	}
+}
+
+func (a Auth) Check(w http.ResponseWriter, r *http.Request) bool {
+	pass := a.checkAction(r)
+	if !pass {
+		a.failedAction(w)
+	}
+	return pass
+}
+
 // APIHandler is a wrapper of http.Handler, which contains auth options
 type APIHandler struct {
 	// the real handler function
 	handler func(http.ResponseWriter, *http.Request)
-	// chains for auth, one of the auth returns false, the request will be failed.
-	auths []func(*http.Request) bool
-	// write repsonse when the request failed by auth function
-	// default is 403 Forbidden without body
-	failed func(http.ResponseWriter)
+	// chains for auth action, different auth can be combined for different handler.
+	// one of the auths check returns false, the
+	auths []*Auth
 }
 
 var _ http.Handler = (*APIHandler)(nil)
@@ -39,9 +64,8 @@ var _ http.Handler = (*APIHandler)(nil)
 func (h *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// default check is ok, if auths is empty, pass
 	for _, auth := range h.auths {
-		if !auth(r) {
+		if !auth.Check(w, r) {
 			log.DefaultLogger.Errorf("[admin] request %+v failed by auth.", r)
-			h.failed(w)
 			return
 		}
 	}
@@ -52,13 +76,9 @@ func defaultFailedFunc(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusForbidden)
 }
 
-func NewAPIHandler(handler func(http.ResponseWriter, *http.Request), failed func(http.ResponseWriter), auths ...func(*http.Request) bool) *APIHandler {
-	if failed == nil {
-		failed = defaultFailedFunc
-	}
+func NewAPIHandler(handler func(http.ResponseWriter, *http.Request), auths ...*Auth) *APIHandler {
 	return &APIHandler{
 		handler: handler,
 		auths:   auths,
-		failed:  failed,
 	}
 }

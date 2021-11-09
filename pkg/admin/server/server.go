@@ -34,7 +34,7 @@ var apiHandlerStore map[string]*APIHandler
 
 // RegisterAdminHandleFunc keeps compatible for old ways
 func RegisterAdminHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	apiHandlerStore[pattern] = NewAPIHandler(handler, nil)
+	apiHandlerStore[pattern] = NewAPIHandler(handler)
 	log.StartLogger.Infof("[admin server] [register api] register a new api %s", pattern)
 }
 
@@ -53,18 +53,18 @@ func DeleteRegisteredAdminHandler(pattern string) {
 func init() {
 	// default admin api
 	apiHandlerStore = map[string]*APIHandler{
-		"/api/v1/config_dump":     NewAPIHandler(ConfigDump, nil),
-		"/api/v1/stats":           NewAPIHandler(StatsDump, nil),
-		"/api/v1/stats_glob":      NewAPIHandler(StatsDumpProxyTotal, nil),
-		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel, nil),
-		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo, nil),
-		"/api/v1/enable_log":      NewAPIHandler(EnableLogger, nil),
-		"/api/v1/disable_log":     NewAPIHandler(DisableLogger, nil),
-		"/api/v1/states":          NewAPIHandler(GetState, nil),
-		"/api/v1/plugin":          NewAPIHandler(PluginApi, nil),
-		"/api/v1/features":        NewAPIHandler(KnownFeatures, nil),
-		"/api/v1/env":             NewAPIHandler(GetEnv, nil),
-		"/":                       NewAPIHandler(Help, nil),
+		"/api/v1/config_dump":     NewAPIHandler(ConfigDump),
+		"/api/v1/stats":           NewAPIHandler(StatsDump),
+		"/api/v1/stats_glob":      NewAPIHandler(StatsDumpProxyTotal),
+		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel),
+		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo),
+		"/api/v1/enable_log":      NewAPIHandler(EnableLogger),
+		"/api/v1/disable_log":     NewAPIHandler(DisableLogger),
+		"/api/v1/states":          NewAPIHandler(GetState),
+		"/api/v1/plugin":          NewAPIHandler(PluginApi),
+		"/api/v1/features":        NewAPIHandler(KnownFeatures),
+		"/api/v1/env":             NewAPIHandler(GetEnv),
+		"/":                       NewAPIHandler(Help),
 	}
 }
 

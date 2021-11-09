@@ -492,9 +492,9 @@ func TestRegisterNewAPI(t *testing.T) {
 
 func TestRegisterAPIHandler(t *testing.T) {
 	handler := NewAPIHandler(func(w http.ResponseWriter, r *http.Request) {
-	}, nil, func(r *http.Request) bool {
+	}, NewAuth(func(r *http.Request) bool {
 		return r.FormValue("pass") == "true"
-	})
+	}, nil))
 	pattern := "/api/handler/auth"
 	RegisterAdminHandler(pattern, handler)
 	//
@@ -536,15 +536,15 @@ func TestRegisterAPIHandler(t *testing.T) {
 func TestHelpAPI(t *testing.T) {
 	// reset
 	apiHandlerStore = map[string]*APIHandler{
-		"/api/v1/test_deleted":    NewAPIHandler(ConfigDump, nil), // will be deleted
-		"/api/v1/config_dump":     NewAPIHandler(ConfigDump, nil),
-		"/api/v1/stats":           NewAPIHandler(StatsDump, nil),
-		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel, nil),
-		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo, nil),
-		"/api/v1/enable_log":      NewAPIHandler(EnableLogger, nil),
-		"/api/v1/disable_log":     NewAPIHandler(DisableLogger, nil),
-		"/api/v1/states":          NewAPIHandler(GetState, nil),
-		"/":                       NewAPIHandler(Help, nil),
+		"/api/v1/test_deleted":    NewAPIHandler(ConfigDump), // will be deleted
+		"/api/v1/config_dump":     NewAPIHandler(ConfigDump),
+		"/api/v1/stats":           NewAPIHandler(StatsDump),
+		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel),
+		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo),
+		"/api/v1/enable_log":      NewAPIHandler(EnableLogger),
+		"/api/v1/disable_log":     NewAPIHandler(DisableLogger),
+		"/api/v1/states":          NewAPIHandler(GetState),
+		"/":                       NewAPIHandler(Help),
 	}
 	time.Sleep(time.Second)
 	server := Server{}

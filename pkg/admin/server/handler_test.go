@@ -32,7 +32,7 @@ func TestDefaultAPIHandler(t *testing.T) {
 	}
 	t.Run("default without any auths", func(t *testing.T) {
 		success = 0
-		apiHandler := NewAPIHandler(handler, nil)
+		apiHandler := NewAPIHandler(handler)
 		w := httptest.NewRecorder()
 		r, _ := http.NewRequest("GET", "http://127.0.0.1/handler/test", nil)
 		apiHandler.ServeHTTP(w, r)
@@ -41,9 +41,9 @@ func TestDefaultAPIHandler(t *testing.T) {
 	})
 	t.Run("default failed, with auth", func(t *testing.T) {
 		success = 0
-		apiHandler := NewAPIHandler(handler, nil, func(r *http.Request) bool {
+		apiHandler := NewAPIHandler(handler, NewAuth(func(r *http.Request) bool {
 			return r.FormValue("pass") == "true"
-		})
+		}, nil))
 		w := httptest.NewRecorder()
 		r, _ := http.NewRequest("GET", "http://127.0.0.1/handler/test", nil)
 		apiHandler.ServeHTTP(w, r)
@@ -59,13 +59,12 @@ func TestAPIHandler(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		success++
 	}
-	apiHandler := NewAPIHandler(handler, func(w http.ResponseWriter) {
+	apiHandler := NewAPIHandler(handler, NewAuth(func(r *http.Request) bool {
+		return r.FormValue("pass") == "true"
+	}, func(w http.ResponseWriter) {
 		failed++
 		w.WriteHeader(http.StatusBadRequest) // modify status code
-
-	}, func(r *http.Request) bool {
-		return r.FormValue("pass") == "true"
-	})
+	}))
 	t.Run("success call", func(t *testing.T) {
 		success = 0
 		failed = 0
