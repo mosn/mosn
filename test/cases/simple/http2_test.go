@@ -155,11 +155,11 @@ func TestHttp2UseStream(t *testing.T) {
 	})
 }
 
-type grpcServer struct {
+type bidirectionalStreamingGrpcServer struct {
 	pb.UnimplementedEchoServer
 }
 
-func (s *grpcServer) BidirectionalStreamingEcho(stream pb.Echo_BidirectionalStreamingEchoServer) error {
+func (s *bidirectionalStreamingGrpcServer) BidirectionalStreamingEcho(stream pb.Echo_BidirectionalStreamingEchoServer) error {
 	for {
 		in, err := stream.Recv()
 		if err != nil {
@@ -186,7 +186,7 @@ func TestGRPCBidirectionalStreaming(t *testing.T) {
 				lis, err := net.Listen("tcp", "0.0.0.0:8080")
 				Verify(err, Equal, nil)
 				server = grpc.NewServer()
-				pb.RegisterEchoServer(server, &grpcServer{})
+				pb.RegisterEchoServer(server, &bidirectionalStreamingGrpcServer{})
 				server.Serve(lis)
 			}()
 
@@ -285,6 +285,74 @@ func TestHttp2UseStreamNoRetry(t *testing.T) {
 			m.Stop()
 			_ = serverHTTP1.Shutdown(context.TODO())
 			_ = serverHTTP2.Shutdown(context.TODO())
+		})
+	})
+}
+
+type unaryGrpcServer struct {
+	pb.UnimplementedEchoServer
+	event chan struct{}
+}
+
+func (s *unaryGrpcServer) UnaryEcho(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
+	select {
+	case <-ctx.Done():
+		close(s.event)
+	case <-time.After(time.Second):
+	}
+	return &pb.EchoResponse{}, nil
+}
+
+func TestHttp2TransferResetStream(t *testing.T) {
+	Scenario(t, "http2 transfer reset stream", func() {
+		var m *mosn.MosnOperator
+		var server *grpc.Server
+		Setup(func() {
+			m = mosn.StartMosn(ConfigSimpleHTTP2UseStream)
+			Verify(m, NotNil)
+			time.Sleep(2 * time.Second) // wait mosn start
+		})
+		Case("client-mosn-server", func() {
+			serverEvent := make(chan struct{})
+			go func() {
+				lis, err := net.Listen("tcp", "0.0.0.0:8080")
+				Verify(err, Equal, nil)
+				server = grpc.NewServer()
+				pb.RegisterEchoServer(server, &unaryGrpcServer{
+					event: serverEvent,
+				})
+				server.Serve(lis)
+			}()
+
+			time.Sleep(time.Second)
+
+			// Set up a connection to the server.
+			conn, err := grpc.Dial("127.0.0.1:2046", grpc.WithInsecure())
+			Verify(err, Equal, nil)
+			defer conn.Close()
+
+			c := pb.NewEchoClient(conn)
+
+			// Initiate the stream with a context that supports cancellation.
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				time.Sleep(500*time.Millisecond)
+				cancel()
+			}()
+			_, err = c.UnaryEcho(ctx, &pb.EchoRequest{
+				Message: "hello jack",
+			})
+			Verify(err, NotEqual, nil)
+			select {
+			case <-serverEvent:
+				t.Log("context transferred successfully")
+			case <-time.After(500*time.Millisecond):
+				t.Fatalf("error context not transferred")
+			}
+		})
+		TearDown(func() {
+			m.Stop()
+			server.GracefulStop()
 		})
 	})
 }

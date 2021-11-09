@@ -1238,6 +1238,11 @@ func (ms *MClientStream) Reset() {
 	if ms.clientStream == nil {
 		return
 	}
+	serr := StreamError{
+		StreamID: ms.ID,
+		Code:     ErrCodeCancel,
+	}
+	_ = ms.conn.resetStream(serr)
 	ms.conn.streamByID(ms.ID, true)
 }
 
