@@ -490,17 +490,61 @@ func TestRegisterNewAPI(t *testing.T) {
 	}
 }
 
+func TestRegisterAPIHandler(t *testing.T) {
+	handler := NewAPIHandler(func(w http.ResponseWriter, r *http.Request) {
+	}, nil, func(r *http.Request) bool {
+		return r.FormValue("pass") == "true"
+	})
+	pattern := "/api/handler/auth"
+	RegisterAdminHandler(pattern, handler)
+	//
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Address: "127.0.0.1",
+		Port:    8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+	t.Run("request success", func(t *testing.T) {
+		url := fmt.Sprintf("http://localhost:%d%s?pass=true", config.Port, pattern)
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+	})
+	t.Run("request failed", func(t *testing.T) {
+		url := fmt.Sprintf("http://localhost:%d%s", config.Port, pattern)
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+	})
+}
+
 func TestHelpAPI(t *testing.T) {
 	// reset
-	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/":                       help,
-		"/api/v1/config_dump":     configDump,
-		"/api/v1/stats":           statsDump,
-		"/api/v1/update_loglevel": updateLogLevel,
-		"/api/v1/get_loglevel":    getLoggerInfo,
-		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disable_log":     disableLogger,
-		"/api/v1/states":          getState,
+	apiHandlerStore = map[string]*APIHandler{
+		"/api/v1/test_deleted":    NewAPIHandler(configDump, nil), // will be deleted
+		"/api/v1/config_dump":     NewAPIHandler(configDump, nil),
+		"/api/v1/stats":           NewAPIHandler(statsDump, nil),
+		"/api/v1/update_loglevel": NewAPIHandler(updateLogLevel, nil),
+		"/api/v1/get_loglevel":    NewAPIHandler(getLoggerInfo, nil),
+		"/api/v1/enable_log":      NewAPIHandler(enableLogger, nil),
+		"/api/v1/disable_log":     NewAPIHandler(disableLogger, nil),
+		"/api/v1/states":          NewAPIHandler(getState, nil),
+		"/":                       NewAPIHandler(help, nil),
 	}
 	time.Sleep(time.Second)
 	server := Server{}
@@ -508,6 +552,8 @@ func TestHelpAPI(t *testing.T) {
 		Address: "127.0.0.1",
 		Port:    8889,
 	}
+	// delete
+	DeleteRegisteredAdminHandler("/api/v1/test_deleted")
 	server.Start(config)
 	store.StartService(nil)
 	defer store.StopService()

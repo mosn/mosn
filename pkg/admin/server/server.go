@@ -28,30 +28,43 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-// apiHandleFuncStore stores the supported admin api
+// apiHandlerStore stores the supported admin api
 // can register more admin api
-var apiHandleFuncStore map[string]func(http.ResponseWriter, *http.Request)
+var apiHandlerStore map[string]*APIHandler
 
+// RegisterAdminHandleFunc keeps compatible for old ways
 func RegisterAdminHandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	apiHandleFuncStore[pattern] = handler
+	apiHandlerStore[pattern] = NewAPIHandler(handler, nil)
 	log.StartLogger.Infof("[admin server] [register api] register a new api %s", pattern)
+}
+
+// RegisterAdminHandler registers a API Handler for amdin api, the Handler can contains auths and failed action.
+func RegisterAdminHandler(pattern string, handler *APIHandler) {
+	apiHandlerStore[pattern] = handler
+	log.StartLogger.Infof("[admin server] [register api] register a new api %s", pattern)
+}
+
+// DeleteRegisteredAdminHandler deletes a registered pattern
+func DeleteRegisteredAdminHandler(pattern string) {
+	delete(apiHandlerStore, pattern)
+	log.StartLogger.Infof("[admin server] [register api] delete registered api %s", pattern)
 }
 
 func init() {
 	// default admin api
-	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/api/v1/config_dump":     configDump,
-		"/api/v1/stats":           statsDump,
-		"/api/v1/stats_glob":      statsDumpProxyTotal,
-		"/api/v1/update_loglevel": updateLogLevel,
-		"/api/v1/get_loglevel":    getLoggerInfo,
-		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disable_log":     disableLogger,
-		"/api/v1/states":          getState,
-		"/api/v1/plugin":          pluginApi,
-		"/api/v1/features":        knownFeatures,
-		"/api/v1/env":             getEnv,
-		"/":                       help,
+	apiHandlerStore = map[string]*APIHandler{
+		"/api/v1/config_dump":     NewAPIHandler(configDump, nil),
+		"/api/v1/stats":           NewAPIHandler(statsDump, nil),
+		"/api/v1/stats_glob":      NewAPIHandler(statsDumpProxyTotal, nil),
+		"/api/v1/update_loglevel": NewAPIHandler(updateLogLevel, nil),
+		"/api/v1/get_loglevel":    NewAPIHandler(getLoggerInfo, nil),
+		"/api/v1/enable_log":      NewAPIHandler(enableLogger, nil),
+		"/api/v1/disable_log":     NewAPIHandler(disableLogger, nil),
+		"/api/v1/states":          NewAPIHandler(getState, nil),
+		"/api/v1/plugin":          NewAPIHandler(pluginApi, nil),
+		"/api/v1/features":        NewAPIHandler(knownFeatures, nil),
+		"/api/v1/env":             NewAPIHandler(getEnv, nil),
+		"/":                       NewAPIHandler(help, nil),
 	}
 }
 
@@ -73,8 +86,8 @@ func (s *Server) Start(config Config) {
 	}
 
 	mux := http.NewServeMux()
-	for pattern, handler := range apiHandleFuncStore {
-		mux.HandleFunc(pattern, handler)
+	for pattern, handler := range apiHandlerStore {
+		mux.Handle(pattern, handler)
 	}
 
 	srv := &http.Server{Addr: addr, Handler: mux}
