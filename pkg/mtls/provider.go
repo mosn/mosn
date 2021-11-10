@@ -49,7 +49,7 @@ func NewProvider(side ProviderSide, cfg *v2.TLSConfig, listenerName string) (typ
 		provider := getOrCreateProvider(cfg)
 		provider.side = side // server side or client side provider
 		if side == ProviderSideServer {
-			provider.listenerName = listenerName
+			provider.addListener(listenerName)
 		}
 		return provider, nil
 	} else {

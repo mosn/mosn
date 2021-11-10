@@ -151,11 +151,21 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 // sdsProvider stored a tls context that makes by sds
 // do not support delete certificate for sds api
 type sdsProvider struct {
-	side         ProviderSide
-	listenerName string
-	value        atomic.Value // stored tlsContext
-	config       atomic.Value // store *v2.TLSConfig
-	info         *secretInfo
+	side      ProviderSide
+	listeners []string
+	value     atomic.Value // stored tlsContext
+	config    atomic.Value // store *v2.TLSConfig
+	info      *secretInfo
+}
+
+func (p *sdsProvider) addListener(listenerName string) {
+	for _, listener := range p.listeners {
+		// avoid duplicate
+		if listener == listenerName {
+			return
+		}
+	}
+	p.listeners = append(p.listeners, listenerName)
 }
 
 func (p *sdsProvider) setValidation(v string) {
@@ -194,7 +204,9 @@ func (p *sdsProvider) update() {
 		cb(cfg)
 	}
 	for _, cb := range providerUpdateCallbacks {
-		cb(p.side, p, p.listenerName, cfg, p.info.Validation, p.info.Certificate, p.info.PrivateKey)
+		for _, listener := range p.listeners {
+			cb(p.side, p, listener, cfg, p.info.Validation, p.info.Certificate, p.info.PrivateKey)
+		}
 	}
 }
 
