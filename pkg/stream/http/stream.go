@@ -53,7 +53,7 @@ func init() {
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
-const defaultMaxHeaderSize = 4 * 1024
+const defaultMaxHeaderSize = 8 * 1024
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -237,7 +237,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	}
 
 	// Per-connection buffer size for responses' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[string]interface{}); ok {
@@ -374,7 +374,7 @@ type StreamConfig struct {
 
 var defaultStreamConfig = StreamConfig{
 	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	MaxHeaderSize: defaultMaxHeaderSize,
 	// 0 is means no limit request body size
 	MaxRequestBodySize: 0,
