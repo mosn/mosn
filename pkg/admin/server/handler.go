@@ -43,9 +43,12 @@ func NewAuth(check func(*http.Request) bool, failed func(http.ResponseWriter)) *
 }
 
 func (a Auth) Check(w http.ResponseWriter, r *http.Request) bool {
-	pass := a.checkAction(r)
-	if !pass {
-		a.failedAction(w)
+	pass := true
+	if a.checkAction != nil {
+		pass = a.checkAction(r)
+		if !pass {
+			a.failedAction(w)
+		}
 	}
 	return pass
 }
