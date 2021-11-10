@@ -29,21 +29,12 @@ type config struct {
 }
 
 func (c *config) GetPhase(key string) api.ReceiverFilterPhase {
-	phase := api.ReceiverFilterPhase(-1)
-	switch tt := c.Trans[key].(type) {
-	case float64:
-		phase = api.ReceiverFilterPhase(tt)
-	case float32:
-		phase = api.ReceiverFilterPhase(tt)
-	case int:
-		phase = api.ReceiverFilterPhase(tt)
-	case int32:
-		phase = api.ReceiverFilterPhase(tt)
-	case int64:
-		phase = api.ReceiverFilterPhase(tt)
+	phase, ok := c.Trans[key].(float64)
+	if !ok {
+		return api.AfterRoute
 	}
-	if phase <= api.AfterChooseHost && phase >= api.BeforeRoute {
-		return phase
+	if api.ReceiverFilterPhase(phase) <= api.AfterChooseHost && api.ReceiverFilterPhase(phase) >= api.BeforeRoute {
+		return api.ReceiverFilterPhase(phase)
 	}
 	// If receiver_phase does not exist in the configuration, set the default api.AfterRoute value
 	return api.AfterRoute

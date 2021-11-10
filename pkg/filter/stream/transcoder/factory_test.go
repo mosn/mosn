@@ -53,7 +53,7 @@ func TestCreateFilter(t *testing.T) {
 		{
 			conf: map[string]interface{}{
 				"type":  "http2bolt_simple",
-				"trans": map[string]interface{}{"receiver_phase": api.AfterChooseHost},
+				"trans": map[string]interface{}{"receiver_phase": float64(api.AfterChooseHost)},
 			},
 			expectReceiver: api.AfterChooseHost,
 		},
@@ -66,21 +66,21 @@ func TestCreateFilter(t *testing.T) {
 		{
 			conf: map[string]interface{}{
 				"type":  "http2bolt_simple",
-				"trans": map[string]interface{}{"receiver_phase": 100},
+				"trans": map[string]interface{}{"receiver_phase": float64(100)},
 			},
 			expectReceiver: api.AfterRoute,
 		},
 		{
 			conf: map[string]interface{}{
 				"type":  "http2bolt_simple",
-				"trans": map[string]interface{}{"receiver_phase": int(api.BeforeRoute)},
+				"trans": map[string]interface{}{"receiver_phase": float64(api.BeforeRoute)},
 			},
 			expectReceiver: api.BeforeRoute,
 		},
 		{
 			conf: map[string]interface{}{
 				"type":  "http2bolt",
-				"trans": map[string]interface{}{"receiver_phase": int(api.BeforeRoute)},
+				"trans": map[string]interface{}{"receiver_phase": float64(api.BeforeRoute)},
 			},
 			expectReceiver: api.BeforeRoute,
 		},
