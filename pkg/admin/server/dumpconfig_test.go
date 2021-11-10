@@ -158,7 +158,7 @@ func TestDumpConfigWithParameters(t *testing.T) {
 	for _, tc := range testCases {
 		r := httptest.NewRequest("GET", tc.url, nil)
 		w := httptest.NewRecorder()
-		configDump(w, r)
+		ConfigDump(w, r)
 		resp := w.Result()
 		if resp.StatusCode != 200 {
 			t.Fatalf("response is not 200, got:%d", resp.StatusCode)
