@@ -679,12 +679,12 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
 	}
-
-	if log.DefaultLogger.GetLogLevel() >= log.ERROR {
-		log.DefaultLogger.Errorf("[server] [conn] can't found any listener by original dst: %s:%d", arc.originalDstIP, arc.originalDstPort)
+	
+	// If it can’t find any matching listeners and should using the self listener.
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
-	// if we can't find any matching listener, close the connection
-	arc.rawc.Close()
+	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
