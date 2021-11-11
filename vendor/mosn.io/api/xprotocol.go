@@ -170,3 +170,8 @@ type XProtocolCodec interface {
 
 	HTTPMapping() HTTPMapping
 }
+
+// XProtocolFactory protocol factory
+type XProtocolFactory interface {
+	NewXProtocol() XProtocol
+}
