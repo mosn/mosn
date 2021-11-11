@@ -61,3 +61,5 @@ require (
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
+
+replace mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c => github.com/zonghaishang/api v0.0.0-20211111063821-9f6ab4c6e576
