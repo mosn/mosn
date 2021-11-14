@@ -19,10 +19,17 @@ package transcoder
 
 import (
 	"encoding/json"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
 )
 
 type config struct {
-	Type string `json:"type,omitempty"`
+	Type           string                      `json:"type,omitempty"`
+	Rules          []*rules.TransferRuleConfig `json:"rules,omitempty"`
+	GoPluginConfig *transcodeGoPluginConfig    `json:"go_plugin_config,omitempty"`
+}
+
+type transcodeGoPluginConfig struct {
+	Transcoders []*TranscoderGoPlugin `json:"transcoders,omitempty"`
 }
 
 func parseConfig(cfg interface{}) (*config, error) {

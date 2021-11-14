@@ -22,6 +22,7 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 )
 
 // stream factory
@@ -50,7 +51,7 @@ func createFilterChainFactory(conf map[string]interface{}) (api.StreamFilterChai
 }
 
 // transcoder factory
-var transcoderFactory = make(map[string]Transcoder)
+var transcoderFactory = make(map[string]interface{})
 
 func MustRegister(typ string, transcoder Transcoder) {
 	if transcoderFactory[typ] != nil {
@@ -60,6 +61,17 @@ func MustRegister(typ string, transcoder Transcoder) {
 	transcoderFactory[typ] = transcoder
 }
 
-func GetTranscoder(typ string) Transcoder {
+func MustRegisterSo(typ string, transcoder TranscoderSo) {
+	if transcoderFactory[typ] != nil {
+		panic("target stream transcoder already exists: " + typ)
+	}
+
+	log.DefaultLogger.Infof("[stream filter][transcoder][factory] typ %s, transcoder %+v", typ, transcoder)
+
+	transcoderFactory[typ] = transcoder
+}
+
+func GetTranscoder(typ string) interface{} {
+	log.DefaultLogger.Infof("[stream filter][transcoder][factory]GetTranscoder, typ %s, transcoderFactory %+v", typ, transcoderFactory)
 	return transcoderFactory[typ]
 }
