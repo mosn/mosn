@@ -2,17 +2,18 @@ package rules
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
 type TransferMatcher interface {
-	Matches(ctx context.Context, headers types.HeaderMap) bool
+	Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool
 }
 
 type simpleMatcher struct {
 }
 
-func (m *simpleMatcher) Matches(ctx context.Context, headers types.HeaderMap) bool {
+func (m *simpleMatcher) Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool {
 	return true
 }
 
@@ -21,8 +22,8 @@ type TransferRuleMatcher struct {
 }
 
 type TransferRuleConfig struct {
-	MatcherConfig map[string]interface{} `json:"macther_config"`
-	RuleInfo      *RuleInfo              `json:"rule_info"`
+	MatcherConfig *MatcherConfig `json:"macther_config"`
+	RuleInfo      *RuleInfo      `json:"rule_info"`
 }
 
 type MatcherConfig struct {
@@ -53,8 +54,14 @@ type RuleInfo struct {
 }
 
 func (tf *TransferRuleConfig) Matches(ctx context.Context, headers types.HeaderMap) (*RuleInfo, bool) {
+
+	if tf.MatcherConfig == nil {
+		log.DefaultLogger.Infof("[stream filter][transcoder][rules]matcher config is empty")
+		return nil, false
+	}
+
 	matcher := GetMatcher()
-	result := matcher.Matches(ctx, headers)
+	result := matcher.Matches(ctx, headers, tf.MatcherConfig)
 	if result {
 		return tf.RuleInfo, result
 	}

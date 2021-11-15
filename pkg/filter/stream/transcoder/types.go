@@ -35,11 +35,3 @@ type Transcoder interface {
 	// TranscodingResponse
 	TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
 }
-
-// TranscoderSo provide ability to transcoding request/response
-type TranscoderSo interface {
-	// TranscodingRequest
-	TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
-	// TranscodingResponse
-	TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
-}

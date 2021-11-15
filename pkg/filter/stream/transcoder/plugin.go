@@ -37,8 +37,8 @@ func (t *TranscoderGoPlugin) CreateTranscoder(listenerName string) {
 		return
 	}
 
-	loadFunc := sym.(func() TranscoderSo)
+	loadFunc := sym.(func() Transcoder)
 	transcoderSo := loadFunc() //执行函数，该函数其实是初始化transcoder
 
-	MustRegisterSo(name, transcoderSo)
+	MustRegister(name, transcoderSo)
 }

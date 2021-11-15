@@ -65,11 +65,7 @@ func initTranscodePlugin(ctx context.Context, cfg *transcodeGoPluginConfig) bool
 		return false
 	}
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	transcoders, result := GetInstanceTransferPluginManger().GetTransferPlugin(listenerName)
-	if !result {
-		transcoders = cfg.Transcoders
-	}
-	for _, transcoder := range transcoders {
+	for _, transcoder := range cfg.Transcoders {
 		transcoder.CreateTranscoder(listenerName)
 	}
 
@@ -100,6 +96,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	var outHeaders, outTrailers types.HeaderMap
 	var outBuf types.IoBuffer
 	var err error
+	var transcoder Transcoder
 
 	if ruleInfo, ok := f.Matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
@@ -108,10 +105,13 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 		pluginName := listenerName + "_" + string(srcPro) + "_" + dstPro
 
 		//select transcoder
-		transcoder := GetTranscoder(pluginName)
-
+		transcoder = GetTranscoder(pluginName)
 		if transcoder == nil {
 			log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found transcoder")
+			return api.StreamFilterContinue
+		}
+		// check accept
+		if !transcoder.Accept(ctx, headers, buf, trailers) {
 			return api.StreamFilterContinue
 		}
 
@@ -119,9 +119,6 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 		mosnctx.WithValue(ctx, types.ContextSubProtocol, dstPro)
 		//set upstream protocol
 		mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, ruleInfo.UpstreamProtocol)
-
-		// do transcoding
-		outHeaders, outBuf, outTrailers, err = transcoder.(TranscoderSo).TranscodingRequest(ctx, headers, buf, trailers)
 
 	} else if f.transcoder != nil {
 		// check accept
@@ -136,13 +133,15 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 			log.Proxy.Debugf(ctx, "[stream filter][transcoder] receive request: %+v", headers)
 		}
 
-		if route := f.receiveHandler.Route(); route != nil {
-			// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
-			f.readPerRouteConfig(ctx, route.RouteRule().PerFilterConfig())
-		}
-		// do transcoding
-		outHeaders, outBuf, outTrailers, err = f.transcoder.TranscodingRequest(ctx, headers, buf, trailers)
+		transcoder = f.transcoder
 	}
+
+	if route := f.receiveHandler.Route(); route != nil {
+		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
+		f.readPerRouteConfig(ctx, route.RouteRule().PerFilterConfig())
+	}
+	// do transcoding
+	outHeaders, outBuf, outTrailers, err = transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder request failed: %v", err)
@@ -171,6 +170,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	var outHeaders, outTrailers types.HeaderMap
 	var outBuf types.IoBuffer
 	var err error
+	var transcoder Transcoder
 
 	if ruleInfo, ok := f.Matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
@@ -179,15 +179,17 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 		pluginName := listenerName + "_" + string(srcPro) + "_" + dsrPro
 
 		//select transcoder
-		transcoder := GetTranscoder(pluginName).(TranscoderSo)
+		transcoder = GetTranscoder(pluginName)
 
 		if transcoder == nil {
 			log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found transcoder")
 			return api.StreamFilterContinue
 		}
 
-		// do transcoding
-		outHeaders, outBuf, outTrailers, err = transcoder.TranscodingResponse(ctx, headers, buf, trailers)
+		// check accept
+		if !transcoder.Accept(ctx, headers, buf, trailers) {
+			return api.StreamFilterContinue
+		}
 
 	} else if f.transcoder != nil {
 
@@ -199,9 +201,11 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 			log.Proxy.Debugf(ctx, "[stream filter][transcoder] receive response: %+v", headers)
 		}
 
-		// do transcoding
-		outHeaders, outBuf, outTrailers, err = f.transcoder.TranscodingResponse(ctx, headers, buf, trailers)
+		transcoder = f.transcoder
 	}
+
+	// do transcoding
+	outHeaders, outBuf, outTrailers, err = transcoder.TranscodingResponse(ctx, headers, buf, trailers)
 
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder response failed: %v", err)
@@ -222,13 +226,19 @@ func (f *transcodeFilter) Matches(ctx context.Context, headers types.HeaderMap) 
 	if !result {
 		transferRuleConfigs = f.cfg.Rules
 	}
-	log.DefaultLogger.Infof("[stream filter][transcoder] result %s, transferRuleConfigs %+v", result, transferRuleConfigs)
+
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream filter][transcoder] result %s, transferRuleConfigs %+v", result, transferRuleConfigs)
+	}
+
 	if transferRuleConfigs == nil {
 		return nil, false
 	}
 	for _, t := range transferRuleConfigs {
 		rule, match := t.Matches(ctx, headers)
-		log.DefaultLogger.Infof("[stream filter][transcoder] match %s, rule %+v", match, rule)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream filter][transcoder] match %s, rule %+v", match, rule)
+		}
 		if match {
 			return rule, match
 		}

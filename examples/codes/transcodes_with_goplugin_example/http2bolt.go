@@ -32,6 +32,10 @@ import (
 
 type http2bolt struct{}
 
+func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
+	return true
+}
+
 func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
 	// 1.set upstream protocol
 	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(protocol.Xprotocol))
@@ -61,6 +65,6 @@ func (t *http2bolt) TranscodingResponse(ctx context.Context, headers types.Heade
 	return http.ResponseHeader{ResponseHeader: &targetResponse.Header}, buf, trailers, nil
 }
 
-func LoadTranscoder() transcoder.TranscoderSo {
+func LoadTranscoder() transcoder.Transcoder {
 	return &http2bolt{}
 }
