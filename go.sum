@@ -611,8 +611,6 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
-github.com/zonghaishang/api v0.0.0-20211111063821-9f6ab4c6e576 h1:b8Ar3kDJYTnv24AoPRpG08mXCPsKw6XulOf6inAxpMg=
-github.com/zonghaishang/api v0.0.0-20211111063821-9f6ab4c6e576/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
@@ -960,6 +958,8 @@ k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKf
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+mosn.io/api v0.0.0-20211117121134-06701a68832b h1:8zNuXp9Piy++qMnbP0J6XgRMw8gUf5kuZs4S4exw6Dk=
+mosn.io/api v0.0.0-20211117121134-06701a68832b/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36 h1:J/+gKzzXG4sNBB2tCPaCulByFZMFwXbQpeRyQ2DKtDw=
 mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36/go.mod h1:4LU2wzIUErfaOuqDWDnhdFf9IlLhyymw79U9u0UW3nM=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6 h1:6aWdJ5db4OHFhSnSDvZcrAfsJSglbuZNW3DdBPt6PGg=
