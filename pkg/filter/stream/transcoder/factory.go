@@ -21,13 +21,12 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
 // stream factory
 func init() {
-	api.RegisterStream(v2.Transcoder, createFilterChainFactory)
+	api.RegisterStream("transcoder", createFilterChainFactory)
 }
 
 type filterChainFactory struct {
