@@ -24,6 +24,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
+	logger "mosn.io/pkg/log"
 )
 
 // Data contains objects used in stages
@@ -165,4 +166,13 @@ func (stm *StageManager) WaitFinish() {
 		return
 	}
 	stm.data.mosn.Wait()
+}
+
+// free resourse
+// TODO: move more behaviour here, only close log now.
+func (stm *StageManager) Stop() {
+	if !stm.started {
+		return
+	}
+	logger.CloseAll()
 }

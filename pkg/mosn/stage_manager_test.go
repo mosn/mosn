@@ -83,4 +83,5 @@ func TestStageManager(t *testing.T) {
 	}
 	stm.data.mosn.Close()
 	stm.WaitFinish()
+	stm.Stop()
 }
