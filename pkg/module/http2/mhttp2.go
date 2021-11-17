@@ -849,9 +849,9 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 		return nil
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
-		sc.cond.Broadcast()
 		return err
 	}
+	sc.cond.Broadcast()
 	buf := buffer.NewIoBuffer(frameHeaderLen)
 	sc.Framer.startWrite(buf, FrameSettings, FlagSettingsAck, 0)
 	return sc.Framer.endWrite(buf)
