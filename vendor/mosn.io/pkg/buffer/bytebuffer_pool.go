@@ -22,7 +22,7 @@ import (
 )
 
 const minShift = 6
-const maxShift = 18
+const maxShift = 27
 const errSlot = -1
 
 var bbPool *byteBufferPool
