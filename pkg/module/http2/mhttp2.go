@@ -836,6 +836,8 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 
 // processSettings processes Settings Frame for Http2 Server
 func (sc *MServerConn) processSettings(f *SettingsFrame) error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	if f.IsAck() {
 		sc.unackedSettings--
 		if sc.unackedSettings < 0 {
