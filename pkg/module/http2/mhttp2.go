@@ -836,6 +836,8 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 
 // processSettings processes Settings Frame for Http2 Server
 func (sc *MServerConn) processSettings(f *SettingsFrame) error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	if f.IsAck() {
 		sc.unackedSettings--
 		if sc.unackedSettings < 0 {
@@ -847,9 +849,9 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 		return nil
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
-		sc.cond.Broadcast()
 		return err
 	}
+	sc.cond.Broadcast()
 	buf := buffer.NewIoBuffer(frameHeaderLen)
 	sc.Framer.startWrite(buf, FrameSettings, FlagSettingsAck, 0)
 	return sc.Framer.endWrite(buf)
