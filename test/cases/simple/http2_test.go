@@ -361,7 +361,7 @@ const ConfigSimpleHTTP2UseStream = `{
         "servers":[
                 {
                         "default_log_path":"stdout",
-                        "default_log_level": "ERROR",
+                        "default_log_level": "DEBUG",
                         "routers": [
                                 {
                                         "router_config_name":"router_to_server",
