@@ -68,10 +68,3 @@ func (trm *TransferRuleManager) GetTransferRule(listenerName string) ([]*Transfe
 	}
 	return nil, false
 }
-
-//
-// list
-// 	1. create match
-//  2. match
-//  3. false->loop
-// 	4. true route

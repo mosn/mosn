@@ -100,7 +100,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	var err error
 	var transcoder transcoder.Transcoder
 
-	if ruleInfo, ok := f.Matches(ctx, headers); ok {
+	if ruleInfo, ok := f.matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 		dstPro := ruleInfo.UpstreamSubProtocol
 		listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
@@ -175,7 +175,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	var err error
 	var transcoder transcoder.Transcoder
 
-	if ruleInfo, ok := f.Matches(ctx, headers); ok {
+	if ruleInfo, ok := f.matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 		dsrPro := ruleInfo.UpstreamSubProtocol
 		listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
@@ -222,7 +222,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	return api.StreamFilterContinue
 }
 
-func (f *transcodeFilter) Matches(ctx context.Context, headers types.HeaderMap) (*rules.RuleInfo, bool) {
+func (f *transcodeFilter) matches(ctx context.Context, headers types.HeaderMap) (*rules.RuleInfo, bool) {
 
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	transferRuleConfigs, result := rules.GetInstanceTransferRuleManger().GetTransferRule(listenerName)
