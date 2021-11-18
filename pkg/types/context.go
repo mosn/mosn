@@ -51,6 +51,7 @@ const (
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
 	ContextKeyEnd
+	ContextKeyTranscoderConfig
 )
 
 // GlobalProxyName represents proxy name for metrics

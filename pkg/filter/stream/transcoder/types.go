@@ -15,19 +15,8 @@
  * limitations under the License.
  */
 
-package rules
+package transcoder
 
-func init() {
-	MustRegister(&simpleMatcher{})
-}
+import "mosn.io/api"
 
-// macther factory
-var transferMatcher TransferMatcher
-
-func MustRegister(matcher TransferMatcher) {
-	transferMatcher = matcher
-}
-
-func GetMatcher() TransferMatcher {
-	return transferMatcher
-}
+const RequestTranscodeFail api.ResponseFlag = 0x2000
