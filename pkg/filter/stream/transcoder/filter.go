@@ -20,6 +20,7 @@ package transcoder
 import (
 	"context"
 	"mosn.io/api/extensions/transcoder"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
 	"net/http"
 
@@ -78,7 +79,7 @@ func (f *transcodeFilter) readPerRouteConfig(ctx context.Context, cfg map[string
 	if cfg == nil {
 		return
 	}
-	if transcodeCfg, ok := cfg["transcoder"]; ok {
+	if transcodeCfg, ok := cfg[v2.Transcoder]; ok {
 		if config, err := parseConfig(transcodeCfg); err == nil {
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(ctx, "[stream filter][transcoder] use router config to replace stream filter config, config: %v", config)

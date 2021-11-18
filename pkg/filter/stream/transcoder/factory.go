@@ -20,6 +20,7 @@ package transcoder
 import (
 	"context"
 	"mosn.io/api/extensions/transcoder"
+	v2 "mosn.io/mosn/pkg/config/v2"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -27,7 +28,7 @@ import (
 
 // stream factory
 func init() {
-	api.RegisterStream("transcoder", createFilterChainFactory)
+	api.RegisterStream(v2.Transcoder, createFilterChainFactory)
 }
 
 type filterChainFactory struct {
