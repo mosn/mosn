@@ -53,14 +53,9 @@ require (
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c
+	mosn.io/api v0.0.0-20211118092229-0f48ccc614b6
 	mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
-)
-
-replace (
-	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
-	mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c => github.com/zonghaishang/api v0.0.0-20211111063821-9f6ab4c6e576
 )
