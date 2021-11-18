@@ -1,6 +1,7 @@
 package transcoder
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	goplugin "plugin"
 )
@@ -37,7 +38,7 @@ func (t *TranscoderGoPlugin) CreateTranscoder(listenerName string) {
 		return
 	}
 
-	loadFunc := sym.(func() Transcoder)
+	loadFunc := sym.(func() api.Transcoder)
 	transcoderSo := loadFunc() //执行函数，该函数其实是初始化transcoder
 
 	MustRegister(name, transcoderSo)

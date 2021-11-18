@@ -33,7 +33,7 @@ type transcodeFilter struct {
 	ctx context.Context
 	cfg *config
 
-	transcoder Transcoder
+	transcoder api.Transcoder
 
 	needTranscode bool
 
@@ -46,7 +46,7 @@ func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
 		log.Proxy.Debugf(ctx, "[stream filter][transcoder] create transcoder filter with config: %v", cfg)
 	}
 
-	transcoder := GetTranscoder(cfg.Type).(Transcoder)
+	transcoder := GetTranscoder(cfg.Type).(api.Transcoder)
 	if !initTranscodePlugin(ctx, cfg.GoPluginConfig) && transcoder == nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] create failed, no such transcoder type: %s", cfg.Type)
 		return nil
@@ -95,7 +95,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	var outHeaders, outTrailers types.HeaderMap
 	var outBuf types.IoBuffer
 	var err error
-	var transcoder Transcoder
+	var transcoder api.Transcoder
 
 	if ruleInfo, ok := f.Matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
@@ -144,7 +144,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder request failed: %v", err)
-		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
+		f.receiveHandler.RequestInfo().SetResponseFlag(api.RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
 		return api.StreamFilterStop
 	}
@@ -169,7 +169,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	var outHeaders, outTrailers types.HeaderMap
 	var outBuf types.IoBuffer
 	var err error
-	var transcoder Transcoder
+	var transcoder api.Transcoder
 
 	if ruleInfo, ok := f.Matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
@@ -208,7 +208,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder response failed: %v", err)
-		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
+		f.receiveHandler.RequestInfo().SetResponseFlag(api.RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
 		return api.StreamFilterStop
 	}
