@@ -23,6 +23,8 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+const SimpleMatcher = "simpleMatcher"
+
 type TransferMatcher interface {
 	Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool
 }
@@ -30,12 +32,18 @@ type TransferMatcher interface {
 type simpleMatcher struct {
 }
 
+//This is a simple TransferMatcher that only matches headers exactly, you can define more complex Matcher
 func (m *simpleMatcher) Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool {
-	return true
-}
 
-type TransferRuleMatcher struct {
-	MatcherType string `json:"type"`
+	if config.Headers != nil {
+		for _, header := range config.Headers {
+			h, _ := headers.Get(header.Name)
+			if header.Value != h {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 type TransferRuleConfig struct {
@@ -70,14 +78,18 @@ type RuleInfo struct {
 	Config              map[string]interface{} `json:"config"`
 }
 
-func (tf *TransferRuleConfig) Matches(ctx context.Context, headers types.HeaderMap) (*RuleInfo, bool) {
+func (tf *TransferRuleConfig) Matches(ctx context.Context, headers types.HeaderMap, matcherType string) (*RuleInfo, bool) {
 
 	if tf.MatcherConfig == nil {
 		log.DefaultLogger.Infof("[stream filter][transcoder][rules]matcher config is empty")
 		return nil, false
 	}
 
-	matcher := GetMatcher()
+	if matcherType == "" {
+		matcherType = SimpleMatcher
+	}
+
+	matcher := GetMatcher(matcherType)
 	result := matcher.Matches(ctx, headers, tf.MatcherConfig)
 	if result {
 		return tf.RuleInfo, result

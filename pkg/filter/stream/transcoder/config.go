@@ -27,7 +27,8 @@ type config struct {
 	Type           string                      `json:"type,omitempty"`
 	Rules          []*rules.TransferRuleConfig `json:"rules,omitempty"`
 	GoPluginConfig *transcodeGoPluginConfig    `json:"go_plugin_config,omitempty"`
-	Trans map[string]interface{} `json:"trans,omitempty"`
+	Trans          map[string]interface{}      `json:"trans,omitempty"`
+	MatcherType    string                      `json:"matcher_type"`
 }
 
 type transcodeGoPluginConfig struct {

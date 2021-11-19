@@ -238,7 +238,7 @@ func (f *transcodeFilter) matches(ctx context.Context, headers types.HeaderMap) 
 		return nil, false
 	}
 	for _, t := range transferRuleConfigs {
-		rule, match := t.Matches(ctx, headers)
+		rule, match := t.Matches(ctx, headers, f.cfg.MatcherType)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream filter][transcoder] match %s, rule %+v", match, rule)
 		}

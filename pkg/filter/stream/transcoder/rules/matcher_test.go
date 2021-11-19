@@ -2,6 +2,8 @@ package rules
 
 import (
 	"context"
+	"github.com/valyala/fasthttp"
+	"mosn.io/mosn/pkg/protocol/http"
 	"reflect"
 	"testing"
 
@@ -10,8 +12,9 @@ import (
 
 func TestTransferRuleConfigMatches(t *testing.T) {
 	type fields struct {
-		MatchType *MatcherConfig
-		RuleInfo  *RuleInfo
+		MatcherConfig *MatcherConfig
+		RuleInfo      *RuleInfo
+		MatchType     string
 	}
 	type args struct {
 		ctx     context.Context
@@ -25,32 +28,61 @@ func TestTransferRuleConfigMatches(t *testing.T) {
 		want1  bool
 	}{
 		{
-			name: "TestTransferRuleConfigMatches",
+			name: "TestTransferRuleConfigMatches_match",
 			fields: fields{
-				MatchType: &MatcherConfig{
-					Headers: []HeaderMatcher{},
+				MatcherConfig: &MatcherConfig{
+					Headers: []HeaderMatcher{
+						{
+							Name:  "serviceCode",
+							Value: "dsr",
+						},
+					},
 				},
 				RuleInfo: &RuleInfo{
 					UpstreamProtocol: "a",
 				},
+				MatchType: "simpleMatcher",
 			},
 			args: args{
 				ctx:     context.Background(),
-				headers: nil,
+				headers: buildHttpRequestHeaders(map[string]string{"serviceCode": "dsr"}),
 			},
 			want: &RuleInfo{
 				UpstreamProtocol: "a",
 			},
 			want1: true,
 		},
+		{
+			name: "TestTransferRuleConfigMatches_no_match",
+			fields: fields{
+				MatcherConfig: &MatcherConfig{
+					Headers: []HeaderMatcher{
+						{
+							Name:  "serviceCode",
+							Value: "dsr",
+						},
+					},
+				},
+				RuleInfo: &RuleInfo{
+					UpstreamProtocol: "a",
+				},
+				MatchType: "simpleMatcher",
+			},
+			args: args{
+				ctx:     context.Background(),
+				headers: buildHttpRequestHeaders(map[string]string{"serviceCode": "ooo"}),
+			},
+			want:  nil,
+			want1: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tf := &TransferRuleConfig{
-				MatcherConfig: tt.fields.MatchType,
+				MatcherConfig: tt.fields.MatcherConfig,
 				RuleInfo:      tt.fields.RuleInfo,
 			}
-			got, got1 := tf.Matches(tt.args.ctx, tt.args.headers)
+			got, got1 := tf.Matches(tt.args.ctx, tt.args.headers, tt.fields.MatchType)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Matches() got = %v, want %v", got, tt.want)
 			}
@@ -59,4 +91,14 @@ func TestTransferRuleConfigMatches(t *testing.T) {
 			}
 		})
 	}
+}
+
+func buildHttpRequestHeaders(args map[string]string) http.RequestHeader {
+	header := &fasthttp.RequestHeader{}
+
+	for key, value := range args {
+		header.Set(key, value)
+	}
+
+	return http.RequestHeader{RequestHeader: header}
 }

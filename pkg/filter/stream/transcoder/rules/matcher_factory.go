@@ -18,16 +18,19 @@
 package rules
 
 func init() {
-	MustRegister(&simpleMatcher{})
+	MustRegister(SimpleMatcher, &simpleMatcher{})
 }
 
 // macther factory
-var transferMatcher TransferMatcher
+var mactherFactory = make(map[string]TransferMatcher)
 
-func MustRegister(matcher TransferMatcher) {
-	transferMatcher = matcher
+func MustRegister(typ string, matcher TransferMatcher) {
+	if mactherFactory[typ] != nil {
+		panic("target stream macther already exists: " + typ)
+	}
+	mactherFactory[typ] = matcher
 }
 
-func GetMatcher() TransferMatcher {
-	return transferMatcher
+func GetMatcher(typ string) TransferMatcher {
+	return mactherFactory[typ]
 }
