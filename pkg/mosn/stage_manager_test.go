@@ -69,11 +69,16 @@ func TestStageManager(t *testing.T) {
 	}).AppendStartStage(func(_ *Mosn) {
 		testCall++
 		if testCall != 2 {
-			t.Errorf("pre start stage call: 2")
+			t.Errorf("start stage call: 2")
+		}
+	}).AppendAfterStartStage(func(_ *Mosn) {
+		testCall++
+		if testCall != 3 {
+			t.Errorf("after start stage call: %v", testCall)
 		}
 	}).AppendAfterStopStage(func(_ *Mosn) {
 		testCall++
-		if testCall != 3 {
+		if testCall != 4 {
 			t.Errorf("after stage stage call: 3")
 		}
 	})
@@ -81,20 +86,20 @@ func TestStageManager(t *testing.T) {
 		t.Errorf("should call nothing")
 	}
 	stm.Run()
-	if !(testCall == 2 &&
+	if !(testCall == 3 &&
 		stm.data.mosn != nil &&
 		stm.data.config != nil) {
 		t.Errorf("stage manager runs failed...")
 	}
 	stm.data.mosn.Close()
 	stm.WaitFinish()
-	if !(testCall == 2 &&
+	if !(testCall == 3 &&
 		stm.data.mosn != nil &&
 		stm.data.config != nil) {
 		t.Errorf("WaitFinish runs failed...")
 	}
 	stm.Stop()
-	if !(testCall == 3 &&
+	if !(testCall == 4 &&
 		stm.data.mosn != nil &&
 		stm.data.config != nil) {
 		t.Errorf("Stop runs failed...")
