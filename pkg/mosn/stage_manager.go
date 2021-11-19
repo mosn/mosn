@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	logger "mosn.io/pkg/log"
@@ -42,22 +42,24 @@ type Data struct {
 }
 
 // StageManager is a stage manager that controls startup stages running.
-// We divide the startup into four stages:
+// We divide the startup into five stages:
 // 1. The parameters parsed stage. In this stage, parse different parameters from cli.Context,
 // and finally call config load to create a MOSNConfig.
 // 2. The initialize stage. In this stage, do some init actions based on config, and finally create a MOSN object.
 // 3. The pre-startup stage. In this stage, creates some basic instance from MOSN object.
 // 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
+// 5. The after-stop stage. In this stage, do some clean up actions after mosn closed.
 // The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
 // that used to startup mosn.
 type StageManager struct {
-	data           Data
-	started        bool
-	paramsStages   []func(*cli.Context)
-	initStages     []func(*v2.MOSNConfig)
-	prestartStages []func(*Mosn)
-	startupStages  []func(*Mosn)
-	newMosn        func(*v2.MOSNConfig) *Mosn // support unit-test
+	data            Data
+	started         bool
+	paramsStages    []func(*cli.Context)
+	initStages      []func(*v2.MOSNConfig)
+	prestartStages  []func(*Mosn)
+	startupStages   []func(*Mosn)
+	afterStopStages []func(*Mosn)
+	newMosn         func(*v2.MOSNConfig) *Mosn // support unit-test
 }
 
 func NewStageManager(ctx *cli.Context, path string) *StageManager {
@@ -168,11 +170,32 @@ func (stm *StageManager) WaitFinish() {
 	stm.data.mosn.Wait()
 }
 
-// free resourse
-// TODO: move more behaviour here, only close log now.
+func (stm *StageManager) AppendAfterStopStage(f func(*Mosn)) *StageManager {
+	if f == nil || stm.started {
+		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
+		return stm
+	}
+	stm.afterStopStages = append(stm.afterStopStages, f)
+	return stm
+}
+
+func (stm *StageManager) runAfterStopStage() time.Duration {
+	st := time.Now()
+	for _, f := range stm.afterStopStages {
+		f(stm.data.mosn)
+	}
+	return time.Since(st)
+}
+
+// free resourse at the end
+// TODO: may introduce other stages here, like: "before-stop", "stop".
 func (stm *StageManager) Stop() {
 	if !stm.started {
 		return
 	}
+
+	elapsed := stm.runAfterStopStage()
+	log.StartLogger.Infof("mosn after stop stage cost: %v", elapsed)
+
 	logger.CloseAll()
 }
