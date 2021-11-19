@@ -3,19 +3,21 @@ package http
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
 
-	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	mosnhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/http" // register http1
+	_ "mosn.io/mosn/pkg/stream/http"  // register http1
+	_ "mosn.io/mosn/pkg/stream/http2" // register http2
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/mosn/test/lib"
@@ -36,9 +38,10 @@ type MockHttpClient struct {
 	// stats
 	stats *types.ClientStats
 	// connection pool
-	curConnNum uint32
-	maxConnNum uint32
-	connPool   chan *HttpConn
+	protocolName api.ProtocolName
+	curConnNum   uint32
+	maxConnNum   uint32
+	connPool     chan *HttpConn
 }
 
 func NewHttpClient(config interface{}) types.MockClient {
@@ -50,11 +53,15 @@ func NewHttpClient(config interface{}) types.MockClient {
 	if cfg.MaxConn == 0 {
 		cfg.MaxConn = 1
 	}
+	if cfg.ProtocolName == "" {
+		cfg.ProtocolName = "Http1"
+	}
 	return &MockHttpClient{
-		config:     cfg,
-		stats:      types.NewClientStats(),
-		maxConnNum: cfg.MaxConn,
-		connPool:   make(chan *HttpConn, cfg.MaxConn),
+		config:       cfg,
+		stats:        types.NewClientStats(),
+		protocolName: api.ProtocolName(cfg.ProtocolName),
+		maxConnNum:   cfg.MaxConn,
+		connPool:     make(chan *HttpConn, cfg.MaxConn),
 	}
 }
 
@@ -68,7 +75,7 @@ func (c *MockHttpClient) SyncCall() bool {
 		c.releaseConnection(conn)
 	}()
 	c.stats.Records().RecordRequest()
-	resp, err := conn.SyncSendRequest(c.config.Request)
+	resp, err := conn.SyncSendRequest(c.config.Request, c.protocolName)
 	status := false
 	switch err {
 	case ErrClosedConnection:
@@ -123,7 +130,7 @@ func (c *MockHttpClient) getOrCreateConnection() (*HttpConn, error) {
 	if atomic.LoadUint32(&c.curConnNum) >= c.maxConnNum {
 		return <-c.connPool, nil
 	}
-	conn, err := NewConn(c.config.TargetAddr, func() {
+	conn, err := NewConn(c.config.TargetAddr, c.protocolName, func() {
 		c.stats.CloseConnection()
 	})
 	if err != nil {
@@ -160,7 +167,7 @@ type HttpConn struct {
 	closeCallback func()
 }
 
-func NewConn(addr string, cb func()) (*HttpConn, error) {
+func NewConn(addr string, pname api.ProtocolName, cb func()) (*HttpConn, error) {
 
 	var remoteAddr net.Addr
 	var err error
@@ -176,14 +183,14 @@ func NewConn(addr string, cb func()) (*HttpConn, error) {
 		closeCallback: cb,
 	}
 	conn := network.NewClientConnection(time.Second, nil, remoteAddr, make(chan struct{}))
-	if err := conn.Connect(); err != nil {
-		return nil, err
-	}
 	conn.AddConnectionEventListener(hconn)
 	hconn.conn = conn
-	s := stream.NewStreamClient(context.Background(), protocol.HTTP1, conn, nil)
+	s := stream.NewStreamClient(context.Background(), pname, conn, nil)
 	if s == nil {
-		return nil, errors.New("protocol not registered")
+		return nil, fmt.Errorf("protocol %s not registered", pname)
+	}
+	if err := conn.Connect(); err != nil {
+		return nil, err
 	}
 	hconn.stream = s
 	return hconn, nil
@@ -227,13 +234,13 @@ var (
 	ErrRequestTimeout   = errors.New("sync call timeout")
 )
 
-func (c *HttpConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
+func (c *HttpConn) SyncSendRequest(req *RequestConfig, proto api.ProtocolName) (*Response, error) {
 	select {
 	case <-c.stop:
 		return nil, ErrClosedConnection
 	default:
 		ch := make(chan *Response)
-		r := newReceiver(ch)
+		r := newReceiver(ch, proto)
 		c.AsyncSendRequest(r, req)
 		// set default timeout, if a timeout is configured, use it
 		timeout := 5 * time.Second
@@ -252,13 +259,15 @@ func (c *HttpConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
 }
 
 type receiver struct {
+	proto api.ProtocolName
 	data  *Response
 	start time.Time
 	ch    chan<- *Response // write only
 }
 
-func newReceiver(ch chan<- *Response) *receiver {
+func newReceiver(ch chan<- *Response, proto api.ProtocolName) *receiver {
 	return &receiver{
+		proto: proto,
 		data:  &Response{},
 		start: time.Now(),
 		ch:    ch,
@@ -267,9 +276,16 @@ func newReceiver(ch chan<- *Response) *receiver {
 
 func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) {
 	r.data.Cost = time.Now().Sub(r.start)
-	cmd := headers.(mosnhttp.ResponseHeader).ResponseHeader
-	r.data.Header = utils.ReadFasthttpResponseHeaders(cmd)
-	r.data.StatusCode = cmd.StatusCode()
+	switch r.proto {
+	case protocol.HTTP1:
+		cmd := headers.(mosnhttp.ResponseHeader).ResponseHeader
+		r.data.Header = utils.ReadFasthttpResponseHeaders(cmd)
+		r.data.StatusCode = cmd.StatusCode()
+	case protocol.HTTP2:
+		cmd := headers.(*mosnhttp2.RspHeader)
+		r.data.Header = mosnhttp2.EncodeHeader(cmd.HeaderMap)
+		r.data.StatusCode = cmd.Rsp.StatusCode
+	}
 	if data != nil {
 		r.data.Body = data.Bytes()
 	}
@@ -278,9 +294,12 @@ func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data bu
 
 func (r *receiver) OnDecodeError(context context.Context, err error, _ api.HeaderMap) {
 	r.data.Cost = time.Now().Sub(r.start)
-	header := &fasthttp.ResponseHeader{}
-	header.SetStatusCode(http.StatusInternalServerError)
-	header.Set("X-Mosn-Error", err.Error())
-	r.data.Header = utils.ReadFasthttpResponseHeaders(header)
+	r.data.Cost = time.Now().Sub(r.start)
+	r.data.StatusCode = http.StatusInternalServerError
+	r.data.Header = map[string][]string{
+		"X-Mosn-Error": []string{
+			err.Error(),
+		},
+	}
 	r.ch <- r.data
 }

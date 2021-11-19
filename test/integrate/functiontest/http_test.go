@@ -12,8 +12,6 @@ import (
 
 	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/http/conv"
-	_ "mosn.io/mosn/pkg/protocol/http2/conv"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	"mosn.io/mosn/pkg/types"
@@ -134,9 +132,9 @@ func TestHTTPMethod(t *testing.T) {
 	} {
 		testCases := []*HTTPCase{
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
+			// NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			// NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 		}
 		for i, tc := range testCases {
 			t.Logf("start case #%d\n", i)

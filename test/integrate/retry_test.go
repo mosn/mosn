@@ -122,12 +122,12 @@ func TestRetry(t *testing.T) {
 	testCases := []*RetryCase{
 		// A server reponse not success
 		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, false),
-		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, false),
-		NewRetryCase(t, protocol.HTTP2, protocol.HTTP1, false),
+		//NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, false),
+		//NewRetryCase(t, protocol.HTTP2, protocol.HTTP1, false),
 		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, false),
 		// A server is shutdown
 		NewRetryCase(t, protocol.HTTP1, protocol.HTTP1, true),
-		NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, true),
+		// NewRetryCase(t, protocol.HTTP1, protocol.HTTP2, true),
 		NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
 		// HTTP2 and SofaRPC will create connection to upstream before send request to upstream
 		// If upstream is closed, it will failed directly, and we cannot do a retry before we send a request to upstream

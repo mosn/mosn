@@ -30,6 +30,7 @@ func (t *httpTohttp2) Accept(ctx context.Context, headers api.HeaderMap, buf api
 	return ok
 }
 
+// TranscodingRequest makes http request to http2 request
 func (t *httpTohttp2) TranscodingRequest(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) (api.HeaderMap, api.IoBuffer, api.HeaderMap, error) {
 	httpHeader, ok := headers.(http.RequestHeader)
 	if !ok {
@@ -47,10 +48,10 @@ func (t *httpTohttp2) TranscodingRequest(ctx context.Context, headers api.Header
 	return protocol.CommonHeader(cheader), buf, trailers, nil
 }
 
+// TranscodingResponse make http2 response to http repsonse
 func (t *httpTohttp2) TranscodingResponse(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) (api.HeaderMap, api.IoBuffer, api.HeaderMap, error) {
 	cheader := http2.DecodeHeader(headers)
 	headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}}
-	// copy headers
 	cheader.Range(func(key, value string) bool {
 		headerImpl.Set(key, value)
 		return true
