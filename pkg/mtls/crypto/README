@@ -11,6 +11,7 @@ mtls/crypto/tls
    handshake_client.go: verifyServerCertificate use LoadOrStoreCertificate instead of x509.ParseCertificate
    handshake_server.go: processCertsFromClient use LoadOrStoreCertificate instead of x509.ParseCertificate 
 Maybe we can optimize it in x509.ParseCertificate / add cache expire later.
+9. tls_custom.go: add mtls/crypto/tls.Conn.SetConnectionState() to manually set the tls connection state.
 
 add supports for tls1.3-gm
 see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/

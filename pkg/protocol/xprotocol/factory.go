@@ -27,9 +27,10 @@ import (
 )
 
 var (
-	protocolMap = make(map[types.ProtocolName]api.XProtocol)
-	matcherMap  = make(map[types.ProtocolName]api.ProtocolMatch)
-	mappingMap  = make(map[types.ProtocolName]api.HTTPMapping)
+	protocolMap        = make(map[types.ProtocolName]api.XProtocol)
+	protocolFactoryMap = make(map[types.ProtocolName]api.XProtocolFactory)
+	matcherMap         = make(map[types.ProtocolName]api.ProtocolMatch)
+	mappingMap         = make(map[types.ProtocolName]api.HTTPMapping)
 )
 
 // RegisterProtocol register the protocol to factory
@@ -44,9 +45,30 @@ func RegisterProtocol(name types.ProtocolName, protocol api.XProtocol) error {
 	return nil
 }
 
+// RegisterProtocolFactory register factory
+func RegisterProtocolFactory(name types.ProtocolName, factory api.XProtocolFactory) error {
+	// check name conflict
+	_, ok := protocolFactoryMap[name]
+	if ok {
+		return errors.New("duplicate protocol factory register:" + string(name))
+	}
+
+	protocolFactoryMap[name] = factory
+	return nil
+}
+
 // GetProtocol return the corresponding protocol for given name(if was registered)
 func GetProtocol(name types.ProtocolName) api.XProtocol {
+	factory := GetProtocolFactory(name)
+	if factory != nil {
+		return factory.NewXProtocol()
+	}
 	return protocolMap[name]
+}
+
+// GetProtocolFactory query protocol factory if registered
+func GetProtocolFactory(name types.ProtocolName) api.XProtocolFactory {
+	return protocolFactoryMap[name]
 }
 
 // RegisterMatcher register the matcher of the protocol into factory
