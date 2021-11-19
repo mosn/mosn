@@ -116,8 +116,8 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 		if !transcoder.Accept(ctx, headers, buf, trailers) {
 			return api.StreamFilterContinue
 		}
-		//set transcoder config
-		mosnctx.WithValue(ctx, types.ContextKeyTranscoderConfig, ruleInfo.Config)
+
+		//TODO set transcoder config
 		//set sub protocol
 		mosnctx.WithValue(ctx, types.ContextSubProtocol, dstPro)
 		//set upstream protocol
