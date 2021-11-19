@@ -41,9 +41,6 @@ type mirror struct {
 	headers        api.HeaderMap
 	data           buffer.IoBuffer
 	trailers       api.HeaderMap
-	cHeaders       api.HeaderMap
-	cData          buffer.IoBuffer
-	cTrailers      api.HeaderMap
 	clusterName    string
 	cluster        types.ClusterInfo
 	sender         types.StreamSender
@@ -97,9 +94,6 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 		m.cluster = snap.ClusterInfo()
 		m.clusterName = clusterName
-
-		// cover once
-		m.cover()
 
 		amplification := m.amplification
 		if m.broadcast {
@@ -219,58 +213,18 @@ func (m *mirror) OnReady(sender types.StreamSender, host types.Host) {
 func (m *mirror) sendDataOnce() {
 	endStream := m.data == nil && m.trailers == nil
 
-	m.sender.AppendHeaders(m.ctx, m.cHeaders, endStream)
+	m.sender.AppendHeaders(m.ctx, m.headers, endStream)
 
 	if endStream {
 		return
 	}
 
 	endStream = m.trailers == nil
-	m.sender.AppendData(m.ctx, m.cData, endStream)
+	m.sender.AppendData(m.ctx, m.data, endStream)
 
 	if endStream {
 		return
 	}
 
-	m.sender.AppendTrailers(m.ctx, m.cTrailers)
-}
-
-func (m *mirror) cover() {
-	if m.dp == m.up {
-		m.cHeaders = m.headers
-		m.cData = m.data
-		m.cTrailers = m.trailers
-		return
-	}
-
-	m.cHeaders = m.coverHeader()
-	m.cData = m.converData()
-	m.cTrailers = m.convertTrailer()
-}
-
-func (m *mirror) coverHeader() types.HeaderMap {
-	convHeader, err := protocol.ConvertHeader(m.ctx, m.dp, m.up, m.headers)
-	if err == nil {
-		return convHeader
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.headers
-}
-
-func (m *mirror) converData() types.IoBuffer {
-	convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
-	if err == nil {
-		return convData
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.data
-}
-
-func (m *mirror) convertTrailer() types.HeaderMap {
-	convTrailers, err := protocol.ConvertTrailer(m.ctx, m.dp, m.up, m.trailers)
-	if err == nil {
-		return convTrailers
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.trailers
+	m.sender.AppendTrailers(m.ctx, m.trailers)
 }
