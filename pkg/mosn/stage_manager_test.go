@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/urfave/cli"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 )
 
@@ -71,6 +71,11 @@ func TestStageManager(t *testing.T) {
 		if testCall != 2 {
 			t.Errorf("pre start stage call: 2")
 		}
+	}).AppendAfterStopStage(func(_ *Mosn) {
+		testCall++
+		if testCall != 3 {
+			t.Errorf("after stage stage call: 3")
+		}
 	})
 	if testCall != 0 {
 		t.Errorf("should call nothing")
@@ -83,4 +88,15 @@ func TestStageManager(t *testing.T) {
 	}
 	stm.data.mosn.Close()
 	stm.WaitFinish()
+	if !(testCall == 2 &&
+		stm.data.mosn != nil &&
+		stm.data.config != nil) {
+		t.Errorf("WaitFinish runs failed...")
+	}
+	stm.Stop()
+	if !(testCall == 3 &&
+		stm.data.mosn != nil &&
+		stm.data.config != nil) {
+		t.Errorf("Stop runs failed...")
+	}
 }
