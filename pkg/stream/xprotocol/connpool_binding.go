@@ -79,9 +79,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 		return host, nil, reason
 	}
 
-	downstreamConn := getDownstreamConn(ctx)
-	c.downstreamConn = downstreamConn
-	c.addDownConnListenerOnce()
+	c.addDownConnListenerOnce(ctx)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -225,11 +223,13 @@ type activeClientBinding struct {
 	host               types.CreateConnectionData
 	downstreamConn     api.Connection
 
-	downConnListenerOnce sync.Once
+	downConnOnce sync.Once
 }
 
-func (ac *activeClientBinding) addDownConnListenerOnce() {
-	ac.downConnListenerOnce.Do(func() {
+func (ac *activeClientBinding) addDownConnListenerOnce(ctx context.Context) {
+	ac.downConnOnce.Do(func() {
+		downstreamConn := getDownstreamConn(ctx)
+		ac.downstreamConn = downstreamConn
 		ac.downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: ac})
 	})
 }
