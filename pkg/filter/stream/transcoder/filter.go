@@ -139,10 +139,10 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 		transcoder = f.transcoder
 	}
 
-	if route := f.receiveHandler.Route(); route != nil {
-		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
-		f.readPerRouteConfig(ctx, route.RouteRule().PerFilterConfig())
-	}
+	//if route := f.receiveHandler.Route(); route != nil {
+	//	// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
+	//	f.readPerRouteConfig(ctx, route.RouteRule().PerFilterConfig())
+	//}
 	// do transcoding
 	outHeaders, outBuf, outTrailers, err = transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 
