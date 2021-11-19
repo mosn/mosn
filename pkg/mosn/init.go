@@ -24,7 +24,7 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
@@ -185,9 +185,18 @@ func readProtocolPlugin(path, loadFuncName string) error {
 	protocolName := codec.ProtocolName()
 	log.StartLogger.Infof("[mosn] [init codec] loading protocol [%v] from third part codec", protocolName)
 
-	if err := xprotocol.RegisterProtocol(protocolName, codec.XProtocol()); err != nil {
-		return err
+	// check protocol factory support
+	if factory, ok := codec.(api.XProtocolFactory); ok {
+		if err := xprotocol.RegisterProtocolFactory(protocolName, factory); err != nil {
+			return err
+		}
+	} else {
+		// register protocol
+		if err := xprotocol.RegisterProtocol(protocolName, codec.XProtocol()); err != nil {
+			return err
+		}
 	}
+
 	if err := xprotocol.RegisterMapping(protocolName, codec.HTTPMapping()); err != nil {
 		return err
 	}
