@@ -48,7 +48,7 @@ func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
 		log.Proxy.Debugf(ctx, "[stream filter][transcoder] create transcoder filter with config: %v", cfg)
 	}
 
-	transcoder := GetTranscoder(cfg.Type).(transcoder.Transcoder)
+	transcoder := GetTranscoder(cfg.Type)
 	//cgf.Type and cfg.GopluginConfig both failed to initialize transcoder
 	if !initTranscodePlugin(ctx, cfg.GoPluginConfig) && transcoder == nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] create failed, no such transcoder type: %s", cfg.Type)
