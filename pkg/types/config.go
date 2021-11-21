@@ -79,7 +79,7 @@ end:
 }
 
 
-func InitUDSdir(dir string){
+func InitUDSDir(dir string){
 	if dir == "" {
 		return
 	}

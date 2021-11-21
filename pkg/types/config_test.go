@@ -56,7 +56,7 @@ func TestInitDefaultPath(t *testing.T) {
 }
 
 
-func TestInitUDSdir(t *testing.T) {
+func TestInitUDSDir(t *testing.T) {
 	ReconfigureDomainSocket = "/home/admin/mosn/conf/reconfig.sock"
 	testCases := []struct {
 		name         string
@@ -81,7 +81,7 @@ func TestInitUDSdir(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			InitUDSdir(testCase.udsDir)
+			InitUDSDir(testCase.udsDir)
 			if ReconfigureDomainSocket != testCase.expectedPath {
 				t.Errorf("expected path: %s, got: %s", testCase.expectedPath, ReconfigureDomainSocket)
 			}
