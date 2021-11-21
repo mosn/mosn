@@ -48,7 +48,14 @@
           "log_path": "stdout",
           "filter_chains": [
             {
-              "tls_context": {},
+              "tls_context": {
+                "status": true,
+                "ca_cert": "../certs/ca.pem",
+                "cert_chain": "../certs/cert.pem",
+                "private_key": "../certs/key.pem",
+                "verify_client": false,
+                "require_client_cert": false
+              },
               "filters": [
                 {
                   "type": "tunnel"

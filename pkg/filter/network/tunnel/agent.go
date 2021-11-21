@@ -58,6 +58,8 @@ type AgentBootstrapConfig struct {
 	CredentialPolicy         string `json:"credential_policy"`
 	// GracefulCloseMaxWaitDurationMs specifies the maximum waiting time to close conn gracefully
 	GracefulCloseMaxWaitDurationMs int `json:"graceful_close_max_wait_duration_ms"`
+
+	TLSContext *v2.TLSConfig `json:"tls_context"`
 }
 
 func init() {
@@ -87,7 +89,7 @@ var stopChan = make(chan struct{})
 func stopAllPeers() {
 	close(stopChan)
 	peerMap.Range(func(key, value interface{}) bool {
-		log.DefaultLogger.Infof("[agent] try to delete all peer, key: %v",key)
+		log.DefaultLogger.Infof("[agent] try to delete all peer, key: %v", key)
 		peerMap.Delete(key)
 		value.(*AgentPeer).Stop()
 		return true
@@ -196,6 +198,7 @@ func connectServer(conf *AgentBootstrapConfig, address string) {
 		CredentialPolicy:             conf.CredentialPolicy,
 		ConnectionNumPerAddress:      conf.ConnectionNum,
 		GracefulCloseMaxWaitDuration: time.Duration(conf.GracefulCloseMaxWaitDurationMs) * time.Millisecond,
+		TLSContext:                   conf.TLSContext,
 	}
 	if config.Network == "" {
 		config.Network = "tcp"
@@ -232,6 +235,8 @@ type ConnectionConfig struct {
 	CredentialPolicy             string        `json:"credential_policy"`
 	ConnectionNumPerAddress      int           `json:"connection_num_per_address"`
 	GracefulCloseMaxWaitDuration time.Duration `json:"graceful_close_max_wait_duration"`
+
+	TLSContext *v2.TLSConfig `json:"tls_context"`
 }
 
 type AgentPeer struct {

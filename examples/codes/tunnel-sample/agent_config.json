@@ -51,7 +51,12 @@
         "server_list": ["127.0.0.1:9999"],
         "cluster": "clientCluster",
         "enable": true,
-        "connection_num": 1
+        "connection_num": 1,
+        "tls_context": {
+          "status": true,
+          "ca_cert": "../certs/ca.pem",
+          "server_name": "127.0.0.1"
+        }
       }
     }
   ],

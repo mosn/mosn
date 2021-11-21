@@ -27,6 +27,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
@@ -48,6 +49,34 @@ type connection struct {
 	network                string
 	connectTimeoutDuration time.Duration
 	readTimeoutDuration    time.Duration
+
+	tlsMgr types.TLSClientContextManager
+}
+
+func newBaseConnection(config ConnectionConfig, listener types.Listener, initFunc func() error) *connection {
+	c := &connection{
+		readBuffer:             buffer.NewIoBuffer(1024),
+		close:                  atomic.NewBool(false),
+		closeChan:              make(chan struct{}),
+		prepareClose:           atomic.NewBool(false),
+		listener:               listener,
+		connectRetryTimes:      config.ConnectRetryTimes,
+		reconnectBaseDuration:  config.ReconnectBaseDuration,
+		address:                config.Address,
+		network:                config.Network,
+		connectTimeoutDuration: config.ConnectTimeoutDuration,
+		readTimeoutDuration:    config.ConnectTimeoutDuration,
+		init:                   initFunc,
+	}
+	if config.TLSContext != nil {
+		mgr, err := mtls.NewTLSClientContextManager(config.TLSContext)
+		if err != nil {
+			log.DefaultLogger.Fatalf("[agent] create tls context manager failed, %v", err)
+			return nil
+		}
+		c.tlsMgr = mgr
+	}
+	return c
 }
 
 func (a *connection) doConnect() error {
@@ -55,6 +84,12 @@ func (a *connection) doConnect() error {
 	if err != nil {
 		log.DefaultLogger.Errorf("[agent] failed to connect remote server, address: %v, err: %+v", a.address, err)
 		return err
+	}
+	if a.tlsMgr != nil {
+		rawc, err = a.tlsMgr.Conn(rawc)
+		if err != nil {
+			return err
+		}
 	}
 	rawc.SetReadDeadline(time.Now().Add(a.readTimeoutDuration))
 	a.rawc = rawc
@@ -71,7 +106,6 @@ func (a *connection) ReadOneMessage() (interface{}, error) {
 			// Timout or EOF
 			if err != nil {
 				log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.address, err)
-				a.Close()
 				return nil, err
 			}
 			ret, err := DecodeFromBuffer(a.readBuffer)
@@ -178,7 +212,7 @@ func (a *connection) OnEvent(event api.ConnectionEvent) {
 // AgentClientConnection indicates a tunnel agent connection on the client side
 type AgentClientConnection struct {
 	ConnectionConfig
-	connection
+	*connection
 	readBuffer buffer.IoBuffer
 	listener   types.Listener
 	close      *atomic.Bool
@@ -187,7 +221,6 @@ type AgentClientConnection struct {
 }
 
 func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *AgentClientConnection {
-
 	initInfo := &ConnectionInitInfo{
 		ClusterName:      config.ClusterName,
 		Weight:           config.Weight,
@@ -209,33 +242,29 @@ func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *A
 		readBuffer:       buffer.GetIoBuffer(1024),
 		close:            atomic.NewBool(false),
 	}
-	base := connection{
-		readBuffer:             buffer.NewIoBuffer(1024),
-		close:                  atomic.NewBool(false),
-		closeChan:              make(chan struct{}),
-		prepareClose:           atomic.NewBool(false),
-		listener:               listener,
-		connectRetryTimes:      config.ConnectRetryTimes,
-		reconnectBaseDuration:  config.ReconnectBaseDuration,
-		address:                config.Address,
-		network:                config.Network,
-		connectTimeoutDuration: config.ConnectTimeoutDuration,
-		readTimeoutDuration:    config.ConnectTimeoutDuration,
-		init:                   coreConn.initAgentCoreConnection,
-	}
+	base := newBaseConnection(config, listener, coreConn.initAgentCoreConnection)
 	coreConn.connection = base
 	return coreConn
 }
 
 func (a *AgentClientConnection) initAgentCoreConnection() error {
-	if err := a.doConnect(); err != nil {
+	var err error
+	defer func() {
+		if err != nil && a.rawc != nil {
+			// Close connection and reconnect again
+			a.rawc.Close()
+			a.rawc = nil
+		}
+	}()
+	if err = a.doConnect(); err != nil {
 		return err
 	}
-	if err := a.Write(a.initInfo); err != nil {
+	if err = a.Write(a.initInfo); err != nil {
 		return err
 	}
 
-	ret, err := a.ReadOneMessage()
+	var ret interface{}
+	ret, err = a.ReadOneMessage()
 	if err != nil {
 		return err
 	}
@@ -243,8 +272,7 @@ func (a *AgentClientConnection) initAgentCoreConnection() error {
 	if resp.Status != ConnectSuccess {
 		// Reconnect and write again
 		log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
-		// Close connection and reconnect again
-		return a.Close()
+		err = fmt.Errorf("agent connection init error")
 	}
 	return nil
 }
@@ -252,25 +280,12 @@ func (a *AgentClientConnection) initAgentCoreConnection() error {
 // AgentAsideConnection indicates a connection on the client side.
 // Unlike AgentClientConnection, AgentAsideConnection is only responsible for sending control commands to server, such as GracefulCloseOnewayRequest
 type AgentAsideConnection struct {
-	connection
+	*connection
 }
 
 func NewAgentAsideConnection(config ConnectionConfig, listener types.Listener) *AgentAsideConnection {
 	asideConn := &AgentAsideConnection{}
-	base := connection{
-		readBuffer:             buffer.NewIoBuffer(1024),
-		close:                  atomic.NewBool(false),
-		prepareClose:           atomic.NewBool(false),
-		closeChan:              make(chan struct{}),
-		listener:               listener,
-		connectRetryTimes:      config.ConnectRetryTimes,
-		reconnectBaseDuration:  config.ReconnectBaseDuration,
-		address:                config.Address,
-		network:                config.Network,
-		connectTimeoutDuration: config.ConnectTimeoutDuration,
-		readTimeoutDuration:    config.ConnectTimeoutDuration,
-		init:                   asideConn.initAsideConnection,
-	}
+	base := newBaseConnection(config, listener, asideConn.initAsideConnection)
 	asideConn.connection = base
 	return asideConn
 }
