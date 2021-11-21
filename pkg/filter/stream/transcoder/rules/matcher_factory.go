@@ -17,6 +17,8 @@
 
 package rules
 
+import "mosn.io/mosn/pkg/log"
+
 func init() {
 	MustRegister(SimpleMatcher, &simpleMatcher{})
 }
@@ -26,7 +28,7 @@ var mactherFactory = make(map[string]TransferMatcher)
 
 func MustRegister(typ string, matcher TransferMatcher) {
 	if mactherFactory[typ] != nil {
-		panic("target stream macther already exists: " + typ)
+		log.DefaultLogger.Fatalf("[stream filter][transcoder][rules]target stream macther already exists: %s", typ)
 	}
 	mactherFactory[typ] = matcher
 }

@@ -41,6 +41,8 @@ type transcodeFilter struct {
 
 	receiveHandler api.StreamReceiverFilterHandler
 	sendHandler    api.StreamSenderFilterHandler
+
+	listenerName string
 }
 
 func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
@@ -49,29 +51,32 @@ func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
 	}
 
 	transcoder := GetTranscoder(cfg.Type)
+	initSuccess, listenerName := initTranscodePlugin(ctx, cfg.GoPluginConfig)
 	//cgf.Type and cfg.GopluginConfig both failed to initialize transcoder
-	if !initTranscodePlugin(ctx, cfg.GoPluginConfig) && transcoder == nil {
+	if !initSuccess && transcoder == nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] create failed, no such transcoder type: %s", cfg.Type)
 		return nil
 	}
 
 	return &transcodeFilter{
-		ctx:        ctx,
-		cfg:        cfg,
-		transcoder: transcoder,
+		ctx:          ctx,
+		cfg:          cfg,
+		transcoder:   transcoder,
+		listenerName: listenerName,
 	}
 }
 
-func initTranscodePlugin(ctx context.Context, cfg *transcodeGoPluginConfig) bool {
+func initTranscodePlugin(ctx context.Context, cfg *transcodeGoPluginConfig) (bool, string) {
 	if cfg == nil {
-		return false
+		return false, ""
 	}
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+
 	for _, transcoder := range cfg.Transcoders {
 		transcoder.CreateTranscoder(listenerName)
 	}
 
-	return true
+	return true, listenerName
 }
 
 // ReadPerRouteConfig makes route-level configuration override filter-level configuration
@@ -103,8 +108,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if ruleInfo, ok := f.matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 		dstPro := ruleInfo.UpstreamSubProtocol
-		listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-		pluginName := listenerName + "_" + string(srcPro) + "_" + dstPro
+		pluginName := f.listenerName + "_" + string(srcPro) + "_" + dstPro
 
 		//select transcoder
 		transcoder = GetTranscoder(pluginName)
@@ -178,8 +182,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	if ruleInfo, ok := f.matches(ctx, headers); ok {
 		srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 		dsrPro := ruleInfo.UpstreamSubProtocol
-		listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-		pluginName := listenerName + "_" + string(srcPro) + "_" + dsrPro
+		pluginName := f.listenerName + "_" + string(srcPro) + "_" + dsrPro
 
 		//select transcoder
 		transcoder = GetTranscoder(pluginName)

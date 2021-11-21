@@ -85,11 +85,12 @@ func (tf *TransferRuleConfig) Matches(ctx context.Context, headers types.HeaderM
 		return nil, false
 	}
 
-	if matcherType == "" {
-		matcherType = SimpleMatcher
+	matcher := GetMatcher(matcherType)
+	if matcher == nil {
+		log.DefaultLogger.Errorf("[stream filter][transcoder][rules]matcher is empty")
+		return nil, false
 	}
 
-	matcher := GetMatcher(matcherType)
 	result := matcher.Matches(ctx, headers, tf.MatcherConfig)
 	if result {
 		return tf.RuleInfo, result
