@@ -18,6 +18,7 @@
 package http2
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -97,6 +98,12 @@ type streamConnection struct {
 	ctx  context.Context
 	conn api.Connection
 	cm   *str.ContextManager
+
+	bufChan    chan buffer.IoBuffer
+	endRead    chan struct{}
+	connClosed chan bool
+
+	br *bufio.Reader
 
 	useStream bool
 
@@ -192,7 +199,7 @@ type serverStreamConnection struct {
 	streamConnection
 	mutex   sync.RWMutex
 	streams map[uint32]*serverStream
-	sc      *http2.MServerConn
+	sc      *http2.XServerConn
 	config  StreamConfig
 
 	serverCallbacks types.ServerStreamConnectionEventListener
@@ -200,27 +207,30 @@ type serverStreamConnection struct {
 
 func newServerStreamConnection(ctx context.Context, connection api.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
-	h2sc := http2.NewServerConn(connection)
-
 	sc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			ctx:      ctx,
 			conn:     connection,
-			protocol: mhttp2.ServerProto(h2sc),
+			bufChan:    make(chan buffer.IoBuffer),
+			endRead:    make(chan struct{}),
+			connClosed: make(chan bool, 1),
 
 			cm: str.NewContextManager(ctx),
 		},
-		sc:     h2sc,
 		config: parseStreamConfig(ctx),
 
 		serverCallbacks: serverCallbacks,
 	}
+	h2sc := http2.NewXServerConn(connection, sc, nil)
+	sc.sc = h2sc
+	sc.protocol = mhttp2.ServerProto(h2sc)
 
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(StreamConfig); ok {
 			sc.useStream = extendConfig.Http2UseStream
 		}
 	}
+	sc.useStream = true
 
 	// init first context
 	sc.cm.Next()
@@ -255,23 +265,10 @@ func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 // types.StreamConnectionM
 func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 	for {
-		// 1. pre alloc stream-level ctx with bufferCtx
-		ctx := conn.cm.Get()
-
-		// 2. decode process
-		frame, err := conn.protocol.Decode(ctx, buf)
-		// No enough data
-		if err == http2.ErrAGAIN {
-			break
-		}
-
-		// Do handle staff. Error would also be passed to this function.
-		conn.handleFrame(ctx, frame, err)
+		_, err := conn.protocol.Decode(nil, buf)
 		if err != nil {
 			break
 		}
-
-		conn.cm.Next()
 	}
 }
 
@@ -305,22 +302,10 @@ func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
 	}
 }
 
-func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface{}, err error) {
-	f, _ := i.(http2.Frame)
-	if err != nil {
-		conn.handleError(ctx, f, err)
-		return
-	}
-	var h2s *http2.MStream
-	var endStream, hasTrailer bool
-	var data []byte
-
-	h2s, data, hasTrailer, endStream, err = conn.sc.HandleFrame(ctx, f)
-
-	if err != nil {
-		conn.handleError(ctx, f, err)
-		return
-	}
+// decode失败错误怎么处理？
+func (conn *serverStreamConnection) HandleFrame(f http2.Frame, h2s *http2.XStream, data []byte, hasTrailer, endStream bool, err error) {
+	ctx := conn.cm.Get()
+	defer conn.cm.Next()
 
 	if h2s == nil && data == nil && !hasTrailer && !endStream {
 		return
@@ -427,7 +412,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 }
 
 func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Frame, err error) {
-	conn.sc.HandleError(ctx, f, err)
+	conn.sc.HandleError(f, err)
 	if err != nil {
 		switch err := err.(type) {
 		// todo: other error scenes
@@ -455,7 +440,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 	}
 }
 
-func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
+func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.XStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
 	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
@@ -495,7 +480,7 @@ func (conn *serverStreamConnection) onStreamRecv(ctx context.Context, id uint32,
 
 type serverStream struct {
 	stream
-	h2s           *http2.MStream
+	h2s           *http2.XStream
 	sc            *serverStreamConnection
 	reqUseStream  bool
 	respUseStream bool
@@ -587,7 +572,6 @@ func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 		s.recData.CloseWithError(io.EOF)
 	}
 
-	s.h2s.Reset()
 	s.stream.ResetStream(reason)
 }
 
@@ -655,6 +639,7 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 			sc.useStream = extendConfig.Http2UseStream
 		}
 	}
+	sc.useStream = true
 
 	// init first context
 	sc.cm.Next()

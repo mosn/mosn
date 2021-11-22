@@ -23,7 +23,7 @@ import (
 	"mosn.io/mosn/pkg/module/http2"
 )
 
-func ServerProto(sc *http2.MServerConn) api.Protocol {
+func ServerProto(sc *http2.XServerConn) api.Protocol {
 	return &serverCodec{sc: sc}
 }
 
