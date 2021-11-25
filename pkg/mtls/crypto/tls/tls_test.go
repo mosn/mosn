@@ -6,6 +6,7 @@ package tls
 
 import (
 	"bytes"
+	gotls "crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var savedSupportedSignatureAlgorithmsTLS12 = supportedSignatureAlgorithmsTLS12
@@ -1084,4 +1087,38 @@ func TestBuildNameToCertificate_doesntModifyCertificates(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Certificates were mutated by BuildNameToCertificate\nGot: %#v\nWant: %#v\n", got, want)
 	}
+}
+
+func TestGetSetConnectionState(t *testing.T) {
+	cert := &x509.Certificate{}
+	state := gotls.ConnectionState{
+		Version:                     uint16(999),
+		HandshakeComplete:           true,
+		DidResume:                   false,
+		CipherSuite:                 uint16(9999),
+		NegotiatedProtocol:          "alpn",
+		NegotiatedProtocolIsMutual:  false,
+		ServerName:                  "serverName",
+		PeerCertificates:            []*x509.Certificate{cert},
+		VerifiedChains:              [][]*x509.Certificate{{cert}},
+		SignedCertificateTimestamps: [][]byte{[]byte("scts")},
+		OCSPResponse:                []byte("ocsp"),
+		TLSUnique:                   nil,
+	}
+
+	conn := &Conn{}
+	conn.SetConnectionState(state)
+	newState := conn.GetConnectionState()
+
+	assert.Equal(t, newState.Version, uint16(999))
+	assert.True(t, newState.HandshakeComplete)
+	assert.False(t, newState.DidResume)
+	assert.Equal(t, newState.CipherSuite, uint16(9999))
+	assert.Equal(t, newState.NegotiatedProtocol, "alpn")
+	assert.False(t, newState.NegotiatedProtocolIsMutual)
+	assert.Equal(t, newState.ServerName, "serverName")
+	assert.Equal(t, newState.PeerCertificates[0], cert)
+	assert.Equal(t, newState.VerifiedChains[0][0], cert)
+	assert.Equal(t, newState.SignedCertificateTimestamps[0], []byte("scts"))
+	assert.Equal(t, newState.OCSPResponse, []byte("ocsp"))
 }

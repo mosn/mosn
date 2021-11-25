@@ -22,6 +22,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	gotls "crypto/tls"
 	"crypto/x509"
@@ -199,6 +200,30 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	}
 
 	return state
+}
+
+func (c *Conn) SetConnectionState(state gotls.ConnectionState) {
+	c.handshakeMutex.Lock()
+	defer c.handshakeMutex.Unlock()
+
+	if state.HandshakeComplete {
+		atomic.StoreUint32(&c.handshakeStatus, 1)
+	} else {
+		atomic.StoreUint32(&c.handshakeStatus, 0)
+	}
+
+	c.serverName = state.ServerName
+	c.vers = state.Version
+	c.clientProtocol = state.NegotiatedProtocol
+	c.didResume = state.DidResume
+	c.clientProtocolFallback = !state.NegotiatedProtocolIsMutual
+	c.cipherSuite = state.CipherSuite
+	c.peerCertificates = state.PeerCertificates
+	c.verifiedChains = state.VerifiedChains
+	c.scts = state.SignedCertificateTimestamps
+	c.ocspResponse = state.OCSPResponse
+
+	// ignore TLSUnique
 }
 
 // GetRawConn returns network connection.
