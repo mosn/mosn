@@ -269,7 +269,7 @@ func (rsw *registerServerWrapper) Start(graceful time.Duration) {
 			}
 		}()
 		// stop grpc server when mosn process shutdown
-		keeper.OnProcessShutDown(func() error {
+		keeper.OnGracefulShutdown(func() {
 			if graceful <= 0 {
 				graceful = v2.GrpcDefaultGracefulStopTimeout // use default timeout
 			}
@@ -282,7 +282,6 @@ func (rsw *registerServerWrapper) Start(graceful time.Duration) {
 			log.DefaultLogger.Infof("[grpc networkFilter] graceful stopping grpc server: %s", rsw.ln.Addr().String())
 			rsw.server.GracefulStop()
 			log.DefaultLogger.Infof("[grpc networkFilter] graceful stoped grpc server success:  %s", rsw.ln.Addr().String())
-			return nil
 		})
 	})
 }

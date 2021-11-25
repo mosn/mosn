@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
@@ -51,6 +51,7 @@ type Mosn struct {
 	servers   []server.Server
 	xdsClient *istio.ADSClient
 	wg        sync.WaitGroup
+	stm       *StageManager
 }
 
 func NewMosn(c *v2.MOSNConfig) *Mosn {
@@ -325,8 +326,14 @@ func (m *Mosn) Start() {
 
 }
 
+// the main goroutine wait the finish signal
 func (m *Mosn) Wait() {
 	m.wg.Wait()
+}
+
+// finish, back to the main goroutine
+func (m *Mosn) Finish() {
+	m.wg.Done()
 }
 
 func (m *Mosn) Close() {
@@ -347,6 +354,4 @@ func (m *Mosn) Close() {
 	if m.Clustermanager != nil {
 		m.Clustermanager.Destroy()
 	}
-	m.wg.Done()
-
 }

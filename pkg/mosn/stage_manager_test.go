@@ -24,6 +24,7 @@ import (
 	"github.com/urfave/cli"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/server/keeper"
 )
 
 func TestStageManager(t *testing.T) {
@@ -45,7 +46,7 @@ func TestStageManager(t *testing.T) {
 			Config: c,
 		}
 	}
-
+	stm.AppendPreStartStage(DefaultPreStartStage)
 	stm.AppendParamsParsedStage(func(_ *cli.Context) {
 		testCall++
 		if testCall != 1 {
@@ -91,7 +92,7 @@ func TestStageManager(t *testing.T) {
 		stm.data.config != nil) {
 		t.Errorf("stage manager runs failed...")
 	}
-	stm.data.mosn.Close()
+	keeper.Shutdown()
 	stm.WaitFinish()
 	if !(testCall == 3 &&
 		stm.data.mosn != nil &&

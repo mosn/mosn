@@ -18,12 +18,17 @@
 package mosn
 
 import (
+	"os"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/urfave/cli"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/server/keeper"
 	logger "mosn.io/pkg/log"
 )
 
@@ -49,7 +54,8 @@ type Data struct {
 // 3. The pre-startup stage. In this stage, creates some basic instance from MOSN object.
 // 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
 // 5. The after-start stage. In this stage, do some other init actions after startup.
-// 6. The after-stop stage. In this stage, do some clean up actions after mosn closed.
+// 6. The pre-stop stage. In this stage, do graceful shutdown actions before mosn closed.
+// 7. The after-stop stage. In this stage, do some clean up actions after mosn closed.
 // The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
 // that used to startup mosn.
 type StageManager struct {
@@ -60,8 +66,11 @@ type StageManager struct {
 	preStartStages   []func(*Mosn)
 	startupStages    []func(*Mosn)
 	afterStartStages []func(*Mosn)
+	preStopStages    []func(*Mosn)
 	afterStopStages  []func(*Mosn)
 	newMosn          func(*v2.MOSNConfig) *Mosn // support unit-test
+	stopSignal       os.Signal
+	hupOnce          sync.Once
 }
 
 func NewStageManager(ctx *cli.Context, path string) *StageManager {
@@ -114,6 +123,7 @@ func (stm *StageManager) runInitStage() time.Duration {
 	}
 	// after all registered stages are completed, call the last process: new mosn
 	stm.data.mosn = stm.newMosn(stm.data.config)
+	stm.data.mosn.stm = stm
 	return time.Since(st)
 }
 
@@ -200,6 +210,24 @@ func (stm *StageManager) WaitFinish() {
 	stm.data.mosn.Wait()
 }
 
+func (stm *StageManager) AppendPreStopStage(f func(*Mosn)) *StageManager {
+	if f == nil || stm.started {
+		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
+		return stm
+	}
+	stm.preStopStages = append(stm.preStopStages, f)
+	return stm
+}
+
+// gracefull shutdown stage
+func (stm *StageManager) runPreStopStage() time.Duration {
+	st := time.Now()
+	for _, f := range stm.preStopStages {
+		f(stm.data.mosn)
+	}
+	return time.Since(st)
+}
+
 func (stm *StageManager) AppendAfterStopStage(f func(*Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -217,15 +245,47 @@ func (stm *StageManager) runAfterStopStage() time.Duration {
 	return time.Since(st)
 }
 
-// free resourse at the end
-// TODO: may introduce other stages here, like: "before-stop", "stop".
 func (stm *StageManager) Stop() {
 	if !stm.started {
 		return
 	}
 
-	elapsed := stm.runAfterStopStage()
+	var elapsed time.Duration
+	if stm.stopSignal == syscall.SIGQUIT {
+		elapsed = stm.runPreStopStage()
+		log.StartLogger.Infof("mosn pre stop stage cost: %v", elapsed)
+	}
+
+	keeper.RemovePidFile()
+	// Stop mosn
+	stm.data.mosn.Close()
+
+	// other cleanup actions
+	elapsed = stm.runAfterStopStage()
 	log.StartLogger.Infof("mosn after stop stage cost: %v", elapsed)
 
 	logger.CloseAll()
+}
+
+func (stm *StageManager) runHupReload() {
+	stm.hupOnce.Do(func() {
+		// the new started mosn will notice the current old mosn to quit
+		// after the new mosn is ready
+		server.StartNewMosn()
+	})
+}
+
+func (stm *StageManager) SignalHanler(sig os.Signal) {
+	switch sig {
+	case syscall.SIGUSR1:
+		// reopen log
+		logger.Reopen()
+	case syscall.SIGHUP:
+		stm.runHupReload()
+	default:
+		// syscall.SIGINT, syscall.SIGQUIT or syscall.SIGTERM:
+		stm.stopSignal = sig
+		// will back to the main thread
+		stm.data.mosn.Finish()
+	}
 }

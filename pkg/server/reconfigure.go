@@ -32,13 +32,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
-}
-
 var (
 	GracefulTimeout            = time.Second * 30 //default 30s
 	enableInheritOldMosnconfig = false
@@ -48,7 +41,7 @@ func EnableInheritOldMosnconfig(enable bool) {
 	enableInheritOldMosnconfig = enable
 }
 
-func startNewMosn() error {
+func StartNewMosn() error {
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
 		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
@@ -65,11 +58,7 @@ func startNewMosn() error {
 	return nil
 }
 
-func reconfigure(start bool) {
-	if start {
-		startNewMosn()
-		return
-	}
+func reconfigure() {
 	// set mosn State Passive_Reconfiguring
 	store.SetMosnState(store.Passive_Reconfiguring)
 	// if reconfigure failed, set mosn state to Running
@@ -132,10 +121,8 @@ func reconfigure(start bool) {
 
 	log.DefaultLogger.Infof("[server] [reconfigure] process %d gracefully shutdown", os.Getpid())
 
-	keeper.ExecuteShutdownCallbacks("")
-
-	// Stop the old server, all the connections have been closed and the new one is running
-	os.Exit(0)
+	// stop the current old mosn
+	keeper.Shutdown()
 }
 
 func ReconfigureHandler() {
@@ -173,7 +160,7 @@ func ReconfigureHandler() {
 		}
 		uc.Close()
 
-		reconfigure(false)
+		reconfigure()
 	}
 }
 
