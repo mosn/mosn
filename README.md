@@ -199,7 +199,7 @@ Visit the [MOSN website](https://mosn.io/docs/community/) for more information o
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## Community meeting

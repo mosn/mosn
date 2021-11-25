@@ -198,7 +198,7 @@ MOSN 社区积极拥抱开源生态，与以下开源社区建立了良好的合
 
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## 社区会议
