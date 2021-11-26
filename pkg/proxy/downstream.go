@@ -732,6 +732,11 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) 
 		configProtocol = s.route.RouteRule().UpstreamProtocol()
 	}
 
+	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
+	if proto, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(string); ok {
+		configProtocol = proto
+	}
+
 	// Auto means same as downstream protocol
 	if configProtocol == string(protocol.Auto) {
 		currentProtocol = s.getDownstreamProtocol()
@@ -1374,6 +1379,11 @@ func (s *downStream) doRetry() {
 	host, pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
+		// https://github.com/mosn/mosn/issues/1750
+		if s.upstreamRequest != nil {
+			s.upstreamRequest.setupRetry = false
+		}
+
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
@@ -1648,9 +1658,6 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.upstreamRequest != nil && s.upstreamRequest.setupRetry {
-		// https://github.com/mosn/mosn/issues/1750
-		s.upstreamRequest.setupRetry = false
-
 		phase = types.Retry
 		err = types.ErrExit
 		return

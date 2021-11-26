@@ -178,6 +178,9 @@ func ReconfigureHandler() {
 }
 
 func StopReconfigureHandler() {
+	if store.GetMosnState() == store.Passive_Reconfiguring {
+		return
+	}
 	syscall.Unlink(types.ReconfigureDomainSocket)
 }
 

@@ -54,7 +54,7 @@ const errMsgFmt = `{
 
 func Help(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	buf.WriteString("support apis:\n")
+	buf.WriteString("supported APIs:\n")
 	for key := range apiHandlerStore {
 		if key != "/" { // do not show this pages
 			buf.WriteString(key)

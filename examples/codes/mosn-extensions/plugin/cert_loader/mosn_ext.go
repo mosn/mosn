@@ -11,6 +11,8 @@ import (
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/plugin/proto"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func init() {
@@ -82,4 +84,12 @@ func (h *hooks) ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, v
 
 func (h *hooks) ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return nil
+}
+
+func (h *hooks) GenerateHashValue(cfg *tls.Config) *types.HashValue {
+	return nil
+}
+
+func (h *hooks) GetClientAuth(cfg *v2.TLSConfig) tls.ClientAuthType {
+	return tls.NoClientCert
 }
