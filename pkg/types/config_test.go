@@ -31,7 +31,7 @@ func TestInitDefaultPath(t *testing.T) {
 	os.RemoveAll(testPath)
 	testConfigPath := path.Join(testPath, "testfile.json")
 	// test
-	InitDefaultPath(testConfigPath)
+	InitDefaultPath(testConfigPath, "")
 	// verify
 	// if config is /tmp/mosn_defaulta/conf/config.json
 	// the log should in /tmp/mosn_default/logs/*
@@ -41,12 +41,12 @@ func TestInitDefaultPath(t *testing.T) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
 	}
 	// invalid config should not changed the value
-	InitDefaultPath("")
+	InitDefaultPath("", "")
 	if !(MosnLogBasePath == path.Join("/tmp/mosn_default", "logs") &&
 		MosnConfigPath == path.Join(testPath)) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
 	}
-	InitDefaultPath("/tmp")
+	InitDefaultPath("/tmp", "")
 	if !(MosnLogBasePath == path.Join("/tmp/mosn_default", "logs") &&
 		MosnConfigPath == path.Join(testPath)) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
@@ -55,33 +55,32 @@ func TestInitDefaultPath(t *testing.T) {
 	os.RemoveAll(testPath)
 }
 
-
 func TestInitUDSDir(t *testing.T) {
 	ReconfigureDomainSocket = "/home/admin/mosn/conf/reconfig.sock"
 	testCases := []struct {
 		name         string
-		udsDir       string
+		UDSDir       string
 		expectedPath string
 	}{
 		{
 			name:         "empty_dir",
-			udsDir:       "",
+			UDSDir:       "",
 			expectedPath: "/home/admin/mosn/conf/reconfig.sock",
 		},
 		{
 			name:         "normal_dir",
-			udsDir:       "/tmp/mosn/socks",
+			UDSDir:       "/tmp/mosn/socks",
 			expectedPath: "/tmp/mosn/socks/reconfig.sock",
 		},
 		{
 			name:         "multiple_separator",
-			udsDir:       "/tmp//mosn/sock//",
+			UDSDir:       "/tmp//mosn/sock//",
 			expectedPath: "/tmp/mosn/sock/reconfig.sock",
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			InitUDSDir(testCase.udsDir)
+			InitDefaultPath("/tmp/mosn/conf", testCase.UDSDir)
 			if ReconfigureDomainSocket != testCase.expectedPath {
 				t.Errorf("expected path: %s, got: %s", testCase.expectedPath, ReconfigureDomainSocket)
 			}
