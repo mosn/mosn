@@ -68,7 +68,6 @@ func (t *TranscoderGoPlugin) CreateTranscoder() {
 }
 
 func OnTranscoderPluginParsed(data json.RawMessage) error {
-	// 实现SO的解析、与Transcoder的注册
 	cfg := &transcodeGoPluginConfig{}
 	json.Unmarshal(data, cfg)
 	if cfg.Transcoders != nil {

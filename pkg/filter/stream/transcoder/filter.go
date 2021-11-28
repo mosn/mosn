@@ -36,8 +36,6 @@ type transcodeFilter struct {
 
 	receiveHandler api.StreamReceiverFilterHandler
 	sendHandler    api.StreamSenderFilterHandler
-
-	listenerName string
 }
 
 func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
@@ -46,9 +44,8 @@ func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
 	}
 
 	return &transcodeFilter{
-		ctx:          ctx,
-		cfg:          cfg,
-		listenerName: mosnctx.Get(ctx, types.ContextKeyListenerName).(string),
+		ctx: ctx,
+		cfg: cfg,
 	}
 }
 
