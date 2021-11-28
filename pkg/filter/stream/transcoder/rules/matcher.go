@@ -19,31 +19,11 @@ package rules
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-const SimpleMatcher = "simpleMatcher"
-
-type TransferMatcher interface {
-	Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool
-}
-
-type simpleMatcher struct {
-}
-
-//This is a simple TransferMatcher that only matches headers exactly, you can define more complex Matcher
-func (m *simpleMatcher) Matches(ctx context.Context, headers types.HeaderMap, config *MatcherConfig) bool {
-
-	if config.Headers != nil {
-		for _, header := range config.Headers {
-			h, _ := headers.Get(header.Name)
-			if header.Value != h {
-				return false
-			}
-		}
-	}
-	return true
+type RuleMatcher interface {
+	Matches(ctx context.Context, headers types.HeaderMap) bool
 }
 
 type TransferRuleConfig struct {
@@ -52,48 +32,19 @@ type TransferRuleConfig struct {
 }
 
 type MatcherConfig struct {
-	Headers   []HeaderMatcher   `json:"headers,omitempty"`
-	Variables []VariableMatcher `json:"variables,omitempty"`
-}
-
-// HeaderMatcher specifies a set of headers that the rule should match on.
-type HeaderMatcher struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-	Regex bool   `json:"regex,omitempty"`
-}
-
-// VariableMatcher specifies a set of variables that the rule should match on.
-type VariableMatcher struct {
-	Name     string `json:"name,omitempty"`
-	Value    string `json:"value,omitempty"`
-	Regex    bool   `json:"regex,omitempty"`
-	Operator string `json:"operator,omitempty"` // support && and || operator
+	MatcherType string
+	Config      interface{}
 }
 
 type RuleInfo struct {
+	Type                string
 	UpstreamProtocol    string                 `json:"upstream_protocol"`
 	UpstreamSubProtocol string                 `json:"upstream_sub_protocol"`
 	Description         string                 `json:"description"`
 	Config              map[string]interface{} `json:"config"`
 }
 
-func (tf *TransferRuleConfig) Matches(ctx context.Context, headers types.HeaderMap, matcherType string) (*RuleInfo, bool) {
-
-	if tf.MatcherConfig == nil {
-		log.DefaultLogger.Infof("[stream filter][transcoder][rules]matcher config is empty")
-		return nil, false
-	}
-
-	matcher := GetMatcher(matcherType)
-	if matcher == nil {
-		log.DefaultLogger.Errorf("[stream filter][transcoder][rules]matcher is empty")
-		return nil, false
-	}
-
-	result := matcher.Matches(ctx, headers, tf.MatcherConfig)
-	if result {
-		return tf.RuleInfo, result
-	}
-	return nil, false
+type TransferRule struct {
+	Macther  RuleMatcher
+	RuleInfo *RuleInfo
 }

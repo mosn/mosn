@@ -18,10 +18,16 @@
 package transcoder
 
 import (
+	"encoding/json"
 	"mosn.io/api/extensions/transcoder"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	goplugin "plugin"
 )
+
+func init() {
+	v2.RegisterParseExtendConfig("transcoder_plugin", OnTranscoderPluginParsed)
+}
 
 type TranscoderGoPlugin struct {
 	SrcPro string `json:"src_protocol,omitempty"`
@@ -29,7 +35,7 @@ type TranscoderGoPlugin struct {
 	SoPath string `json:"so_path,omitempty"`
 }
 
-func (t *TranscoderGoPlugin) CreateTranscoder(listenerName string) {
+func (t *TranscoderGoPlugin) CreateTranscoder() {
 
 	if t.SrcPro == "" || t.DstPro == "" || t.SoPath == "" {
 		log.DefaultLogger.Errorf("[stream filter][transcoder] config could not be found, srcPro: %s,"+
@@ -37,7 +43,7 @@ func (t *TranscoderGoPlugin) CreateTranscoder(listenerName string) {
 		return
 	}
 
-	name := listenerName + "_" + t.SrcPro + "_" + t.DstPro
+	name := t.SrcPro + "_" + t.DstPro
 
 	if GetTranscoder(name) != nil {
 		return
@@ -59,4 +65,16 @@ func (t *TranscoderGoPlugin) CreateTranscoder(listenerName string) {
 	transcoderSo := loadFunc()
 
 	MustRegister(name, transcoderSo)
+}
+
+func OnTranscoderPluginParsed(data json.RawMessage) error {
+	// 实现SO的解析、与Transcoder的注册
+	cfg := &transcodeGoPluginConfig{}
+	json.Unmarshal(data, cfg)
+	if cfg.Transcoders != nil {
+		for _, transcoder := range cfg.Transcoders {
+			transcoder.CreateTranscoder()
+		}
+	}
+	return nil
 }

@@ -18,26 +18,32 @@
 package rules
 
 import (
+	"context"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 )
 
-type MatcherFactory func(config interface{}) RuleMatcher
-
-// macther factory
-var mactherFactoryMaps = make(map[string]MatcherFactory)
-
-func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
-	if mactherFactoryMaps[typ] != nil {
-		log.DefaultLogger.Fatalf("[stream filter][transcoder][rules]target stream matcher already exists: %s", typ)
-	}
-	mactherFactoryMaps[typ] = factory
+func init() {
+	MustRegister(DefaultMatches)
 }
 
-func NewMatcher(cfg *MatcherConfig) RuleMatcher {
-	mf := mactherFactoryMaps[cfg.MatcherType]
-	if mf == nil {
-		log.DefaultLogger.Errorf("[stream filter][transcoder][rules]target stream matcher not exists: %s", cfg.MatcherType)
-		return nil
+var TransCoderMatches func(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool)
+
+func MustRegister(matches func(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool)) {
+	TransCoderMatches = matches
+}
+
+func DefaultMatches(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool) {
+	for _, rule := range rules {
+		if rule.Macther == nil {
+			continue
+		}
+		if rule.Macther.Matches(ctx, header) {
+			return rule.RuleInfo, true
+		}
 	}
-	return mf(cfg.Config)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream filter][transcoder] no match, rules %+v", rules)
+	}
+	return nil, false
 }

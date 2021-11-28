@@ -15,29 +15,30 @@
  * limitations under the License.
  */
 
-package rules
+package simplematcher
 
 import (
-	"mosn.io/mosn/pkg/log"
+	"context"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
+	"mosn.io/mosn/pkg/types"
 )
 
-type MatcherFactory func(config interface{}) RuleMatcher
+const SimpleMatcherFactoryKey = "SimpleMatcher"
 
-// macther factory
-var mactherFactoryMaps = make(map[string]MatcherFactory)
-
-func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
-	if mactherFactoryMaps[typ] != nil {
-		log.DefaultLogger.Fatalf("[stream filter][transcoder][rules]target stream matcher already exists: %s", typ)
-	}
-	mactherFactoryMaps[typ] = factory
+func init() {
+	rules.RegisterMatcherFatcory(SimpleMatcherFactoryKey, SimpleMatcherFactory)
 }
 
-func NewMatcher(cfg *MatcherConfig) RuleMatcher {
-	mf := mactherFactoryMaps[cfg.MatcherType]
-	if mf == nil {
-		log.DefaultLogger.Errorf("[stream filter][transcoder][rules]target stream matcher not exists: %s", cfg.MatcherType)
-		return nil
+type SimpleRuleMatcher struct {
+	config interface{}
+}
+
+func (hrm *SimpleRuleMatcher) Matches(ctx context.Context, headers types.HeaderMap) bool {
+	return true
+}
+
+func SimpleMatcherFactory(config interface{}) rules.RuleMatcher {
+	return &SimpleRuleMatcher{
+		config: config,
 	}
-	return mf(cfg.Config)
 }
