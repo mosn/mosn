@@ -20,7 +20,7 @@ package transcoder
 import (
 	"context"
 	"mosn.io/api/extensions/transcoder"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"net/http"
 
