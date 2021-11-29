@@ -20,7 +20,7 @@ package simplematcher
 import (
 	"context"
 	"github.com/valyala/fasthttp"
-	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/protocol/http"
 	"reflect"
 	"testing"
@@ -28,9 +28,9 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func TestRuleMatches(t *testing.T) {
+func TestSimpleMatcher(t *testing.T) {
 	type fields struct {
-		Macther rules.RuleMatcher
+		Macther matcher.RuleMatcher
 	}
 	type args struct {
 		ctx     context.Context
@@ -40,14 +40,14 @@ func TestRuleMatches(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   rules.RuleMatcher
+		want   matcher.RuleMatcher
 		want1  bool
 	}{
 		{
-			name: "TestRuleMatches_match",
+			name: "TestSimpleMatcher_match",
 			fields: fields{
-				Macther: rules.NewMatcher(&rules.MatcherConfig{
-					MatcherType: "SimpleMatcher",
+				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+					MatcherType: "simpleMatcher",
 				}),
 			},
 			args: args{
@@ -58,10 +58,10 @@ func TestRuleMatches(t *testing.T) {
 			want1: true,
 		},
 		{
-			name: "TestTRuleMatches_no_match",
+			name: "TestSimpleMatcher_no_match",
 			fields: fields{
-				Macther: rules.NewMatcher(&rules.MatcherConfig{
-					MatcherType: "SimpleMatcher2",
+				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+					MatcherType: "simpleMatcher2",
 				}),
 			},
 			args: args{
@@ -94,18 +94,18 @@ func TestDefaultMatches(t *testing.T) {
 	}
 	tests := []struct {
 		name  string
-		rules []*rules.TransferRule
+		rules []*matcher.TransferRule
 		args  args
-		want  *rules.RuleInfo
+		want  *matcher.RuleInfo
 		want1 bool
 	}{
 		{
-			name: "TestRuleMatches_match",
-			rules: []*rules.TransferRule{{
-				Macther: rules.NewMatcher(&rules.MatcherConfig{
+			name: "TestDefaultMatches_match",
+			rules: []*matcher.TransferRule{{
+				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "SimpleMatcher",
 				}),
-				RuleInfo: &rules.RuleInfo{
+				RuleInfo: &matcher.RuleInfo{
 					UpstreamProtocol: "a",
 				},
 			},
@@ -114,7 +114,7 @@ func TestDefaultMatches(t *testing.T) {
 				ctx:     context.Background(),
 				headers: buildHttpRequestHeaders(map[string]string{"serviceCode": "dsr"}),
 			},
-			want: &rules.RuleInfo{
+			want: &matcher.RuleInfo{
 				UpstreamProtocol: "a",
 			},
 			want1: true,
@@ -122,7 +122,7 @@ func TestDefaultMatches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := rules.DefaultMatches(tt.args.ctx, tt.args.headers, tt.rules)
+			got, got1 := matcher.DefaultMatches(tt.args.ctx, tt.args.headers, tt.rules)
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("Matches() got = %v, want %v", got1, tt.want1)
 			}

@@ -15,36 +15,30 @@
  * limitations under the License.
  */
 
-package rules
+package simplematcher
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/types"
 )
 
-type RuleMatcher interface {
-	Matches(ctx context.Context, headers types.HeaderMap) bool
+const SimpleMatcherFactoryKey = "simpleMatcher"
+
+func init() {
+	matcher.RegisterMatcherFatcory(SimpleMatcherFactoryKey, SimpleMatcherFactory)
 }
 
-type TransferRuleConfig struct {
-	MatcherConfig *MatcherConfig `json:"macther_config"`
-	RuleInfo      *RuleInfo      `json:"rule_info"`
+type SimpleRuleMatcher struct {
+	config interface{}
 }
 
-type MatcherConfig struct {
-	MatcherType string
-	Config      interface{}
+func (hrm *SimpleRuleMatcher) Matches(ctx context.Context, headers types.HeaderMap) bool {
+	return true
 }
 
-type RuleInfo struct {
-	Type                string
-	UpstreamProtocol    string                 `json:"upstream_protocol"`
-	UpstreamSubProtocol string                 `json:"upstream_sub_protocol"`
-	Description         string                 `json:"description"`
-	Config              map[string]interface{} `json:"config"`
-}
-
-type TransferRule struct {
-	Macther  RuleMatcher
-	RuleInfo *RuleInfo
+func SimpleMatcherFactory(config interface{}) matcher.RuleMatcher {
+	return &SimpleRuleMatcher{
+		config: config,
+	}
 }

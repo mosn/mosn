@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package rules
+package matcher
 
 import (
 	"mosn.io/mosn/pkg/log"
@@ -28,7 +28,7 @@ var mactherFactoryMaps = make(map[string]MatcherFactory)
 
 func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
 	if mactherFactoryMaps[typ] != nil {
-		log.DefaultLogger.Fatalf("[stream filter][transcoder][rules]target stream matcher already exists: %s", typ)
+		log.DefaultLogger.Fatalf("[stream filter][transcoder][matcher]target stream matcher already exists: %s", typ)
 	}
 	mactherFactoryMaps[typ] = factory
 }
@@ -36,7 +36,7 @@ func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
 func NewMatcher(cfg *MatcherConfig) RuleMatcher {
 	mf := mactherFactoryMaps[cfg.MatcherType]
 	if mf == nil {
-		log.DefaultLogger.Errorf("[stream filter][transcoder][rules]target stream matcher not exists: %s", cfg.MatcherType)
+		log.DefaultLogger.Errorf("[stream filter][transcoder][matcher]target stream matcher not exists: %s", cfg.MatcherType)
 		return nil
 	}
 	return mf(cfg.Config)

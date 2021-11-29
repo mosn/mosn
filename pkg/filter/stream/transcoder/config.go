@@ -20,15 +20,15 @@ package transcoder
 import (
 	"encoding/json"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/simplematcher"
 )
 
 type config struct {
-	Type        string `json:"type,omitempty"`
-	Rules       []*rules.TransferRule
-	Trans       map[string]interface{}      `json:"trans,omitempty"`
-	RuleConfigs []*rules.TransferRuleConfig `json:"rules,omitempty"`
+	Type        string                        `json:"type,omitempty"`
+	Rules       []*matcher.TransferRule       `json:"-"`
+	Trans       map[string]interface{}        `json:"trans,omitempty"`
+	RuleConfigs []*matcher.TransferRuleConfig `json:"rules,omitempty"`
 }
 
 type transcodeGoPluginConfig struct {
@@ -57,16 +57,16 @@ func parseConfig(cfg interface{}) (*config, error) {
 		return nil, err
 	}
 	for _, rc := range filterConfig.RuleConfigs {
-		filterConfig.Rules = append(filterConfig.Rules, &rules.TransferRule{
-			Macther:  rules.NewMatcher(rc.MatcherConfig),
+		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
+			Macther:  matcher.NewMatcher(rc.MatcherConfig),
 			RuleInfo: rc.RuleInfo,
 		})
 	}
 
 	if filterConfig.Type != "" {
-		filterConfig.Rules = append(filterConfig.Rules, &rules.TransferRule{
+		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
 			Macther: &simplematcher.SimpleRuleMatcher{},
-			RuleInfo: &rules.RuleInfo{
+			RuleInfo: &matcher.RuleInfo{
 				Type: filterConfig.Type,
 			},
 		})

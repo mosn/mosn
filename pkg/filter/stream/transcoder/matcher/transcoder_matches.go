@@ -15,30 +15,37 @@
  * limitations under the License.
  */
 
-package simplematcher
+package matcher
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/filter/stream/transcoder/rules"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 )
 
-const SimpleMatcherFactoryKey = "SimpleMatcher"
-
 func init() {
-	rules.RegisterMatcherFatcory(SimpleMatcherFactoryKey, SimpleMatcherFactory)
+	MustRegister(DefaultMatches)
 }
 
-type SimpleRuleMatcher struct {
-	config interface{}
+type TransCoderMatchesFunc func(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool)
+
+var TransCoderMatches TransCoderMatchesFunc
+
+func MustRegister(matches TransCoderMatchesFunc) {
+	TransCoderMatches = matches
 }
 
-func (hrm *SimpleRuleMatcher) Matches(ctx context.Context, headers types.HeaderMap) bool {
-	return true
-}
-
-func SimpleMatcherFactory(config interface{}) rules.RuleMatcher {
-	return &SimpleRuleMatcher{
-		config: config,
+func DefaultMatches(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool) {
+	for _, rule := range rules {
+		if rule.Macther == nil {
+			continue
+		}
+		if rule.Macther.Matches(ctx, header) {
+			return rule.RuleInfo, true
+		}
 	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream filter][transcoder] no match, matcher %+v", rules)
+	}
+	return nil, false
 }
