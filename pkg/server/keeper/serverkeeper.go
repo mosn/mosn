@@ -23,10 +23,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 
+	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
+	logger "mosn.io/pkg/log"
 	"mosn.io/pkg/utils"
 )
 
@@ -36,8 +39,9 @@ func init() {
 
 var (
 	pidFile                  string
-	signalHandler            func(os.Signal)
+	finisher                 func(store.State)
 	gracefulShutdownRegister func(func())
+	hupOnce                  sync.Once
 )
 
 func SetPid(pid string) {
@@ -79,7 +83,7 @@ func catchSignalsCrossPlatform() {
 		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGUSR1)
 
 		for sig := range sigchan {
-			signalReceiver(sig)
+			signalHandler(sig)
 		}
 	}, nil)
 }
@@ -90,17 +94,30 @@ func catchSignalsPosix() {
 		signal.Notify(shutdown, os.Interrupt)
 
 		sig := <-shutdown
-		signalReceiver(sig)
+		signalHandler(sig)
 	}, nil)
 }
 
-func signalReceiver(sig os.Signal) {
+func signalHandler(sig os.Signal) {
 	log.DefaultLogger.Debugf("signal %s received!", sig)
-	if signalHandler == nil {
-		log.DefaultLogger.Alertf("keeper.signalHandler", "signalHandler is not set yet")
+	// syscall.SIGQUIT, syscall.SIGINT/os.Interrupt or syscall.SIGTERM:
+	if finisher == nil {
+		log.DefaultLogger.Alertf("keeper.finisher", "finisher is not set yet")
 		return
 	}
-	signalHandler(sig)
+	switch sig {
+	case syscall.SIGUSR1:
+		// reopen log
+		logger.Reopen()
+	case syscall.SIGHUP:
+		finisher(store.Active_Reconfiguring)
+	case syscall.SIGQUIT:
+		// stop mosn gracefully
+		finisher(store.GracefulQuitting)
+	default:
+		// stop mosn
+		finisher(store.Quitting)
+	}
 }
 
 // add callback to stagemanager's pre-stop stage
@@ -113,8 +130,8 @@ func OnGracefulShutdown(cb func()) {
 	gracefulShutdownRegister(cb)
 }
 
-func RegisterSignalHandler(h func(os.Signal)) {
-	signalHandler = h
+func RegisterFinisher(f func(store.State)) {
+	finisher = f
 }
 
 func SetGracefulShutdownRegister(r func(func())) {
@@ -124,9 +141,10 @@ func SetGracefulShutdownRegister(r func(func())) {
 // start the processes to stop the current mosn
 func Shutdown() {
 	log.DefaultLogger.Debugf("stop mosn by using a fake INT signal")
-	if signalHandler == nil {
-		log.DefaultLogger.Alertf("keeper.signalHandler", "signalHandler is not set yet")
+	if finisher == nil {
+		log.DefaultLogger.Alertf("keeper.finisher", "finisher is not set yet")
 		return
 	}
-	signalHandler(os.Interrupt)
+	// stop mosn
+	finisher(store.Quitting)
 }

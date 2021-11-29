@@ -18,9 +18,8 @@
 package mosn
 
 import (
-	"os"
-
 	admin "mosn.io/mosn/pkg/admin/server"
+	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/server/keeper"
@@ -43,8 +42,8 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 func DefaultPreStartStage(m *Mosn) {
 	// the signals SIGKILL and SIGSTOP may not be caught by a program,
 	// so we need other ways to ensure that resources are safely cleaned up
-	keeper.RegisterSignalHandler(func(sig os.Signal) {
-		m.stm.SignalHanler(sig)
+	keeper.RegisterFinisher(func(state store.State) {
+		m.stm.Finisher(state)
 	})
 	// make keeper.OnGracefulShutdown usable
 	keeper.SetGracefulShutdownRegister(func(cb func()) {

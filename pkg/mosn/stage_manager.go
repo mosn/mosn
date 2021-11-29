@@ -18,12 +18,11 @@
 package mosn
 
 import (
-	"os"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/urfave/cli"
+	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
@@ -69,7 +68,6 @@ type StageManager struct {
 	preStopStages    []func(*Mosn)
 	afterStopStages  []func(*Mosn)
 	newMosn          func(*v2.MOSNConfig) *Mosn // support unit-test
-	stopSignal       os.Signal
 	hupOnce          sync.Once
 }
 
@@ -251,7 +249,7 @@ func (stm *StageManager) Stop() {
 	}
 
 	var elapsed time.Duration
-	if stm.stopSignal == syscall.SIGQUIT {
+	if store.GetMosnState() == store.GracefulQuitting {
 		elapsed = stm.runPreStopStage()
 		log.StartLogger.Infof("mosn pre stop stage cost: %v", elapsed)
 	}
@@ -275,17 +273,14 @@ func (stm *StageManager) runHupReload() {
 	})
 }
 
-func (stm *StageManager) SignalHanler(sig os.Signal) {
-	switch sig {
-	case syscall.SIGUSR1:
-		// reopen log
-		logger.Reopen()
-	case syscall.SIGHUP:
+func (stm *StageManager) Finisher(state store.State) {
+	store.SetMosnState(state)
+
+	if state == store.Active_Reconfiguring {
 		stm.runHupReload()
-	default:
-		// syscall.SIGINT, syscall.SIGQUIT or syscall.SIGTERM:
-		stm.stopSignal = sig
-		// will back to the main thread
-		stm.data.mosn.Finish()
+		return
 	}
+
+	// go back to the main goroutine
+	stm.data.mosn.Finish()
 }

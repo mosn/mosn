@@ -31,6 +31,8 @@ const (
 	Running
 	Active_Reconfiguring
 	Passive_Reconfiguring
+	GracefulQuitting
+	Quitting
 )
 
 func init() {
