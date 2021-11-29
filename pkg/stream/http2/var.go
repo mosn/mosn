@@ -24,10 +24,9 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (
@@ -35,24 +34,26 @@ var (
 	cookieIndex = len(types.VarPrefixHttp2Cookie)
 
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(types.VarHttp2RequestScheme, nil, schemeGetter, nil, 0),
+		variable.NewStringVariable(types.VarHttp2RequestScheme, nil, schemeGetter, nil, 0),
+		variable.NewVariable(types.VarHttp2RequestUseStream, nil, nil, variable.DefaultSetter, 0),
+		variable.NewVariable(types.VarHttp2ResponseUseStream, nil, nil, variable.DefaultSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0),
-		variable.NewBasicVariable(types.VarPrefixHttp2Cookie, nil, cookieGetter, nil, 0),
+		variable.NewStringVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0),
+		variable.NewStringVariable(types.VarPrefixHttp2Cookie, nil, cookieGetter, nil, 0),
 	}
 )
 
 func init() {
 	// register built-in variables
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 
 	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
 	for idx := range prefixVariables {
-		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+		variable.RegisterPrefix(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
 
 	// register protocol resource
@@ -62,7 +63,7 @@ func init() {
 }
 
 func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	scheme, err := variable.GetVariableValue(ctx, types.VarScheme)
+	scheme, err := variable.GetString(ctx, types.VarScheme)
 	if err != nil || scheme == "" {
 		return variable.ValueNotFound, nil
 	}

@@ -20,7 +20,7 @@ package types
 // ContextKey type
 type ContextKey int
 
-// Context key types(built-in)
+// Context key types(built-in), only used in mosn context package
 const (
 	ContextKeyStreamID ContextKey = iota
 	ContextKeyConnection
@@ -45,6 +45,7 @@ const (
 	ContextKeyVariables
 	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
+	ContextKeyUpStreamProtocol
 	ContextKeyConfigDownStreamProtocol
 	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders

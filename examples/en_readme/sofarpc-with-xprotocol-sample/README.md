@@ -18,7 +18,7 @@ go build
 + examples code path
 
 ```
-${targetpath} = ${projectpath}/examples/codes/sofarpc-sample/
+${targetpath} = ${projectpath}/examples/codes/sofarpc-with-xprotocol-sample/
 ```
 
 + Move the target to example code path

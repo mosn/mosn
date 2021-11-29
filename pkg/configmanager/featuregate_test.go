@@ -112,8 +112,8 @@ func TestFeatureDump(t *testing.T) {
 			RouterConfigName: "test_router_2",
 			RouterConfigPath: "/tmp/routers/test_router_2/",
 		},
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
+			v2.VirtualHost{
 				Name:    "virtualhost_1",
 				Domains: []string{"*"},
 			},
@@ -124,8 +124,8 @@ func TestFeatureDump(t *testing.T) {
 			RouterConfigName: "test_router",
 			RouterConfigPath: "/tmp/routers/test_router/",
 		},
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
+			v2.VirtualHost{
 				Name:    "virtualhost_0",
 				Domains: []string{"*"},
 			},
@@ -199,7 +199,7 @@ func TestFeatureDump(t *testing.T) {
 	if !(fromFile.Debug.StartDebug &&
 		fromFile.Tracing.Enable &&
 		fromFile.Metrics.StatsMatcher.RejectAll &&
-		fromFile.GetAdmin().GetAddress().GetSocketAddress().GetAddress() == "127.0.0.1") {
+		fromFile.GetAdmin().GetAddress() == "127.0.0.1") {
 		t.Fatalf("basic server config is not dumped, %+v", fromFile)
 
 	}

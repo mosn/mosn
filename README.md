@@ -148,6 +148,48 @@ The MOSN users. Please [leave a comment here](https://github.com/mosn/community/
 </table>
 </div>
 
+## Ecosystem
+
+The MOSN community actively embraces the open source ecosystem and has established good relationships with the following open source communities.
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://istio.io/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/istio.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://skywalking.apache.org/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/skywalking.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://github.com/apache/dubbo-go" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/dubbo-go.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://sentinelguard.io/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/sentinel.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.sofastack.tech/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/sofastack.png">
+        </a>
+      </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 ## Community
 
 See our community materials on <https://github.com/mosn/community>.
@@ -157,7 +199,7 @@ Visit the [MOSN website](https://mosn.io/docs/community/) for more information o
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## Community meeting

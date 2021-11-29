@@ -172,7 +172,8 @@ func (l *listener) acceptEventLoop(lctx context.Context) {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
 				return
-			} else if ope, ok := err.(*net.OpError); ok {
+			}
+			if ope, ok := err.(*net.OpError); ok {
 				// not timeout error and not temporary, which means the error is non-recoverable
 				// stop accepting loop and log the event
 				if !(ope.Timeout() && ope.Temporary()) {
@@ -203,7 +204,7 @@ func (l *listener) Stop() error {
 	if !l.bindToPort {
 		return nil
 	}
-
+	l.cb.OnClose()
 	var err error
 	switch l.network {
 	case "udp":

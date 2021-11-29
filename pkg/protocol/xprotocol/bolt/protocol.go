@@ -123,7 +123,7 @@ func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 }
 
 // Heartbeater
-func (proto *boltProtocol) Trigger(requestId uint64) api.XFrame {
+func (proto *boltProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
 			Protocol:  ProtocolCode,
@@ -137,7 +137,7 @@ func (proto *boltProtocol) Trigger(requestId uint64) api.XFrame {
 	}
 }
 
-func (proto *boltProtocol) Reply(request api.XFrame) api.XRespFrame {
+func (proto *boltProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -152,7 +152,7 @@ func (proto *boltProtocol) Reply(request api.XFrame) api.XRespFrame {
 }
 
 // Hijacker
-func (proto *boltProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *boltProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -185,6 +185,10 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	case api.TimeoutExceptionCode:
 		//Response Timeout
 		return uint32(ResponseStatusTimeout)
+	case api.PermissionDeniedCode:
+		//Response Permission Denied
+		// bolt protocol do not have a permission deny code, use server exception
+		return uint32(ResponseStatusServerException)
 	default:
 		return uint32(ResponseStatusUnknown)
 	}

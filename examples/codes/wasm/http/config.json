@@ -24,7 +24,7 @@
       ],
       "listeners": [
         {
-          "address": "127.0.0.1:2045",
+          "address": "0.0.0.0:2045",
           "bind_port": true,
           "filter_chains": [
             {
@@ -47,7 +47,7 @@
                 "instance_num": 1,
                 "vm_config": {
                   "engine": "wasmer",
-                  "path": "./filter.wasm"
+                  "path": "/etc/wasm/filter.wasm"
                 }
               }
             }

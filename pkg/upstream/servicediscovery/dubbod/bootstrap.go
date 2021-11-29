@@ -23,10 +23,10 @@ import (
 	"path"
 
 	"github.com/go-chi/chi"
-	dubbologger "github.com/mosn/registry/dubbo/common/logger"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	routerAdapter "mosn.io/mosn/pkg/router"
+	dubbologger "mosn.io/pkg/registry/dubbo/common/logger"
 	"mosn.io/pkg/utils"
 )
 
@@ -125,7 +125,7 @@ func initRouterManager() {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: dubboRouterConfigName,
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    dubboRouterConfigName,
 				Domains: []string{"*"},

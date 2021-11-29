@@ -1,7 +1,8 @@
 SHELL = /bin/bash
 
 IMAGE_NAME      = mosn
-MOSN_VERSION   = $(shell cat ../../VERSION)
+MOSN_VERSION    = $(shell cat ../../VERSION)
+ISTIO_VERSION   = $(shell cat ../../ISTIO_VERSION)
 IMAGE_NAME_ENVOY_SDK = mosn-network-envoy-sdk
 IMAGE_NAME_MOSN_NETWORK_ENVOY = mosn-network-on-envoy
 MOSNIOHUB = mosnio
@@ -15,6 +16,7 @@ PROJECT_NAME_NETWORKDIR = ${PROJECT_NAME}/pkg/networkextention
 build-l7:
 	@rm -rf ${TARGET}
 	mkdir -p ${TARGET}
+	make istio-${ISTIO_VERSION}  
 	cp l7/api/api.h ${TARGET}/
 	gcc -c ./l7/api/callback.c  -o ${TARGET}/callback.o
 	ar cru -o ${TARGET}/libcallback.a ${TARGET}/callback.o
@@ -23,14 +25,13 @@ build-l7:
 	CGO_CFLAGS="-I$(shell pwd)/${TARGET}/" \
 	CGO_LDFLAGS="-L$(shell pwd)/${TARGET}/ -Wl,-all_load -lcallback -Wl,-noall_load -Wl,-m" \
 	CGO_LDFLAGS_ALLOW=".*" GODEBUG=cgocheck=1 go build -tags mosn_debug -buildmode=c-shared \
-		-v -o ${TARGET}/golang_extention.so ./main.go l7_golang_extention.go
+		-v -o ${TARGET}/golang_extention.so ./main.go istio.go l7_golang_extention.go
         else
 	CGO_CFLAGS="-I$(shell pwd)/${TARGET}/" \
 	CGO_LDFLAGS="-L$(shell pwd)/${TARGET}/ -Wl,-whole-archive -lcallback -Wl,-no-whole-archive -Wl,--allow-multiple-definition" \
 	CGO_LDFLAGS_ALLOW=".*" GODEBUG=cgocheck=1 go build -tags mosn_debug -buildmode=c-shared \
-		-v -o ${TARGET}/golang_extention.so ./main.go l7_golang_extention.go
+		-v -o ${TARGET}/golang_extention.so ./main.go istio.go l7_golang_extention.go
         endif
-
 
 # build mosn on envoy image
 build-moe-image:
@@ -56,3 +57,7 @@ build-moe-base-image:
 clean:
 	@rm -rf ${TARGET}
 	@rm -rf IMAGEBUILD
+
+
+istio-1.5.2:
+	cp ./istio152/istio.go ./

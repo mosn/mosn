@@ -80,7 +80,7 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 		return
 	}
 
-	r.downStream.resetReason = reason
+	r.downStream.resetReason.Store(reason)
 	r.downStream.sendNotify()
 }
 
@@ -166,23 +166,22 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	r.sendComplete = endStream
 
 	var (
-		host         types.Host
 		streamSender types.StreamSender
 		failReason   types.PoolFailureReason
 	)
 
 	if r.downStream.oneway {
-		host, streamSender, failReason = r.connPool.NewStream(r.downStream.context, nil)
+		_, streamSender, failReason = r.connPool.NewStream(r.downStream.context, nil)
 	} else {
-		host, streamSender, failReason = r.connPool.NewStream(r.downStream.context, r)
+		_, streamSender, failReason = r.connPool.NewStream(r.downStream.context, r)
 	}
 
 	if failReason != "" {
-		r.OnFailure(failReason, host)
+		r.OnFailure(failReason)
 		return
 	}
 
-	r.OnReady(streamSender, host)
+	r.OnReady(streamSender)
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
@@ -271,10 +270,10 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 }
 
 // types.PoolEventListener
-func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason) {
 	var resetReason types.StreamResetReason
 
-	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnFailure host:%s, reason:%v", host.AddressString(), reason)
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnFailure host:%s, reason:%v", r.host.AddressString(), reason)
 
 	switch reason {
 	case types.Overflow:
@@ -283,24 +282,19 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 		resetReason = types.StreamConnectionFailed
 	}
 
-	r.host = host
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
+func (r *upstreamRequest) OnReady(sender types.StreamSender) {
 	// debug message for upstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, r.host.AddressString())
 	}
 
 	r.requestSender = sender
-	r.host = host
 	r.requestSender.GetStream().AddEventListener(r)
 	// start a upstream send
 	r.startTime = time.Now()
-
-	r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	if trace.IsEnabled() {
 		span := trace.SpanFromContext(r.downStream.context)

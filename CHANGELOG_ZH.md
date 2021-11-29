@@ -1,32 +1,168 @@
 # 更新日志
 
+## v0.25.0
+
+### 新功能
+
+- 路由支持删除请求头指定字段的配置 [@wangfakang](https://github.com/wangfakang)
+- WASM 支持 Reload [@zu1k](https://github.com/zu1k)
+- 集成 SEATA TCC 模式，支持 HTTP 协议 [@dk-lockdown]((https://github.com/dk-lockdown)
+- 新增 boltv2 协议的 tracelog 支持 [@nejisama](https://github.com/nejisama)
+- gRPC 框架新增 Metrics 统计相关 Filter 扩展 [@wenxuwan](https://github.com/wenxuwan)
+- 新增 xds cluster 解析支持 DNS 相关字段 [@antJack](https://github.com/antJack)
+
+### 重构
+
+- MOSN 核心代码和 Istio 引入相关 xDS 代码解耦合 [@nejisama](https://github.com/nejisama)
+- 更新 proxy-wasm-go-host 版本 [@zhenjunMa](https://github.com/zhenjunMa)
+- 修改 networkfilter 配置解析逻辑，支持更新添加接口、查询接口 [@antJack](https://github.com/antJack)
+
+### 优化
+
+- Makefile 中执行模式使用`mod vendor`代替`GO111MODULE=off` [@scaat](https://github.com/scaat)
+- 转移部分 archived 到 mosn.io/pkg 路径下 [@nejisama](https://github.com/nejisama)
+- 优化 EDF 负载均衡：在首次选择时的机器进行随机选择 [@alpha-baby](https://github.com/alpha-baby)
+- 提升 EDF 负载均衡函数的性能 [@alpha-baby](https://github.com/alpha-baby)
+- 调整 boltv2 心跳请求和心跳响应的处理 [@nejisama](https://github.com/nejisama)
+- 优化 HTTP2 在 Stream 模式下的重试处理和 Unary 请求优化 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 当通过环境变量设置 GOMAXPROCS 时，无视 CPU 数量的限制 [@wangfakang](https://github.com/wangfakang)
+- 优化 subset 创建时的内存使用 [@dzdx]((https://github.com/dzdx)
+- 优化 gRPC 框架，支持不同的 Listener 可以支持同名 Server 独立运行 [@nejisama](https://github.com/nejisama)
+
+### Bug 修复
+
+- 修复重试时如果返回的机器地址为空会导致卡死的问题 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复消息连接池处理连接事件的 BUG [@RayneHwang](https://github.com/RayneHwang)
+- 修复没有初始化 Trace Driver 时调用 Enable Trace 导致的 panic 问题 [@nejisama](https://github.com/nejisama)
+- 修复 boltv2 协议在构造异常响应时数据错误的问题 [@nejisama](https://github.com/nejisama)
+- 修复 HTTP2 连接失败时异常处理的问题 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- typo 错误修复 [@jxd134](https://github.com/jxd134) [@yannsun](https://github.com/yannsun)
+- 修复 `RequestInfo` 输出 `ResponseFlag` 的错误 [@wangfakang](https://github.com/wangfakang)
+- 修复 bolt/boltv2 协议编码时，在空数据时没有重新计算长度位的问题 [@hui-cha](https://github.com/hui-cha)
+
+
+## v0.24.0
+
+### 新功能
+
+- 支持使用 jaeger 收集 OpenTracing 信息 [@Roger](https://github.com/Magiczml)
+- 路由配置新增变量配置模式，可通过修改变量的方式修改路由结果 [@wangfakang](https://github.com/wangfakang)
+- 路由 virtualhost 匹配支持端口匹配模式 [@jiebin](https://github.com/jiebinzhuang)
+- 实现 envoy 中的 filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
+- 支持 UDS 的热升级 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 新增 subset 负载均衡逻辑，在没有元数据匹配的场景下使用全量机器列表进行负载均衡 [@nejisama](https://github.com/nejisama)
+- MOSN 的 gRPC 框架支持优雅关闭 [@alpha-baby](https://github.com/alpha-baby)
+
+### 优化
+
+- 优化 Cluster 配置更新时的健康检查更新模式 [@alpha-baby](https://github.com/alpha-baby)
+- api.Connection 新增 OnConnectionEvent 接口 [@CodingSinger](https://github.com/CodingSinger)
+- 权重轮询负载均衡兜底策略调整为普通轮询负载均衡 [@alpha-baby](https://github.com/alpha-baby)
+- 在 MOSN 变量模块中增加 interface 值类型 [@antJack](https://github.com/antJack)
+- Subset 判断机器个数与是否存在时，同样遵循兜底策略 [@antJack](https://github.com/antJack)
+
+### Bug 修复
+
+- dubbo stream filter 支持协议自动识别 [@Thiswang](https://github.com/Thiswang)
+- 修复轮询负载均衡在并发情况下结果异常 [@alpha-baby](https://github.com/alpha-baby)
+- 修复 unix 地址解析异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复 HTTP1 短连接无法生效的异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复国密 TLS SM3 套件在连接断开后存在的内存泄漏 [@ZengKe](https://github.com/william-zk)
+- 当连接被对端重置或管道断裂时 HTTP2 支持重试 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复从连接池中获取到的 host 信息错误 [@Sharember](https://github.com/Sharember)
+- 修复在 route 模块中选择权重集群的数据竞争 [@alpha-baby](https://github.com/alpha-baby)
+- 如果 host 不健康时，在 Edf 负载均衡算法中不能正确返回 [@alpha-baby](https://github.com/alpha-baby)
+- 修复 XProtocol 路由配置超时无效的问题 [@nejisama](https://github.com/nejisama)
+
+## v0.23.0
+
+### 新功能
+
+- 新增 networkfilter:grpc，支持通过 networkfilter 扩展方式在 MOSN 中实现可复用 MOSN 其他能力的 grpc server [@nejisama](https://github.com/nejisama) [@zhenjunMa](https://github.com/zhenjunMa)
+- StreamFilterChain 新增遍历调用的扩展接口 [@wangfakang](https://github.com/wangfakang)
+- bolt 协议新增 HTTP 403 状态码的映射 [@pxzero](https://github.com/pxzero)
+- 新增主动关闭 upstream 连接的能力 [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- networkfilter 配置解析能力优化 [@nejisama](https://github.com/nejisama)
+- proxy 配置解析支持按照协议扩展，配置解析时机优化 [@nejisama](https://github.com/nejisama)
+- TLS 连接新增证书缓存，减少重复证书的内存占用 [@nejisama](https://github.com/nejisama)
+- 优化 Quick Start Sample [@nobodyiam](https://github.com/nobodyiam)
+- 优化默认路由处理时的 context 对象生成 [@alpha-baby](https://github.com/alpha-baby)
+- 优化 Subset LoadBalancer 的创建函数接口 [@alpha-baby](https://github.com/alpha-baby)
+- 新增使用 so plugin 扩展方式接入协议扩展的示例 [@yichouchou](https://github.com/yichouchou)
+- 优化 makefile 中获取 GOPATH 环境变量的方式 [@bincherry](https://github.com/bincherry)
+- 支持 darwin + arrch64 架构的编译 [@nejisama](https://github.com/nejisama)
+- 优化日志打开方式 [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Bug 修复
+
+- HTTP1 修复 URL 处理编码问题 [@morefreeze](https://github.com/morefreeze)
+- HTTP1 修复 URL 处理大小写敏感错误问题 [@GLYASAI](https://github.com/GLYASAI)
+- TLS 修复 SM4 套件异常处理时存在的内存泄漏问题 [@william-zk](https://github.com/william-zk)
+
+
+## v0.22.0
+
+### 新功能
+
+- 新增 Wasm 扩展框架 [@antJack](https://github.com/antJack)
+- XProtocol 协议新增 x-bolt 子协议，支持基于 Wasm 的协议编解码能力 [@zonghaishang](https://github.com/zonghaishang)
+- 支持自动协议识别失败时根据 SO_ORIGINAL_DST 进行自动转发报文的能力 [@antJack](https://github.com/antJack)
+- XProtocol 支持 Go Plugin 模式扩展 [@fdingiit](https://github.com/fdingiit)
+- 新增网络扩展层 [@wangfakang](https://github.com/wangfakang)
+- 支持 Istio xDS v3 API [@champly](https://github.com/champly) 所属分支：[istio-1.7.7](https://github.com/mosn/mosn/tree/istio-1.7.7)
+
+### 优化
+
+- 去除 StreamFilter 配置解析中多余的路径清洗 [@eliasyaoyc](https://github.com/eliasyaoyc)
+- 支持为 StreamFilterChain 设置统一的回调接口 [@antJack](https://github.com/antJack)
+- FeatureGate 支持不同启动阶段执行，去除 FeatureGate 状态判断的全局锁 [@nejisama](https://github.com/nejisama)
+- Http2 模块新增对 trace 能力的支持 [@OrezzerO](https://github.com/OrezzerO)
+
+
+### 重构
+
+- 新增 StageManager，将 MOSN 启动流程划分为四个可自定义的阶段 [@nejisama](https://github.com/nejisama)
+- 统一 XProtocol 模块的类型定义，移动至 mosn.io/api 包 [@fdingiit](https://github.com/fdingiit)
+- XProtocol 接口新增 GetTimeout 方法，取代原有的变量获取方式 [@nejisama](https://github.com/nejisama)
+
+
+### Bug 修复
+
+- 修复 Proxy 中请求信息的并发冲突问题 [@nejisama](https://github.com/nejisama)
+- 修复 URL 处理时的安全漏洞 [@antJack](https://github.com/antJack)
+- 修复配置持久化时 Router 配置的并发冲突问题 [@nejisama](https://github.com/nejisama)
+
+
 ## v0.21.0
 
 ### 优化
 
-- 升级sentinel版本到v1.0.2 [@ansiz](https://github.com/ansiz)
-- 读超时收缩tls的read buffer，降低tls内存消耗 [@cch123](https://github.com/cch123)
-- 增加注释，简化xprotocol协议连接池实现 [@cch123](https://github.com/cch123)
-- 更新mosn registry版本 [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
+- 升级 sentinel 版本到 v1.0.2 [@ansiz](https://github.com/ansiz)
+- 读超时收缩 tls 的 read buffer，降低 tls 内存消耗 [@cch123](https://github.com/cch123)
+- 增加注释，简化 xprotocol 协议连接池实现 [@cch123](https://github.com/cch123)
+- 更新 mosn registry 版本 [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
 
 ### 重构
 
-- 优化路由Header匹配逻辑,支持通用的RPC路由匹配 [@nejisama](https://github.com/nejisama)
+- 优化路由 Header 匹配逻辑，支持通用的 RPC 路由匹配 [@nejisama](https://github.com/nejisama)
 - 删除原有部分常量，新增用于描述变量机制的常量 [@nejisama](https://github.com/nejisama)
 - 限流模块重构，支持自定义回调扩展，可实现自定义的过滤条件，上下文信息修改等能力 [@ansiz](https://github.com/ansiz)
 
-### Bug修复
+### Bug 修复
 
-- 修复请求异常时metrics统计错误 [@cch123](https://github.com/cch123)
-- 修复http场景转发前没有对url进行转义的问题 [@antJack](https://github.com/antJack)
-- 修复HTTP协议中变量注入错误的问题, 修复HTTP2协议中不支持路由Rewrite的bug [@nejisama](https://github.com/nejisama)
+- 修复请求异常时 metrics 统计错误 [@cch123](https://github.com/cch123)
+- 修复 http 场景转发前没有对 url 进行转义的问题 [@antJack](https://github.com/antJack)
+- 修复 HTTP 协议中变量注入错误的问题，修复 HTTP2 协议中不支持路由 Rewrite 的 bug [@nejisama](https://github.com/nejisama)
 
 ### 新功能
 
-- 支持Domain-Specific Language路由实现 [@CodingSinger](https://github.com/CodingSinger)
-- StreamFilter支持go编写的动态链接库加载的方式 [@CodingSinger](https://github.com/CodingSinger)
-- 路由配置中VirtualHost支持per_filter_config配置 [@machine3](https://github.com/machine3)
-- 支持dubbo thrift协议 [@cadeeper](https://github.com/cadeeper)
+- 支持 Domain-Specific Language 路由实现 [@CodingSinger](https://github.com/CodingSinger)
+- StreamFilter 支持 go 编写的动态链接库加载的方式 [@CodingSinger](https://github.com/CodingSinger)
+- 路由配置中 VirtualHost 支持 per_filter_config 配置 [@machine3](https://github.com/machine3)
+- 支持 dubbo thrift 协议 [@cadeeper](https://github.com/cadeeper)
 
 ## v0.20.0
 
@@ -39,19 +175,19 @@
 - 用更高效的变量机制替换请求头 [@CodingSinger](https://github.com/CodingSinger)
 - 将 WriteBufferChan 的定时器池化以降低负载 [@cch123](https://github.com/cch123)
 - TraceLog 中新增 MOSN 处理失败的信息 [@nejisama](https://github.com/nejisama)
-- HTTP协议处理中，新增读完成channel [@alpha-baby](https://github.com/alpha-baby)
+- HTTP 协议处理中，新增读完成 channel [@alpha-baby](https://github.com/alpha-baby)
 - 日志轮转功能加强 [@nejisama](https://github.com/nejisama)
 
 ### 重构
 
 - 使用的 Go 版本升级到 1.14.13 [@nejisama](https://github.com/nejisama)
-- 将路由链扩展方式修改为路由Handler扩展方式，支持配置不同的路由Handler [@nejisama](https://github.com/nejisama)
+- 将路由链扩展方式修改为路由 Handler 扩展方式，支持配置不同的路由 Handler [@nejisama](https://github.com/nejisama)
 - MOSN 扩展配置修改，支持按照配置顺序进行解析 [@nejisama](https://github.com/nejisama)
 
 ### Bug 修复
 
 - 修复 doubbo 版本升级至 2.7.3 之后 Provider 不可用的问题 [@cadeeper](https://github.com/cadeeper)
-- 修复 netpoll 模式下，错误将UDS连接处理成TCP连接的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 netpoll 模式下，错误将 UDS 连接处理成 TCP 连接的问题 [@wangfakang](https://github.com/wangfakang)
 - 修复 HTTP Header 被设置为空字符串时无法正确 Get 的问题 [@ianwoolf](https://github.com/ianwoolf)
 
 ### 新功能
@@ -117,7 +253,7 @@
 ### Bug 修复
 
 - 修复执行 `go mod tidy` 失败 [@champly](https://github.com/champly)
-- 修复 MOSN 接收 XDS 消息大于 4M 时的 `ResourceExhausted: grpc: received message larger than max` 错误 [@champly](https://github.com/champly) 
+- 修复 MOSN 接收 XDS 消息大于 4M 时的 `ResourceExhausted: grpc: received message larger than max` 错误 [@champly](https://github.com/champly)
 - 修复容错单元测试用例 [@wangfakang](https://github.com/wangfakang)
 - 修复 `MOSNConfig.servers[].listeners[].bind_port` 设置为 `false` 时热重启出错 [@alpha-baby](https://github.com/alpha-baby)
 - 本地写 buffer 增加超时时间，避免本地写失败导致 goroutine 过多 OOM [@cch123](https://github.com/cch123)

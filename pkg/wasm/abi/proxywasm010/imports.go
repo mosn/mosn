@@ -28,14 +28,14 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 type DefaultImportsHandler struct {
 	proxywasm.DefaultImportsHandler
 	Instance common.WasmInstance
-	hc *httpCallout
+	hc       *httpCallout
 }
 
 // override
@@ -65,19 +65,18 @@ func (d *DefaultImportsHandler) Log(level proxywasm.LogLevel, msg string) proxyw
 var httpCalloutID int32
 
 type httpCallout struct {
-	id int32
-
-	d *DefaultImportsHandler
-	instance common.WasmInstance
+	id         int32
+	d          *DefaultImportsHandler
+	instance   common.WasmInstance
 	abiContext *ABIContext
 
-	urlString string
-	client *http.Client
-	req *http.Request
-	resp *http.Response
+	urlString  string
+	client     *http.Client
+	req        *http.Request
+	resp       *http.Response
 	respHeader api.HeaderMap
-	respBody buffer.IoBuffer
-	reqOnFly bool
+	respBody   buffer.IoBuffer
+	reqOnFly   bool
 }
 
 // override
@@ -92,14 +91,14 @@ func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap,
 	calloutID := atomic.AddInt32(&httpCalloutID, 1)
 
 	d.hc = &httpCallout{
-		id: calloutID,
+		id:         calloutID,
 		d:          d,
 		instance:   d.Instance,
 		abiContext: d.Instance.GetData().(*ABIContext),
-		urlString: reqURL,
+		urlString:  reqURL,
 	}
 
-	d.hc.client = &http.Client{	Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
+	d.hc.client = &http.Client{Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
 
 	d.hc.req, err = http.NewRequest(http.MethodGet, u.String(), buffer.NewIoBufferBytes(body.Bytes()))
 	if err != nil {
@@ -118,9 +117,9 @@ func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap,
 }
 
 // override
-func (d *DefaultImportsHandler) Wait() {
+func (d *DefaultImportsHandler) Wait() proxywasm.Action {
 	if d.hc == nil || !d.hc.reqOnFly {
-		return
+		return proxywasm.ActionContinue
 	}
 
 	// release the instance lock and do sync http req
@@ -133,7 +132,7 @@ func (d *DefaultImportsHandler) Wait() {
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm010][imports] HttpCall id: %v fail to do http req, err: %v, reqURL: %v",
 			d.hc.id, err, d.hc.urlString)
-		return
+		return proxywasm.ActionPause
 	}
 	d.hc.resp = resp
 
@@ -174,6 +173,7 @@ func (d *DefaultImportsHandler) Wait() {
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm010][imports] httpCall id: %v fail to call ProxyOnHttpCallResponse, err: %v", d.hc.id, err)
 	}
+	return proxywasm.ActionContinue
 }
 
 // override

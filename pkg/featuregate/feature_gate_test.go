@@ -46,7 +46,7 @@ func TestAddAndSetFeatureSpec(t *testing.T) {
 	if !fg.Enabled(lock) {
 		t.Error("feature should always to be true")
 	}
-	fg.StartInit()
+	fg.FinallyInitFunc()
 	fg.WaitInitFinsh()
 	var failed Feature = "failed"
 	if err := fg.AddFeatureSpec(failed, &BaseFeatureSpec{}); err == nil {
@@ -231,7 +231,7 @@ func TestFeatureGateSubscribe(t *testing.T) {
 	if _, err := fg.Subscribe(feature, 0); err == nil {
 		t.Error("subscribe before init, expected got an error")
 	}
-	fg.StartInit()
+	fg.FinallyInitFunc()
 	// sub a disable feature, directly return, no init func called
 	ready, err := fg.Subscribe(feature, time.Second)
 	if err != nil || ready {
@@ -284,7 +284,7 @@ func TestDefaultSubscribe(t *testing.T) {
 	}
 	fg.AddFeatureSpec(notify, fnotify)
 	fg.AddFeatureSpec(notify2, fnotify2)
-	fg.StartInit()
+	fg.FinallyInitFunc()
 	if _, err := fg.Subscribe(notify, time.Second); !_IsSubTimeout(err) {
 		t.Error("expected timeout")
 	}
@@ -318,5 +318,71 @@ func TestDefaultSubscribe(t *testing.T) {
 	}
 	if fnotify2.inited {
 		t.Error("notify2 should not be inited")
+	}
+}
+
+type _mockSpec struct {
+	*BaseFeatureSpec
+	f func()
+}
+
+func (sp *_mockSpec) InitFunc() {
+	if sp.f != nil {
+		sp.f()
+	}
+}
+
+func TestFeaturGateExecuteFunc(t *testing.T) {
+	fg := NewFeatureGate()
+	called := []Feature{}
+	for _, c := range []struct {
+		key     Feature
+		enabled bool
+	}{
+		{Feature("test1"), true},
+		{Feature("test2"), true},
+		{Feature("test3"), false},
+		{Feature("test4"), true},
+	} {
+		key := c.key
+		fg.AddFeatureSpec(key, &_mockSpec{
+			BaseFeatureSpec: &BaseFeatureSpec{
+				DefaultValue: c.enabled,
+			},
+			f: func() {
+				called = append(called, key)
+			},
+		})
+	}
+	invalidSub := Feature("test5")
+	fg.AddFeatureSpec(invalidSub, &_mockSpec{
+		BaseFeatureSpec: &BaseFeatureSpec{
+			DefaultValue: true,
+		},
+		f: func() {
+			called = append(called, invalidSub)
+			if ok, err := fg.Subscribe(Feature("test1"), 0); ok || err != ErrSubStage {
+				t.Errorf("subscribe can only be called in finally stage, but not: %v", err)
+			}
+		},
+	})
+	fg.ExecuteInitFunc(Feature("test1"), Feature("test3"), Feature("test5"))
+	// veirfy
+	if !(len(called) == 2 &&
+		called[0] == Feature("test1") &&
+		called[1] == Feature("test5")) {
+		t.Fatalf("feature spec executed is not expected: %v", called)
+	}
+	fg.FinallyInitFunc()
+	if err := fg.WaitInitFinsh(); err != nil {
+		t.Fatalf("wait finish error: %v", err)
+	}
+	if len(called) != 4 {
+		t.Fatalf("feature spec executed is not expected: %v", called)
+	}
+	for _, c := range called {
+		if c == Feature("test3") {
+			t.Errorf("test3 is not enable, should not be called")
+		}
 	}
 }

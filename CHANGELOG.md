@@ -1,5 +1,134 @@
 # Changelog
 
+## v0.25.0
+
+### New Features
+
+- Routing configuration supports remove request headers. [@wangfakang](https://github.com/wangfakang)
+- Support WASM Reload. [@zu1k](https://github.com/zu1k)
+- Integrated SEATA TCC mode, support HTTP protocol. [@dk-lockdown]((https://github.com/dk-lockdown)
+- Support boltv2 protocol tracelog. [@nejisama](https://github.com/nejisama)
+- New metrics stream filter for gRPC framework.  [@wenxuwan](https://github.com/wenxuwan)
+- Support DNS related configuration in xDS cluster config. [@antJack](https://github.com/antJack)
+
+### Refactoring
+
+- Decouple MOSN core and Istio related xDS code. [@nejisama](https://github.com/nejisama)
+- Upgrade proxy-wasm-go-host version. [@zhenjunMa](https://github.com/zhenjunMa)
+- Refactor networkfilter configuration parse functions, support `AddOrUpdate` and `Get`. [@antJack](https://github.com/antJack)
+
+### Optimization
+
+- Use `mod vendor` instead of `GO111MODULE=off` in Makefile. [@scaat](https://github.com/scaat)
+- Move some archived repo code into `mosn.io/pkg`. [@nejisama](https://github.com/nejisama)
+- Optimize EDF loadbalancer: random pick host at the first select time. [@alpha-baby](https://github.com/alpha-baby)
+- Optimize EDF loadbalancer performance. [@alpha-baby](https://github.com/alpha-baby)
+- Optimize boltv2 protocol heartbeat's trigger and reply. [@nejisama](https://github.com/nejisama)
+- Optimize HTTP2 retry processing in stream mode, optimize HTTP2 unary request processing in stream mode. [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Ignore CPU numbers limit when use environment variable to set GOMAXPROCS. [@wangfakang](https://github.com/wangfakang)
+- Reduce memory alloc when create subset loadbalancer.  [@dzdx]((https://github.com/dzdx)
+- Support different listener can independent run same name gRPC Server. [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix MOSN hangs up when host is empty when retry. [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Fix connections in `msgconnpool` cannot handle connect event. [@RayneHwang](https://github.com/RayneHwang)
+- Fix MOSN panic when tracer driver is not inited and someone calls tracer `Enable`. [@nejisama](https://github.com/nejisama)
+- Fix boltv2 protocol constructs hijack response version wrong. [@nejisama](https://github.com/nejisama)
+- Fix HTTP2 handle connection termination event. [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Fix typo.  [@jxd134](https://github.com/jxd134) [@yannsun](https://github.com/yannsun)
+- Fix `ResponseFlag` outputs in `RequestInfo`. [@wangfakang](https://github.com/wangfakang)
+- Fix bolt/boltv2 protocol not recalculated the empty data's length. [@hui-cha](https://github.com/hui-cha)
+
+## v0.24.0
+
+### New Features
+
+- Support jaeger to collect OpenTracing message [@Roger](https://github.com/Magiczml)
+- Routing configuration new variable configuration mode, you can modify the routing results by modifying the variable [@wangfakang](https://github.com/wangfakang)
+- Routing virtualhost matching supports port matching mode [@jiebin](https://github.com/jiebinzhuang)
+- Impl envoy filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
+- Support graceful for uds [@taoyuanyuan](https://github.com/taoyuanyuan)
+- New subset load balancing logic to use the full list of machines for load balancing in scenarios where there is no metadata matching [@nejisama](https://github.com/nejisama)
+- MOSN's grpc framework supports graceful stop [@alpha-baby](https://github.com/alpha-baby)
+
+### Optimization
+
+- Optimize health check update mode for Cluster configuration updates [@alpha-baby](https://github.com/alpha-baby)
+- Add OnConnectionEvent interface in api.Connection [@CodingSinger](https://github.com/CodingSinger)
+- Weighted roundrobin loadbalancer underwriting policy adjusted to normal roundrobin load balancer [@alpha-baby](https://github.com/alpha-baby)
+- Enhance interface value in mosn variable model [@antJack](https://github.com/antJack)
+- Subset also follows the same underwriting strategy when determining the number of machines and whether they exist [@antJack](https://github.com/antJack)
+
+### Bug fixes
+
+- Dubbo stream filter supports automatic protocol recognition [@Thiswang](https://github.com/Thiswang)
+- Fix roundrobin loadbalancer result exception in case of concurrency [@alpha-baby](https://github.com/alpha-baby)
+- Fix unix address resolution exception [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Fix the exception that HTTP short connection cannot take effect [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Fix a memory leak in the TLS over SM3 suite after disconnection [@ZengKe](https://github.com/william-zk)
+- HTTP2 support doretry when connection reset by peer or broken pipe [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Fix the host information error from the connection pool [@Sharember](https://github.com/Sharember)
+- Fix data race bug when choose weighted cluster [@alpha-baby](https://github.com/alpha-baby)
+- Return invalid host if host is unhealthy in EdfLoadBalancer [@alpha-baby](https://github.com/alpha-baby)
+- Fix the problem that XProtocol routing configuration timeout is invalid [@nejisama](https://github.com/nejisama)
+
+## v0.23.0
+
+### New Features
+
+- Add new networkfilter:grpc. A grpc server can be extended by networkfilter and implemented in the MOSN, reuse MOSN capabilities. [@nejisama](https://github.com/nejisama) [@zhenjunMa](https://github.com/zhenjunMa)
+- Add a new extended function for traversal calls in the StreamFilterChain. [@wangfakang](https://github.com/wangfakang)
+- Add HTTP 403 status code mapping in the bolt protocol. [@pxzero](https://github.com/pxzero)
+- Add the ability to shutdown the upstream connections.  [@nejisama](https://github.com/nejisama)
+
+### Optimization
+
+- Optimize the networkfilter configuration parsed.  [@nejisama](https://github.com/nejisama)
+- Support extend proxy config by protocol, optimize the proxy configuration parse timing. [@nejisama](https://github.com/nejisama)
+- Add tls conenction's certificate cache, reduce the memory usage. [@nejisama](https://github.com/nejisama)
+- Optimize Quick Start Sample. [@nobodyiam](https://github.com/nobodyiam)
+- Reuse context when router handler check available. [@alpha-baby](https://github.com/alpha-baby)
+- Modify the NewSubsetLoadBalancer's input parameter to interface instead of the determined structure. [@alpha-baby](https://github.com/alpha-baby)
+- Add an example of using so plugin to implement a protocol. [@yichouchou](https://github.com/yichouchou)
++ Optimize the method of get environment variable `GOPATH` in the `MAKEFILE`. [@bincherry](https://github.com/bincherry)
++ Support darwin & aarch64 architecture. [@nejisama](https://github.com/nejisama)
+- Optimize the logger file flag. [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Bug fixes
+
+- Fix the bug of HTTP1 URL encoding. [@morefreeze](https://github.com/morefreeze)
+- Fix the bug of HTTP1 URL case-sensitive process. [@GLYASAI](https://github.com/GLYASAI)
+- Fix the bug of memory leak in error handling when the tls cipher suite is SM4. [@william-zk](https://github.com/william-zk)
+
+## v0.22.0
+
+### New Features
+- Add Wasm extension framework [@antJack](https://github.com/antJack)
+- Add x-bolt sub-protocol to allow wasm-based codec for XProtocol [@zonghaishang](https://github.com/zonghaishang)
+- Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
+- Support Go Plugin mode for XProtocol [@fdingiit](https://github.com/fdingiit)
+- Support for network extension [@wangfakang](https://github.com/wangfakang)
+- Update to Istio xDS v3 API [@champly](https://github.com/champly)  Branch: [istio-1.7.7](https://github.com/mosn/mosn/tree/istio-1.7.7)
+
+### Optimization
+
+- Remove redundant file path clean when resolving StreamFilter configs [@eliasyaoyc](https://github.com/eliasyaoyc)
+- Allow setting a unified callback handler for the StreamFilterChain [@antJack](https://github.com/antJack)
+- Support multi-stage execution and remove state lock for the FeatureGate [@nejisama](https://github.com/nejisama)
+- Add trace support for HTTP2 [@OrezzerO](https://github.com/OrezzerO)
+
+### Refactoring
+- Add StageManger to divide the bootstrap procedure of MOSN into four configurable stages [@nejisama](https://github.com/nejisama)
+- Unify the type definitions of XProtocol and move into mosn.io/api package [@fdingiit](https://github.com/fdingiit)
+- Add GetTimeout method for XProtocol to replace the variable getter [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+- Fix concurrent read and write for RequestInfo in Proxy [@nejisama](https://github.com/nejisama)
+- Fix the safety bug when forwarding the request URI [@antJack](https://github.com/antJack)
+- Fix concurrent slice read and write for Router configurations when doing persistence [@nejisama](https://github.com/nejisama)
+
+
 ## v0.21.0
 
 ### Optimization

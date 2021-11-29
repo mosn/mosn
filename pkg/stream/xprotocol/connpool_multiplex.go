@@ -95,8 +95,8 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-
-		client, _ := p.newActiveClient(context.Background(), sub)
+		ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, string(sub))
+		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
 			client.indexInPool = index
@@ -250,7 +250,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()

@@ -24,9 +24,16 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+	_ "mosn.io/mosn/istio/istio152"
+	_ "mosn.io/mosn/istio/istio152/filter/stream/jwtauthn"
+	_ "mosn.io/mosn/istio/istio152/filter/stream/mixer"
+	_ "mosn.io/mosn/istio/istio152/filter/stream/stats"
+	_ "mosn.io/mosn/istio/istio152/sds"
+	_ "mosn.io/mosn/istio/istio152/xds"
 	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
+	_ "mosn.io/mosn/pkg/filter/network/grpc"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/streamproxy"
 	_ "mosn.io/mosn/pkg/filter/stream/dsl"
@@ -34,13 +41,14 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
 	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
+	_ "mosn.io/mosn/pkg/filter/stream/grpcmetric"
 	_ "mosn.io/mosn/pkg/filter/stream/gzip"
-	_ "mosn.io/mosn/pkg/filter/stream/jwtauthn"
+	_ "mosn.io/mosn/pkg/filter/stream/headertometadata"
+	_ "mosn.io/mosn/pkg/filter/stream/ipaccess"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
-	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
-	_ "mosn.io/mosn/pkg/filter/stream/stats"
+	_ "mosn.io/mosn/pkg/filter/stream/seata"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
@@ -57,6 +65,7 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
+	_ "mosn.io/mosn/pkg/trace/jaeger"
 	_ "mosn.io/mosn/pkg/trace/skywalking"
 	_ "mosn.io/mosn/pkg/trace/skywalking/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/http"
@@ -66,12 +75,11 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
-	_ "mosn.io/mosn/pkg/xds"
 	_ "mosn.io/pkg/buffer"
 )
 
 // Version mosn version
-var Version = "0.4.0"
+var Version = "0.25.0"
 
 func main() {
 	app := newMosnApp(&cmdStart)

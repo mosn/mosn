@@ -19,10 +19,25 @@ package transcoder
 
 import (
 	"encoding/json"
+
+	"mosn.io/api"
 )
 
 type config struct {
-	Type string `json:"type,omitempty"`
+	Type  string                 `json:"type,omitempty"`
+	Trans map[string]interface{} `json:"trans,omitempty"`
+}
+
+func (c *config) GetPhase(key string) api.ReceiverFilterPhase {
+	phase, ok := c.Trans[key].(float64)
+	if !ok {
+		return api.AfterRoute
+	}
+	if api.ReceiverFilterPhase(phase) <= api.AfterChooseHost && api.ReceiverFilterPhase(phase) >= api.BeforeRoute {
+		return api.ReceiverFilterPhase(phase)
+	}
+	// If receiver_phase does not exist in the configuration, set the default api.AfterRoute value
+	return api.AfterRoute
 }
 
 func parseConfig(cfg interface{}) (*config, error) {

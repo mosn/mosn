@@ -21,8 +21,11 @@ import (
 	"bytes"
 	"io"
 	"net"
+	"sync"
+	"sync/atomic"
 
 	gotls "crypto/tls"
+	"crypto/x509"
 )
 
 // TransferTLSInfo for transfer TLSConn
@@ -199,6 +202,30 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	return state
 }
 
+func (c *Conn) SetConnectionState(state gotls.ConnectionState) {
+	c.handshakeMutex.Lock()
+	defer c.handshakeMutex.Unlock()
+
+	if state.HandshakeComplete {
+		atomic.StoreUint32(&c.handshakeStatus, 1)
+	} else {
+		atomic.StoreUint32(&c.handshakeStatus, 0)
+	}
+
+	c.serverName = state.ServerName
+	c.vers = state.Version
+	c.clientProtocol = state.NegotiatedProtocol
+	c.didResume = state.DidResume
+	c.clientProtocolFallback = !state.NegotiatedProtocolIsMutual
+	c.cipherSuite = state.CipherSuite
+	c.peerCertificates = state.PeerCertificates
+	c.verifiedChains = state.VerifiedChains
+	c.scts = state.SignedCertificateTimestamps
+	c.ocspResponse = state.OCSPResponse
+
+	// ignore TLSUnique
+}
+
 // GetRawConn returns network connection.
 func (c *Conn) SetALPN(alpn string) {
 	haveNPN := false
@@ -225,4 +252,47 @@ func (c *Conn) ShrinkReadBuffer() {
 	if !c.HasMoreData() {
 		c.rawInput = *bytes.NewBuffer(make([]byte, 0, bytes.MinRead))
 	}
+}
+
+var globalStore = &certificateStore{
+	rwmutex: sync.RWMutex{},
+	store:   map[string]*x509.Certificate{},
+}
+
+// LoadOrStoreCertificate is a wrapper for globalStore.LoadOrStoreCertificate
+// If the input bytes can be parsed as a x509 certificate, get the certificate
+// from a cache, or create it and store in cache.
+func LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
+	return globalStore.LoadOrStoreCertificate(b)
+}
+
+type certificateStore struct {
+	rwmutex sync.RWMutex
+	store   map[string]*x509.Certificate
+}
+
+func (s *certificateStore) LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
+	s.rwmutex.RLock()
+	// Use string([]byte) in map key instead of key := string(b) out of map
+	// to reduce copy and gc.
+	// see details in: https://github.com/golang/go/issues/3512
+	if cert, ok := s.store[string(b)]; ok {
+		s.rwmutex.RUnlock()
+		return cert, nil
+	}
+	s.rwmutex.RUnlock()
+	// try to create a new certificate
+	s.rwmutex.Lock()
+	defer s.rwmutex.Unlock()
+	// double check the certificate exists
+	x509Cert, ok := s.store[string(b)]
+	if !ok {
+		var err error
+		x509Cert, err = x509.ParseCertificate(b)
+		if err != nil {
+			return nil, err
+		}
+		s.store[string(b)] = x509Cert
+	}
+	return x509Cert, nil
 }

@@ -22,9 +22,7 @@ const (
 	maxShift = 18
 )
 
-var (
-	defaultSlicePool *SlicePool
-)
+var defaultSlicePool *SlicePool
 
 func init() {
 	defaultSlicePool = NewSlicePool()

@@ -1,6 +1,19 @@
-// Copyright 2016 ~ 2018 AlexStocks(https://github.com/AlexStocks).
-// All rights reserved.  Use of this source code is
-// governed by Apache License 2.0.
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 // Package gxtime encapsulates some golang.time functions
 package gxtime
@@ -10,11 +23,11 @@ import (
 	"time"
 )
 
-func TimeDayDuratioin(day float64) time.Duration {
+func TimeDayDuration(day float64) time.Duration {
 	return time.Duration(day * 24 * float64(time.Hour))
 }
 
-func TimeHourDuratioin(hour float64) time.Duration {
+func TimeHourDuration(hour float64) time.Duration {
 	return time.Duration(hour * float64(time.Hour))
 }
 
@@ -38,7 +51,7 @@ func TimeNanosecondDuration(n float64) time.Duration {
 	return time.Duration(n * float64(time.Nanosecond))
 }
 
-// desc: convert year-month-day-hour-minute-seccond to int in second
+// desc: convert year-month-day-hour-minute-second to int in second
 // @month: 1 ~ 12
 // @hour:  0 ~ 23
 // @minute: 0 ~ 59
@@ -85,7 +98,7 @@ func Time2UnixNano(t time.Time) int64 {
 	return t.UnixNano()
 }
 
-func GetEndtime(format string) time.Time {
+func GetEndTime(format string) time.Time {
 	timeNow := time.Now()
 	switch format {
 	case "day":

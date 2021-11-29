@@ -73,6 +73,24 @@ func (op *MosnOperator) UpdateConfig(port int, typ string, config string) error 
 	return nil
 }
 
+func (op *MosnOperator) UpdateRoute(port int, typ string, config string) error {
+	// test case, do not care about performance
+	body := fmt.Sprintf(`{
+		"type": "%s",
+		"config": %s
+	}`, typ, config)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://127.0.0.1:%d/debug/update_route", port), strings.NewReader(body))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("request failed")
+	}
+	return nil
+}
+
 func (op *MosnOperator) GetMosnConfig(port int, params string) ([]byte, error) {
 	if len(params) > 0 {
 		params = "?" + params

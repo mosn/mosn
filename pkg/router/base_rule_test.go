@@ -137,7 +137,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 		totalTimes := rand.Int31n(10000)
 		var i int32
 		for i = 0; i < totalTimes; i++ {
-			clusterName := routeRuleImplBase.ClusterName()
+			clusterName := routeRuleImplBase.ClusterName(context.TODO())
 			switch clusterName {
 			case "defaultCluster":
 				dcCount++
@@ -153,7 +153,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 				"w1/w2  = %d", dcCount, w1Count/w2Count)
 
 		}
-		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
+		t.Log("default = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
 }
 
@@ -164,7 +164,7 @@ type finalizeResult struct {
 
 func (res *finalizeResult) Check(ctx context.Context, headers api.HeaderMap) bool {
 	for key, value := range res.variables {
-		p, _ := variable.GetVariableValue(ctx, key)
+		p, _ := variable.GetString(ctx, key)
 		if p != value {
 			return false
 		}
@@ -200,7 +200,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 	type args struct {
 		originalPath string // request path which will be setted into var for match
-		matchedPath  string // macthed path is mocked for router match
+		matchedPath  string // matched path is mocked for router match
 	}
 
 	type testCase struct {
@@ -245,7 +245,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := variable.NewVariableContext(context.Background())
-			variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+			variable.SetString(ctx, types.VarPath, tt.args.originalPath)
 			headers := protocol.CommonHeader{}
 			rri.FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 			if !tt.want.Check(ctx, headers) {
@@ -372,7 +372,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
 				ctx := variable.NewVariableContext(context.Background())
-				variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+				variable.SetString(ctx, types.VarPath, tt.args.originalPath)
 				headers := protocol.CommonHeader{}
 				rris[ops].FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 				if !tt.want.Check(ctx, headers) {
@@ -418,6 +418,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 								},
 							},
 						},
+						headersToRemove: []string{"remove_route_level"},
 					},
 					vHost: &VirtualHostImpl{
 						requestHeadersParser: &headerParser{
@@ -437,6 +438,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 									},
 								},
 							},
+							headersToRemove: []string{"remove_host_level"},
 						},
 						globalRouteConfig: &configImpl{
 							requestHeadersParser: &headerParser{
@@ -460,7 +462,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						},
 					},
 				},
-				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
+				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "remove_route_level": "route", "remove_host_level": "host"},
 				requestInfo: nil,
 			},
 			want: &finalizeResult{
@@ -471,6 +473,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					"host":  "xxx.default.svc.cluster.local",
 					"level": "1,2,3",
 					"route": "true", "vhost": "true", "global": "true",
+					"remove_route_level": "", "remove_host_level": "",
 				},
 			},
 		},
@@ -828,8 +831,8 @@ func TestHashPolicy(t *testing.T) {
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
 	}
-	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
-	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
+	headerValue := variable.NewStringVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
+	variable.RegisterPrefix(headerValue.Name(), headerValue)
 	variable.RegisterProtocolResource(testProtocol, api.HEADER, types.VarProtocolRequestHeader)
 	headerHp := headerHashPolicyImpl{
 		key: "header_key",
@@ -841,8 +844,8 @@ func TestHashPolicy(t *testing.T) {
 	cookieGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_cookie_value", nil
 	}
-	cookieValue := variable.NewBasicVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
-	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
+	cookieValue := variable.NewStringVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
+	variable.RegisterPrefix(cookieValue.Name(), cookieValue)
 	variable.RegisterProtocolResource(testProtocol, api.COOKIE, types.VarProtocolCookie)
 	cookieHp := cookieHashPolicyImpl{
 		name: "cookie_name",
@@ -957,5 +960,71 @@ func TestRedirectRule(t *testing.T) {
 				t.Errorf("Unexpected redirect rule\nExpected: %#v\nGot: %#v\n", *tc.expected, *rb.redirectRule)
 			}
 		})
+	}
+}
+
+func TestRouterClusterVariable(t *testing.T) {
+	variable.Register(variable.NewStringVariable("header", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("method", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("uri", nil, nil, variable.DefaultStringSetter, 0))
+
+	testCases := []struct {
+		clustervariable string
+		value           string
+		expected        string
+	}{
+		{"header", "test00", "test0"},
+		{"header", "test1", "test1"},
+		{"method", "test3", "test3"},
+		{"uri", "test4", "test4"},
+	}
+
+	routeRules := []RouteRuleImplBase{
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "test0",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName:     "test0",
+					ClusterVariable: "header",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "header",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "method",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "uri",
+				},
+			}},
+	}
+
+	for i, tc := range testCases {
+		ctx := variable.NewVariableContext(context.Background())
+		variable.SetString(ctx, tc.clustervariable, tc.value)
+		cluster := routeRules[i].ClusterName(ctx)
+		if cluster != tc.expected {
+			t.Errorf("test case: %d get cluster is not expected. got: %s, want: %s", i, cluster, tc.expected)
+		}
 	}
 }

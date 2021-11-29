@@ -35,8 +35,8 @@ func (h *simpleHandler) IsAvailable(ctx context.Context, manager types.ClusterMa
 	if h.route == nil {
 		return nil, types.HandlerNotAvailable
 	}
-	clusterName := h.Route().RouteRule().ClusterName()
-	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
+	clusterName := h.Route().RouteRule().ClusterName(ctx)
+	snapshot := manager.GetClusterSnapshot(ctx, clusterName)
 	return snapshot, types.HandlerAvailable
 }
 

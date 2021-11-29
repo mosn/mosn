@@ -21,7 +21,7 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // stream factory
@@ -35,10 +35,12 @@ type filterChainFactory struct {
 
 func (f *filterChainFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	transcodeFilter := newTranscodeFilter(context, f.cfg)
-	if transcodeFilter != nil {
-		callbacks.AddStreamReceiverFilter(transcodeFilter, api.AfterRoute)
-		callbacks.AddStreamSenderFilter(transcodeFilter, api.BeforeSend)
+	if transcodeFilter == nil {
+		return
 	}
+
+	callbacks.AddStreamReceiverFilter(transcodeFilter, f.cfg.GetPhase("receiver_phase"))
+	callbacks.AddStreamSenderFilter(transcodeFilter, api.BeforeSend)
 }
 
 func createFilterChainFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {

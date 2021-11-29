@@ -125,22 +125,47 @@ func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (i
 }
 
 // heartbeater
-// boltv2 send bolt heartbeat
-func (proto *boltv2Protocol) Trigger(requestId uint64) api.XFrame {
-	engine := xprotocol.GetProtocol(bolt.ProtocolName)
-	return engine.Trigger(requestId)
+// set version1 as default 0x01, no crc, use version 1
+// see details in: https://github.com/sofastack/sofa-bolt/blob/master/src/main/java/com/alipay/remoting/rpc/protocol/RpcCommandEncoderV2.java
+func (proto *boltv2Protocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
+	return &Request{
+		RequestHeader: RequestHeader{
+			Version1: ProtocolVersion1,
+			RequestHeader: bolt.RequestHeader{
+				Protocol:  ProtocolCode,
+				CmdType:   bolt.CmdTypeRequest,
+				CmdCode:   bolt.CmdCodeHeartbeat,
+				Version:   ProtocolVersion,
+				RequestId: uint32(requestId),
+				Codec:     bolt.Hessian2Serialize,
+				Timeout:   -1,
+			},
+		},
+	}
 }
 
-// boltv2 reply bolt heartbeat
-func (proto *boltv2Protocol) Reply(request api.XFrame) api.XRespFrame {
-	engine := xprotocol.GetProtocol(bolt.ProtocolName)
-	return engine.Reply(request)
+func (proto *boltv2Protocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
+	return &Response{
+		ResponseHeader: ResponseHeader{
+			Version1: ProtocolVersion1,
+			ResponseHeader: bolt.ResponseHeader{
+				Protocol:       ProtocolCode,
+				CmdType:        bolt.CmdTypeResponse,
+				CmdCode:        bolt.CmdCodeHeartbeat,
+				Version:        ProtocolVersion,
+				RequestId:      uint32(request.GetRequestId()),
+				Codec:          bolt.Hessian2Serialize,
+				ResponseStatus: bolt.ResponseStatusSuccess,
+			},
+		},
+	}
 }
 
 // hijacker
-func (proto *boltv2Protocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *boltv2Protocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
+			Version1: ProtocolVersion1,
 			ResponseHeader: bolt.ResponseHeader{
 				Protocol:       ProtocolCode,
 				CmdType:        bolt.CmdTypeResponse,

@@ -29,8 +29,12 @@ import (
 )
 
 const (
-	DefaultTimeout  = time.Second
-	DefaultInterval = 15 * time.Second
+	DefaultTimeout        = time.Second
+	DefaultInterval       = 15 * time.Second
+	DefaultIntervalJitter = 5 * time.Millisecond
+
+	DefaultHealthyThreshold   uint32 = 1
+	DefaultUnhealthyThreshold uint32 = 1
 )
 
 // TODO: move healthcheck package to cluster package
@@ -56,22 +60,34 @@ type healthChecker struct {
 }
 
 func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
-	timeout := DefaultTimeout
-	if cfg.Timeout != 0 {
-		timeout = cfg.Timeout
+	timeout := cfg.Timeout
+	if cfg.Timeout == 0 {
+		timeout = DefaultTimeout
 	}
-	interval := DefaultInterval
-	if cfg.Interval != 0 {
-		interval = cfg.Interval
+	interval := cfg.Interval
+	if cfg.Interval == 0 {
+		interval = DefaultInterval
+	}
+	unhealthyThreshold := cfg.UnhealthyThreshold
+	if unhealthyThreshold == 0 {
+		unhealthyThreshold = DefaultUnhealthyThreshold
+	}
+	healthyThreshold := cfg.HealthyThreshold
+	if healthyThreshold == 0 {
+		healthyThreshold = DefaultHealthyThreshold
+	}
+	intervalJitter := cfg.IntervalJitter
+	if intervalJitter == 0 {
+		intervalJitter = DefaultIntervalJitter
 	}
 	hc := &healthChecker{
 		// cfg
 		sessionConfig:      cfg.SessionConfig,
 		timeout:            timeout,
 		intervalBase:       interval,
-		intervalJitter:     cfg.IntervalJitter,
-		healthyThreshold:   cfg.HealthyThreshold,
-		unhealthyThreshold: cfg.UnhealthyThreshold,
+		intervalJitter:     intervalJitter,
+		healthyThreshold:   healthyThreshold,
+		unhealthyThreshold: unhealthyThreshold,
 		//runtime and stats
 		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},
@@ -124,9 +140,41 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 // only called in cluster, lock in cluster
 // SetHealthCheckerHostSet reset the healthchecker's hosts
 func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
-	hc.stop()
+	deleteHosts, newHosts := findNewAndDeleteHost(hc.hosts, hostSet.Hosts())
+	for _, newHost := range newHosts {
+		hc.startCheck(newHost)
+	}
+	for _, deleteHost := range deleteHosts {
+		hc.stopCheck(deleteHost)
+	}
 	hc.hosts = hostSet.Hosts()
-	hc.start()
+	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
+}
+
+// findNewAndDeleteHost Find deleted and new host in the updated hostSet
+func findNewAndDeleteHost(old, new []types.Host) ([]types.Host, []types.Host) {
+	newHostsMap := make(map[string]types.Host, len(new))
+	for _, newHost := range new {
+		newHostsMap[newHost.AddressString()] = newHost
+	}
+	// find delete host
+	deleteHosts := make([]types.Host, 0)
+	for _, oldHost := range old {
+		_, ok := newHostsMap[oldHost.AddressString()]
+		if ok {
+			delete(newHostsMap, oldHost.AddressString())
+		} else {
+			deleteHosts = append(deleteHosts, oldHost)
+		}
+	}
+
+	// find new host
+	newHosts := make([]types.Host, 0, len(newHostsMap))
+	for _, newHost := range newHostsMap {
+		newHosts = append(newHosts, newHost)
+	}
+
+	return deleteHosts, newHosts
 }
 
 func (hc *healthChecker) startCheck(host types.Host) {

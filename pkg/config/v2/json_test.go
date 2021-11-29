@@ -275,7 +275,8 @@ func TestRouterActionUnmarshal(t *testing.T) {
 					"value": "ok"
 				}
 			}
-		]
+		],
+		"request_headers_to_remove":["test"]
 	}`
 	routerAction := &RouteAction{}
 	if err := json.Unmarshal([]byte(cfgStr), routerAction); err != nil {
@@ -291,7 +292,9 @@ func TestRouterActionUnmarshal(t *testing.T) {
 		routerAction.RetryPolicy.RetryTimeout == time.Second &&
 		len(routerAction.RequestHeadersToAdd) == 1 &&
 		routerAction.RequestHeadersToAdd[0].Header.Key == "test" &&
-		routerAction.RequestHeadersToAdd[0].Header.Value == "ok") {
+		routerAction.RequestHeadersToAdd[0].Header.Value == "ok" &&
+		len(routerAction.RequestHeadersToRemove) == 1 &&
+		routerAction.RequestHeadersToRemove[0] == "test") {
 
 		t.Errorf("unmarshal is not expected, %v", routerAction)
 	}
@@ -530,7 +533,7 @@ func TestFilterChainUnmarshal(t *testing.T) {
 
 func TestRouterConfigMarshal(t *testing.T) {
 	router := &RouterConfiguration{
-		VirtualHosts: []*VirtualHost{
+		VirtualHosts: []VirtualHost{
 			{
 				Name:    "test",
 				Domains: []string{"*"},
@@ -717,8 +720,8 @@ func TestRouterMarshalWithSep(t *testing.T) {
 	vhWithSep := "test/vh/with/sep"
 	os.RemoveAll(routerPath)
 	rcfg := &RouterConfiguration{
-		VirtualHosts: []*VirtualHost{
-			&VirtualHost{
+		VirtualHosts: []VirtualHost{
+			VirtualHost{
 				Name:    vhWithSep,
 				Domains: []string{"*"},
 			},
@@ -794,7 +797,7 @@ func TestRouterConfigDynamicModeParse(t *testing.T) {
 		t.Fatalf("virtual host parsed not enough, got: %v", testConfig.VirtualHosts)
 	}
 	// add a new virtualhost
-	testConfig.VirtualHosts = append(testConfig.VirtualHosts, &VirtualHost{
+	testConfig.VirtualHosts = append(testConfig.VirtualHosts, VirtualHost{
 		Domains: []string{"*"},
 	})
 	// dump json

@@ -18,6 +18,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 )
 
@@ -145,16 +146,16 @@ type XProtocol interface {
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols
 type Heartbeater interface {
 	// Trigger builds an active heartbeat command
-	Trigger(requestId uint64) XFrame
+	Trigger(context context.Context, requestId uint64) XFrame
 
 	// Reply builds heartbeat command corresponding to the given requestID
-	Reply(request XFrame) XRespFrame
+	Reply(context context.Context, request XFrame) XRespFrame
 }
 
 // Hijacker provides the ability to construct proper response command for xprotocol sub-protocols
 type Hijacker interface {
 	// BuildResponse build response with given status code
-	Hijack(request XFrame, statusCode uint32) XRespFrame
+	Hijack(context context.Context, request XFrame, statusCode uint32) XRespFrame
 
 	// Mapping the http status code, which used by proxy framework into protocol-specific status
 	Mapping(httpStatusCode uint32) uint32
@@ -168,4 +169,14 @@ type XProtocolCodec interface {
 	ProtocolMatch() ProtocolMatch
 
 	HTTPMapping() HTTPMapping
+}
+
+// XProtocolFactory protocol factory
+// Supports automatic creation of a protocol instance for each connection.
+// The ability to determine that a protocol is stateful：
+// 1. The XProtocolCodec instance implements the XProtocolFactory interface or
+// 2. The XProtocol instance implements the XProtocolFactory interface
+// The RegisterProtocolFactory function should be called by the developer.
+type XProtocolFactory interface {
+	NewXProtocol() XProtocol
 }

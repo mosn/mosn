@@ -148,6 +148,48 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 </table>
 </div>
 
+## 开源生态
+
+MOSN 社区积极拥抱开源生态，与以下开源社区建立了良好的合作关系。
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://istio.io/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/istio.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://skywalking.apache.org/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/skywalking.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://github.com/apache/dubbo-go" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/dubbo-go.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://sentinelguard.io/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/sentinel.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.sofastack.tech/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/sofastack.png">
+        </a>
+      </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 ## 社区
 
 请访问 [MOSN 官网](https://mosn.io/zh/docs/community)了解更多关于工作组、Roadmap、社区会议、MOSN 教程等信息。
@@ -156,7 +198,7 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## 社区会议

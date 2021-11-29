@@ -100,7 +100,7 @@ func (s *Server) HandleRequest(conn net.Conn, cmd interface{}) (api.XRespFrame, 
 		if req, ok := cmd.(*bolt.Request); ok {
 			switch req.CmdCode {
 			case bolt.CmdCodeHeartbeat:
-				hbAck := s.protocol.Reply(req)
+				hbAck := s.protocol.Reply(context.TODO(), req)
 				fmt.Printf("[Xprotocol RPC Server] reponse bolt heartbeat, connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.GetRequestId())
 				return hbAck, nil
 			case bolt.CmdCodeRpcRequest:

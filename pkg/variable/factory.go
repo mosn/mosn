@@ -43,10 +43,23 @@ var (
 	errSupportIndexedOnly   = "this operation only support indexed variable"
 	errGetterNotFound       = "getter function undefined, variable name: "
 	errSetterNotFound       = "setter function undefined, variable name: "
+	errVariableNotString    = "variable type is not string, name: "
+	errValueNotString       = "set string variable with non-string type"
 )
 
-// AddVariable is used to check variable name exists. Typical usage is variables used in access logs.
-func AddVariable(name string) (Variable, error) {
+// ResetVariableForTest is a test function for reset the variables.
+// DONOT call it in any non-test functions
+func ResetVariableForTest() {
+	mux.Lock()
+	defer mux.Unlock()
+
+	variables = make(map[string]Variable, 32)
+	prefixVariables = make(map[string]Variable, 32)
+	indexedVariables = make([]Variable, 0, 32)
+}
+
+// Check return the variable related to name, return error if not registered
+func Check(name string) (Variable, error) {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -62,9 +75,9 @@ func AddVariable(name string) (Variable, error) {
 
 			// TODO: index fast-path solution
 			//// make it into indexed variables
-			//indexed := NewIndexedVariable(name, name, variable.Getter(), variable.Setter(), variable.Flags())
+			//indexed := NewStringVariable(name, name, variable.Getter(), variable.Setter(), variable.Flags())
 			//// register indexed one
-			//if err := RegisterVariable(indexed); err != nil {
+			//if err := Register(indexed); err != nil {
 			//	return nil, err
 			//}
 			//return indexed, nil
@@ -74,7 +87,8 @@ func AddVariable(name string) (Variable, error) {
 	return nil, errors.New(errUndefinedVariable + name)
 }
 
-func RegisterVariable(variable Variable) error {
+// Register a new variable
+func Register(variable Variable) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -98,7 +112,8 @@ func RegisterVariable(variable Variable) error {
 	return nil
 }
 
-func RegisterPrefixVariable(prefix string, variable Variable) error {
+// Register a new variable with prefix
+func RegisterPrefix(prefix string, variable Variable) error {
 	mux.Lock()
 	defer mux.Unlock()
 

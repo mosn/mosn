@@ -64,6 +64,9 @@ func Init(typ string, config map[string]interface{}) error {
 }
 
 func Enable() {
+	if global.driver == nil {
+		return
+	}
 	global.enable = true
 }
 

@@ -23,7 +23,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -183,7 +182,7 @@ func (l *Logger) start() error {
 			if err := os.MkdirAll(filepath.Dir(l.output), 0755); err != nil {
 				return err
 			}
-			file, err := os.OpenFile(l.output, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+			file, err := os.OpenFile(l.output, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 			if err != nil {
 				return err
 			}
@@ -247,19 +246,9 @@ func (l *Logger) handler() {
 				}
 			}
 		case buf = <-l.writeBufferChan:
-			for i := 0; i < 20; i++ {
-				select {
-				case b := <-l.writeBufferChan:
-					buf.Write(b.Bytes())
-					buffer.PutIoBuffer(b)
-				default:
-					break
-				}
-			}
 			l.Write(buf.Bytes())
 			buffer.PutIoBuffer(buf)
 		}
-		runtime.Gosched()
 	}
 }
 

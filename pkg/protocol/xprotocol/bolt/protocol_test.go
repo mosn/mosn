@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package bolt
 
 import (
@@ -35,7 +52,7 @@ func TestProto(t *testing.T) {
 	/////// request end
 
 	/////// heartbeat
-	frame := bp.Trigger(111)
+	frame := bp.Trigger(context.TODO(), 111)
 	assert.NotNil(t, frame)
 	assert.Equal(t, frame.(*Request).RequestHeader.CmdType, CmdTypeRequest)
 	assert.Equal(t, frame.(*Request).RequestHeader.CmdCode, CmdCodeHeartbeat)
@@ -64,7 +81,7 @@ func TestMapping(t *testing.T) {
 			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
 			api.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999: uint32(ResponseStatusUnknown),
+			999999:                    uint32(ResponseStatusUnknown),
 		}
 	)
 
@@ -76,14 +93,14 @@ func TestMapping(t *testing.T) {
 func TestReply(t *testing.T) {
 	bp := boltProtocol{}
 	// reply heartbeat
-	resp := bp.Reply(NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello")))
+	resp := bp.Reply(context.TODO(), NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello")))
 	assert.True(t, resp.IsHeartbeatFrame())
 }
 
 func TestHijack(t *testing.T) {
 	bp := boltProtocol{}
 	rsp := NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello"))
-	frame := bp.Hijack(rsp, 999)
+	frame := bp.Hijack(context.TODO(), rsp, 999)
 	assert.Equal(t, frame.GetStatusCode(), uint32(999))
 }
 

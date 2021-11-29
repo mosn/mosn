@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
@@ -40,14 +39,10 @@ func createSdsTLSConfig() *v2.TLSConfig {
 		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
-					Name: "default",
-				},
+				Name: "default",
 			},
 			ValidationConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
-					Name: "rootCA",
-				},
+				Name: "rootCA",
 			},
 		},
 	}
@@ -81,8 +76,8 @@ func mockSetSecret() *secretInfo {
 	}
 
 	//
-	mockSdsClientInstance.setSecret("rootCA", sRoot)
-	mockSdsClientInstance.setSecret("default", sDefault)
+	mockSdsClientInstance.SetSecret("rootCA", sRoot)
+	mockSdsClientInstance.SetSecret("default", sDefault)
 	return secret
 }
 

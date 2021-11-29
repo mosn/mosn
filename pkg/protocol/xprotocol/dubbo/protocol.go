@@ -32,23 +32,28 @@ import (
 )
 
 /**
+* https://dubbo.apache.org/zh/docs/v2.7/dev/implementation/#%E8%BF%9C%E7%A8%8B%E9%80%9A%E8%AE%AF%E7%BB%86%E8%8A%82
 * Dubbo protocol
 * Request & Response: (byte)
 * 0           1           2           3           4           5           6           7           8
-* +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+* +-----------+-----------+-----------+-----------+-----------------------------------------------+
 * |magic high | magic low |  flag     | status    |               id                              |
-* +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
-* |      id                                       |               data length                     |
-* +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
-* |                               payload                                                         |
+* +-----------+-----------+----+------+-----------------------------------------------------------+
+* |      id                    |                  |               data length                     |
+* +-----------------------------------------------+-----------------------------------------------+
+* |                            |  payload                                                         |
 * +-----------------------------------------------------------------------------------------------+
-* magic: 0xdabb
-*
+* magic: 0xdabb                |
+*                              |
+*                              |
+*   +--------------------------+
+*   |
+*   v
 * flag: (bit offset)
-* 0           1           2           3           4           5           6           7           8
-* +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
-* |              serialization id                             |  event    | two way   |   req/rsp |
-* +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+* 8           7           6           5           4           3           2           1           0
+* +-----------+-----------+-----------+-----------------------------------------------------------+
+* |   req/rsp | two way   |  event    |              serialization id                             |
+* +-----------+-----------+-----------+-----------------------------------------------------------+
 * event: 1 mean ping
 * two way: 1 mean req & rsp pair
 * req/rsp: 1 mean req
@@ -94,12 +99,12 @@ func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (in
 }
 
 // heartbeater
-func (proto *dubboProtocol) Trigger(requestId uint64) api.XFrame {
+func (proto *dubboProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *dubboProtocol) Reply(request api.XFrame) api.XRespFrame {
+func (proto *dubboProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	// TODO make readable
 	return &Frame{
 		Header: Header{
@@ -113,9 +118,9 @@ func (proto *dubboProtocol) Reply(request api.XFrame) api.XRespFrame {
 	}
 }
 
-// https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
+// https://dubbo.apache.org/zh/docs/v2.7/dev/implementation/#%E8%BF%9C%E7%A8%8B%E9%80%9A%E8%AE%AF%E7%BB%86%E8%8A%82
 // hijacker
-func (proto *dubboProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *dubboProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	dubboStatus, ok := dubboMosnStatusMap[int(statusCode)]
 	if !ok {
 		dubboStatus = dubboStatusInfo{

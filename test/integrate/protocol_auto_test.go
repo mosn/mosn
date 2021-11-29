@@ -13,7 +13,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"mosn.io/mosn/pkg/module/http2"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
@@ -22,6 +21,7 @@ import (
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 func (c *TestCase) StartAuto(tls bool) {

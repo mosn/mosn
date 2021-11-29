@@ -90,6 +90,9 @@ type Connection interface {
 	// AddConnectionEventListener add a listener method will be called when connection event occur.
 	AddConnectionEventListener(listener ConnectionEventListener)
 
+	// OnConnectionEvent callback all ConnectionEventListener for this connection
+	OnConnectionEvent(event ConnectionEvent)
+
 	// AddBytesReadListener add a method will be called everytime bytes read
 	AddBytesReadListener(listener func(bytesRead uint64))
 

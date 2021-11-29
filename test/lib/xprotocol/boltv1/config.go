@@ -2,6 +2,7 @@ package boltv1
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -41,7 +42,7 @@ func (c *ResponseConfig) HandleRequest(req *bolt.Request, engine api.XProtocol) 
 	switch req.CmdCode {
 	case bolt.CmdCodeHeartbeat:
 		// heartbeat
-		resp = engine.Reply(req)
+		resp = engine.Reply(context.TODO(), req)
 		status = int16(bolt.ResponseStatusSuccess) // heartbeat must be success
 	case bolt.CmdCodeRpcRequest:
 		if c == nil {
@@ -65,7 +66,7 @@ type Condition struct {
 	// which will be ingored.
 	ExpectedHeader map[string]string `json:"expected_header"`
 	// If a request contains the unexpected header, matched failed.
-	UnexpectedHeaderKey []string
+	UnexpectedHeaderKey []string `json:"unexpected_header_key"`
 	// TODO: Add more condition
 }
 
