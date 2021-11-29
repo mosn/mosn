@@ -126,7 +126,6 @@ func (f *transcodeFilter) SetSenderFilterHandler(handler api.StreamSenderFilterH
 
 // Append encodes request/response
 func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
-
 	if !f.needTranscode {
 		return api.StreamFilterContinue
 	}
