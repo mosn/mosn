@@ -45,7 +45,7 @@ func DefaultMatches(ctx context.Context, header api.HeaderMap, rules []*Transfer
 		}
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream filter][transcoder] no match, matcher %+v", rules)
+		log.DefaultLogger.Debugf("[stream filter][transcoder] no match, rules %+v", rules)
 	}
 	return nil, false
 }

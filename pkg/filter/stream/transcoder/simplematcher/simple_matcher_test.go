@@ -103,7 +103,7 @@ func TestDefaultMatches(t *testing.T) {
 			name: "TestDefaultMatches_match",
 			rules: []*matcher.TransferRule{{
 				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
-					MatcherType: "SimpleMatcher",
+					MatcherType: "simpleMatcher",
 				}),
 				RuleInfo: &matcher.RuleInfo{
 					UpstreamProtocol: "a",
