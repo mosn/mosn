@@ -25,6 +25,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
@@ -97,6 +98,10 @@ func initializeMetrics(config v2.MetricsConfig) {
 		}
 		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
 	}
+}
+
+func InitDefaultPath(c *v2.MOSNConfig) {
+	types.InitDefaultPath(configmanager.GetConfigPath(), c.UDSDir)
 }
 
 func InitializePidFile(c *v2.MOSNConfig) {
