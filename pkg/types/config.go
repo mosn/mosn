@@ -67,6 +67,7 @@ func InitDefaultPath(path, UDSDir string) {
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
 	MosnConfigPath = config
 
+	MosnUDSPath = MosnConfigPath
 	if UDSDir != "" {
 		MosnUDSPath, err = filepath.Abs(UDSDir)
 		if err != nil {
