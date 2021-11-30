@@ -58,7 +58,7 @@ func TestInheritConfig(t *testing.T) {
 				router := cfg.Servers[0].Routers[0]
 				configmanager.SetRouter(*router)
 			}
-			types.InitDefaultPath(configmanager.GetConfigPath())
+			types.InitDefaultPath(configmanager.GetConfigPath(), "")
 			dumpConfigBytes, err := configmanager.InheritMosnconfig()
 			if err != nil {
 				t.Errorf("Dump config error: %v", err)
