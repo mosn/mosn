@@ -217,7 +217,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	return lb.ChooseHost(context)
+	return lb.rrLB.ChooseHost(context)
 }
 
 const default_choice = 2
