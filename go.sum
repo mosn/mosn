@@ -958,10 +958,10 @@ k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKf
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c h1:DBzFfP1xalj3nnROidazArdP/QxbI1PHSMCKi7sAaQM=
-mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36 h1:J/+gKzzXG4sNBB2tCPaCulByFZMFwXbQpeRyQ2DKtDw=
-mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36/go.mod h1:4LU2wzIUErfaOuqDWDnhdFf9IlLhyymw79U9u0UW3nM=
+mosn.io/api v0.0.0-20211117121134-06701a68832b h1:8zNuXp9Piy++qMnbP0J6XgRMw8gUf5kuZs4S4exw6Dk=
+mosn.io/api v0.0.0-20211117121134-06701a68832b/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+mosn.io/pkg v0.0.0-20211019125153-96b01e984d62 h1:kLlInmszit+kPRBXpSkLTlhlYNckaYzuNl7QMhl7+G8=
+mosn.io/pkg v0.0.0-20211019125153-96b01e984d62/go.mod h1:4LU2wzIUErfaOuqDWDnhdFf9IlLhyymw79U9u0UW3nM=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6 h1:6aWdJ5db4OHFhSnSDvZcrAfsJSglbuZNW3DdBPt6PGg=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=

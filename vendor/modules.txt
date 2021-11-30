@@ -547,10 +547,10 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c
+# mosn.io/api v0.0.0-20211117121134-06701a68832b
 ## explicit
 mosn.io/api
-# mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36
+# mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv
@@ -573,7 +573,6 @@ mosn.io/pkg/utils
 ## explicit
 mosn.io/proxy-wasm-go-host/proxywasm/common
 mosn.io/proxy-wasm-go-host/proxywasm/v1
-mosn.io/proxy-wasm-go-host/proxywasm/v2
 # vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 ## explicit
 vimagination.zapto.org/byteio
