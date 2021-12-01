@@ -129,7 +129,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		proto, result := sc.engine.Match(sc.ctx, buf)
 		switch result {
 		case api.MatchSuccess:
-			sc.protocol = proto.(api.XProtocol)
+			sc.protocol = proto
 		case api.MatchFailed:
 			// print error info
 			size := buf.Len()
