@@ -69,7 +69,9 @@ func (t *TranscoderGoPlugin) CreateTranscoder() {
 
 func OnTranscoderPluginParsed(data json.RawMessage) error {
 	cfg := &transcodeGoPluginConfig{}
-	json.Unmarshal(data, cfg)
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return err
+	}
 	if cfg.Transcoders != nil {
 		for _, transcoder := range cfg.Transcoders {
 			transcoder.CreateTranscoder()

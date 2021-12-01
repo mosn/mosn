@@ -100,7 +100,7 @@ func TestDefaultMatches(t *testing.T) {
 		want1 bool
 	}{
 		{
-			name: "TestDefaultMatches_match",
+			name: "TestDefaultMatches_no_header_match",
 			rules: []*matcher.TransferRule{{
 				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher",
@@ -119,6 +119,52 @@ func TestDefaultMatches(t *testing.T) {
 			},
 			want1: true,
 		},
+		{
+			name: "TestDefaultMatches_header_match",
+			rules: []*matcher.TransferRule{{
+				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+					MatcherType: "simpleMatcher",
+					Config: map[string]interface{}{
+						"name":  "serviceCode",
+						"value": "dsr",
+					},
+				}),
+				RuleInfo: &matcher.RuleInfo{
+					UpstreamProtocol: "a",
+				},
+			},
+			},
+			args: args{
+				ctx:     context.Background(),
+				headers: buildHttpRequestHeaders(map[string]string{"serviceCode": "dsr"}),
+			},
+			want: &matcher.RuleInfo{
+				UpstreamProtocol: "a",
+			},
+			want1: true,
+		},
+		{
+			name: "TestDefaultMatches_header_no_match",
+			rules: []*matcher.TransferRule{{
+				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+					MatcherType: "simpleMatcher",
+					Config: map[string]interface{}{
+						"name":  "serviceCode",
+						"value": "dsr2",
+					},
+				}),
+				RuleInfo: &matcher.RuleInfo{
+					UpstreamProtocol: "a",
+				},
+			},
+			},
+			args: args{
+				ctx:     context.Background(),
+				headers: buildHttpRequestHeaders(map[string]string{"serviceCode": "dsr"}),
+			},
+			want:  nil,
+			want1: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -126,7 +172,7 @@ func TestDefaultMatches(t *testing.T) {
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("Matches() got = %v, want %v", got1, tt.want1)
 			}
-			if got.UpstreamProtocol != tt.want.UpstreamProtocol {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Matches() got = %v, want %v", got.UpstreamProtocol, tt.want.UpstreamProtocol)
 			}
 		})

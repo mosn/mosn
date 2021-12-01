@@ -20,11 +20,10 @@ package matcher
 import (
 	"context"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
 )
 
 type RuleMatcher interface {
-	Matches(ctx context.Context, headers types.HeaderMap) bool
+	Matches(ctx context.Context, headers api.HeaderMap) bool
 }
 
 type TransferRuleConfig struct {
@@ -38,11 +37,10 @@ type MatcherConfig struct {
 }
 
 type RuleInfo struct {
-	Type                string                 `json:"-"`
-	UpstreamProtocol    string                 `json:"upstream_protocol,omitempty"`
-	UpstreamSubProtocol string                 `json:"upstream_sub_protocol,omitempty"`
-	Description         string                 `json:"description,omitempty"`
-	Config              map[string]interface{} `json:"config,omitempty"`
+	Type                string `json:"-"`
+	UpstreamProtocol    string `json:"upstream_protocol,omitempty"`
+	UpstreamSubProtocol string `json:"upstream_sub_protocol,omitempty"`
+	Description         string `json:"description,omitempty"`
 }
 
 func (ri *RuleInfo) GetType(srcPro api.ProtocolName) string {

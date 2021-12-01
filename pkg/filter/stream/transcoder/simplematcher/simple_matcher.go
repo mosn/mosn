@@ -30,15 +30,36 @@ func init() {
 }
 
 type SimpleRuleMatcher struct {
-	config interface{}
+	header *Header
+}
+
+type Header struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 func (hrm *SimpleRuleMatcher) Matches(ctx context.Context, headers types.HeaderMap) bool {
+
+	if hrm.header != nil {
+		if v, ok := headers.Get(hrm.header.Name); ok {
+			return hrm.header.Value == v
+		}
+		return false
+	}
 	return true
 }
 
 func SimpleMatcherFactory(config interface{}) matcher.RuleMatcher {
+
+	if h, ok := config.(map[string]interface{}); ok {
+		return &SimpleRuleMatcher{
+			header: &Header{
+				Name:  h["name"].(string),
+				Value: h["value"].(string),
+			},
+		}
+	}
 	return &SimpleRuleMatcher{
-		config: config,
+		header: nil,
 	}
 }
