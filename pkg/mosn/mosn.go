@@ -109,6 +109,8 @@ func (m *Mosn) upgradeCheck() {
 	c := m.Config
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
+	stm.RegisterUpgradeHandler(UpgradeHandler)
+
 	// default is graceful mode, turn graceful off by set it to false
 	if !c.CloseGraceful && server.IsReconfigure() {
 		// stage manager will call UpgradeHandler

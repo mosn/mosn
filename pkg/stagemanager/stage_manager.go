@@ -109,8 +109,10 @@ type StageManager struct {
 	preStopStages           []func(Mosn)
 	afterStopStages         []func(Mosn)
 	onStateChangedCallbacks []func(State)
-	reconfigureHandler      func() error
-	upgradeHandler          func(Mosn) error
+	// old mosn: send to new mosn
+	reconfigureHandler func() error
+	// new mosn: receive from old mosn
+	upgradeHandler func(Mosn) error
 }
 
 func InitStageManager(ctx *cli.Context, path string, mosn Mosn) *StageManager {
@@ -393,10 +395,16 @@ func (stm *StageManager) runPassiveReconfigure() {
 	stm.Stop()
 }
 
+func RegisterUpgradeHandler(f func(Mosn) error) {
+	stm.upgradeHandler = f
+}
+
 func (stm *StageManager) runUpgrade() {
-	if GetState() != Running {
-		// TODO
+	if stm.upgradeHandler == nil {
+		log.DefaultLogger.Alertf("stagemanager", "upgradeHandler not set yet")
+		return
 	}
+	stm.setState(Active_Reconfiguring)
 	err := stm.upgradeHandler(stm.data.mosn)
 	if err != nil {
 		// todo
