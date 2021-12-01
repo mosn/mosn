@@ -53,7 +53,7 @@ func DefaultStartStage(mosn stm.Mosn) {
 	// admin server should registered after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
-	//  transfer connection used in smooth upgrade in mosn
+	// transfer connection used in smooth upgrade in mosn
 	m.TransferConnection()
 	// clean upgrade finish the smooth upgrade datas
 	m.CleanUpgrade()

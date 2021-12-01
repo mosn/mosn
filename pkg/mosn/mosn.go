@@ -74,45 +74,51 @@ func (m *Mosn) InitMosn(c *v2.MOSNConfig) {
 	m.initServer()
 }
 
+// TODO
+// stage manager will stop the current new mosn when return error?
+func UpgradeHandler(mosn stm.Mosn) error {
+	m := mosn.(*Mosn)
+
+	var err error
+	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		return err
+	}
+	log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
+	// parse MOSNConfig again
+	c := configmanager.Load(configmanager.GetConfigPath())
+	if c.InheritOldMosnconfig {
+		// inherit old mosn config
+		oldMosnConfig, err := server.GetInheritConfig()
+		if err != nil {
+			m.Upgrade.ListenSockConn.Close()
+			log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			return err
+		}
+		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+		c.Servers = oldMosnConfig.Servers
+		c.ClusterManager = oldMosnConfig.ClusterManager
+		c.Extends = oldMosnConfig.Extends
+	}
+	m.Config = c
+	return nil
+}
+
 func (m *Mosn) upgradeCheck() {
 	c := m.Config
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
-	var err error
 	// default is graceful mode, turn graceful off by set it to false
-	if !c.CloseGraceful {
-		//get inherit fds
-		m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
-		if err != nil {
-			log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
-		}
+	if !c.CloseGraceful && server.IsReconfigure() {
+		// stage manager will call UpgradeHandler
+		stm.Notice(stm.Active_Reconfiguring)
+		return
 	}
-	if m.Upgrade.ListenSockConn != nil {
-		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
-		// set Mosn Active_Reconfiguring
-		store.SetMosnState(store.Active_Reconfiguring)
-		// parse MOSNConfig again
-		c = configmanager.Load(configmanager.GetConfigPath())
-		if c.InheritOldMosnconfig {
-			// inherit old mosn config
-			oldMosnConfig, err := server.GetInheritConfig()
-			if err != nil {
-				m.Upgrade.ListenSockConn.Close()
-				log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
-			}
-			log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
-			c.Servers = oldMosnConfig.Servers
-			c.ClusterManager = oldMosnConfig.ClusterManager
-			c.Extends = oldMosnConfig.Extends
-		}
-		m.Config = c
-	} else {
-		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
-		// start init services
-		if err := store.StartService(nil); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
-		}
-
+	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
+	// start init services
+	if err := store.StartService(nil); err != nil {
+		log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 	}
 }
 
@@ -221,7 +227,7 @@ func (m *Mosn) TransferConnection() {
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if store.GetMosnState() == store.Active_Reconfiguring {
+	if stm.GetState() == stm.Active_Reconfiguring {
 		// start other services
 		if err := store.StartService(m.Upgrade.InheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
@@ -249,9 +255,7 @@ func (m *Mosn) TransferConnection() {
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
-		store.SetMosnState(store.Running)
 	}
-
 }
 
 func (m *Mosn) CleanUpgrade() {

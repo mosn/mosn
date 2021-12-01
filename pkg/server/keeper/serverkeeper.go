@@ -65,7 +65,8 @@ func signalHandler(sig os.Signal) {
 		// reopen log
 		log.Reopen()
 	case syscall.SIGHUP:
-		stm.Notice(stm.Active_Reconfiguring)
+		// start a new mosn
+		stm.Notice(stm.HupReloading)
 	case syscall.SIGQUIT:
 		// stop mosn gracefully
 		stm.Notice(stm.GracefulQuitting)

@@ -138,13 +138,18 @@ func ReconfigureListener() {
 }
 
 func StopReconfigureHandler() {
-	if store.GetMosnState() == store.Passive_Reconfiguring {
+	if stm.GetState() == stm.Passive_Reconfiguring {
 		return
 	}
 	syscall.Unlink(types.ReconfigureDomainSocket)
 }
 
-func isReconfigure() bool {
+func IsReconfigure() bool {
+	defer func() {
+		if r := recover(); r != nil {
+			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
+		}
+	}()
 	var unixConn net.Conn
 	var err error
 	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
@@ -157,8 +162,6 @@ func isReconfigure() bool {
 	uc := unixConn.(*net.UnixConn)
 	buf := make([]byte, 1)
 	n, _ := uc.Read(buf)
-	if n != 1 {
-		return false
-	}
-	return true
+
+	return n == 1
 }

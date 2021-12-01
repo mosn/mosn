@@ -25,8 +25,8 @@ import (
 	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/server"
-	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
+	stm "mosn.io/mosn/pkg/stagemanager"
 )
 
 const (
@@ -84,18 +84,18 @@ func serverInfoForIstio(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
-	mosnState := store.GetMosnState()
+	state := stm.GetState()
 
-	switch mosnState {
-	case store.Active_Reconfiguring:
+	switch state {
+	case stm.Active_Reconfiguring:
 		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
-	case store.Init:
+	case stm.Init:
 		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
-	case store.Running:
+	case stm.Running:
 		return envoy_admin_v2alpha.ServerInfo_LIVE, nil
-	case store.Passive_Reconfiguring:
+	case stm.Passive_Reconfiguring:
 		return envoy_admin_v2alpha.ServerInfo_DRAINING, nil
 	}
 
-	return 0, fmt.Errorf("parse mosn state %v to istio state failed", mosnState)
+	return 0, fmt.Errorf("parse mosn state %v to istio state failed", state)
 }

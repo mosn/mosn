@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
@@ -49,6 +48,7 @@ const (
 	Passive_Reconfiguring
 	GracefulQuitting
 	Quitting
+	HupReloading
 )
 
 type Mosn interface {
@@ -110,6 +110,7 @@ type StageManager struct {
 	afterStopStages         []func(Mosn)
 	onStateChangedCallbacks []func(State)
 	reconfigureHandler      func() error
+	upgradeHandler          func(Mosn) error
 }
 
 func InitStageManager(ctx *cli.Context, path string, mosn Mosn) *StageManager {
@@ -193,6 +194,9 @@ func (stm *StageManager) runStartStage() time.Duration {
 	for _, f := range stm.startupStages {
 		f(stm.data.mosn)
 	}
+
+	stm.setState(Running)
+
 	// start mosn after all start stages finished
 	stm.data.mosn.Start()
 	return time.Since(st)
@@ -286,7 +290,7 @@ func (stm *StageManager) Stop() {
 	}
 
 	var elapsed time.Duration
-	if store.GetMosnState() == store.GracefulQuitting {
+	if GetState() == GracefulQuitting {
 		elapsed = stm.runPreStopStage()
 		log.StartLogger.Infof("mosn pre stop stage cost: %v", elapsed)
 	}
@@ -320,6 +324,7 @@ func StartNewServer() error {
 	return nil
 }
 
+// start a mosn server
 func (stm *StageManager) runHupReload() {
 	if GetState() != Running {
 		log.DefaultLogger.Errorf("[server] [reconfigure] SIGHUP received: current mosn state expected running while got %d", GetState())
@@ -388,14 +393,24 @@ func (stm *StageManager) runPassiveReconfigure() {
 	stm.Stop()
 }
 
+func (stm *StageManager) runUpgrade() {
+	if GetState() != Running {
+		// TODO
+	}
+	err := stm.upgradeHandler(stm.data.mosn)
+	if err != nil {
+		// todo
+	}
+}
+
 func Notice(s State) {
 	switch s {
+	case HupReloading:
+		stm.runHupReload()
 	case Passive_Reconfiguring:
 		stm.runPassiveReconfigure()
-
 	case Active_Reconfiguring:
-		stm.runHupReload()
-
+		stm.runUpgrade()
 	default:
 		stm.setState(s)
 		// go back to the main goroutine

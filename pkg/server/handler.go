@@ -862,16 +862,6 @@ func SendInheritConfig() error {
 }
 
 func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
-		}
-	}()
-
-	if !isReconfigure() {
-		return nil, nil, nil, nil
-	}
-
 	syscall.Unlink(types.TransferListenDomainSocket)
 
 	l, err := net.Listen("unix", types.TransferListenDomainSocket)
