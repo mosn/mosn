@@ -30,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
+	stm "mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/utils"
@@ -51,24 +52,26 @@ type Mosn struct {
 	servers   []server.Server
 	xdsClient *istio.ADSClient
 	wg        sync.WaitGroup
-	stm       *StageManager
 }
 
-func NewMosn(c *v2.MOSNConfig) *Mosn {
-	log.StartLogger.Infof("[mosn start] create a new mosn structure")
+// create an empty mosn
+func NewMosn() *Mosn {
+	log.StartLogger.Infof("[mosn start] create an empty mosn structure")
+	m := &Mosn{
+		Upgrade: UpgradeData{},
+	}
+	return m
+}
+
+func (m *Mosn) InitMosn(c *v2.MOSNConfig) {
+	log.StartLogger.Infof("[mosn start] init the new mosn structure")
 	// set the mosn config finally
 	defer configmanager.SetMosnConfig(c)
 
-	m := &Mosn{
-		Upgrade: UpgradeData{},
-		Config:  c,
-	}
 	// generate mosn structure members
 	m.upgradeCheck()
 	m.initClusterManager()
 	m.initServer()
-
-	return m
 }
 
 func (m *Mosn) upgradeCheck() {
@@ -308,9 +311,10 @@ func (m *Mosn) Start() {
 	}, nil)
 
 	if !m.Config.CloseGraceful {
+		stm.RegsiterReconfigureHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {
-			server.ReconfigureHandler()
+			server.ReconfigureListener()
 		}, nil)
 	}
 
@@ -338,6 +342,7 @@ func (m *Mosn) Finish() {
 
 func (m *Mosn) Close() {
 	log.StartLogger.Infof("[mosn start] mosn stop server")
+
 	// close service
 	store.CloseService()
 

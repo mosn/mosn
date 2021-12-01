@@ -25,7 +25,7 @@ import (
 	"github.com/urfave/cli"
 	"mosn.io/api"
 	"mosn.io/mosn/istio/istio152"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	"mosn.io/mosn/pkg/stagemanager"
 	xstream "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/trace"
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
@@ -136,7 +137,8 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) error {
-			stm := mosn.NewStageManager(c, c.String("config"))
+			m := mosn.NewMosn()
+			stm := stagemanager.InitStageManager(c, c.String("config"), m)
 			// if needs featuregate init in parameter stage or init stage
 			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
 			// parameter parsed registered

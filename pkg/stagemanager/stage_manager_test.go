@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package mosn
+package stagemanager
 
 import (
 	"sync"

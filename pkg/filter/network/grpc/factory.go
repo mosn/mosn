@@ -33,7 +33,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/server/keeper"
+	stm "mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -269,7 +269,7 @@ func (rsw *registerServerWrapper) Start(graceful time.Duration) {
 			}
 		}()
 		// stop grpc server when mosn process shutdown
-		keeper.OnGracefulShutdown(func() {
+		stm.OnGracefulShutdown(func() {
 			if graceful <= 0 {
 				graceful = v2.GrpcDefaultGracefulStopTimeout // use default timeout
 			}

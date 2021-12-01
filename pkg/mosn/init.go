@@ -33,7 +33,7 @@ import (
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
@@ -108,8 +108,8 @@ func InitializePidFile(c *v2.MOSNConfig) {
 	initializePidFile(c.Pid)
 }
 
-func initializePidFile(pid string) {
-	keeper.SetPid(pid)
+func initializePidFile(id string) {
+	pid.SetPid(id)
 }
 
 func InitializePlugin(c *v2.MOSNConfig) {

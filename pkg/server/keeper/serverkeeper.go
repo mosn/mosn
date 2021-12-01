@@ -18,58 +18,17 @@
 package keeper
 
 import (
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strconv"
-	"sync"
 	"syscall"
 
-	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/types"
+	stm "mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/pkg/log"
-	logger "mosn.io/pkg/log"
 	"mosn.io/pkg/utils"
 )
 
 func init() {
 	catchSignals()
-}
-
-var (
-	pidFile                  string
-	finisher                 func(store.State)
-	gracefulShutdownRegister func(func())
-	hupOnce                  sync.Once
-)
-
-func SetPid(pid string) {
-	if pid == "" {
-		pidFile = types.MosnPidDefaultFileName
-	} else {
-		if err := os.MkdirAll(filepath.Dir(pid), 0755); err != nil {
-			pidFile = types.MosnPidDefaultFileName
-		} else {
-			pidFile = pid
-		}
-	}
-	WritePidFile()
-}
-
-func WritePidFile() (err error) {
-	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-
-	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
-		log.DefaultLogger.Errorf("write pid file error: %v", err)
-	}
-	return err
-}
-
-func RemovePidFile() {
-	if pidFile != "" {
-		os.Remove(pidFile)
-	}
 }
 
 func catchSignals() {
@@ -101,50 +60,17 @@ func catchSignalsPosix() {
 func signalHandler(sig os.Signal) {
 	log.DefaultLogger.Debugf("signal %s received!", sig)
 	// syscall.SIGQUIT, syscall.SIGINT/os.Interrupt or syscall.SIGTERM:
-	if finisher == nil {
-		log.DefaultLogger.Alertf("keeper.finisher", "finisher is not set yet")
-		return
-	}
 	switch sig {
 	case syscall.SIGUSR1:
 		// reopen log
-		logger.Reopen()
+		log.Reopen()
 	case syscall.SIGHUP:
-		finisher(store.Active_Reconfiguring)
+		stm.Notice(stm.Active_Reconfiguring)
 	case syscall.SIGQUIT:
 		// stop mosn gracefully
-		finisher(store.GracefulQuitting)
+		stm.Notice(stm.GracefulQuitting)
 	default:
 		// stop mosn
-		finisher(store.Quitting)
+		stm.Notice(stm.Quitting)
 	}
-}
-
-// add callback to stagemanager's pre-stop stage
-func OnGracefulShutdown(cb func()) {
-	if gracefulShutdownRegister == nil {
-		log.DefaultLogger.Alertf("keeper.graceful", "gracefulShutdownRegister is not set yet")
-		return
-	}
-	// register cb to stagemanager pre-stop stages
-	gracefulShutdownRegister(cb)
-}
-
-func RegisterFinisher(f func(store.State)) {
-	finisher = f
-}
-
-func SetGracefulShutdownRegister(r func(func())) {
-	gracefulShutdownRegister = r
-}
-
-// start the processes to stop the current mosn
-func Shutdown() {
-	log.DefaultLogger.Debugf("stop mosn by using a fake INT signal")
-	if finisher == nil {
-		log.DefaultLogger.Alertf("keeper.finisher", "finisher is not set yet")
-		return
-	}
-	// stop mosn
-	finisher(store.Quitting)
 }
