@@ -17,6 +17,17 @@
 
 package transcoder
 
-import "mosn.io/api"
+import (
+	"context"
+	"mosn.io/api"
+)
 
-const RequestTranscodeFail api.ResponseFlag = 0x2000
+// Transcoder provide ability to transcoding request/response
+type Transcoder interface {
+	// Accept
+	Accept(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) bool
+	// TranscodingRequest
+	TranscodingRequest(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) (api.HeaderMap, api.IoBuffer, api.HeaderMap, error)
+	// TranscodingResponse
+	TranscodingResponse(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) (api.HeaderMap, api.IoBuffer, api.HeaderMap, error)
+}

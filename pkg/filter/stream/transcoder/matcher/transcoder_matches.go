@@ -15,8 +15,37 @@
  * limitations under the License.
  */
 
-package transcoder
+package matcher
 
-import "mosn.io/api"
+import (
+	"context"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
+)
 
-const RequestTranscodeFail api.ResponseFlag = 0x2000
+func init() {
+	MustRegister(DefaultMatches)
+}
+
+type TransCoderMatchesFunc func(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool)
+
+var TransCoderMatches TransCoderMatchesFunc
+
+func MustRegister(matches TransCoderMatchesFunc) {
+	TransCoderMatches = matches
+}
+
+func DefaultMatches(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool) {
+	for _, rule := range rules {
+		if rule.Macther == nil {
+			continue
+		}
+		if rule.Macther.Matches(ctx, header) {
+			return rule.RuleInfo, true
+		}
+	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream filter][transcoder] no match, rules %+v", rules)
+	}
+	return nil, false
+}
