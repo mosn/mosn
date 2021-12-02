@@ -82,7 +82,7 @@ func InitializeMetrics(c *v2.MOSNConfig) {
 func initializeMetrics(config v2.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), stm.GetState() != stm.Active_Reconfiguring)
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), stm.IsFromUpgrade())
 	}
 
 	// set metrics package

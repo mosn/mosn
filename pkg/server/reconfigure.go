@@ -133,17 +133,18 @@ func ReconfigureListener() {
 		}
 		uc.Close()
 
-		stm.Notice(stm.Passive_Reconfiguring)
+		stm.Notice(stm.Upgrade)
 	}
 }
 
 func StopReconfigureHandler() {
-	if stm.GetState() == stm.Passive_Reconfiguring {
+	if stm.GetState() == stm.Upgrading {
 		return
 	}
 	syscall.Unlink(types.ReconfigureDomainSocket)
 }
 
+// will notice the old mosn when the reconfigure.sock exists
 func IsReconfigure() bool {
 	defer func() {
 		if r := recover(); r != nil {

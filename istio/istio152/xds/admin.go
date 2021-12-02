@@ -87,13 +87,12 @@ func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
 	state := stm.GetState()
 
 	switch state {
-	case stm.Active_Reconfiguring:
-		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
-	case stm.Init:
+	// TODO: ServerInfo_PRE_INITIALIZING
+	case stm.Initing:
 		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
 	case stm.Running:
 		return envoy_admin_v2alpha.ServerInfo_LIVE, nil
-	case stm.Passive_Reconfiguring:
+	case stm.Upgrading:
 		return envoy_admin_v2alpha.ServerInfo_DRAINING, nil
 	}
 

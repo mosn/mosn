@@ -18,6 +18,7 @@
 package mosn
 
 import (
+	"errors"
 	"net"
 	"sync"
 	"time"
@@ -74,11 +75,9 @@ func (m *Mosn) InitMosn(c *v2.MOSNConfig) {
 	m.initServer()
 }
 
-// TODO
-// stage manager will stop the current new mosn when return error?
-func UpgradeHandler(mosn stm.Mosn) error {
-	m := mosn.(*Mosn)
-
+// receive from old mosn
+// stage manager will stop the new mosn when returning error
+func (m *Mosn) upgradeHandler() error {
 	var err error
 	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
 	if err != nil {
@@ -93,7 +92,7 @@ func UpgradeHandler(mosn stm.Mosn) error {
 		oldMosnConfig, err := server.GetInheritConfig()
 		if err != nil {
 			m.Upgrade.ListenSockConn.Close()
-			log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			log.StartLogger.Errorf("[mosn] [NewMosn] GetInheritConfig failed, exit")
 			return err
 		}
 		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
@@ -109,18 +108,18 @@ func (m *Mosn) upgradeCheck() {
 	c := m.Config
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
-	stm.RegisterUpgradeHandler(UpgradeHandler)
-
 	// default is graceful mode, turn graceful off by set it to false
 	if !c.CloseGraceful && server.IsReconfigure() {
-		// stage manager will call UpgradeHandler
-		stm.Notice(stm.Active_Reconfiguring)
-		return
+		stm.SetFromUpgrade()
+		if err := m.upgradeHandler(); err != nil {
+			stm.Notice(stm.Quit)
+		}
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 	// start init services
 	if err := store.StartService(nil); err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
+		stm.Notice(stm.Quit)
 	}
 }
 
@@ -224,38 +223,53 @@ func (m *Mosn) initServer() {
 	}
 }
 
+// receive old connections from old mosn,
+// stage manager will stop the new mosn when return error
+func (m *Mosn) transferConnectionHandler() error {
+	// notify old mosn to transfer connection
+	if _, err := m.Upgrade.ListenSockConn.Write([]byte{0}); err != nil {
+		log.StartLogger.Errorf("[mosn] [NewMosn] failed to notify old mosn to transfer connection: %v, exit", err)
+		return err
+	}
+	// wait old mosn ack
+	m.Upgrade.ListenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	var buf [1]byte
+	n, err := m.Upgrade.ListenSockConn.Read(buf[:])
+	if n != 1 {
+		log.StartLogger.Errorf("[mosn] [NewMosn] failed to get ack from old mosn, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
+		return errors.New("failed to get ack from old mosn")
+	}
+
+	m.Upgrade.ListenSockConn.Close()
+
+	// receive old mosn connections
+	utils.GoWithRecover(func() {
+		network.TransferServer(m.servers[0].Handler())
+	}, nil)
+
+	return nil
+}
+
 func (m *Mosn) TransferConnection() {
 	log.StartLogger.Infof("[mosn start] mosn transfer connections")
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if stm.GetState() == stm.Active_Reconfiguring {
+	if m.Upgrade.ListenSockConn != nil {
 		// start other services
 		if err := store.StartService(m.Upgrade.InheritListeners); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
+			stm.Notice(stm.Quit)
 		}
-		// notify old mosn to transfer connection
-		if _, err := m.Upgrade.ListenSockConn.Write([]byte{0}); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
-		}
-		// wait old mosn ack
-		m.Upgrade.ListenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
-		var buf [1]byte
-		n, err := m.Upgrade.ListenSockConn.Read(buf[:])
-		if n != 1 {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
+		if err := m.transferConnectionHandler(); err != nil {
+			stm.Notice(stm.Quit)
 		}
 
-		m.Upgrade.ListenSockConn.Close()
-
-		// transfer old mosn connections
-		utils.GoWithRecover(func() {
-			network.TransferServer(m.servers[0].Handler())
-		}, nil)
 	} else {
 		// start other services
 		if err := store.StartService(nil); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
+			stm.Notice(stm.Quit)
 		}
 	}
 }
@@ -317,7 +331,7 @@ func (m *Mosn) Start() {
 	}, nil)
 
 	if !m.Config.CloseGraceful {
-		stm.RegsiterReconfigureHandler(server.ReconfigureHandler)
+		stm.RegsiterUpgradeHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {
 			server.ReconfigureListener()

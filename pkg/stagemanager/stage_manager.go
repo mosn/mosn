@@ -39,16 +39,32 @@ import (
 	logger "mosn.io/pkg/log"
 )
 
+type QuitAction int
+
+const (
+	Quit QuitAction = iota
+	GracefulQuit
+	HupReload
+	Upgrade
+)
+
 type State int
 
 const (
-	Init State = iota
+	Nil State = iota
+	ParamsParsed
+	Initing
+	PreStart
+	Starting
+	AfterStart
 	Running
-	Active_Reconfiguring
-	Passive_Reconfiguring
-	GracefulQuitting
-	Quitting
-	HupReloading
+	PreStop
+	Stopping
+	AfterStop
+	Stopped
+
+	StartingNewServer // start a new server when got HUP signal
+	Upgrading         // old mosn smooth upgrade
 )
 
 type Mosn interface {
@@ -60,8 +76,9 @@ type Mosn interface {
 }
 
 var (
-	stm StageManager = StageManager{
-		state:          Init,
+	isFromUpgrade bool
+	stm           StageManager = StageManager{
+		state:          Nil,
 		data:           Data{},
 		started:        false,
 		paramsStages:   []func(*cli.Context){},
@@ -99,6 +116,7 @@ type Data struct {
 // that used to startup mosn.
 type StageManager struct {
 	state                   State
+	quitAction              QuitAction
 	data                    Data
 	started                 bool
 	paramsStages            []func(*cli.Context)
@@ -109,10 +127,7 @@ type StageManager struct {
 	preStopStages           []func(Mosn)
 	afterStopStages         []func(Mosn)
 	onStateChangedCallbacks []func(State)
-	// old mosn: send to new mosn
-	reconfigureHandler func() error
-	// new mosn: receive from old mosn
-	upgradeHandler func(Mosn) error
+	upgradeHandler          func() error // old mosn: send listener/config/old connections to new mosn
 }
 
 func InitStageManager(ctx *cli.Context, path string, mosn Mosn) *StageManager {
@@ -136,14 +151,16 @@ func (stm *StageManager) AppendParamsParsedStage(f func(*cli.Context)) *StageMan
 	return stm
 }
 
-func (stm *StageManager) runParamsParsedStage() time.Duration {
+func (stm *StageManager) runParamsParsedStage() {
 	st := time.Now()
+	stm.setState(ParamsParsed)
 	for _, f := range stm.paramsStages {
 		f(stm.data.ctx)
 	}
 	// after all registered stages are completed, call the last process: load config
 	stm.data.config = configmanager.Load(stm.data.configPath)
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn parameters parsed cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
@@ -155,14 +172,17 @@ func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
 	return stm
 }
 
-func (stm *StageManager) runInitStage() time.Duration {
+func (stm *StageManager) runInitStage() {
 	st := time.Now()
+	stm.setState(Initing)
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
-	// after all registered stages are completed, call the last process: init mosn
+	// after all registered stages are completed, call the last process: init mosn.
+	// Note: will call IsReconfigure in InitMosn, may be we can add a new stage?
 	stm.data.mosn.InitMosn(stm.data.config)
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn init cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) AppendPreStartStage(f func(Mosn)) *StageManager {
@@ -174,12 +194,13 @@ func (stm *StageManager) AppendPreStartStage(f func(Mosn)) *StageManager {
 	return stm
 }
 
-func (stm *StageManager) runPreStartStage() time.Duration {
+func (stm *StageManager) runPreStartStage() {
 	st := time.Now()
+	stm.setState(PreStart)
 	for _, f := range stm.preStartStages {
 		f(stm.data.mosn)
 	}
-	return time.Since(st)
+	log.StartLogger.Infof("mosn prepare to start cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) AppendStartStage(f func(Mosn)) *StageManager {
@@ -191,17 +212,17 @@ func (stm *StageManager) AppendStartStage(f func(Mosn)) *StageManager {
 	return stm
 }
 
-func (stm *StageManager) runStartStage() time.Duration {
+func (stm *StageManager) runStartStage() {
 	st := time.Now()
+	stm.setState(Starting)
 	for _, f := range stm.startupStages {
 		f(stm.data.mosn)
 	}
 
-	stm.setState(Running)
-
 	// start mosn after all start stages finished
 	stm.data.mosn.Start()
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn start cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) AppendAfterStartStage(f func(Mosn)) *StageManager {
@@ -213,12 +234,14 @@ func (stm *StageManager) AppendAfterStartStage(f func(Mosn)) *StageManager {
 	return stm
 }
 
-func (stm *StageManager) runAfterStartStage() time.Duration {
+func (stm *StageManager) runAfterStartStage() {
 	st := time.Now()
+	stm.setState(AfterStart)
 	for _, f := range stm.afterStartStages {
 		f(stm.data.mosn)
 	}
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn after start cost: %v", time.Since(st))
 }
 
 // Run blocks until the mosn is closed
@@ -226,20 +249,15 @@ func (stm *StageManager) Run() {
 	// 0: mark already started
 	stm.started = true
 	// 1: parser params
-	elapsed := stm.runParamsParsedStage()
-	log.StartLogger.Infof("mosn parameters parsed cost: %v", elapsed)
+	stm.runParamsParsedStage()
 	// 2: init
-	elapsed = stm.runInitStage()
-	log.StartLogger.Infof("mosn init cost: %v", elapsed)
+	stm.runInitStage()
 	// 3: pre start
-	elapsed = stm.runPreStartStage()
-	log.StartLogger.Infof("mosn prepare to start cost: %v", elapsed)
+	stm.runPreStartStage()
 	// 4: run
-	elapsed = stm.runStartStage()
-	log.StartLogger.Infof("mosn start cost: %v", elapsed)
+	stm.runStartStage()
 	// 5: after start
-	elapsed = stm.runAfterStartStage()
-	log.StartLogger.Infof("mosn after start cost: %v", elapsed)
+	stm.runAfterStartStage()
 }
 
 // WaitFinish waits mosn start finished.
@@ -248,6 +266,10 @@ func (stm *StageManager) WaitFinish() {
 	if !stm.started {
 		return
 	}
+	if state := GetState(); state == Stopped {
+		return
+	}
+	stm.setState(Running)
 	stm.data.mosn.Wait()
 }
 
@@ -261,12 +283,14 @@ func (stm *StageManager) AppendPreStopStage(f func(Mosn)) *StageManager {
 }
 
 // gracefull shutdown stage
-func (stm *StageManager) runPreStopStage() time.Duration {
+func (stm *StageManager) runPreStopStage() {
 	st := time.Now()
+	stm.setState(PreStop)
 	for _, f := range stm.preStopStages {
 		f(stm.data.mosn)
 	}
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn pre stop stage cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) AppendAfterStopStage(f func(Mosn)) *StageManager {
@@ -278,12 +302,14 @@ func (stm *StageManager) AppendAfterStopStage(f func(Mosn)) *StageManager {
 	return stm
 }
 
-func (stm *StageManager) runAfterStopStage() time.Duration {
+func (stm *StageManager) runAfterStopStage() {
 	st := time.Now()
+	stm.setState(AfterStop)
 	for _, f := range stm.afterStopStages {
 		f(stm.data.mosn)
 	}
-	return time.Since(st)
+
+	log.StartLogger.Infof("mosn after stop stage cost: %v", time.Since(st))
 }
 
 func (stm *StageManager) Stop() {
@@ -291,22 +317,20 @@ func (stm *StageManager) Stop() {
 		return
 	}
 
-	var elapsed time.Duration
-	if GetState() == GracefulQuitting {
-		elapsed = stm.runPreStopStage()
-		log.StartLogger.Infof("mosn pre stop stage cost: %v", elapsed)
+	if stm.quitAction == GracefulQuit {
+		stm.runPreStopStage()
 	}
 
+	stm.setState(Stopping)
 	pid.RemovePidFile()
-
 	// Stop mosn
 	stm.data.mosn.Close()
 
 	// other cleanup actions
-	elapsed = stm.runAfterStopStage()
-	log.StartLogger.Infof("mosn after stop stage cost: %v", elapsed)
-
+	stm.runAfterStopStage()
 	logger.CloseAll()
+
+	stm.setState(Stopped)
 }
 
 func StartNewServer() error {
@@ -333,12 +357,11 @@ func (stm *StageManager) runHupReload() {
 		return
 	}
 
-	stm.setState(Passive_Reconfiguring)
+	stm.setState(StartingNewServer)
 
 	// the new started mosn will notice the current old mosn to quit
 	// after the new mosn is ready
-	err := StartNewServer()
-	if err != nil {
+	if err := StartNewServer(); err != nil {
 		stm.resume()
 	}
 }
@@ -365,8 +388,8 @@ func RegisterOnStateChanged(f func(State)) {
 	stm.onStateChangedCallbacks = append(stm.onStateChangedCallbacks, f)
 }
 
-func RegsiterReconfigureHandler(f func() error) {
-	stm.reconfigureHandler = f
+func RegsiterUpgradeHandler(f func() error) {
+	stm.upgradeHandler = f
 }
 
 // resume the old mosn to running state
@@ -378,16 +401,16 @@ func (stm *StageManager) resume() {
 	pid.WritePidFile()
 }
 
-func (stm *StageManager) runPassiveReconfigure() {
-	stm.setState(Passive_Reconfiguring)
+func (stm *StageManager) runUpgrade() {
+	stm.setState(Upgrading)
 
-	if stm.reconfigureHandler == nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] reconfigureHandler not set yet")
+	if stm.upgradeHandler == nil {
+		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] upgradeHandler not set yet")
 		stm.resume()
 		return
 	}
 
-	err := stm.reconfigureHandler()
+	err := stm.upgradeHandler()
 	if err != nil {
 		stm.resume()
 		return
@@ -395,33 +418,28 @@ func (stm *StageManager) runPassiveReconfigure() {
 	stm.Stop()
 }
 
-func RegisterUpgradeHandler(f func(Mosn) error) {
-	stm.upgradeHandler = f
-}
-
-func (stm *StageManager) runUpgrade() {
-	if stm.upgradeHandler == nil {
-		log.DefaultLogger.Alertf("stagemanager", "upgradeHandler not set yet")
-		return
-	}
-	stm.setState(Active_Reconfiguring)
-	err := stm.upgradeHandler(stm.data.mosn)
-	if err != nil {
-		// todo
-	}
-}
-
-func Notice(s State) {
-	switch s {
-	case HupReloading:
+func Notice(action QuitAction) {
+	stm.quitAction = action
+	switch action {
+	case HupReload:
 		stm.runHupReload()
-	case Passive_Reconfiguring:
-		stm.runPassiveReconfigure()
-	case Active_Reconfiguring:
+	case Upgrade:
 		stm.runUpgrade()
 	default:
-		stm.setState(s)
-		// go back to the main goroutine
-		stm.data.mosn.Finish()
+		if GetState() < Running {
+			// stop directly when it haven't started yet
+			stm.Stop()
+		} else {
+			// will go back to the main goroutine
+			stm.data.mosn.Finish()
+		}
 	}
+}
+
+func SetFromUpgrade() {
+	isFromUpgrade = true
+}
+
+func IsFromUpgrade() bool {
+	return isFromUpgrade
 }
