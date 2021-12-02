@@ -19,6 +19,7 @@ package transcoder
 
 import (
 	"context"
+	"mosn.io/api/extensions/transcoder"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ import (
 )
 
 type tt struct {
-	Transcoder
+	transcoder.Transcoder
 }
 
 type mockCallback struct {
