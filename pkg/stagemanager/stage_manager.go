@@ -53,6 +53,7 @@ type State int
 const (
 	Nil State = iota
 	ParamsParsed
+	PreInit
 	Initing
 	PreStart
 	Starting
@@ -68,16 +69,27 @@ const (
 )
 
 type Mosn interface {
-	InitMosn(*v2.MOSNConfig)
+	// init actions based on config, Mosn object members not created yet.
+	PreInitConfig(*v2.MOSNConfig)
+	// inherit from old mosn when it exists
+	InheritConfig() error
+	// init Mosn object members
+	InitMosn()
+	// more init works after Mosn object inited
+	PreStart()
+	// start to work, accepting new connections
 	Start()
+	// transfer existing connection from old mosn for smooth upgrade
+	InheritConnections() error
+	// wait for finish
 	Wait()
+	// finish wait, will resume the main goroutine
 	Finish()
 	Close()
 }
 
 var (
-	isFromUpgrade bool
-	stm           StageManager = StageManager{
+	stm StageManager = StageManager{
 		state:          Nil,
 		data:           Data{},
 		started:        false,
@@ -98,8 +110,6 @@ type Data struct {
 	configPath string
 	// mosn basic config, created after parameters parsed stage
 	config *v2.MOSNConfig
-	// mosn struct contains some basic structures.
-	mosn Mosn
 }
 
 // StageManager is a stage manager that controls startup stages running.
@@ -118,6 +128,7 @@ type StageManager struct {
 	state                   State
 	quitAction              QuitAction
 	data                    Data
+	mosn                    Mosn // Mosn interface
 	started                 bool
 	paramsStages            []func(*cli.Context)
 	initStages              []func(*v2.MOSNConfig)
@@ -133,7 +144,7 @@ type StageManager struct {
 func InitStageManager(ctx *cli.Context, path string, mosn Mosn) *StageManager {
 	stm.data.configPath = path
 	stm.data.ctx = ctx
-	stm.data.mosn = mosn
+	stm.mosn = mosn
 
 	RegisterOnStateChanged(func(s State) {
 		metrics.SetStateCode(int64(s))
@@ -174,13 +185,17 @@ func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
 
 func (stm *StageManager) runInitStage() {
 	st := time.Now()
-	stm.setState(Initing)
+	stm.setState(PreInit)
+	stm.mosn.PreInitConfig(stm.data.config)
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
+	if err := stm.mosn.InheritConfig(); err != nil {
+		stm.Stop()
+	}
+	stm.setState(Initing)
 	// after all registered stages are completed, call the last process: init mosn.
-	// Note: will call IsReconfigure in InitMosn, may be we can add a new stage?
-	stm.data.mosn.InitMosn(stm.data.config)
+	stm.mosn.InitMosn()
 
 	log.StartLogger.Infof("mosn init cost: %v", time.Since(st))
 }
@@ -198,7 +213,7 @@ func (stm *StageManager) runPreStartStage() {
 	st := time.Now()
 	stm.setState(PreStart)
 	for _, f := range stm.preStartStages {
-		f(stm.data.mosn)
+		f(stm.mosn)
 	}
 	log.StartLogger.Infof("mosn prepare to start cost: %v", time.Since(st))
 }
@@ -216,11 +231,16 @@ func (stm *StageManager) runStartStage() {
 	st := time.Now()
 	stm.setState(Starting)
 	for _, f := range stm.startupStages {
-		f(stm.data.mosn)
+		f(stm.mosn)
 	}
 
 	// start mosn after all start stages finished
-	stm.data.mosn.Start()
+	stm.mosn.Start()
+
+	// transfer existing connections from old mosn
+	if err := stm.mosn.InheritConnections(); err != nil {
+		stm.Stop()
+	}
 
 	log.StartLogger.Infof("mosn start cost: %v", time.Since(st))
 }
@@ -238,7 +258,7 @@ func (stm *StageManager) runAfterStartStage() {
 	st := time.Now()
 	stm.setState(AfterStart)
 	for _, f := range stm.afterStartStages {
-		f(stm.data.mosn)
+		f(stm.mosn)
 	}
 
 	log.StartLogger.Infof("mosn after start cost: %v", time.Since(st))
@@ -270,7 +290,7 @@ func (stm *StageManager) WaitFinish() {
 		return
 	}
 	stm.setState(Running)
-	stm.data.mosn.Wait()
+	stm.mosn.Wait()
 }
 
 func (stm *StageManager) AppendPreStopStage(f func(Mosn)) *StageManager {
@@ -287,7 +307,7 @@ func (stm *StageManager) runPreStopStage() {
 	st := time.Now()
 	stm.setState(PreStop)
 	for _, f := range stm.preStopStages {
-		f(stm.data.mosn)
+		f(stm.mosn)
 	}
 
 	log.StartLogger.Infof("mosn pre stop stage cost: %v", time.Since(st))
@@ -306,7 +326,7 @@ func (stm *StageManager) runAfterStopStage() {
 	st := time.Now()
 	stm.setState(AfterStop)
 	for _, f := range stm.afterStopStages {
-		f(stm.data.mosn)
+		f(stm.mosn)
 	}
 
 	log.StartLogger.Infof("mosn after stop stage cost: %v", time.Since(st))
@@ -317,6 +337,8 @@ func (stm *StageManager) Stop() {
 		return
 	}
 
+	preState := GetState()
+
 	if stm.quitAction == GracefulQuit {
 		stm.runPreStopStage()
 	}
@@ -324,13 +346,18 @@ func (stm *StageManager) Stop() {
 	stm.setState(Stopping)
 	pid.RemovePidFile()
 	// Stop mosn
-	stm.data.mosn.Close()
+	stm.mosn.Close()
 
 	// other cleanup actions
 	stm.runAfterStopStage()
 	logger.CloseAll()
 
 	stm.setState(Stopped)
+
+	// main goroutine is not waiting, exit directly
+	if preState != Running {
+		os.Exit(1)
+	}
 }
 
 func StartNewServer() error {
@@ -410,12 +437,14 @@ func (stm *StageManager) runUpgrade() {
 		return
 	}
 
+	// send to new mosn, for smooth upgrade
 	err := stm.upgradeHandler()
 	if err != nil {
 		stm.resume()
 		return
 	}
-	stm.Stop()
+	// will go back to the main goroutine and stop
+	stm.mosn.Finish()
 }
 
 func Notice(action QuitAction) {
@@ -430,16 +459,17 @@ func Notice(action QuitAction) {
 			// stop directly when it haven't started yet
 			stm.Stop()
 		} else {
-			// will go back to the main goroutine
-			stm.data.mosn.Finish()
+			// will go back to the main goroutine and stop
+			stm.mosn.Finish()
 		}
 	}
 }
 
-func SetFromUpgrade() {
-	isFromUpgrade = true
-}
-
-func IsFromUpgrade() bool {
-	return isFromUpgrade
+func (stm *StageManager) RunAll() {
+	// execute all runs
+	stm.Run()
+	// wait mosn finished
+	stm.WaitFinish()
+	// free resource
+	stm.Stop()
 }

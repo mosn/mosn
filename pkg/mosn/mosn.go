@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -50,9 +51,10 @@ type Mosn struct {
 	RouterManager  types.RouterManager
 	Config         *v2.MOSNConfig
 	// internal data
-	servers   []server.Server
-	xdsClient *istio.ADSClient
-	wg        sync.WaitGroup
+	servers       []server.Server
+	xdsClient     *istio.ADSClient
+	wg            sync.WaitGroup
+	isFromUpgrade bool // config is inherit from old mosn
 }
 
 // create an empty mosn
@@ -64,20 +66,23 @@ func NewMosn() *Mosn {
 	return m
 }
 
-func (m *Mosn) InitMosn(c *v2.MOSNConfig) {
+// generate mosn structure members
+func (m *Mosn) InitMosn() {
 	log.StartLogger.Infof("[mosn start] init the new mosn structure")
-	// set the mosn config finally
-	defer configmanager.SetMosnConfig(c)
 
-	// generate mosn structure members
-	m.upgradeCheck()
 	m.initClusterManager()
 	m.initServer()
+
+	// init metrics after inherit config from old mosn
+	InitializeMetrics(m.Config, m.isFromUpgrade)
+
+	// set the mosn config finally
+	configmanager.SetMosnConfig(m.Config)
 }
 
 // receive from old mosn
 // stage manager will stop the new mosn when returning error
-func (m *Mosn) upgradeHandler() error {
+func (m *Mosn) inheritHandler() error {
 	var err error
 	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
 	if err != nil {
@@ -104,23 +109,25 @@ func (m *Mosn) upgradeHandler() error {
 	return nil
 }
 
-func (m *Mosn) upgradeCheck() {
+// inherit listener fds / config from old mosn when it exists,
+// stop the new mosn when error happens
+func (m *Mosn) InheritConfig() (err error) {
 	c := m.Config
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// default is graceful mode, turn graceful off by set it to false
 	if !c.CloseGraceful && server.IsReconfigure() {
-		stm.SetFromUpgrade()
-		if err := m.upgradeHandler(); err != nil {
-			stm.Notice(stm.Quit)
+		m.isFromUpgrade = true
+		if err = m.inheritHandler(); err != nil {
+			return
 		}
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 	// start init services
-	if err := store.StartService(nil); err != nil {
+	if err = store.StartService(nil); err != nil {
 		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
-		stm.Notice(stm.Quit)
 	}
+	return
 }
 
 type clusterManagerFilter struct {
@@ -224,7 +231,6 @@ func (m *Mosn) initServer() {
 }
 
 // receive old connections from old mosn,
-// stage manager will stop the new mosn when return error
 func (m *Mosn) transferConnectionHandler() error {
 	// notify old mosn to transfer connection
 	if _, err := m.Upgrade.ListenSockConn.Write([]byte{0}); err != nil {
@@ -250,28 +256,25 @@ func (m *Mosn) transferConnectionHandler() error {
 	return nil
 }
 
-func (m *Mosn) TransferConnection() {
+func (m *Mosn) TransferConnection() (err error) {
 	log.StartLogger.Infof("[mosn start] mosn transfer connections")
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
 	if m.Upgrade.ListenSockConn != nil {
 		// start other services
-		if err := store.StartService(m.Upgrade.InheritListeners); err != nil {
+		if err = store.StartService(m.Upgrade.InheritListeners); err != nil {
 			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
-			stm.Notice(stm.Quit)
 		}
-		if err := m.transferConnectionHandler(); err != nil {
-			stm.Notice(stm.Quit)
-		}
+		err = m.transferConnectionHandler()
 
 	} else {
 		// start other services
-		if err := store.StartService(nil); err != nil {
+		if err = store.StartService(nil); err != nil {
 			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
-			stm.Notice(stm.Quit)
 		}
 	}
+	return
 }
 
 func (m *Mosn) CleanUpgrade() {
@@ -324,6 +327,10 @@ func (m *Mosn) HandleExtendConfig() {
 
 func (m *Mosn) Start() {
 	log.StartLogger.Infof("[mosn start] mosn start server")
+	// register admin server
+	// admin server should registered after all prepares action ready
+	srv := admin.Server{}
+	srv.Start(m.Config)
 	m.wg.Add(1)
 	// start dump config process
 	utils.GoWithRecover(func() {

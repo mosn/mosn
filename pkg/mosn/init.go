@@ -34,7 +34,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
 	"mosn.io/mosn/pkg/server/pid"
-	stm "mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
@@ -74,15 +73,13 @@ func initializeTracing(config v2.TracingConfig) {
 	}
 }
 
-func InitializeMetrics(c *v2.MOSNConfig) {
+func InitializeMetrics(c *v2.MOSNConfig, isFromUpgrade bool) {
 	metrics.FlushMosnMetrics = true
-	initializeMetrics(c.Metrics)
-}
+	config := c.Metrics
 
-func initializeMetrics(config v2.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), stm.IsFromUpgrade())
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), isFromUpgrade)
 	}
 
 	// set metrics package
