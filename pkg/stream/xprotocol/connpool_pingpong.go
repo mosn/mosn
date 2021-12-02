@@ -345,7 +345,6 @@ func (ac *activeClientPingPong) OnEvent(event api.ConnectionEvent) {
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		ac.codecClient.Close()
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)

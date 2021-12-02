@@ -29,8 +29,12 @@ import (
 )
 
 const (
-	DefaultTimeout  = time.Second
-	DefaultInterval = 15 * time.Second
+	DefaultTimeout        = time.Second
+	DefaultInterval       = 15 * time.Second
+	DefaultIntervalJitter = 5 * time.Millisecond
+
+	DefaultHealthyThreshold   uint32 = 1
+	DefaultUnhealthyThreshold uint32 = 1
 )
 
 // TODO: move healthcheck package to cluster package
@@ -56,22 +60,34 @@ type healthChecker struct {
 }
 
 func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
-	timeout := DefaultTimeout
-	if cfg.Timeout != 0 {
-		timeout = cfg.Timeout
+	timeout := cfg.Timeout
+	if cfg.Timeout == 0 {
+		timeout = DefaultTimeout
 	}
-	interval := DefaultInterval
-	if cfg.Interval != 0 {
-		interval = cfg.Interval
+	interval := cfg.Interval
+	if cfg.Interval == 0 {
+		interval = DefaultInterval
+	}
+	unhealthyThreshold := cfg.UnhealthyThreshold
+	if unhealthyThreshold == 0 {
+		unhealthyThreshold = DefaultUnhealthyThreshold
+	}
+	healthyThreshold := cfg.HealthyThreshold
+	if healthyThreshold == 0 {
+		healthyThreshold = DefaultHealthyThreshold
+	}
+	intervalJitter := cfg.IntervalJitter
+	if intervalJitter == 0 {
+		intervalJitter = DefaultIntervalJitter
 	}
 	hc := &healthChecker{
 		// cfg
 		sessionConfig:      cfg.SessionConfig,
 		timeout:            timeout,
 		intervalBase:       interval,
-		intervalJitter:     cfg.IntervalJitter,
-		healthyThreshold:   cfg.HealthyThreshold,
-		unhealthyThreshold: cfg.UnhealthyThreshold,
+		intervalJitter:     intervalJitter,
+		healthyThreshold:   healthyThreshold,
+		unhealthyThreshold: unhealthyThreshold,
 		//runtime and stats
 		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},

@@ -15,6 +15,29 @@
  * limitations under the License.
  */
 
-package v2
+package matcher
 
-// spec: https://github.com/proxy-wasm/spec/blob/cc53262df056036427476b272fb8f2438aa7975f/abi-versions/vNEXT/README.md
+import (
+	"mosn.io/mosn/pkg/log"
+)
+
+type MatcherFactory func(config interface{}) RuleMatcher
+
+// macther factory
+var mactherFactoryMaps = make(map[string]MatcherFactory)
+
+func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
+	if mactherFactoryMaps[typ] != nil {
+		log.DefaultLogger.Fatalf("[stream filter][transcoder][matcher]target stream matcher already exists: %s", typ)
+	}
+	mactherFactoryMaps[typ] = factory
+}
+
+func NewMatcher(cfg *MatcherConfig) RuleMatcher {
+	mf := mactherFactoryMaps[cfg.MatcherType]
+	if mf == nil {
+		log.DefaultLogger.Errorf("[stream filter][transcoder][matcher]target stream matcher not exists: %s", cfg.MatcherType)
+		return nil
+	}
+	return mf(cfg.Config)
+}

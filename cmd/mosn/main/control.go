@@ -146,6 +146,9 @@ var (
 
 			// wait mosn finished
 			stm.WaitFinish()
+
+			// free resource
+			stm.Stop()
 			return nil
 
 		},

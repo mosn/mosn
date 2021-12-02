@@ -34,7 +34,7 @@ import (
 func TestKnownFeatures(t *testing.T) {
 	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/features", nil)
 	w := httptest.NewRecorder()
-	knownFeatures(w, r)
+	KnownFeatures(w, r)
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("response status got %d", resp.StatusCode)
@@ -54,7 +54,7 @@ func TestKnownFeatures(t *testing.T) {
 func TestSingleFeatureState(t *testing.T) {
 	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/features?key=auto_config", nil)
 	w := httptest.NewRecorder()
-	knownFeatures(w, r)
+	KnownFeatures(w, r)
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("response status got %d", resp.StatusCode)
@@ -73,7 +73,7 @@ func TestGetEnv(t *testing.T) {
 	os.Setenv("t3", "")
 	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/env?key=t1&key=t2&key=t3", nil)
 	w := httptest.NewRecorder()
-	getEnv(w, r)
+	GetEnv(w, r)
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("response status got %d", resp.StatusCode)
@@ -105,7 +105,7 @@ func TestStatsDumpWithParameters(t *testing.T) {
 	}()
 	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/stats?key=mosn_tls.tls.global", nil)
 	w := httptest.NewRecorder()
-	statsDump(w, r)
+	StatsDump(w, r)
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("response status got %d", resp.StatusCode)
@@ -138,85 +138,85 @@ func TestInvalidCommon(t *testing.T) {
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/config_dump",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               configDump,
+			Func:               ConfigDump,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/config_dump?mosnconfig&router",
 			ExpectedStatusCode: 400,
-			Func:               configDump,
+			Func:               ConfigDump,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/config_dump?invalid",
 			ExpectedStatusCode: 500,
-			Func:               configDump,
+			Func:               ConfigDump,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/stats",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               statsDump,
+			Func:               StatsDump,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/stats_glob",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               statsDumpProxyTotal,
+			Func:               StatsDumpProxyTotal,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/get_loglevel",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               getLoggerInfo,
+			Func:               GetLoggerInfo,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/update_loglevel",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               updateLogLevel,
+			Func:               UpdateLogLevel,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/update_loglevel",
 			ExpectedStatusCode: http.StatusBadRequest,
-			Func:               updateLogLevel,
+			Func:               UpdateLogLevel,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/enable_log",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               enableLogger,
+			Func:               EnableLogger,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/disable_log",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               disableLogger,
+			Func:               DisableLogger,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/state",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               getState,
+			Func:               GetState,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/features",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               knownFeatures,
+			Func:               KnownFeatures,
 		},
 		{
 			Method:             "POST",
 			Url:                "http://127.0.0.1/api/v1/env",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			Func:               getEnv,
+			Func:               GetEnv,
 		},
 		{
 			Method:             "GET",
 			Url:                "http://127.0.0.1/api/v1/env",
 			ExpectedStatusCode: http.StatusBadRequest,
-			Func:               getEnv,
+			Func:               GetEnv,
 		},
 	}
 	for idx, tc := range teasCases {

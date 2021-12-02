@@ -34,14 +34,15 @@ var (
 
 	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
 
-	ReconfigureDomainSocket        = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
-	TransferConnDomainSocket       = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
-	TransferStatsDomainSocket      = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
-	TransferListenDomainSocket     = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
-	TransferMosnconfigDomainSocket = MosnConfigPath + string(os.PathSeparator) + "mosnconfig.sock"
+	MosnUDSPath                    = MosnConfigPath
+	ReconfigureDomainSocket        = MosnUDSPath + string(os.PathSeparator) + "reconfig.sock"
+	TransferConnDomainSocket       = MosnUDSPath + string(os.PathSeparator) + "conn.sock"
+	TransferStatsDomainSocket      = MosnUDSPath + string(os.PathSeparator) + "stats.sock"
+	TransferListenDomainSocket     = MosnUDSPath + string(os.PathSeparator) + "listen.sock"
+	TransferMosnconfigDomainSocket = MosnUDSPath + string(os.PathSeparator) + "mosnconfig.sock"
 )
 
-func InitDefaultPath(path string) {
+func InitDefaultPath(path, UDSDir string) {
 	var err error
 	var index int
 	var config string
@@ -64,16 +65,24 @@ func InitDefaultPath(path string) {
 
 	MosnLogDefaultPath = MosnLogBasePath + string(os.PathSeparator) + "mosn.log"
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
-
 	MosnConfigPath = config
 
-	ReconfigureDomainSocket = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
-	TransferConnDomainSocket = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
-	TransferStatsDomainSocket = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
-	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
-	TransferMosnconfigDomainSocket = MosnConfigPath + string(os.PathSeparator) + "mosnconfig.sock"
+	MosnUDSPath = MosnConfigPath
+	if UDSDir != "" {
+		MosnUDSPath, err = filepath.Abs(UDSDir)
+		if err != nil {
+			goto end
+		}
+	}
+
+	ReconfigureDomainSocket = MosnUDSPath + string(os.PathSeparator) + "reconfig.sock"
+	TransferConnDomainSocket = MosnUDSPath + string(os.PathSeparator) + "conn.sock"
+	TransferStatsDomainSocket = MosnUDSPath + string(os.PathSeparator) + "stats.sock"
+	TransferListenDomainSocket = MosnUDSPath + string(os.PathSeparator) + "listen.sock"
+	TransferMosnconfigDomainSocket = MosnUDSPath + string(os.PathSeparator) + "mosnconfig.sock"
 
 end:
 	os.MkdirAll(MosnLogBasePath, 0755)
 	os.MkdirAll(MosnConfigPath, 0755)
+	os.MkdirAll(MosnUDSPath, 0755)
 }
