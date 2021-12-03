@@ -73,13 +73,13 @@ func initializeTracing(config v2.TracingConfig) {
 	}
 }
 
-func InitializeMetrics(c *v2.MOSNConfig, isFromUpgrade bool) {
+func InitializeMetrics(m *Mosn) {
 	metrics.FlushMosnMetrics = true
-	config := c.Metrics
+	config := m.Config.Metrics
 
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), isFromUpgrade)
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), m.isFromUpgrade)
 	}
 
 	// set metrics package

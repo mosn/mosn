@@ -53,7 +53,6 @@ type State int
 const (
 	Nil State = iota
 	ParamsParsed
-	PreInit
 	Initing
 	PreStart
 	Starting
@@ -71,12 +70,10 @@ const (
 type Mosn interface {
 	// init actions based on config, Mosn object members not created yet.
 	PreInitConfig(*v2.MOSNConfig)
-	// inherit from old mosn when it exists
-	InheritConfig() error
+	// inherit config from old mosn when it exists, otherwise, use the local config
+	InheritConfig(*v2.MOSNConfig) error
 	// init Mosn object members
 	InitMosn()
-	// more init works after Mosn object inited
-	PreStart()
 	// start to work, accepting new connections
 	Start()
 	// transfer existing connection from old mosn for smooth upgrade
@@ -174,6 +171,7 @@ func (stm *StageManager) runParamsParsedStage() {
 	log.StartLogger.Infof("mosn parameters parsed cost: %v", time.Since(st))
 }
 
+// init work base on the local config
 func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -185,21 +183,21 @@ func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
 
 func (stm *StageManager) runInitStage() {
 	st := time.Now()
-	stm.setState(PreInit)
+	stm.setState(Initing)
 	stm.mosn.PreInitConfig(stm.data.config)
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
-	if err := stm.mosn.InheritConfig(); err != nil {
+	if err := stm.mosn.InheritConfig(stm.data.config); err != nil {
 		stm.Stop()
 	}
-	stm.setState(Initing)
 	// after all registered stages are completed, call the last process: init mosn.
 	stm.mosn.InitMosn()
 
 	log.StartLogger.Infof("mosn init cost: %v", time.Since(st))
 }
 
+// more init works after inherit config from old mosn and new Mosn members inited
 func (stm *StageManager) AppendPreStartStage(f func(Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -218,6 +216,7 @@ func (stm *StageManager) runPreStartStage() {
 	log.StartLogger.Infof("mosn prepare to start cost: %v", time.Since(st))
 }
 
+// start mosn
 func (stm *StageManager) AppendStartStage(f func(Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -245,6 +244,7 @@ func (stm *StageManager) runStartStage() {
 	log.StartLogger.Infof("mosn start cost: %v", time.Since(st))
 }
 
+// after mosn working (accepting request)
 func (stm *StageManager) AppendAfterStartStage(f func(Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -293,6 +293,7 @@ func (stm *StageManager) WaitFinish() {
 	stm.mosn.Wait()
 }
 
+// graceful shutdown handlers
 func (stm *StageManager) AppendPreStopStage(f func(Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -313,6 +314,7 @@ func (stm *StageManager) runPreStopStage() {
 	log.StartLogger.Infof("mosn pre stop stage cost: %v", time.Since(st))
 }
 
+// after mosn is not working
 func (stm *StageManager) AppendAfterStopStage(f func(Mosn)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or mosn is already started")
@@ -336,9 +338,7 @@ func (stm *StageManager) Stop() {
 	if !stm.started {
 		return
 	}
-
 	preState := GetState()
-
 	if stm.quitAction == GracefulQuit {
 		stm.runPreStopStage()
 	}
@@ -356,6 +356,7 @@ func (stm *StageManager) Stop() {
 
 	// main goroutine is not waiting, exit directly
 	if preState != Running {
+		log.StartLogger.Errorf("[mosn start] failed to start mosn at stage: %v", preState)
 		os.Exit(1)
 	}
 }

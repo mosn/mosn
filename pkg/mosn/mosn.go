@@ -73,9 +73,6 @@ func (m *Mosn) InitMosn() {
 	m.initClusterManager()
 	m.initServer()
 
-	// init metrics after inherit config from old mosn
-	InitializeMetrics(m.Config, m.isFromUpgrade)
-
 	// set the mosn config finally
 	configmanager.SetMosnConfig(m.Config)
 }
@@ -110,9 +107,10 @@ func (m *Mosn) inheritHandler() error {
 }
 
 // inherit listener fds / config from old mosn when it exists,
+// use the local config by default,
 // stop the new mosn when error happens
-func (m *Mosn) InheritConfig() (err error) {
-	c := m.Config
+func (m *Mosn) InheritConfig(c *v2.MOSNConfig) (err error) {
+	m.Config = c
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// default is graceful mode, turn graceful off by set it to false
@@ -386,4 +384,20 @@ func (m *Mosn) Close() {
 	if m.Clustermanager != nil {
 		m.Clustermanager.Destroy()
 	}
+}
+
+// mosn not inited yet, using the local config here
+func (m *Mosn) PreInitConfig(c *v2.MOSNConfig) {
+	InitDefaultPath(c)
+	InitializePidFile(c)
+}
+
+// transfer existing connections from old mosn,
+// stage manager will stop the new mosn when return error
+func (m *Mosn) InheritConnections() error {
+	// transfer connection used in smooth upgrade in mosn
+	err := m.TransferConnection()
+	// clean upgrade finish the smooth upgrade datas
+	m.CleanUpgrade()
+	return err
 }

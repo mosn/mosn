@@ -145,14 +145,20 @@ var (
 			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
 			// initial registerd
+			stm.AppendInitStage(mosn.DefaultInitStage)
 			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
 				// set version and go version
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
 			})
-
+			// pre-startup
+			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
+			// startup
+			stm.AppendStartStage(mosn.DefaultStartStage)
+			// execute all
 			stm.RunAll()
 			return nil
+
 		},
 	}
 

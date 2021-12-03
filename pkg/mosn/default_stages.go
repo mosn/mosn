@@ -18,36 +18,42 @@
 package mosn
 
 import (
+	admin "mosn.io/mosn/pkg/admin/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
+	stm "mosn.io/mosn/pkg/stagemanager"
 )
 
-// mosn not inited yet, using the local config here
-func (m *Mosn) PreInitConfig(c *v2.MOSNConfig) {
-	InitDefaultPath(c)
+// Default Init Stage wrappers. if more initialize needs to extend.
+// modify it in main function.
+// before inherit config from old mosn.
+func DefaultInitStage(c *v2.MOSNConfig) {
 	InitDebugServe(c)
-	InitializePidFile(c)
 	InitializeTracing(c)
 	InitializePlugin(c)
 	InitializeWasm(c)
 	InitializeThirdPartCodec(c)
-	m.Config = c
 }
 
-// mosn alreday inited
-func (m *Mosn) PreStart() {
+// Default Pre-start Stage wrappers
+func DefaultPreStartStage(mosn stm.Mosn) {
+	m := mosn.(*Mosn)
+
+	// after inherit config,
+	// since metrics need the isFromUpgrade flag in Mosn
+	InitializeMetrics(m)
+
 	// start xds client
 	_ = m.StartXdsClient()
 	featuregate.FinallyInitFunc()
 	m.HandleExtendConfig()
 }
 
-// transfer existing connections from old mosn,
-// stage manager will stop the new mosn when return error
-func (m *Mosn) InheritConnections() error {
-	// transfer connection used in smooth upgrade in mosn
-	err := m.TransferConnection()
-	// clean upgrade finish the smooth upgrade datas
-	m.CleanUpgrade()
-	return err
+// Default Start Stage wrappers
+func DefaultStartStage(mosn stm.Mosn) {
+	m := mosn.(*Mosn)
+	// register admin server
+	// admin server should registered after all prepares action ready
+	srv := admin.Server{}
+	srv.Start(m.Config)
 }
