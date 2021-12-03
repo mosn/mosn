@@ -26,6 +26,7 @@ package stagemanager
 
 import (
 	"os"
+	"sync"
 	"syscall"
 	"time"
 
@@ -76,10 +77,7 @@ type Mosn interface {
 	Start()
 	// transfer existing connection from old mosn for smooth upgrade
 	InheritConnections() error
-	// wait for finish
-	Wait()
-	// finish wait, will resume the main goroutine
-	Finish()
+	// stop working
 	Close()
 }
 
@@ -124,6 +122,7 @@ type StageManager struct {
 	quitAction              QuitAction
 	data                    Data
 	mosn                    Mosn // Mosn interface
+	wg                      sync.WaitGroup
 	started                 bool
 	paramsStages            []func(*cli.Context)
 	initStages              []func(*v2.MOSNConfig)
@@ -230,6 +229,7 @@ func (stm *StageManager) runStartStage() {
 		f(stm.mosn)
 	}
 
+	stm.wg.Add(1)
 	// start mosn after all start stages finished
 	stm.mosn.Start()
 
@@ -277,7 +277,7 @@ func (stm *StageManager) Run() {
 	stm.runAfterStartStage()
 }
 
-// WaitFinish waits mosn start finished.
+// the main goroutine wait the finish signal
 // if Run is not called, return directly
 func (stm *StageManager) WaitFinish() {
 	if !stm.started {
@@ -287,7 +287,7 @@ func (stm *StageManager) WaitFinish() {
 		return
 	}
 	stm.setState(Running)
-	stm.mosn.Wait()
+	stm.wg.Wait()
 }
 
 // graceful shutdown handlers
@@ -426,6 +426,7 @@ func (stm *StageManager) resume() {
 	pid.WritePidFile()
 }
 
+// hot upgrade, sending config/existing connections to new mosn firstly
 func (stm *StageManager) runUpgrade() {
 	stm.setState(Upgrading)
 
@@ -442,7 +443,7 @@ func (stm *StageManager) runUpgrade() {
 		return
 	}
 	// will go back to the main goroutine and stop
-	stm.mosn.Finish()
+	stm.wg.Done()
 }
 
 func Notice(action QuitAction) {
@@ -453,21 +454,22 @@ func Notice(action QuitAction) {
 	case Upgrade:
 		stm.runUpgrade()
 	default:
-		if GetState() < Running {
+		if GetState() < AfterStart {
 			// stop directly when it haven't started yet
 			stm.Stop()
 		} else {
 			// will go back to the main goroutine and stop
-			stm.mosn.Finish()
+			stm.wg.Done()
 		}
 	}
 }
 
+// run all stages
 func (stm *StageManager) RunAll() {
-	// execute all runs
+	// start to work
 	stm.Run()
 	// wait mosn finished
 	stm.WaitFinish()
-	// free resource
+	// stop working
 	stm.Stop()
 }

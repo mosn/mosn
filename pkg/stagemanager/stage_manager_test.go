@@ -15,20 +15,100 @@
  * limitations under the License.
  */
 
-package stagemanager
+package stagemanager_test
 
 import (
-	"sync"
+	"encoding/json"
 	"testing"
 
 	"github.com/urfave/cli"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
+// TODO: may be use a common test config
+// test new config
+const mosnConfig = `{
+	"servers":[{
+		"default_log_path": "stdout",
+		"listeners":[{
+			"name":"serverListener",
+			"address": "127.0.0.1:8080",
+			"bind_port": true,
+			"filter_chains": [{
+				"filters": [
+					{
+						"type": "proxy",
+						"config": {
+							"downstream_protocol": "Http1",
+							"upstream_protocol": "Http1",
+							"router_config_name":"server_router"
+						}
+					},
+					{
+						"type": "connection_manager",
+						"config":{
+							"router_config_name":"server_router",
+							"virtual_hosts":[{
+								"domains": ["*"],
+								"routers": [{
+									"match":{"prefix":"/"},
+									"route":{"cluster_name":"serverCluster"}
+								}]
+							}]
+						}
+					}
+				]
+			}]
+		}],
+		"routers": [
+			{
+				"router_config_name":"server_router",
+				"virtual_hosts":[
+					{
+						"name": "virtualhost00",
+						"domains": ["www.server.com"],
+						"routers": [{
+							"match":{"prefix":"/"},
+						 	"route":{"cluster_name":"serverCluster"}
+						}]
+					},
+					{
+						"name": "virtualhost01",
+						 "domains": ["www.test.com"],
+						 "routers": [{
+							 "match":{"prefix":"/"},
+							 "route":{"cluster_name":"serverCluster"}
+						 }]
+					}
+				]
+			},
+			{
+				 "router_config_name":"test_router",
+				 "virtual_hosts":[{
+					 "domains": ["*"],
+					 "routers": [{
+						 "match":{"prefix":"/"},
+						 "route":{"cluster_name":"serverCluster"}
+					 }]
+				 }]
+			}
+		]
+	}],
+	"cluster_manager":{
+		"clusters":[{
+			"name":"serverCluster",
+			"type": "SIMPLE",
+			"lb_type": "LB_RANDOM",
+			"hosts":[]
+		}]
+	}
+}`
+
 func TestStageManager(t *testing.T) {
-	stm := NewStageManager(&cli.Context{}, "")
+	stm := stagemanager.InitStageManager(&cli.Context{}, "", mosn.NewMosn())
 	// test for mock
 	testCall := 0
 	configmanager.RegisterConfigLoadFunc(func(p string) *v2.MOSNConfig {
@@ -36,17 +116,16 @@ func TestStageManager(t *testing.T) {
 			t.Errorf("load config is not called after 2 stages registered")
 		}
 		testCall = 0
-		return &v2.MOSNConfig{}
+
+		cfg := &v2.MOSNConfig{}
+		content := []byte(mosnConfig)
+		if err := json.Unmarshal(content, cfg); err != nil {
+			t.Fatal(err)
+		}
+		return cfg
 	})
 	defer configmanager.RegisterConfigLoadFunc(configmanager.DefaultConfigLoad)
-	stm.newMosn = func(c *v2.MOSNConfig) *Mosn {
-		testCall = 0
-		return &Mosn{
-			wg:     sync.WaitGroup{},
-			Config: c,
-		}
-	}
-	stm.AppendPreStartStage(DefaultPreStartStage)
+	stm.AppendPreStartStage(mosn.DefaultPreStartStage)
 	stm.AppendParamsParsedStage(func(_ *cli.Context) {
 		testCall++
 		if testCall != 1 {
@@ -58,51 +137,54 @@ func TestStageManager(t *testing.T) {
 			t.Errorf("unexpected params parsed stage call: 2")
 		}
 	}).AppendInitStage(func(_ *v2.MOSNConfig) {
+		// testCall reset to 0 in the new registered ConfigLoad
 		testCall++
 		if testCall != 1 {
-			t.Errorf("unexpected init stage call: 1")
+			t.Errorf("init stage call, expect 1 while got %v", testCall)
 		}
-	}).AppendPreStartStage(func(_ *Mosn) {
-		testCall++
-		if testCall != 1 {
-			t.Errorf("pre start stage call: 1")
-		}
-	}).AppendStartStage(func(_ *Mosn) {
+	}).AppendPreStartStage(func(_ stagemanager.Mosn) {
 		testCall++
 		if testCall != 2 {
-			t.Errorf("start stage call: 2")
+			t.Errorf("pre start stage call, expect 2 while got %v", testCall)
 		}
-	}).AppendAfterStartStage(func(_ *Mosn) {
+	}).AppendStartStage(func(_ stagemanager.Mosn) {
 		testCall++
 		if testCall != 3 {
-			t.Errorf("after start stage call: %v", testCall)
+			t.Errorf("start stage call, expect 3 while got %v", testCall)
 		}
-	}).AppendAfterStopStage(func(_ *Mosn) {
+	}).AppendAfterStartStage(func(_ stagemanager.Mosn) {
 		testCall++
 		if testCall != 4 {
-			t.Errorf("after stage stage call: 3")
+			t.Errorf("after start stage call, expect 4 while got %v", testCall)
+		}
+	}).AppendPreStopStage(func(_ stagemanager.Mosn) {
+		testCall++
+		if testCall != 5 {
+			t.Errorf("pre stop stage call, expect 5 while got %v", testCall)
+		}
+	}).AppendAfterStopStage(func(_ stagemanager.Mosn) {
+		testCall++
+		if testCall != 6 {
+			t.Errorf("after stop stage call, expect 6 while got %v", testCall)
 		}
 	})
 	if testCall != 0 {
 		t.Errorf("should call nothing")
 	}
 	stm.Run()
-	if !(testCall == 3 &&
-		stm.data.mosn != nil &&
-		stm.data.config != nil) {
-		t.Errorf("stage manager runs failed...")
+	if !(testCall == 4 &&
+		stagemanager.GetState() == stagemanager.AfterStart) {
+		t.Errorf("run stage failed, testCall: %v, stage: %v", testCall, stagemanager.GetState())
 	}
-	keeper.Shutdown()
+	stagemanager.Notice(stagemanager.GracefulQuit)
 	stm.WaitFinish()
-	if !(testCall == 3 &&
-		stm.data.mosn != nil &&
-		stm.data.config != nil) {
-		t.Errorf("WaitFinish runs failed...")
+	if !(testCall == 4 &&
+		stagemanager.GetState() == stagemanager.Running) {
+		t.Errorf("wait stage failed, testCall: %v, stage: %v", testCall, stagemanager.GetState())
 	}
 	stm.Stop()
-	if !(testCall == 4 &&
-		stm.data.mosn != nil &&
-		stm.data.config != nil) {
-		t.Errorf("Stop runs failed...")
+	if !(testCall == 6 &&
+		stagemanager.GetState() == stagemanager.Stopped) {
+		t.Errorf("stop stage failed, testCall: %v, stage: %v", testCall, stagemanager.GetState())
 	}
 }

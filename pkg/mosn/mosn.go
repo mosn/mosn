@@ -20,10 +20,8 @@ package mosn
 import (
 	"errors"
 	"net"
-	"sync"
 	"time"
 
-	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -53,7 +51,6 @@ type Mosn struct {
 	// internal data
 	servers       []server.Server
 	xdsClient     *istio.ADSClient
-	wg            sync.WaitGroup
 	isFromUpgrade bool // config is inherit from old mosn
 }
 
@@ -325,11 +322,6 @@ func (m *Mosn) HandleExtendConfig() {
 
 func (m *Mosn) Start() {
 	log.StartLogger.Infof("[mosn start] mosn start server")
-	// register admin server
-	// admin server should registered after all prepares action ready
-	srv := admin.Server{}
-	srv.Start(m.Config)
-	m.wg.Add(1)
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
@@ -353,16 +345,6 @@ func (m *Mosn) Start() {
 		}, nil)
 	}
 
-}
-
-// the main goroutine wait the finish signal
-func (m *Mosn) Wait() {
-	m.wg.Wait()
-}
-
-// finish, back to the main goroutine
-func (m *Mosn) Finish() {
-	m.wg.Done()
 }
 
 func (m *Mosn) Close() {
