@@ -386,12 +386,6 @@ func (m *Mosn) Close() {
 	}
 }
 
-// mosn not inited yet, using the local config here
-func (m *Mosn) PreInitConfig(c *v2.MOSNConfig) {
-	InitDefaultPath(c)
-	InitializePidFile(c)
-}
-
 // transfer existing connections from old mosn,
 // stage manager will stop the new mosn when return error
 func (m *Mosn) InheritConnections() error {

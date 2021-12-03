@@ -28,7 +28,9 @@ import (
 // modify it in main function.
 // before inherit config from old mosn.
 func DefaultInitStage(c *v2.MOSNConfig) {
+	InitDefaultPath(c)
 	InitDebugServe(c)
+	InitializePidFile(c)
 	InitializeTracing(c)
 	InitializePlugin(c)
 	InitializeWasm(c)

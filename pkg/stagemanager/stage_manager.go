@@ -68,8 +68,6 @@ const (
 )
 
 type Mosn interface {
-	// init actions based on config, Mosn object members not created yet.
-	PreInitConfig(*v2.MOSNConfig)
 	// inherit config from old mosn when it exists, otherwise, use the local config
 	InheritConfig(*v2.MOSNConfig) error
 	// init Mosn object members
@@ -184,7 +182,6 @@ func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
 func (stm *StageManager) runInitStage() {
 	st := time.Now()
 	stm.setState(Initing)
-	stm.mosn.PreInitConfig(stm.data.config)
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
