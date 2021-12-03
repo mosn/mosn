@@ -1015,7 +1015,7 @@ func (s *downStream) onResponseTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 
 			if log.Proxy.GetLogLevel() >= log.INFO {
-				log.Proxy.Infof(s.context, "[proxy] [downstream] onResponseTimeout，host: %s, time: %s",
+				log.Proxy.Infof(s.context, "[proxy] [downstream] onResponseTimeout, host: %s, time: %s",
 					s.upstreamRequest.host.AddressString(), s.timeout.GlobalTimeout.String())
 			}
 		}
