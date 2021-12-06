@@ -30,7 +30,7 @@ import (
 
 func testSetGetState(state State, t *testing.T) {
 	t.Helper()
-	stm.setState(state)
+	stm.SetState(state)
 	s := GetState()
 	if s != state {
 		t.Errorf("get after set, state expect %v while got %v", state, s)
@@ -64,7 +64,7 @@ func TestOnStateChanged(t *testing.T) {
 	}
 	for _, s := range allStates {
 		for i := 0; i < 10; i++ {
-			stm.setState(s)
+			stm.SetState(s)
 		}
 	}
 	for s, cnt := range calls {

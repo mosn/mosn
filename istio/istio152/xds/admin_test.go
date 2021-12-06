@@ -29,6 +29,7 @@ import (
 	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/istio/istio152/xds/conv"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 func TestGetState(t *testing.T) {
@@ -63,30 +64,56 @@ func TestGetState(t *testing.T) {
 		return string(b), nil
 	}
 
-	// init
-	stateForIstio, err := getMosnStateForIstio()
-	if err != nil {
-		t.Fatalf("get mosn states for istio failed: %v", err)
-	}
-	stats, err := getStatsForIstio()
-	if err != nil {
-		t.Fatalf("get mosn stats for istio failed: %v", err)
-	}
-
-	// verify
-	if !(stateForIstio == envoy_admin_v2alpha.ServerInfo_INITIALIZING) {
-		t.Error("mosn state for istio is not expected", stateForIstio)
-	}
-	prefix := fmt.Sprintf("%s: ", SERVER_STATE)
-	stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_INITIALIZING), stats)
-	if err != nil {
-		t.Errorf("regex match err %v", err)
-	}
-	if !(stateMatched) {
-		t.Error("mosn state is not expected", stateMatched)
+	mosnState2IstioState := map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
+		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		// 10 main stages
+		stagemanager.ParamsParsed: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.Initing:      envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.PreStart:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.Starting:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.AfterStart:   envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Running:      envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.PreStop:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopping:     envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.AfterStop:    envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopped:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		// 2 additional stages
+		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
 	}
 
-	// TODO: test more stages map to envoy status
+	verifyMosnState2IstioState := func(state stagemanager.State, expectedState envoy_admin_v2alpha.ServerInfo_State) {
+		stateForIstio, err := getMosnStateForIstio()
+		if err != nil {
+			t.Fatalf("get mosn states for istio failed: %v", err)
+		}
+		stats, err := getStatsForIstio()
+		if err != nil {
+			t.Fatal("get mosn stats for istio failed")
+		}
+		if stateForIstio != expectedState {
+			t.Errorf("unexpected istio state %v while expected %v from state %v", stateForIstio, expectedState, state)
+		}
+
+		prefix := fmt.Sprintf("%s: ", SERVER_STATE)
+		stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, expectedState), stats)
+		if err != nil {
+			t.Errorf("regex match err %v", err)
+		}
+		if !stateMatched {
+			t.Errorf("not found state %v from stats: %v", expectedState, stats)
+		}
+	}
+
+	// verify init state
+	verifyMosnState2IstioState(stagemanager.Nil, envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING)
+
+	// verify set state
+	stm := stagemanager.InitStageManager(nil, "", nil)
+	for mosnState, istioState := range mosnState2IstioState {
+		stm.SetState(mosnState)
+		verifyMosnState2IstioState(mosnState, istioState)
+	}
 }
 
 func TestDumpStatsForIstio(t *testing.T) {

@@ -84,35 +84,26 @@ func serverInfoForIstio(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
+	mosnState2IstioState := map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
+		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		// 10 main stages
+		stagemanager.ParamsParsed: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.Initing:      envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.PreStart:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.Starting:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.AfterStart:   envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Running:      envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.PreStop:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopping:     envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.AfterStop:    envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopped:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		// 2 additional stages
+		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
+	}
 	state := stagemanager.GetState()
-	switch state {
-	case stagemanager.Nil:
-		fallthrough
-	case stagemanager.ParamsParsed:
-		fallthrough
-	case stagemanager.Initing:
-		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
-
-	case stagemanager.PreStart:
-		fallthrough
-	case stagemanager.Starting:
-		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
-
-	case stagemanager.AfterStart:
-		fallthrough
-	case stagemanager.StartingNewServer: // new server not started yet.
-		fallthrough
-	case stagemanager.Running:
-		return envoy_admin_v2alpha.ServerInfo_LIVE, nil
-
-	case stagemanager.PreStop:
-		fallthrough
-	case stagemanager.Stopping:
-		fallthrough
-	case stagemanager.AfterStop:
-		fallthrough
-	case stagemanager.Upgrading:
-		return envoy_admin_v2alpha.ServerInfo_DRAINING, nil
+	if s, ok := mosnState2IstioState[state]; ok {
+		return s, nil
 	}
 
 	return 0, fmt.Errorf("parse mosn state %v to istio state failed", state)

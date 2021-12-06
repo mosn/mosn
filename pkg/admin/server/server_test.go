@@ -418,19 +418,47 @@ func TestGetState(t *testing.T) {
 
 	time.Sleep(time.Second) //wait server start
 
-	// init
-	pid, state, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
+	verifyState := func(expectedState stagemanager.State, expectedPid int) {
+		pid, state, err := getMosnState(config.Port)
+		if err != nil {
+			t.Fatalf("get mosn states failed: %v", err)
+		}
+
+		// verify
+		if pid != expectedPid {
+			t.Error("mosn pid is not expected", pid, expectedPid)
+		}
+		if state != expectedState {
+			t.Error("mosn state is not expected", state, expectedState)
+		}
 	}
 
-	// verify
-	curPid := os.Getpid()
-	if pid != curPid {
-		t.Error("mosn pid is not expected", pid)
+	allStates := []stagemanager.State{
+		stagemanager.Nil,
+		stagemanager.ParamsParsed,
+		stagemanager.Initing,
+		stagemanager.PreStart,
+		stagemanager.Starting,
+		stagemanager.AfterStart,
+		stagemanager.Running,
+		stagemanager.PreStop,
+		stagemanager.Stopping,
+		stagemanager.AfterStop,
+		stagemanager.Stopped,
+		stagemanager.StartingNewServer,
+		stagemanager.Upgrading,
 	}
-	if !(state == stagemanager.Nil) {
-		t.Error("mosn state is not expected", state)
+
+	curPid := os.Getpid()
+
+	// verify init
+	verifyState(stagemanager.Nil, curPid)
+
+	// verify set state
+	stm := stagemanager.InitStageManager(nil, "", nil)
+	for _, state := range allStates {
+		stm.SetState(state)
+		verifyState(state, curPid)
 	}
 }
 
