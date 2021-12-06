@@ -23,6 +23,7 @@ import (
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -48,7 +49,7 @@ func NewStreamClient(ctx context.Context, prot api.ProtocolName, connection type
 		Host:       host,
 	}
 
-	if factory, ok := streamFactories[prot]; ok {
+	if factory, ok := protocol.GetProtocolStreamFactory(prot); ok {
 		client.ClientStreamConnection = factory.CreateClientStream(ctx, connection, client, client)
 	} else {
 		return nil
@@ -71,7 +72,7 @@ func NewBiDirectStreamClient(ctx context.Context, prot api.ProtocolName, connect
 		Host:       host,
 	}
 
-	if factory, ok := streamFactories[prot]; ok {
+	if factory, ok := protocol.GetProtocolStreamFactory(prot); ok {
 		client.ClientStreamConnection = factory.CreateBiDirectStream(ctx, connection, client, serverCallbacks)
 	} else {
 		return nil

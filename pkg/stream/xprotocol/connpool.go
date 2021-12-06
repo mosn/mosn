@@ -24,16 +24,8 @@ import (
 	"mosn.io/api"
 
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.Xprotocol, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.Xprotocol, true)
-}
 
 // for xprotocol
 const (
@@ -48,17 +40,20 @@ type connpool struct {
 	host     atomic.Value
 	tlsHash  *types.HashValue
 	protocol api.ProtocolName
+	codec    api.XProtocolCodec
 }
 
 // NewConnPool init a connection pool
-func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
+func NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
+	proto := codec.XProtocol()
 	p := &connpool{
 		tlsHash:  host.TLSHashValue(),
-		protocol: protocol.Xprotocol,
+		protocol: proto.Name(),
+		codec:    codec,
 	}
 	p.host.Store(host)
 
-	switch xprotocol.GetProtocol(getSubProtocol(ctx)).PoolMode() {
+	switch proto.PoolMode() {
 	case api.Multiplex:
 		return NewPoolMultiplex(p)
 	case api.PingPong:

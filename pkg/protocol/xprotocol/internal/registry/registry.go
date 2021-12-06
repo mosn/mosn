@@ -15,25 +15,28 @@
  * limitations under the License.
  */
 
-package network
+package registry
 
 import (
-	"context"
+	"errors"
 
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-func init() {
-	ConnNewPoolFactories = make(map[types.ProtocolName]connNewPool)
+var registry = make(map[api.ProtocolName]api.XProtocolCodec)
+
+func RegisterXProtocolCodec(name api.ProtocolName, codec api.XProtocolCodec) error {
+	if _, ok := registry[name]; ok {
+		return errors.New("duplicate protocol register:" + string(name))
+	}
+	registry[name] = codec
+	return nil
 }
 
-type connNewPool func(ctx context.Context, host types.Host) types.ConnectionPool
-
-var ConnNewPoolFactories map[types.ProtocolName]connNewPool
-
-func RegisterNewPoolFactory(protocol types.ProtocolName, factory connNewPool) {
-	//other
-	log.DefaultLogger.Infof("[network] [ register pool factory] register protocol: %v factory", protocol)
-	ConnNewPoolFactories[protocol] = factory
+func GetXProtocolCodec(name api.ProtocolName) api.XProtocolCodec {
+	codec, ok := registry[name]
+	if !ok {
+		return nil
+	}
+	return codec
 }

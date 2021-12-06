@@ -29,8 +29,7 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 )
@@ -87,8 +86,8 @@ func TestBinding(t *testing.T) {
 }
 
 func TestDownClose(t *testing.T) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)
@@ -100,8 +99,9 @@ func TestDownClose(t *testing.T) {
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	p := &connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
 	}
 	p.host.Store(host)
 
@@ -132,8 +132,8 @@ func TestDownClose(t *testing.T) {
 
 func TestUpperClose(t *testing.T) {
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)
@@ -145,8 +145,9 @@ func TestUpperClose(t *testing.T) {
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	p := &connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
 	}
 	p.host.Store(host)
 

@@ -134,13 +134,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// save downstream protocol
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
-	if proto == protocol.Xprotocol {
-		proto = types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
-	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
@@ -717,7 +712,7 @@ func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 }
 
 func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol := s.proxy.config.UpstreamProtocol
+	configProtocol := string(protocol.Auto)
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
 	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {

@@ -22,44 +22,41 @@ import (
 	"time"
 
 	"mosn.io/api"
-
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
 )
 
-func init() {
-	trace.RegisterTracerBuilder("SOFATracer", protocol.Xprotocol, NewTracer)
+type ProtocolDelegate func(ctx context.Context, frame api.XFrame, span api.Span)
+
+var (
+	delegates = make(map[api.ProtocolName]ProtocolDelegate)
+)
+
+func RegisterDelegate(name api.ProtocolName, delegate ProtocolDelegate) {
+	delegates[name] = delegate
 }
 
-var PrintLog = true
+func GetDelegate(name api.ProtocolName) ProtocolDelegate {
+	return delegates[name]
+}
 
-type Tracer struct{}
+type XTracer struct {
+	tracer api.Tracer
+}
 
 func NewTracer(config map[string]interface{}) (api.Tracer, error) {
-	// TODO: support log & report
-	if PrintLog {
-		if value, ok := config["log_path"]; ok {
-			if logPath, ok := value.(string); ok {
-				if err := sofa.Init(protocol.Xprotocol, logPath, "rpc-server-digest.log", "rpc-client-digest.log"); err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			err := sofa.Init(protocol.Xprotocol, "", "rpc-server-digest.log", "rpc-client-digest.log")
-			if err != nil {
-				return nil, err
-			}
-		}
+	tracer, err := sofa.NewTracer(config)
+	if err != nil {
+		return nil, err
 	}
-
-	return &Tracer{}, nil
+	return &XTracer{
+		tracer: tracer,
+	}, nil
 }
 
-func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) api.Span {
-	span := NewSpan(ctx, startTime)
+func (t *XTracer) Start(ctx context.Context, frame interface{}, startTime time.Time) api.Span {
+	span := t.tracer.Start(ctx, frame, startTime)
 
 	xframe, ok := frame.(api.XFrame)
 	if !ok || xframe == nil {
@@ -71,11 +68,11 @@ func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime ti
 		return span
 	}
 
-	// use delegate instrument if exists
-	subProtocol := types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
+	proto := api.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 
-	if delegate := delegateMap[subProtocol]; delegate != nil {
+	if delegate := GetDelegate(proto); delegate != nil {
 		delegate(ctx, xframe, span)
 	}
+
 	return span
 }

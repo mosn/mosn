@@ -26,8 +26,6 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -225,7 +223,7 @@ func (p *poolMultiplex) Shutdown() {
 }
 
 func (p *poolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
-	return stream.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
+	return stream.NewStreamClient(context, p.connpool.protocol, connData.Connection, connData.Host)
 }
 
 func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
@@ -249,10 +247,10 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	// protocol is from onNewDetectStream
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := xprotocol.GetProtocol(subProtocol)
+		proto := p.connpool.codec.XProtocol()
 		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
+			rpcKeepAlive := NewKeepAlive(codecClient, proto, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,

@@ -45,9 +45,10 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
+// TODO: move it to main
 func init() {
-	str.Register(protocol.HTTP2, &streamConnFactory{})
 	protocol.RegisterProtocolConfigHandler(protocol.HTTP2, streamConfigHandler)
+	protocol.RegisterProtocol(protocol.HTTP2, NewConnPool, &streamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
 type streamConnFactory struct{}

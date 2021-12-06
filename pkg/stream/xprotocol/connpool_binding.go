@@ -26,7 +26,6 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
@@ -188,10 +187,10 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		// In the future, methods should be added to determine the protocol capability
-		proto := xprotocol.GetProtocol(subProtocol)
+		proto := p.connpool.codec.XProtocol()
 		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
+			rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 
 			ac.SetHeartBeater(rpcKeepAlive)

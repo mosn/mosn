@@ -27,8 +27,6 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
@@ -221,10 +219,10 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 		// Add Keep Alive
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := xprotocol.GetProtocol(subProtocol)
+		proto := p.connpool.codec.XProtocol()
 		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
+			rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 
 			ac.SetHeartBeater(rpcKeepAlive)
@@ -319,23 +317,23 @@ func (ac *activeClientPingPong) OnEvent(event api.ConnectionEvent) {
 
 	switch {
 	case event.IsClose():
-		if p.protocol == protocol.Xprotocol {
-			host.HostStats().UpstreamConnectionClose.Inc(1)
-			host.HostStats().UpstreamConnectionActive.Dec(1)
-			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		// if p.protocol == protocol.Xprotocol {
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
-			switch event { // nolint: exhaustive
-			case api.LocalClose:
-				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
-			case api.RemoteClose:
-				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
-			default:
-				// do nothing
-			}
+		switch event { // nolint: exhaustive
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
 		}
+		// }
 
 		// RemoteClose when read/write error
 		// LocalClose when there is a panic

@@ -15,30 +15,17 @@
  * limitations under the License.
  */
 
-package xprotocol
+package proxy
 
 import (
-	"context"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
-// type xprotocolMapping struct{}
+var (
+	varProtocolConfig = variable.NewVariable(types.VarProtocolConfig, nil, nil, variable.DefaultSetter, 0)
+)
 
-func TestMapping(t *testing.T) {
-	var ctx = context.TODO()
-	var xm = xprotocolMapping{}
-	// 1, sub protocol is nil
-	_, err := xm.MappingHeaderStatusCode(ctx, nil)
-	assert.NotNil(t, err)
-
-	// 2. cannot get mapping
-	mCtx := mosnctx.WithValue(ctx, types.ContextSubProtocol, "xxx-proto")
-	_, err = xm.MappingHeaderStatusCode(mCtx, nil)
-	assert.NotNil(t, err)
-
-	// 3. normal
+func init() {
+	variable.Register(varProtocolConfig)
 }

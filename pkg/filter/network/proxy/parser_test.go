@@ -43,8 +43,8 @@ func TestParseProxyFilter(t *testing.T) {
 	proxy, _ := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
 		proxy.RouterHandlerName == types.DefaultRouteHandler &&
-		proxy.DownstreamProtocol == string(protocol.Xprotocol) &&
+		proxy.DownstreamProtocol == "example" && // change to sub protocol
 		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
-		t.Error("parse proxy filter failed")
+		t.Errorf("parse proxy filter failed: %+v", proxy)
 	}
 }

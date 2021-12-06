@@ -15,10 +15,31 @@
  * limitations under the License.
  */
 
-package sofa
+package dubbothrift
 
-import "mosn.io/mosn/pkg/trace"
+import (
+	"mosn.io/api"
+)
 
-func init() {
-	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+type XCodec struct {
+	proto thriftProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
+
+// not implement yet
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return thriftMatcher
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

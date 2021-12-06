@@ -19,17 +19,14 @@ package xprotocol
 
 import (
 	"context"
-
-	"github.com/stretchr/testify/assert"
-
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
@@ -82,12 +79,12 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 	if err := conn.Connection.Connect(); err != nil {
 		t.Fatalf("create conenction failed %v", err)
 	}
-	codec := str.NewStreamClient(ctx, protocol.Xprotocol, conn.Connection, host)
+	codec := str.NewStreamClient(ctx, bolt.ProtocolName, conn.Connection, host)
 	if codec == nil {
 		t.Fatal("codec is nil")
 	}
 	// start a keep alive
-	keepAlive := NewKeepAlive(codec, bolt.ProtocolName, keepTimeout)
+	keepAlive := NewKeepAlive(codec, (&bolt.XCodec{}).XProtocol(), keepTimeout)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive: keepAlive.(*xprotocolKeepAlive),

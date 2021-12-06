@@ -27,11 +27,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
-	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -60,7 +61,7 @@ const globalTLSMetrics = "global"
 // types.ClusterManager
 type clusterManager struct {
 	clustersMap      sync.Map
-	protocolConnPool sync.Map
+	protocolConnPool sync.Map // protocolname: { address : connpool }
 	tlsMetrics       *mtls.TLSStats
 	tlsMng           atomic.Value // store types.TLSClientContextManager
 	mux              sync.Mutex
@@ -92,9 +93,9 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	// set global tls
 	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
 	// add conn pool
-	for k := range types.ConnPoolFactories {
+	protocol.RangeAllRegisteredProtocol(func(k api.ProtocolName) {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
-	}
+	})
 
 	//Add cluster to cm
 	for _, cluster := range clusters {
@@ -359,10 +360,10 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host, error) {
-	factory, ok := network.ConnNewPoolFactories[protocol]
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, proto types.ProtocolName) (types.ConnectionPool, types.Host, error) {
+	factory, ok := protocol.GetNewPoolFactory(proto)
 	if !ok {
-		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
+		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", proto)
 	}
 
 	// for pool to know, whether this is a multiplex or pingpong pool
@@ -388,7 +389,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
 		}
-		value, ok := cm.protocolConnPool.Load(protocol)
+		value, ok := cm.protocolConnPool.Load(proto)
 		if !ok {
 			return nil, nil, errUnknownProtocol
 		}

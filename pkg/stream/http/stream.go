@@ -31,8 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
@@ -43,13 +41,15 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
+// TODO: move it to main
 func init() {
-	str.Register(protocol.HTTP1, &streamConnFactory{})
 	protocol.RegisterProtocolConfigHandler(protocol.HTTP1, streamConfigHandler)
+	protocol.RegisterProtocol(protocol.HTTP1, NewConnPool, &streamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024

@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -197,15 +197,20 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 	p.host.Store(h)
 }
 
+type mockStreamConnFactory struct {
+	types.ProtocolStreamFactory
+}
+
 func init() {
-	network.RegisterNewPoolFactory(mockProtocol, func(ctx context.Context, h types.Host) types.ConnectionPool {
+	protocol.RegisterProtocol(mockProtocol, func(ctx context.Context, h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
 			hashvalue: h.TLSHashValue(),
 		}
 		pool.host.Store(h)
 		return pool
-	})
-	types.RegisterConnPoolFactory(mockProtocol, true)
+
+	}, &mockStreamConnFactory{}, nil)
+
 }
 
 type mockLbContext struct {

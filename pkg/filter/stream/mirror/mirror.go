@@ -158,7 +158,7 @@ func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
 func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 	configProtocol, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigUpStreamProtocol).(string)
 	if !ok {
-		configProtocol = string(protocol.Xprotocol)
+		configProtocol = string(protocol.Auto)
 	}
 
 	if m.receiveHandler.Route() != nil && m.receiveHandler.Route().RouteRule() != nil && m.receiveHandler.Route().RouteRule().UpstreamProtocol() != "" {

@@ -15,14 +15,30 @@
  * limitations under the License.
  */
 
-package xprotocol
+package tars
 
-import "mosn.io/mosn/pkg/types"
-
-var (
-	delegateMap = make(map[types.ProtocolName]SubProtocolDelegate)
+import (
+	"mosn.io/api"
 )
 
-func RegisterSubProtocol(name types.ProtocolName, delegate SubProtocolDelegate) {
-	delegateMap[name] = delegate
+type XCodec struct {
+	proto tarsProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return tarsMatcher
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

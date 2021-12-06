@@ -15,14 +15,32 @@
  * limitations under the License.
  */
 
-package xprotocol
+package boltv2
 
 import (
-	"mosn.io/pkg/header"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 )
 
-var GetHeaderEncodeLength = header.GetHeaderEncodeLength
+type XCodec struct {
+	mapping bolt.BoltStatusMapping
+	proto   boltv2Protocol
+}
 
-var EncodeHeader = header.EncodeHeader
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
 
-var DecodeHeader = header.DecodeHeader
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return boltv2Matcher
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return codec.mapping
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

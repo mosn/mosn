@@ -15,31 +15,28 @@
  * limitations under the License.
  */
 
-package xprotocol
+package example
 
-import (
-	"context"
-	"log"
-	"testing"
-	"time"
+import "mosn.io/api"
 
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/types"
-)
-
-func TestSofaTracerStartFinish(t *testing.T) {
-	tracer, error := NewTracer(nil)
-	if error != nil {
-		log.Fatalln("create test tracer failed:", error)
-	}
-
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
-
-	span := tracer.Start(ctx, nil, time.Now())
-	span.SetTag(TRACE_ID, trace.IdGen().GenerateTraceId())
-	span.SetTag(SPAN_TYPE, string(v2.EGRESS))
-	span.SetTag(PROTOCOL, "bolt")
-	span.FinishSpan()
+type XCodec struct {
+	proto proto
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return nil
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

@@ -33,7 +33,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		binary.BigEndian.PutUint32(request.rawMeta[RequestIdIndex:], request.RequestId)
 
 		// 1.2 check if header/content changed
-		if !request.Header.Changed && !request.ContentChanged {
+		if !request.BytesHeader.Changed && !request.ContentChanged {
 			// hack: increase the buffer count to avoid premature recycle
 			request.Data.Count(1)
 			return request.Data, nil
@@ -49,8 +49,8 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		request.ClassLen = 0
 	}
 
-	if len(request.Header.Kvs) != 0 {
-		request.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&request.Header))
+	if len(request.BytesHeader.Kvs) != 0 {
+		request.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&request.BytesHeader))
 	} else {
 		request.HeaderLen = 0
 	}
@@ -86,7 +86,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 	// 2.3.3 header
 	if request.HeaderLen > 0 {
-		xprotocol.EncodeHeader(buf, &request.Header)
+		xprotocol.EncodeHeader(buf, &request.BytesHeader)
 	}
 	// 2.3.4 content
 	if request.ContentLen > 0 {
@@ -104,7 +104,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		binary.BigEndian.PutUint32(response.rawMeta[RequestIdIndex:], uint32(response.RequestId))
 
 		// 1.2 check if header/content changed
-		if !response.Header.Changed && !response.ContentChanged {
+		if !response.BytesHeader.Changed && !response.ContentChanged {
 			// hack: increase the buffer count to avoid premature recycle
 			response.Data.Count(1)
 			return response.Data, nil
@@ -120,8 +120,8 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		response.ClassLen = 0
 	}
 
-	if len(response.Header.Kvs) != 0 {
-		response.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&response.Header))
+	if len(response.BytesHeader.Kvs) != 0 {
+		response.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&response.BytesHeader))
 	} else {
 		response.HeaderLen = 0
 	}
@@ -157,7 +157,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 	// 2.3.3 header
 	if response.HeaderLen > 0 {
-		xprotocol.EncodeHeader(buf, &response.Header)
+		xprotocol.EncodeHeader(buf, &response.BytesHeader)
 	}
 	// 2.3.4 content
 	if response.ContentLen > 0 {

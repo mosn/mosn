@@ -255,3 +255,22 @@ type ConnectionPool interface {
 	// Host get host
 	Host() Host
 }
+
+// NewConnPool is a function to create ConnectionPool
+type NewConnPool func(ctx context.Context, host Host) ConnectionPool
+
+// ProtocolStreamFactory can create protocol stream and check wether the request is macthed or not.
+type ProtocolStreamFactory interface {
+	CreateClientStream(context context.Context, connection ClientConnection,
+		streamConnCallbacks StreamConnectionEventListener,
+		callbacks api.ConnectionEventListener) ClientStreamConnection
+
+	CreateServerStream(context context.Context, connection api.Connection,
+		callbacks ServerStreamConnectionEventListener) ServerStreamConnection
+
+	CreateBiDirectStream(context context.Context, connection ClientConnection,
+		clientCallbacks StreamConnectionEventListener,
+		serverCallbacks ServerStreamConnectionEventListener) ClientStreamConnection
+
+	ProtocolMatch(context context.Context, prot string, magic []byte) error
+}

@@ -15,33 +15,31 @@
  * limitations under the License.
  */
 
-package xprotocol
+package dubbo
 
 import (
-	"context"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 )
 
-func TestEngine(t *testing.T) {
-	var mockProto = &mockProtocol{}
-	err := RegisterProtocol("engine-proto", mockProto)
-	assert.Nil(t, err)
-
-	err = RegisterMatcher("engine-proto", mockMatcher)
-	assert.Nil(t, err)
-
-	matcher := GetMatcher("engine-proto")
-	assert.NotNil(t, matcher)
-
-	var protocols = []string{"engine-proto"}
-	xEngine, err := NewXEngine(protocols)
-	assert.Nil(t, err)
-	assert.NotNil(t, xEngine)
-
-	_, res := xEngine.Match(context.TODO(), buffer.NewIoBuffer(10))
-	assert.Equal(t, res, api.MatchSuccess)
+type XCodec struct {
+	proto dubboProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return dubboMatcher
+}
+
+// TODO: not implement yet.
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

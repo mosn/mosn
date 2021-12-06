@@ -19,13 +19,7 @@ package boltv2
 
 import (
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 )
-
-func init() {
-	xprotocol.RegisterMatcher(ProtocolName, boltv2Matcher)
-}
 
 // predicate first byte '0x2'
 func boltv2Matcher(data []byte) api.MatchResult {

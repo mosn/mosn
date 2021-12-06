@@ -15,51 +15,54 @@
  * limitations under the License.
  */
 
-package rpc
+package http
 
 import (
 	"context"
 	"time"
 
 	"mosn.io/api"
-
-	mosnctx "mosn.io/mosn/pkg/context"
-
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/protocol"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
-	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
-func init() {
-	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, NewTracer)
+type HTTPTracer struct {
+	tracer api.Tracer
 }
-
-var PrintLog = true
-
-type Tracer struct{}
 
 func NewTracer(config map[string]interface{}) (api.Tracer, error) {
-	// inherit rpc's logger & output format
-	return &Tracer{}, nil
+	tracer, err := sofa.NewTracer(config)
+	if err != nil {
+		return nil, err
+	}
+	return &HTTPTracer{
+		tracer: tracer,
+	}, nil
+
 }
 
-func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
-	span := xprotocol.NewSpan(ctx, startTime)
+func (t *HTTPTracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
+	span := t.tracer.Start(ctx, request, startTime)
 
 	header, ok := request.(http.RequestHeader)
 	if !ok || header.RequestHeader == nil {
 		return span
 	}
 
+	t.HTTPDelegate(ctx, header, span)
+	return span
+}
+
+func (t *HTTPTracer) HTTPDelegate(ctx context.Context, header http.RequestHeader, span api.Span) {
 	traceId, ok := header.Get(sofa.HTTP_TRACER_ID_KEY)
 	if !ok {
 		traceId = trace.IdGen().GenerateTraceId()
 	}
-	span.SetTag(xprotocol.TRACE_ID, traceId)
+	span.SetTag(sofa.TRACE_ID, traceId)
 	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
 	spanId, ok := header.Get(sofa.HTTP_RPC_ID_KEY)
@@ -69,23 +72,23 @@ func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime 
 		if lType == v2.INGRESS {
 			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
 		} else if lType == v2.EGRESS {
-			span.SetTag(xprotocol.PARENT_SPAN_ID, spanId)
+			span.SetTag(sofa.PARENT_SPAN_ID, spanId)
 			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
 			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
 				spanId = spanIdGenerator.GenerateNextChildIndex()
 			}
 		}
 	}
-	span.SetTag(xprotocol.SPAN_ID, spanId)
+
+	span.SetTag(sofa.SPAN_ID, spanId)
 
 	if lType == v2.EGRESS {
-		span.SetTag(xprotocol.APP_NAME, string(header.Peek(sofa.APP_NAME)))
+		span.SetTag(sofa.CALLER_APP_NAME, string(header.Peek(sofa.APP_NAME_KEY)))
 	}
-	span.SetTag(xprotocol.SPAN_TYPE, string(lType.(v2.ListenerType)))
-	span.SetTag(xprotocol.METHOD_NAME, string(header.Peek(sofa.TARGET_METHOD)))
-	span.SetTag(xprotocol.PROTOCOL, "HTTP")
-	span.SetTag(xprotocol.SERVICE_NAME, string(header.Peek(sofa.SERVICE_KEY)))
-	span.SetTag(xprotocol.BAGGAGE_DATA, string(header.Peek(sofa.SOFA_TRACE_BAGGAGE_DATA)))
+	span.SetTag(sofa.SPAN_TYPE, string(lType.(v2.ListenerType)))
+	span.SetTag(sofa.METHOD_NAME, string(header.Peek(sofa.TARGET_METHOD_KEY)))
+	span.SetTag(sofa.PROTOCOL, "HTTP")
+	span.SetTag(sofa.SERVICE_NAME, string(header.Peek(sofa.SERVICE_KEY)))
+	span.SetTag(sofa.BAGGAGE_DATA, string(header.Peek(sofa.SOFA_TRACE_BAGGAGE_DATA)))
 
-	return span
 }

@@ -15,50 +15,31 @@
  * limitations under the License.
  */
 
-package xprotocol
+package bolt
 
 import (
-	"context"
-
 	"mosn.io/api"
 )
 
-const (
-	//0-30 for  rpc
+type XCodec struct {
+	mapping BoltStatusMapping
+	proto   boltProtocol
+}
 
-	TRACE_ID = iota
-	SPAN_ID
-	PARENT_SPAN_ID
-	SERVICE_NAME
-	METHOD_NAME
-	PROTOCOL
-	RESULT_STATUS
-	REQUEST_SIZE
-	RESPONSE_SIZE
-	UPSTREAM_HOST_ADDRESS
-	DOWNSTEAM_HOST_ADDRESS
-	APP_NAME        //caller
-	TARGET_APP_NAME //remote app
-	SPAN_TYPE
-	BAGGAGE_DATA
-	REQUEST_URL
-	TARGET_CELL
-	TARGET_IDC
-	TARGET_CITY
-	ROUTE_RECORD
-	CALLER_CELL
-	// 30-60 for other extends
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
 
-	// 60-70 for mosn common
+func (codec *XCodec) XProtocol() api.XProtocol {
+	return codec.proto
+}
 
-	TRACE_END = 70
-)
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return boltMatcher
+}
 
-const (
-	MOSN_PROCESS_TIME = 60 + iota
-	MOSN_TLS_STATE
-	TLSCipherSuite
-	MOSN_PROCESS_FAIL
-)
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return codec.mapping
+}
 
-type SubProtocolDelegate func(ctx context.Context, frame api.XFrame, span api.Span)
+var _ api.XProtocolCodec = (*XCodec)(nil)
