@@ -25,6 +25,7 @@ func (m *MosnWrapper) Start() {
 	mosn.DefaultPreStartStage(m.m)
 	mosn.DefaultStartStage(m.m)
 	m.m.Start()
+	m.m.InheritConnections()
 }
 
 func (m *MosnWrapper) Close() {

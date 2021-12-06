@@ -58,7 +58,7 @@ func catchSignalsPosix() {
 }
 
 func signalHandler(sig os.Signal) {
-	log.DefaultLogger.Debugf("signal %s received!", sig)
+	log.DefaultLogger.Infof("signal %s received!", sig)
 	// syscall.SIGQUIT, syscall.SIGINT/os.Interrupt or syscall.SIGTERM:
 	switch sig {
 	case syscall.SIGUSR1:
