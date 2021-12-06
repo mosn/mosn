@@ -155,7 +155,7 @@ var (
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
-			// execute all
+			// execute all stages
 			stm.RunAll()
 			return nil
 

@@ -91,12 +91,12 @@ func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
 	case stagemanager.ParamsParsed:
 		fallthrough
 	case stagemanager.Initing:
-		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
+		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
 
 	case stagemanager.PreStart:
 		fallthrough
 	case stagemanager.Starting:
-		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
+		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
 
 	case stagemanager.AfterStart:
 		fallthrough

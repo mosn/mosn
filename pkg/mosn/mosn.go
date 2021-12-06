@@ -30,7 +30,6 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
-	_ "mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -66,7 +65,7 @@ func NewMosn() *Mosn {
 
 // generate mosn structure members
 func (m *Mosn) InitMosn() {
-	log.StartLogger.Infof("[mosn start] init the new mosn structure")
+	log.StartLogger.Infof("[mosn start] init the members of the mosn")
 
 	m.initClusterManager()
 	m.initServer()

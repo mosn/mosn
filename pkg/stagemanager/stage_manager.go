@@ -51,6 +51,27 @@ const (
 
 type State int
 
+// There are 10 main stages:
+// 1. The parameters parsed stage. In this stage, parse different parameters from cli.Context,
+// and finally call config load to create a MOSNConfig.
+// 2. The initialize stage. In this stage, do some init actions based on config, and finally create a MOSN object.
+// 3. The pre-startup stage. In this stage, creates some basic instance from MOSN object.
+// 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
+// 5. The after-start stage. In this stage, do some other init actions after startup.
+// 6. The running stage.
+// 7. The pre-stop stage. In this stage, do graceful shutdown actions before mosn closed.
+// 8. The stop stage. In this stage, closing mosn.
+// 9. The after-stop stage. In this stage, do some clean up actions after mosn closed.
+// 10. The stopped stage. everything is closed.
+// The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
+// that used to startup mosn.
+//
+// And, there are 2 additional stages:
+// 1. Starting New server stage. It's for the old mosn only.
+//    The old mosn will start a new mosn when the it receive the HUP signal.
+// 2. Upgrading. It's for the old mosn only too.
+//    It means the the new mosn already started, and the old mosn is tranferring the config
+//    and existing connections to the mosn.
 const (
 	Nil State = iota
 	ParamsParsed
@@ -105,18 +126,7 @@ type Data struct {
 	config *v2.MOSNConfig
 }
 
-// StageManager is a stage manager that controls startup stages running.
-// We divide the startup into six stages:
-// 1. The parameters parsed stage. In this stage, parse different parameters from cli.Context,
-// and finally call config load to create a MOSNConfig.
-// 2. The initialize stage. In this stage, do some init actions based on config, and finally create a MOSN object.
-// 3. The pre-startup stage. In this stage, creates some basic instance from MOSN object.
-// 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
-// 5. The after-start stage. In this stage, do some other init actions after startup.
-// 6. The pre-stop stage. In this stage, do graceful shutdown actions before mosn closed.
-// 7. The after-stop stage. In this stage, do some clean up actions after mosn closed.
-// The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
-// that used to startup mosn.
+// StageManager is used to controls service life stages.
 type StageManager struct {
 	state                   State
 	quitAction              QuitAction
@@ -261,7 +271,7 @@ func (stm *StageManager) runAfterStartStage() {
 	log.StartLogger.Infof("mosn after start cost: %v", time.Since(st))
 }
 
-// Run blocks until the mosn is closed
+// Run until the mosn is started
 func (stm *StageManager) Run() {
 	// 0: mark already started
 	stm.started = true
@@ -277,7 +287,7 @@ func (stm *StageManager) Run() {
 	stm.runAfterStartStage()
 }
 
-// the main goroutine wait the finish signal
+// used for the main goroutine wait the finish signal
 // if Run is not called, return directly
 func (stm *StageManager) WaitFinish() {
 	if !stm.started {

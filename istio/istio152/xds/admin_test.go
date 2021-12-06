@@ -29,7 +29,6 @@ import (
 	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/istio/istio152/xds/conv"
-	"mosn.io/mosn/pkg/log"
 )
 
 func TestGetState(t *testing.T) {
@@ -40,7 +39,6 @@ func TestGetState(t *testing.T) {
 		w := httptest.NewRecorder()
 		serverInfoForIstio(w, nil)
 
-		log.DefaultLogger.Infof("body: %v", w.Body.String())
 		if w.Code != http.StatusOK {
 			return 0, errors.New("get mosn states for istio failed")
 		}
@@ -87,6 +85,8 @@ func TestGetState(t *testing.T) {
 	if !(stateMatched) {
 		t.Error("mosn state is not expected", stateMatched)
 	}
+
+	// TODO: test more stages map to envoy status
 }
 
 func TestDumpStatsForIstio(t *testing.T) {
