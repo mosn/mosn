@@ -26,7 +26,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/log"
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 const (
@@ -84,15 +84,34 @@ func serverInfoForIstio(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
-	state := stm.GetState()
-
+	state := stagemanager.GetState()
 	switch state {
-	// TODO: ServerInfo_PRE_INITIALIZING
-	case stm.Initing:
+	case stagemanager.Nil:
+		fallthrough
+	case stagemanager.ParamsParsed:
+		fallthrough
+	case stagemanager.Initing:
 		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
-	case stm.Running:
+
+	case stagemanager.PreStart:
+		fallthrough
+	case stagemanager.Starting:
+		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
+
+	case stagemanager.AfterStart:
+		fallthrough
+	case stagemanager.StartingNewServer: // new server not started yet.
+		fallthrough
+	case stagemanager.Running:
 		return envoy_admin_v2alpha.ServerInfo_LIVE, nil
-	case stm.Upgrading:
+
+	case stagemanager.PreStop:
+		fallthrough
+	case stagemanager.Stopping:
+		fallthrough
+	case stagemanager.AfterStop:
+		fallthrough
+	case stagemanager.Upgrading:
 		return envoy_admin_v2alpha.ServerInfo_DRAINING, nil
 	}
 

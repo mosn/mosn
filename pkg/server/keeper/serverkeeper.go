@@ -22,7 +22,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/pkg/log"
 	"mosn.io/pkg/utils"
 )
@@ -66,12 +66,12 @@ func signalHandler(sig os.Signal) {
 		log.Reopen()
 	case syscall.SIGHUP:
 		// start a new mosn
-		stm.Notice(stm.HupReload)
+		stagemanager.Notice(stagemanager.HupReload)
 	case syscall.SIGQUIT:
 		// stop mosn gracefully
-		stm.Notice(stm.GracefulQuit)
+		stagemanager.Notice(stagemanager.GracefulQuit)
 	default:
 		// stop mosn
-		stm.Notice(stm.Quit)
+		stagemanager.Notice(stagemanager.Quit)
 	}
 }

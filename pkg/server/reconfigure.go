@@ -28,7 +28,7 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -133,12 +133,12 @@ func ReconfigureListener() {
 		}
 		uc.Close()
 
-		stm.Notice(stm.Upgrade)
+		stagemanager.Notice(stagemanager.Upgrade)
 	}
 }
 
 func StopReconfigureHandler() {
-	if stm.GetState() == stm.Upgrading {
+	if stagemanager.GetState() == stagemanager.Upgrading {
 		return
 	}
 	syscall.Unlink(types.ReconfigureDomainSocket)

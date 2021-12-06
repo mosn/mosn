@@ -21,7 +21,7 @@ import (
 	admin "mosn.io/mosn/pkg/admin/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
@@ -38,7 +38,7 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 }
 
 // Default Pre-start Stage wrappers
-func DefaultPreStartStage(mosn stm.Mosn) {
+func DefaultPreStartStage(mosn stagemanager.Mosn) {
 	m := mosn.(*Mosn)
 
 	// after inherit config,
@@ -52,7 +52,7 @@ func DefaultPreStartStage(mosn stm.Mosn) {
 }
 
 // Default Start Stage wrappers
-func DefaultStartStage(mosn stm.Mosn) {
+func DefaultStartStage(mosn stagemanager.Mosn) {
 	m := mosn.(*Mosn)
 	// register admin server
 	// admin server should registered after all prepares action ready

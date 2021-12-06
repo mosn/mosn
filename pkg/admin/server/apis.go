@@ -34,7 +34,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink/console"
 	"mosn.io/mosn/pkg/plugin"
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -308,7 +308,7 @@ func GetState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pid := os.Getpid()
-	state := stm.GetState()
+	state := stagemanager.GetState()
 	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
 	fmt.Fprint(w, msg)
 }

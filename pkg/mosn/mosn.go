@@ -30,7 +30,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
-	stm "mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/utils"
@@ -328,7 +328,7 @@ func (m *Mosn) Start() {
 	}, nil)
 
 	if !m.Config.CloseGraceful {
-		stm.RegsiterUpgradeHandler(server.ReconfigureHandler)
+		stagemanager.RegsiterUpgradeHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {
 			server.ReconfigureListener()

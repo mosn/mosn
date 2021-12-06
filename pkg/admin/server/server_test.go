@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -152,7 +153,7 @@ func postToggleLogger(port uint32, logger string, disable bool) (string, error) 
 
 }
 
-func getMosnState(port uint32) (pid int, state store.State, err error) {
+func getMosnState(port uint32) (pid int, state stagemanager.State, err error) {
 	url := fmt.Sprintf("http://localhost:%d/api/v1/states", port)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -172,7 +173,7 @@ func getMosnState(port uint32) (pid int, state store.State, err error) {
 	stateStr := strings.Split(p[1], "=")[1]
 	pid, _ = strconv.Atoi(pidStr)
 	stateInt, _ := strconv.Atoi(stateStr)
-	state = store.State(stateInt)
+	state = stagemanager.State(stateInt)
 	return pid, state, nil
 }
 
@@ -423,40 +424,13 @@ func TestGetState(t *testing.T) {
 		t.Fatal("get mosn states failed")
 	}
 
-	// reconfiguring
-	store.SetMosnState(store.Passive_Reconfiguring)
-	pid2, state2, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// running
-	store.SetMosnState(store.Running)
-	pid3, state3, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// active reconfiguring
-	store.SetMosnState(store.Active_Reconfiguring)
-	pid4, state4, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
 	// verify
 	curPid := os.Getpid()
-	if !(pid == curPid &&
-		pid2 == curPid &&
-		pid3 == curPid &&
-		pid4 == curPid) {
-		t.Error("mosn pid is not expected", pid, pid2, pid3, pid4)
+	if pid != curPid {
+		t.Error("mosn pid is not expected", pid)
 	}
-	if !(state == store.Init &&
-		state2 == store.Passive_Reconfiguring &&
-		state3 == store.Running &&
-		state4 == store.Active_Reconfiguring) {
-		t.Error("mosn state is not expected", state, state2, state3, state4)
+	if !(state == stagemanager.Nil) {
+		t.Error("mosn state is not expected", state)
 	}
 }
 
