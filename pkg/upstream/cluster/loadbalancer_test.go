@@ -749,3 +749,45 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		})
 	}
 }
+
+func TestWRRLoadBalancer(t *testing.T) {
+	testCases := []struct {
+		name              string
+		hosts             []types.Host
+		unhealthHostIndex int
+		want              types.Host
+	}{
+		{
+			name: "unhealthy-host-with-a-high-weight",
+			hosts: []types.Host{
+				&mockHost{addr: "192.168.1.1", w: 100},
+				&mockHost{addr: "192.168.1.2", w: 1},
+			},
+			unhealthHostIndex: 0,
+			want:              &mockHost{addr: "192.168.1.2", w: 1},
+		},
+	}
+
+	for _, tc := range testCases {
+		if tc.unhealthHostIndex >= 0 {
+			tc.hosts[tc.unhealthHostIndex].SetHealthFlag(api.FAILED_ACTIVE_HC)
+		}
+		hs := &hostSet{}
+		hs.setFinalHost(tc.hosts)
+		lb := newWRRLoadBalancer(nil, hs)
+		var h types.Host
+		// 3 is the times of retrying to choose host in cluster manager.
+		for i := 0; i < 3; i++ {
+			h = lb.ChooseHost(nil)
+			if h == nil {
+				continue
+			}
+		}
+
+		if h == nil {
+			t.Fatalf("expected %s, but got a nil host", tc.want.AddressString())
+		} else if h.AddressString() != tc.want.AddressString() {
+			t.Fatalf("expected %s, but got: %s", tc.want.AddressString(), h.AddressString())
+		}
+	}
+}
