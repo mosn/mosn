@@ -5,22 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
-
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
-
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/http"
-	_ "mosn.io/mosn/pkg/stream/http2"
-	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util" // import protocol register by this package's init
 	"mosn.io/mosn/test/util/mosn"
 )
 
@@ -92,18 +86,18 @@ func TestProtocolHttp2(t *testing.T) {
 	var err error
 
 	magic = http2.ClientPreface
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	len := len(http2.ClientPreface)
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic)[0:len-1])
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic)[0:len-1], nil)
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworldhelloworldhelloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworldhelloworldhelloworld"), nil)
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -115,25 +109,25 @@ func TestProtocolHttp1(t *testing.T) {
 	var err error
 
 	magic = "GET"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POST"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POS"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
 	magic = "PPPPPPPPPPPPPPPPPPPPP"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -190,34 +184,25 @@ func TestXProtocol(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyStreamID, 1)
 
 	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
-	if prot != protocol.Xprotocol {
+	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic, nil)
+	if prot != dubbo.ProtocolName {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
-	}
-	if string(dubbo.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
-		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
 	magic = []byte{0x1}
-	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
-	if prot != protocol.Xprotocol {
+	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic, nil)
+	if prot != bolt.ProtocolName {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
-	}
-	if string(bolt.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
-		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
 	magic = []byte{0x00, 0x00, 0x00, 0x06, 0x10, 0x01}
-	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
-	if prot != protocol.Xprotocol {
+	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic, nil)
+	if prot != tars.ProtocolName {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
-	}
-	if string(tars.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
-		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
 	str := "PPPPPPPPPPPPPPPPPPPPP"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(str))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(str), nil)
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}

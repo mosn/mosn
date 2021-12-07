@@ -140,6 +140,7 @@ var (
 			// if needs featuregate init in parameter stage or init stage
 			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
 			// parameter parsed registered
+			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
 			// initial registerd
 			stm.AppendInitStage(mosn.DefaultInitStage)

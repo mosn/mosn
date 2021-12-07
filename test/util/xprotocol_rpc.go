@@ -12,14 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/thrift/lib/go/thrift"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
-
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	hessian "github.com/apache/dubbo-go-hessian2"
+	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls"
@@ -27,12 +24,39 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"mosn.io/mosn/pkg/stream"
+	xstream "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/trace"
+	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
+	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
+
+func init() {
+	// tracer driver register
+	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	// xprotocol action register
+	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+		name := codec.ProtocolName()
+		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
+	})
+	// xprotocol register
+	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&boltv2.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbothrift.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
+	// trace register
+	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
+	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv1Delegate)
+	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+}
 
 type RPCClient struct {
 	t              *testing.T
@@ -82,9 +106,9 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		return err
 	}
 	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
-	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
+	c.Codec = stream.NewStreamClient(ctx, c.Protocol, cc, nil)
 	if c.Codec == nil {
-		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)
+		return fmt.Errorf("NewStreamClient error %v, %v", c.Protocol, cc)
 	}
 	return nil
 }
