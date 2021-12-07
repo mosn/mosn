@@ -10,10 +10,10 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 package xprotocol
 
@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 const testClientNum = 10
@@ -51,8 +52,8 @@ func TestNewMultiplex(t *testing.T) {
 }
 
 func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
-	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
+	// needs create a mosn context wrapper
+	ctx := variable.NewVariableContext(context.Background())
 	ctxNew := mosnctx.Clone(ctx)
 
 	cl := basicCluster("localhost:8888", []string{"localhost:8888"})
@@ -68,7 +69,7 @@ func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	pMultiplex := NewPoolMultiplex(&p)
 	pInst := pMultiplex.(*poolMultiplex)
 
-	assert.Equal(t, len(pInst.activeClients), testClientNum)
+	assert.Equal(t, testClientNum, len(pInst.activeClients))
 	// set status for each client
 	for i := 0; i < len(pInst.activeClients); i++ {
 		pInst.activeClients[i].Store(types.ProtocolName("dubbo"), &activeClientMultiplex{
@@ -79,18 +80,18 @@ func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	////// scene 1, client id not previously set
 	assert.True(t, pInst.CheckAndInit(ctx))
 	idSetByPool := getClientIDFromDownStreamCtx(ctx)
-	assert.Equal(t, int(idSetByPool), 1)
+	assert.Equal(t, 1, int(idSetByPool))
 
 	// the id is already set, should always use the same client id
 	assert.True(t, pInst.CheckAndInit(ctx))
 	idSetByPool = getClientIDFromDownStreamCtx(ctx)
-	assert.Equal(t, int(idSetByPool), 1)
+	assert.Equal(t, 1, int(idSetByPool))
 
 	////// scene 2, the new request without client id
 	// should use the next client
 	assert.True(t, pInst.CheckAndInit(ctxNew))
 	idSetByPool = getClientIDFromDownStreamCtx(ctxNew)
-	assert.Equal(t, int(idSetByPool), 2)
+	assert.Equal(t, 2, int(idSetByPool))
 }
 
 func TestMultiplexParallelShutdown(t *testing.T) {
@@ -100,8 +101,7 @@ func TestMultiplexParallelShutdown(t *testing.T) {
 	// wait for server to start
 	time.Sleep(time.Second * 2)
 
-	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
+	ctx := context.Background()
 
 	cl := basicCluster(addr, []string{addr})
 	connNum := uint32(1)

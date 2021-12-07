@@ -25,7 +25,6 @@ import (
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
@@ -38,7 +37,7 @@ type poolPingPong struct {
 
 	totalClientCount atomicex.Uint64 // total clients
 	clientMux        sync.Mutex
-	idleClients      map[api.ProtocolName][]*activeClientPingPong
+	idleClients      map[api.ProtocolName][]*activeClientPingPong // TODO: do not need map anymore
 }
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
@@ -58,7 +57,7 @@ func (p *poolPingPong) CheckAndInit(ctx context.Context) bool {
 func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
 
-	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
+	c, reason := p.GetActiveClient(ctx)
 	if reason != "" {
 		return host, nil, reason
 	}
@@ -82,7 +81,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 
 // GetActiveClient get a avail client
 // nolint: dupl
-func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
+func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPong, types.PoolFailureReason) {
 
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -93,7 +92,9 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 
 	p.clientMux.Lock()
 
-	n := len(p.idleClients[subProtocol])
+	proto := p.connpool.codec.ProtocolName()
+
+	n := len(p.idleClients[proto])
 
 	// max conns is 0 means no limit
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
@@ -108,7 +109,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 			// connection not multiplex,
 			// so we can concurrently build connections here
 			p.clientMux.Unlock()
-			c, reason = p.newActiveClient(ctx, subProtocol)
+			c, reason = p.newActiveClient(ctx, proto)
 			if c != nil && reason == "" {
 				p.totalClientCount.Inc()
 			}
@@ -136,9 +137,9 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 			goto RET
 		}
 
-		c = p.idleClients[subProtocol][lastIdx]
-		p.idleClients[subProtocol][lastIdx] = nil
-		p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
+		c = p.idleClients[proto][lastIdx]
+		p.idleClients[proto][lastIdx] = nil
+		p.idleClients[proto] = p.idleClients[proto][:lastIdx]
 
 		goto RET
 	}
@@ -197,10 +198,6 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	host := p.Host()
 	connCtx := ctx
 
-	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
-	}
-
 	ac.host.Connection.AddConnectionEventListener(ac)
 
 	// first connect to dest addr, then create stream client
@@ -215,18 +212,16 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	// bytes total adds all connections data together
 	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
-	if subProtocol != "" {
-		// Add Keep Alive
-		// protocol is from onNewDetectStream
-		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := p.connpool.codec.XProtocol()
-		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
-			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
-			rpcKeepAlive.StartIdleTimeout()
+	// Add Keep Alive
+	// protocol is from onNewDetectStream
+	// check heartbeat enable, hack: judge trigger result of Heartbeater
+	proto := p.connpool.codec.XProtocol()
+	if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
+		// create keepalive
+		rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
+		rpcKeepAlive.StartIdleTimeout()
 
-			ac.SetHeartBeater(rpcKeepAlive)
-		}
+		ac.SetHeartBeater(rpcKeepAlive)
 	}
 	////////// codec client
 

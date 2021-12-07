@@ -341,7 +341,7 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xS
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
 	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, serverStream.id)
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
+	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, sc.protocol.Name())
 	serverStream.sc = sc
 
 	return serverStream
@@ -356,7 +356,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
+	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, sc.protocol.Name())
 	clientStream.sc = sc
 
 	return clientStream

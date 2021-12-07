@@ -93,17 +93,6 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 	}
 }
 
-func getSubProtocol(ctx context.Context) types.ProtocolName {
-	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
-			if code, ok := val.(string); ok {
-				return types.ProtocolName(code)
-			}
-		}
-	}
-	return ""
-}
-
 func getDownstreamConn(ctx context.Context) api.Connection {
 	if ctx != nil {
 		if val := mosnctx.Get(ctx, types.ContextKeyConnection); val != nil {

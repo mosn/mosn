@@ -450,9 +450,9 @@ func TestGetUpstreamProtocol(t *testing.T) {
 		expectedProtocol types.ProtocolName
 	}{
 		{
-			ctx:              mosnctx.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, "X"),
+			ctx:              mosnctx.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, api.ProtocolName("bolt")),
 			route:            route,
-			expectedProtocol: "X",
+			expectedProtocol: api.ProtocolName("bolt"),
 		},
 		{
 			ctx:              context.Background(),
@@ -462,7 +462,7 @@ func TestGetUpstreamProtocol(t *testing.T) {
 		{
 			ctx:              context.Background(),
 			route:            nil,
-			expectedProtocol: "HTTP2",
+			expectedProtocol: api.ProtocolName("HTTP2"),
 		},
 	}
 

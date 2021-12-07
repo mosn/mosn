@@ -32,6 +32,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type serverType struct {
@@ -86,8 +87,8 @@ func TestBinding(t *testing.T) {
 }
 
 func TestDownClose(t *testing.T) {
-	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
+
+	ctx := variable.NewVariableContext(context.Background())
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)
@@ -132,8 +133,7 @@ func TestDownClose(t *testing.T) {
 
 func TestUpperClose(t *testing.T) {
 
-	// ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, dubbo.ProtocolName)
+	ctx := variable.NewVariableContext(context.Background())
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)

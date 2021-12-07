@@ -37,7 +37,7 @@ type poolMultiplex struct {
 	*connpool
 
 	clientMux              sync.Mutex
-	activeClients          []sync.Map
+	activeClients          []sync.Map // TODO: do not need map anymore
 	currentCheckAndInitIdx int64
 
 	shutdown bool // pool is already shutdown
@@ -93,7 +93,7 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-		ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, string(sub))
+		ctx := context.Background() // TODO: a new context ?
 		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
@@ -118,7 +118,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 	}
 
 	var client *activeClientMultiplex
-	subProtocol := getSubProtocol(ctx)
+	subProtocol := p.connpool.codec.ProtocolName()
 
 	v, ok := p.activeClients[clientIdx].Load(subProtocol)
 	if !ok {
@@ -156,7 +156,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		}
 	}
 
-	subProtocol := getSubProtocol(ctx)
+	subProtocol := p.connpool.codec.ProtocolName()
 
 	client, _ := p.activeClients[clientIdx].Load(subProtocol)
 
@@ -235,7 +235,6 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	host := p.Host()
 	data := host.CreateConnection(ctx)
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
-	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, string(subProtocol))
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)

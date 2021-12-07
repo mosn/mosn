@@ -711,27 +711,26 @@ func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol := string(protocol.Auto)
+func (s *downStream) getUpstreamProtocol() types.ProtocolName {
+	// default upstream protocol is auto
+	proto := protocol.Auto
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
 	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
-		configProtocol = s.route.RouteRule().UpstreamProtocol()
+		proto = api.ProtocolName(s.route.RouteRule().UpstreamProtocol())
 	}
 
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
-	if proto, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(string); ok {
-		configProtocol = proto
+	if p, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(api.ProtocolName); ok {
+		proto = p
 	}
 
 	// Auto means same as downstream protocol
-	if configProtocol == string(protocol.Auto) {
-		currentProtocol = s.getDownstreamProtocol()
-	} else {
-		currentProtocol = types.ProtocolName(configProtocol)
+	if proto == protocol.Auto {
+		proto = s.getDownstreamProtocol()
 	}
 
-	return currentProtocol
+	return proto
 }
 
 // getStringOr returns the first argument if it is not empty, otherwise the second.

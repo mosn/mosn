@@ -24,7 +24,6 @@ import (
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
@@ -148,7 +147,7 @@ func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 // The function will be called when connection in the codec is idle
 func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, kp.Protocol.Name())
+	ctx := context.Background()
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
 

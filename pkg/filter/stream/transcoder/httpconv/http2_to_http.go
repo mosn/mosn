@@ -52,7 +52,7 @@ func (t *http2Tohttp) TranscodingRequest(ctx context.Context, headers api.Header
 		return true
 	})
 
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(protocol.HTTP1))
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, protocol.HTTP1)
 
 	return headerImpl, buf, trailers, nil
 }

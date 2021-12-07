@@ -20,7 +20,6 @@ package proxy
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 
 	monkey "github.com/cch123/supermonkey"
@@ -85,10 +84,9 @@ func TestNewProxy(t *testing.T) {
 	})
 
 	t.Run("config with subprotocol", func(t *testing.T) {
-		subs := "bolt,boltv2"
+		subs := []api.ProtocolName{api.ProtocolName("bolt"), api.ProtocolName("boltv2")}
 		ctx := genctx()
-		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, subs)
-		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("bolt"), api.ProtocolName("boltv2")})
+		variable.Set(ctx, types.VarProtocolConfig, subs)
 		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "X",
@@ -96,12 +94,8 @@ func TestNewProxy(t *testing.T) {
 		})
 		// verify
 		p := pv.(*proxy)
-		sub, ok := mosnctx.Get(p.context, types.ContextSubProtocol).(string)
-		if !ok {
-			t.Fatal("no sub protocol got")
-		}
-		if !strings.EqualFold(sub, subs) {
-			t.Fatalf("got subprotocol %s, but expected %s", sub, subs)
+		if len(p.protocols) != 2 || p.protocols[0] != api.ProtocolName("bolt") || p.protocols[1] != api.ProtocolName("boltv2") {
+			t.Fatalf("got subprotocol %v, but expected %v", p.protocols, subs)
 		}
 	})
 	t.Run("config with proxy general HTTP1", func(t *testing.T) {

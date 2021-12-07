@@ -68,7 +68,8 @@ func (t *XTracer) Start(ctx context.Context, frame interface{}, startTime time.T
 		return span
 	}
 
-	proto := api.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
+	// the trace protocol is based on request (downstream)
+	proto := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 
 	if delegate := GetDelegate(proto); delegate != nil {
 		delegate(ctx, xframe, span)

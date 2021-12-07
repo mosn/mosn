@@ -31,6 +31,7 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type testStats struct {
@@ -72,8 +73,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 		},
 	}
 	host := cluster.NewSimpleHost(cfg, info)
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx := variable.NewVariableContext(context.Background())
 
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(); err != nil {

@@ -42,7 +42,7 @@ func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf typ
 
 func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
 	// 1.set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(bolt.ProtocolName))
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, bolt.ProtocolName)
 	// 2. assemble target request
 	targetRequest := bolt.NewRpcRequest(0, headers, buf)
 	return targetRequest, buf, trailers, nil

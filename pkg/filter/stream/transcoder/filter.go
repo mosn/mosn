@@ -79,8 +79,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
-	dstPro := ruleInfo.UpstreamSubProtocol
+	srcPro := mosnctx.Get(ctx, types.ContextKeyUpStreamProtocol).(api.ProtocolName)
 	//select transcoder
 	transcoder := GetTranscoder(ruleInfo.GetType(srcPro))
 	if transcoder == nil {
@@ -97,10 +96,8 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	f.transcoder = transcoder
 
 	//TODO set transcoder config
-	//set sub protocol
-	mosnctx.WithValue(ctx, types.ContextSubProtocol, dstPro)
 	//set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, ruleInfo.UpstreamProtocol)
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
 
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 

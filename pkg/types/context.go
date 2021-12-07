@@ -38,7 +38,6 @@ const (
 	ContextKeyAcceptChan
 	ContextKeyAcceptBuffer
 	ContextKeyConnectionFd
-	ContextSubProtocol
 	ContextKeyTraceSpanKey
 	ContextKeyActiveSpan
 	ContextKeyTraceId
@@ -46,8 +45,6 @@ const (
 	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
 	ContextKeyUpStreamProtocol
-	ContextKeyConfigDownStreamProtocol
-	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
 	ContextKeyEnd

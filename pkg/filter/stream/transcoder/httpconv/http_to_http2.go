@@ -60,7 +60,7 @@ func (t *httpTohttp2) TranscodingRequest(ctx context.Context, headers api.Header
 	})
 
 	// set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(protocol.HTTP2))
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, protocol.HTTP2)
 
 	return protocol.CommonHeader(cheader), buf, trailers, nil
 }
