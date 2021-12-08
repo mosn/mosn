@@ -145,6 +145,7 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder response failed: %v", err)
 		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
+		f.needTranscode = false // send hijack should not transcode now.
 		return api.StreamFilterStop
 	}
 	f.sendHandler.SetResponseHeaders(outHeaders)

@@ -59,7 +59,12 @@ func (t *http2Tohttp) TranscodingRequest(ctx context.Context, headers api.Header
 
 // TranscodingResponse makes a http resposne to http2 response
 func (t *http2Tohttp) TranscodingResponse(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) (api.HeaderMap, api.IoBuffer, api.HeaderMap, error) {
-	httpHeader := headers.(http.ResponseHeader)
+	httpHeader, ok := headers.(http.ResponseHeader)
+	if !ok {
+		// if the response is not bolt response, it maybe come from hijack or send directly response.
+		// so we just returns the original data
+		return headers, buf, trailers, nil
+	}
 	cheader := make(map[string]string, httpHeader.Len())
 	// copy headers
 	httpHeader.VisitAll(func(key, value []byte) {

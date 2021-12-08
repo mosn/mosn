@@ -79,6 +79,20 @@ func TestDefaultHTTPConvert(t *testing.T) {
 			})
 			Verify(client.SyncCall(), Equal, true)
 		})
+		Case("mesh direct response", func() {
+			client := lib.CreateClient("Http1", &http.HttpClientConfig{
+				TargetAddr: "127.0.0.1:2045",
+				Request: &http.RequestConfig{
+					Method: "GET",
+					Path:   "/direct_response",
+				},
+				Verify: &http.VerifyConfig{
+					ExpectedStatusCode: 200,
+					ExpectedBody:       []byte("mosn direct response"),
+				},
+			})
+			Verify(client.SyncCall(), Equal, true)
+		})
 	})
 }
 
@@ -156,6 +170,21 @@ func TestDefaultHTTP2Convert(t *testing.T) {
 			})
 			Verify(client.SyncCall(), Equal, true)
 		})
+		Case("mesh direct response", func() {
+			client := lib.CreateClient("Http2", &http.HttpClientConfig{
+				TargetAddr: "127.0.0.1:2045",
+				Request: &http.RequestConfig{
+					Method: "GET",
+					Path:   "/direct_response",
+				},
+				Verify: &http.VerifyConfig{
+					ExpectedStatusCode: 200,
+					ExpectedBody:       []byte("mosn direct response"),
+				},
+			})
+			Verify(client.SyncCall(), Equal, true)
+		})
+
 	})
 
 }
@@ -177,6 +206,13 @@ const ConfigProtocolConvertTmpl = `{
 						"name":"server_hosts",
 						"domains": ["*"],
 						"routers": [
+							{
+								"match":{"prefix":"/direct_response"},
+								"direct_response": {
+									"status": 200,
+									"body": "mosn direct response"
+								}
+							},
 							{
 								"match":{"prefix":"/upstream"},
 								"route":{"cluster_name":"trans_server"}
