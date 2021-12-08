@@ -105,7 +105,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
+	ctx := context.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, string(c.Protocol))
 	c.Codec = stream.NewStreamClient(ctx, c.Protocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", c.Protocol, cc)

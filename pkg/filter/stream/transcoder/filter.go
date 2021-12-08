@@ -79,7 +79,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	srcPro := mosnctx.Get(ctx, types.ContextKeyUpStreamProtocol).(api.ProtocolName)
+	srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 	//select transcoder
 	transcoder := GetTranscoder(ruleInfo.GetType(srcPro))
 	if transcoder == nil {
@@ -97,7 +97,10 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	//TODO set transcoder config
 	//set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
+	// if ruleInfo.UpstreamProtocol is empty, the ruleinfo maybe created by the old mode: config have type only
+	if ruleInfo.UpstreamProtocol != "" {
+		mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
+	}
 
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 

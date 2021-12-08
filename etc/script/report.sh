@@ -5,7 +5,7 @@ echo "" > coverage.txt
 
 for d in $(go list ./pkg/...  | grep -v pkg/networkextention); do
     echo "--------Run test package: $d"
-    GO111MODULE=off go test -gcflags="all=-N -l" -v -coverprofile=profile.out -covermode=atomic $d
+    GO111MODULE=off go test -gcflags="all=-N -l" -bench=. -v -coverprofile=profile.out -covermode=atomic $d
     echo "--------Finish test package: $d"
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt
@@ -15,7 +15,7 @@ done
 
 for d in $(go list ./istio/istio152/...); do
     echo "--------Run test package: $d"
-    GO111MODULE=off go test -gcflags=-l -v -coverprofile=profile.out -covermode=atomic $d
+    GO111MODULE=off go test -gcflags="all=-N -l" -bench=. -v -coverprofile=profile.out -covermode=atomic $d
     echo "--------Finish test package: $d"
     if [ -f profile.out ]; then
 	cat profile.out >> coverage.txt
