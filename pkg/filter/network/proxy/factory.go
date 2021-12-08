@@ -67,7 +67,7 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	}
 
 	protos := strings.Split(p.DownstreamProtocol, ",")
-	gfcf.protocols = make([]api.ProtocolName, len(protos))
+	gfcf.protocols = make([]api.ProtocolName, 0, len(protos))
 	for _, p := range protos {
 		proto := api.ProtocolName(p)
 		if ok := protocol.ProtocolRegistered(proto); !ok {

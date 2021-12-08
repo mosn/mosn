@@ -161,8 +161,9 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		}
 
 		scopes := p.protocols
-		if !(len(scopes) == 1 && scopes[0] == protocol.Auto) {
-			scopes = nil // Auto match all protocols
+		// if protocols is Auto only, match all registered protocols
+		if len(scopes) == 1 && scopes[0] == protocol.Auto {
+			scopes = nil
 		}
 
 		proto, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes(), scopes)
