@@ -25,6 +25,7 @@ require (
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.10
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
+	github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2 // indirect
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/miekg/dns v1.1.25
@@ -39,13 +40,13 @@ require (
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.22.1
-	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
+	github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
 	github.com/wasmerio/wasmer-go v1.0.3
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
 	golang.org/x/tools v0.1.4
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
@@ -54,7 +55,7 @@ require (
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20211118092229-0f48ccc614b6
-	mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
+	mosn.io/pkg v0.0.0-20211217101631-d914102d1baf
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect

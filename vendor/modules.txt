@@ -38,7 +38,7 @@ github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/core/system_metric
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
-# github.com/andybalholm/brotli v1.0.0
+# github.com/andybalholm/brotli v1.0.2
 github.com/andybalholm/brotli
 # github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
 github.com/antlr/antlr4/runtime/Go/antlr
@@ -187,7 +187,7 @@ github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.3
 github.com/golang/snappy
 # github.com/google/cel-go v0.5.1
 ## explicit
@@ -230,9 +230,11 @@ github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 ## explicit
 github.com/juju/errors
+# github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2
+## explicit
 # github.com/k0kubun/pp v3.0.1+incompatible
 github.com/k0kubun/pp
-# github.com/klauspost/compress v1.10.4
+# github.com/klauspost/compress v1.13.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
@@ -350,7 +352,7 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
+# github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 ## explicit
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
@@ -388,20 +390,21 @@ golang.org/x/arch/arm/armasm
 golang.org/x/arch/arm64/arm64asm
 golang.org/x/arch/ppc64/ppc64asm
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+# golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 ## explicit
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+# golang.org/x/net v0.0.0-20210510120150-4163338589ed
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -423,9 +426,12 @@ golang.org/x/sync/errgroup
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.3
+# golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+golang.org/x/term
+# golang.org/x/text v0.3.6
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -552,7 +558,7 @@ k8s.io/klog
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
-# mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
+# mosn.io/pkg v0.0.0-20211217101631-d914102d1baf
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv
@@ -561,6 +567,7 @@ mosn.io/pkg/buffer
 mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/netpoll
+mosn.io/pkg/protocol/http
 mosn.io/pkg/registry/dubbo
 mosn.io/pkg/registry/dubbo/common
 mosn.io/pkg/registry/dubbo/common/constant

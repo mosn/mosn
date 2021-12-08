@@ -32,6 +32,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/skywalking"
 	"mosn.io/mosn/pkg/types"
+	pkghttp "mosn.io/pkg/protocol/http"
 )
 
 var (
@@ -134,7 +135,7 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 	// end exit span (upstream)
 	if h.carrier.ExitSpan != nil {
 		exit := h.carrier.ExitSpan
-		if requestInfo.ResponseCode() >= http.BadRequest {
+		if requestInfo.ResponseCode() >= pkghttp.BadRequest {
 			exit.Error(time.Now(), skywalking.ErrorLog)
 		}
 		exit.Tag(go2sky.TagStatusCode, responseCode)
@@ -143,7 +144,7 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 
 	// entry span (downstream)
 	entry := h.carrier.EntrySpan
-	if requestInfo.ResponseCode() >= http.BadRequest {
+	if requestInfo.ResponseCode() >= pkghttp.BadRequest {
 		entry.Error(time.Now(), skywalking.ErrorLog)
 	}
 	entry.Tag(go2sky.TagStatusCode, responseCode)

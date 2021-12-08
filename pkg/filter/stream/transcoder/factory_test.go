@@ -19,8 +19,9 @@ package transcoder
 
 import (
 	"context"
-	"mosn.io/api/extensions/transcoder"
 	"testing"
+
+	"mosn.io/api/extensions/transcoder"
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
@@ -86,7 +87,7 @@ func TestCreateFilter(t *testing.T) {
 			expectReceiver: api.BeforeRoute,
 		},
 	}
-	MustRegister("http2bolt_simple", &tt{})
+	MustRegister("http2bolt_simple", func(config map[string]interface{}) transcoder.Transcoder { return &tt{} })
 	for _, tcase := range testcase {
 		ff, err := createFilterChainFactory(tcase.conf)
 		assert.NoError(t, err)
