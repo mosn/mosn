@@ -162,7 +162,7 @@ func TestNewMosn(t *testing.T) {
 		DefaultInitStage(cfg)
 		m := NewMosn()
 		m.Config = cfg
-		m.InitMosn()
+		m.Init()
 		// verify routers
 		routerMng := router.GetRoutersMangerInstance()
 		rw := routerMng.GetRouterWrapperByName("server_router")
@@ -183,7 +183,7 @@ func TestNewMosn(t *testing.T) {
 		DefaultInitStage(cfg)
 		m := NewMosn()
 		m.Config = cfg
-		m.InitMosn()
+		m.Init()
 		routerMng := router.GetRoutersMangerInstance()
 		rw0 := routerMng.GetRouterWrapperByName("server_router")
 		if rw0 == nil {

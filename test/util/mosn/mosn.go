@@ -14,7 +14,7 @@ func NewMosn(c *v2.MOSNConfig) *MosnWrapper {
 	mosn.DefaultInitStage(c)
 	m := mosn.NewMosn()
 	m.InheritConfig(c)
-	m.InitMosn()
+	m.Init()
 	return &MosnWrapper{
 		m: m,
 	}
