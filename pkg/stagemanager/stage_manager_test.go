@@ -78,15 +78,15 @@ func TestStageManager(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	m := mock.NewMockMosn(ctrl)
+	app := mock.NewMockApplication(ctrl)
 
-	m.EXPECT().InheritConfig(gomock.Any()).Return(nil)
-	m.EXPECT().InitMosn().Return()
-	m.EXPECT().Start().Return()
-	m.EXPECT().InheritConnections().Return(nil)
-	m.EXPECT().Close().Return()
+	app.EXPECT().InheritConfig(gomock.Any()).Return(nil)
+	app.EXPECT().Init().Return()
+	app.EXPECT().Start().Return()
+	app.EXPECT().InheritConnections().Return(nil)
+	app.EXPECT().Close().Return()
 
-	stm := InitStageManager(&cli.Context{}, "", m)
+	stm := InitStageManager(&cli.Context{}, "", app)
 	// test for mock
 	testCall := 0
 	configmanager.RegisterConfigLoadFunc(func(p string) *v2.MOSNConfig {
@@ -114,27 +114,27 @@ func TestStageManager(t *testing.T) {
 		if testCall != 1 {
 			t.Errorf("init stage call, expect 1 while got %v", testCall)
 		}
-	}).AppendPreStartStage(func(_ Mosn) {
+	}).AppendPreStartStage(func(_ Application) {
 		testCall++
 		if testCall != 2 {
 			t.Errorf("pre start stage call, expect 2 while got %v", testCall)
 		}
-	}).AppendStartStage(func(_ Mosn) {
+	}).AppendStartStage(func(_ Application) {
 		testCall++
 		if testCall != 3 {
 			t.Errorf("start stage call, expect 3 while got %v", testCall)
 		}
-	}).AppendAfterStartStage(func(_ Mosn) {
+	}).AppendAfterStartStage(func(_ Application) {
 		testCall++
 		if testCall != 4 {
 			t.Errorf("after start stage call, expect 4 while got %v", testCall)
 		}
-	}).AppendPreStopStage(func(_ Mosn) {
+	}).AppendPreStopStage(func(_ Application) {
 		testCall++
 		if testCall != 5 {
 			t.Errorf("pre stop stage call, expect 5 while got %v", testCall)
 		}
-	}).AppendAfterStopStage(func(_ Mosn) {
+	}).AppendAfterStopStage(func(_ Application) {
 		testCall++
 		if testCall != 6 {
 			t.Errorf("after stop stage call, expect 6 while got %v", testCall)

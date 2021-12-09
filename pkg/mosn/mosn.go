@@ -64,7 +64,7 @@ func NewMosn() *Mosn {
 }
 
 // generate mosn structure members
-func (m *Mosn) InitMosn() {
+func (m *Mosn) Init() {
 	log.StartLogger.Infof("[mosn start] init the members of the mosn")
 
 	m.initClusterManager()

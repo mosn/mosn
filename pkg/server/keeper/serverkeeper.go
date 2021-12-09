@@ -70,8 +70,15 @@ func signalHandler(sig os.Signal) {
 	case syscall.SIGQUIT:
 		// stop mosn gracefully
 		stagemanager.Notice(stagemanager.GracefulQuit)
-	default:
+	case syscall.SIGINT: // same as os.Interrupt
+		fallthrough
+	case syscall.SIGTERM:
 		// stop mosn
 		stagemanager.Notice(stagemanager.Quit)
+	default:
+		// do nothing
 	}
 }
+
+// deprecated: please use stagemanager.OnGracefulShutdown instead
+// func OnProcessShutDown(cb func() error)

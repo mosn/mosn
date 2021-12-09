@@ -137,8 +137,8 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) error {
-			m := mosn.NewMosn()
-			stm := stagemanager.InitStageManager(c, c.String("config"), m)
+			app := mosn.NewMosn()
+			stm := stagemanager.InitStageManager(c, c.String("config"), app)
 			// if needs featuregate init in parameter stage or init stage
 			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
 			// parameter parsed registered

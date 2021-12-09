@@ -38,7 +38,7 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 }
 
 // Default Pre-start Stage wrappers
-func DefaultPreStartStage(mosn stagemanager.Mosn) {
+func DefaultPreStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 
 	// after inherit config,
@@ -52,7 +52,7 @@ func DefaultPreStartStage(mosn stagemanager.Mosn) {
 }
 
 // Default Start Stage wrappers
-func DefaultStartStage(mosn stagemanager.Mosn) {
+func DefaultStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 	// register admin server
 	// admin server should registered after all prepares action ready
