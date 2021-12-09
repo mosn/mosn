@@ -308,14 +308,8 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		}
 	}
 
-	candicate = lb.unweightChooseHostFunc(context)
-	if candicate.Health() {
-		return candicate
-	}
-
-	// refer https://github.com/mosn/mosn/pull/1713
-	// return nil when all instances are unhealthy
-	return nil
+	// Use unweighted roud-robin as a fallback while failed to pick a healthy host by weighted round-robin.
+	return lb.unweightChooseHostFunc(context)
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
