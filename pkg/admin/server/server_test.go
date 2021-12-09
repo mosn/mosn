@@ -441,7 +441,7 @@ func TestGetState(t *testing.T) {
 		stagemanager.Starting,
 		stagemanager.AfterStart,
 		stagemanager.Running,
-		stagemanager.PreStop,
+		stagemanager.GracefulStopping,
 		stagemanager.Stopping,
 		stagemanager.AfterStop,
 		stagemanager.Stopped,

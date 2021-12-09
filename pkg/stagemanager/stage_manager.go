@@ -59,7 +59,7 @@ type State int
 // 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
 // 5. The after-start stage. In this stage, do some other init actions after startup.
 // 6. The running stage.
-// 7. The pre-stop stage. In this stage, do graceful shutdown actions before calling Application.Close
+// 7. The graceful stop stage. In this stage, do graceful shutdown actions before calling Application.Close
 // 8. The stop stage. In this stage, executing Application.Close.
 // 9. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
 // 10. The stopped stage. everything is closed.
@@ -80,7 +80,7 @@ const (
 	Starting
 	AfterStart
 	Running
-	PreStop
+	GracefulStopping
 	Stopping
 	AfterStop
 	Stopped
@@ -142,7 +142,7 @@ type StageManager struct {
 	preStartStages          []func(Application)
 	startupStages           []func(Application)
 	afterStartStages        []func(Application)
-	preStopStages           []func(Application)
+	gracefulStopStages      []func(Application)
 	afterStopStages         []func(Application)
 	onStateChangedCallbacks []func(State)
 	upgradeHandler          func() error // old server: send listener/config/old connections to new server
@@ -305,21 +305,21 @@ func (stm *StageManager) WaitFinish() {
 	stm.wg.Wait()
 }
 
-// graceful shutdown handlers
-func (stm *StageManager) AppendPreStopStage(f func(Application)) *StageManager {
+// graceful stop handlers
+func (stm *StageManager) AppendGracefulStopStage(f func(Application)) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
-	stm.preStopStages = append(stm.preStopStages, f)
+	stm.gracefulStopStages = append(stm.gracefulStopStages, f)
 	return stm
 }
 
-// gracefull shutdown stage
-func (stm *StageManager) runPreStopStage() {
+// graceful stop tage
+func (stm *StageManager) runGracefulStopStage() {
 	st := time.Now()
-	stm.SetState(PreStop)
-	for _, f := range stm.preStopStages {
+	stm.SetState(GracefulStopping)
+	for _, f := range stm.gracefulStopStages {
 		f(stm.app)
 	}
 
@@ -352,7 +352,7 @@ func (stm *StageManager) Stop() {
 	}
 	preState := GetState()
 	if stm.quitAction == GracefulQuit {
-		stm.runPreStopStage()
+		stm.runGracefulStopStage()
 	}
 
 	stm.SetState(Stopping)
@@ -422,7 +422,7 @@ func (stm *StageManager) runHupReload() {
 }
 
 func OnGracefulShutdown(f func()) {
-	stm.AppendPreStopStage(func(Application) {
+	stm.AppendGracefulStopStage(func(Application) {
 		f()
 	})
 }

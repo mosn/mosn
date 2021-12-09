@@ -37,7 +37,7 @@ func testSetGetState(state State, t *testing.T) {
 	}
 }
 
-var allStates []State = []State{ParamsParsed, Initing, PreStart, Starting, AfterStart, Running, PreStop, Stopping, AfterStop, Stopped}
+var allStates []State = []State{ParamsParsed, Initing, PreStart, Starting, AfterStart, Running, GracefulStopping, Stopping, AfterStop, Stopped}
 
 func TestSetGetState(t *testing.T) {
 	state := GetState()
