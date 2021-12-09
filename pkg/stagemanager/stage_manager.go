@@ -105,7 +105,8 @@ type Application interface {
 }
 
 var (
-	stm StageManager = StageManager{
+	newServerC chan bool
+	stm        StageManager = StageManager{
 		state:          Nil,
 		data:           Data{},
 		started:        false,
@@ -151,6 +152,8 @@ func InitStageManager(ctx *cli.Context, path string, app Application) *StageMana
 	stm.data.configPath = path
 	stm.data.ctx = ctx
 	stm.app = app
+
+	newServerC = make(chan bool, 1)
 
 	RegisterOnStateChanged(func(s State) {
 		metrics.SetStateCode(int64(s))
@@ -406,6 +409,16 @@ func (stm *StageManager) runHupReload() {
 	if err := StartNewServer(); err != nil {
 		stm.resume()
 	}
+
+	select {
+	case <-newServerC:
+		// do nothing
+	case <-time.After(5 * time.Second):
+		// wait max 5 seconds
+		// new server not start yet
+		log.DefaultLogger.Errorf("[server] still not received message from the new started server after 5 seconds, will resume the current server")
+		stm.resume()
+	}
 }
 
 func OnGracefulShutdown(f func()) {
@@ -447,6 +460,9 @@ func (stm *StageManager) resume() {
 
 // hot upgrade, sending config/existing connections to new server firstly
 func (stm *StageManager) runUpgrade() {
+	if GetState() == StartingNewServer {
+		newServerC <- true
+	}
 	stm.SetState(Upgrading)
 
 	if stm.upgradeHandler == nil {
