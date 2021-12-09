@@ -38,6 +38,26 @@ const (
 	STAT_WORKERS_STARTED = "listener_manager.workers_started"
 )
 
+var (
+	mosnState2IstioState = map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
+		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		// 10 main stages
+		stagemanager.ParamsParsed: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.Initing:      envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.PreStart:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.Starting:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.AfterStart:   envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Running:      envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.PreStop:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopping:     envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.AfterStop:    envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopped:      envoy_admin_v2alpha.ServerInfo_DRAINING,
+		// 2 additional stages
+		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
+	}
+)
+
 func init() {
 	server.RegisterAdminHandleFunc("/server_info", serverInfoForIstio)
 }
@@ -84,23 +104,6 @@ func serverInfoForIstio(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
-	mosnState2IstioState := map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
-		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		// 10 main stages
-		stagemanager.ParamsParsed: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		stagemanager.Initing:      envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		stagemanager.PreStart:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
-		stagemanager.Starting:     envoy_admin_v2alpha.ServerInfo_INITIALIZING,
-		stagemanager.AfterStart:   envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.Running:      envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.PreStop:      envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.Stopping:     envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.AfterStop:    envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.Stopped:      envoy_admin_v2alpha.ServerInfo_DRAINING,
-		// 2 additional stages
-		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
-	}
 	state := stagemanager.GetState()
 	if s, ok := mosnState2IstioState[state]; ok {
 		return s, nil
