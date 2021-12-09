@@ -26,6 +26,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
@@ -140,7 +141,7 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 	}
 
 	name := types.ProtocolName(config.SubProtocol)
-	if p := xprotocol.GetProtocol(name); p == nil {
+	if ok := protocol.ProtocolRegistered(name); !ok {
 		// first time plugin init, register proxy protocol.
 		// because the listener contains the types egress and ingress,
 		// the plug-in should be fired only once.
