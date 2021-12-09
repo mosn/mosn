@@ -121,7 +121,7 @@ func TestProtocolHttp1(t *testing.T) {
 	}
 
 	magic = "PATCH"
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic), nil)
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}

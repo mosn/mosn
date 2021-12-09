@@ -57,6 +57,8 @@ func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Conte
 	callbacks.AddReadFilter(p)
 }
 
+var protocolCheck func(api.ProtocolName) bool = protocol.ProtocolRegistered
+
 func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	p, err := ParseProxyFilter(conf)
 	if err != nil {
@@ -70,7 +72,7 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	gfcf.protocols = make([]api.ProtocolName, 0, len(protos))
 	for _, p := range protos {
 		proto := api.ProtocolName(p)
-		if ok := protocol.ProtocolRegistered(proto); !ok {
+		if ok := protocolCheck(proto); !ok {
 			return nil, fmt.Errorf("invalid downstream protocol %s", p)
 		}
 		gfcf.protocols = append(gfcf.protocols, proto)

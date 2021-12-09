@@ -28,7 +28,7 @@ import (
 
 var (
 	protocolsSupported = map[api.ProtocolName]struct{}{
-		Auto: struct{}{},
+		Auto: struct{}{}, // reserved protocol, support for Auto protocol config parsed
 	}
 )
 
@@ -61,7 +61,9 @@ func ProtocolRegistered(name api.ProtocolName) bool {
 
 func RangeAllRegisteredProtocol(f func(name api.ProtocolName)) {
 	for proto := range protocolsSupported {
-		f(proto)
+		if proto != Auto {
+			f(proto)
+		}
 	}
 }
 
