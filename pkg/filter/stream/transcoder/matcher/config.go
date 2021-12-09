@@ -19,6 +19,7 @@ package matcher
 
 import (
 	"context"
+
 	"mosn.io/api"
 )
 
@@ -37,10 +38,11 @@ type MatcherConfig struct {
 }
 
 type RuleInfo struct {
-	Type                string `json:"-"`
-	UpstreamProtocol    string `json:"upstream_protocol,omitempty"`
-	UpstreamSubProtocol string `json:"upstream_sub_protocol,omitempty"`
-	Description         string `json:"description,omitempty"`
+	Type                string                 `json:"-"`
+	UpstreamProtocol    string                 `json:"upstream_protocol,omitempty"`
+	UpstreamSubProtocol string                 `json:"upstream_sub_protocol,omitempty"`
+	Description         string                 `json:"description,omitempty"`
+	Config              map[string]interface{} `json:"config,omitempty"`
 }
 
 func (ri *RuleInfo) GetType(srcPro api.ProtocolName) string {
