@@ -37,7 +37,7 @@ endif
 
 
 ut-local:
-	GO111MODULE=off go test -gcflags=-l -bench=. -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
+	GO111MODULE=off go test -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
 	make unit-test-istio-${ISTIO_VERSION}
 
 unit-test:
