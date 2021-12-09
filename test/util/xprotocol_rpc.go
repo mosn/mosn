@@ -306,7 +306,7 @@ func NewRPCServer(t *testing.T, addr string, proto types.ProtocolName) UpstreamS
 
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(bolt.ProtocolName)
+		protocol := (&bolt.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -332,7 +332,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(dubbo.ProtocolName)
+		protocol := (&dubbo.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -358,7 +358,7 @@ func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(dubbothrift.ProtocolName)
+		protocol := (&dubbothrift.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -384,7 +384,7 @@ func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeTars(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(tars.ProtocolName)
+		protocol := (&tars.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false

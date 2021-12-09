@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/lib"
@@ -114,7 +113,7 @@ func (s *MockBoltServer) mux(req *boltv2.Request) (result *ResponseConfig) {
 // TODO: HandleRequest support more protocol to make x protocol server
 func (s *MockBoltServer) handle(buf buffer.IoBuffer) *ResponseToWrite {
 	ctx := context.Background()
-	engine := xprotocol.GetProtocol(boltv2.ProtocolName)
+	engine := (&boltv2.XCodec{}).NewXProtocol(ctx)
 	cmd, err := engine.Decode(ctx, buf)
 	if cmd == nil || err != nil {
 		return nil

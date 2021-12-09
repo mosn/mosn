@@ -1,6 +1,7 @@
 package integrate
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
@@ -264,7 +264,7 @@ func (c *XRetryCase) Start(tls bool) {
 
 func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 
-	proto := xprotocol.GetProtocol(bolt.ProtocolName)
+	proto := (&bolt.XCodec{}).NewXProtocol(context.Background())
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
 		cmd, _ := proto.Decode(nil, iobuf)
 		if cmd == nil {
