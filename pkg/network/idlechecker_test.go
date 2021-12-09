@@ -64,7 +64,7 @@ func _createListener(address string) types.Listener {
 			BindToPort: true,
 		},
 	}
-	return NewListener(lc)
+	return GetListenerFactory()(lc)
 }
 
 func TestIdleChecker(t *testing.T) {
