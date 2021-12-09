@@ -60,7 +60,7 @@ func resetTest() {
 	}
 }
 
-func mockSetSecret() *secretInfo {
+func mockSetSecret() *SecretInfo {
 	info := &certInfo{
 		CommonName: "sds",
 		Curve:      "RSA",

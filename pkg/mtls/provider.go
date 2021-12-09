@@ -49,7 +49,7 @@ func NewProvider(index string, cfg *v2.TLSConfig) (types.TLSProvider, error) {
 		return addOrUpdateProvider(index, cfg), nil
 	} else {
 		// static provider
-		secret := &secretInfo{
+		secret := &SecretInfo{
 			Certificate: cfg.CertChain,
 			PrivateKey:  cfg.PrivateKey,
 			Validation:  cfg.CACert,
