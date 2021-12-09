@@ -59,7 +59,7 @@ func newMockServer(delay time.Duration) (*mockServer, error) {
 	return &mockServer{
 		ln:       ln,
 		stop:     make(chan struct{}),
-		protocol: (&bolt.XCodec{}).XProtocol(),
+		protocol: (&bolt.XCodec{}).NewXProtocol(context.Background()),
 		delay:    delay,
 	}, nil
 }

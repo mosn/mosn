@@ -18,6 +18,8 @@
 package wasm
 
 import (
+	"context"
+
 	"mosn.io/api"
 )
 
@@ -29,7 +31,7 @@ func (codec *xCodec) ProtocolName() api.ProtocolName {
 	return codec.proto.Name()
 }
 
-func (codec *xCodec) XProtocol() api.XProtocol {
+func (codec *xCodec) NewXProtocol(_ context.Context) api.XProtocol {
 	return codec.proto
 }
 

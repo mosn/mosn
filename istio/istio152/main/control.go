@@ -240,7 +240,7 @@ func ExtensionsRegister(c *cli.Context) {
 	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
 	// trace register
 	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
-	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv1Delegate)
+	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
 
 }

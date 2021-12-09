@@ -72,7 +72,7 @@ func TestPingPong(t *testing.T) {
 		}}, true)
 	}
 
-	assert.Equal(t, len(xsList), len(pInst.idleClients[api.ProtocolName("dubbo")]))
+	assert.Equal(t, len(xsList), len(pInst.idleClients))
 }
 
 type receiver struct{}

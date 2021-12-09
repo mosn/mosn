@@ -17,7 +17,11 @@
 
 package example
 
-import "mosn.io/api"
+import (
+	"context"
+
+	"mosn.io/api"
+)
 
 type XCodec struct {
 	proto proto
@@ -27,7 +31,7 @@ func (codec *XCodec) ProtocolName() api.ProtocolName {
 	return ProtocolName
 }
 
-func (codec *XCodec) XProtocol() api.XProtocol {
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
 	return codec.proto
 }
 

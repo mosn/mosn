@@ -84,7 +84,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 		t.Fatal("codec is nil")
 	}
 	// start a keep alive
-	keepAlive := NewKeepAlive(codec, (&bolt.XCodec{}).XProtocol(), keepTimeout)
+	keepAlive := NewKeepAlive(codec, (&bolt.XCodec{}).NewXProtocol(ctx), keepTimeout)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive: keepAlive.(*xprotocolKeepAlive),

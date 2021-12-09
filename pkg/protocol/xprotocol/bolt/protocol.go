@@ -88,7 +88,7 @@ func (proto boltProtocol) Encode(ctx context.Context, model interface{}) (buffer
 		}
 		// TODO: use internal package to avoid cycle import temporary
 		// makes bolt and boltv2 reuse in same package
-		engine := registry.GetXProtocolCodec("boltv2").XProtocol()
+		engine := registry.GetXProtocolCodec("boltv2").NewXProtocol(ctx)
 		return engine.Encode(ctx, model)
 	}
 }
@@ -99,7 +99,7 @@ func (proto boltProtocol) Decode(ctx context.Context, data buffer.IoBuffer) (int
 		if code == 0x02 { // protocol boltv2
 			// TODO: use internal package to avoid cycle import temporary
 			// makes bolt and boltv2 reuse in same package
-			engine := registry.GetXProtocolCodec("boltv2").XProtocol()
+			engine := registry.GetXProtocolCodec("boltv2").NewXProtocol(ctx)
 			return engine.Decode(ctx, data)
 		}
 	}

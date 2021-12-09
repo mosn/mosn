@@ -45,7 +45,7 @@ type connpool struct {
 
 // NewConnPool init a connection pool
 func NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
-	proto := codec.XProtocol()
+	proto := codec.NewXProtocol(ctx)
 	p := &connpool{
 		tlsHash:  host.TLSHashValue(),
 		protocol: proto.Name(),

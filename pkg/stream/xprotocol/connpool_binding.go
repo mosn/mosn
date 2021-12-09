@@ -184,7 +184,7 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 	// protocol is from onNewDetectStream
 	// check heartbeat enable, hack: judge trigger result of Heartbeater
 	// In the future, methods should be added to determine the protocol capability
-	proto := p.connpool.codec.XProtocol()
+	proto := p.connpool.codec.NewXProtocol(ctx)
 	if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 		// create keepalive
 		rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)

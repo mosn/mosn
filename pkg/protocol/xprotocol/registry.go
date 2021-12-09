@@ -74,12 +74,3 @@ func RegisterXProtocolCodec(codec api.XProtocolCodec) error {
 
 	return nil
 }
-
-// TODO: maybe we do not need it.
-func GetProtocol(name api.ProtocolName) api.XProtocol {
-	codec := registry.GetXProtocolCodec(name)
-	if codec == nil {
-		return nil
-	}
-	return codec.XProtocol()
-}

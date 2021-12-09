@@ -114,17 +114,13 @@ type XProtocol interface {
 type XProtocolCodec interface {
 	ProtocolName() ProtocolName
 
-	XProtocol() XProtocol
+	NewXProtocol(context.Context) XProtocol
 
 	ProtocolMatch() ProtocolMatch
 
 	HTTPMapping() HTTPMapping
 }
 
-// Supports automatic creation of a protocol instance for each connection.
-type XProtocolFactory interface {
-	NewXProtocol() XProtocol
-}
 ```
 
 

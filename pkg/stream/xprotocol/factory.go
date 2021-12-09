@@ -28,14 +28,14 @@ import (
 type streamConnFactory struct {
 	name    api.ProtocolName
 	matcher api.ProtocolMatch
-	factory func() api.XProtocol
+	factory func(ctx context.Context) api.XProtocol
 }
 
 func NewStreamFactory(codec api.XProtocolCodec) types.ProtocolStreamFactory {
 	return &streamConnFactory{
 		name:    codec.ProtocolName(),
 		matcher: codec.ProtocolMatch(),
-		factory: codec.XProtocol,
+		factory: codec.NewXProtocol,
 	}
 }
 

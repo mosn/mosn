@@ -62,7 +62,7 @@ func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Co
 		netConn:    conn,
 		ctxManager: stream.NewContextManager(ctx),
 
-		protocol:     f.factory(), // protocol is matched by the factory
+		protocol:     f.factory(ctx), // protocol is matched by the factory
 		protocolName: f.name,
 
 		serverCallbacks: serverCallbacks,
