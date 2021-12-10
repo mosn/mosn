@@ -75,6 +75,10 @@ var (
 		"DELETE":  {},
 		"TRACE":   {},
 		"CONNECT": {},
+		// See https://datatracker.ietf.org/doc/html/rfc2068#section-19.6.1
+		"PATCH":  {},
+		"LINK":   {},
+		"UNLINK": {},
 	}
 )
 

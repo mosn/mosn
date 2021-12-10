@@ -9,8 +9,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
 	"mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/http/conv"
-	_ "mosn.io/mosn/pkg/protocol/http2/conv"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
@@ -139,15 +137,16 @@ func (c *MirrorCase) StartProxy() {
 func TestMirror(t *testing.T) {
 	testCases := []*MirrorCase{
 		NewMirrorCase(t, protocol.HTTP1, protocol.HTTP1),
-		NewMirrorCase(t, protocol.HTTP1, protocol.HTTP2),
-		NewMirrorCase(t, protocol.HTTP2, protocol.HTTP1),
+		//	NewMirrorCase(t, protocol.HTTP1, protocol.HTTP2),
+		//	NewMirrorCase(t, protocol.HTTP2, protocol.HTTP1),
 		NewMirrorCase(t, protocol.HTTP2, protocol.HTTP2),
 	}
+	caseCount := 2
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
 		tc.StartProxy()
 		// at least run twice
-		go tc.RunCase(2, 0)
+		go tc.RunCase(caseCount, 0)
 		select {
 		case err := <-tc.C:
 			if err != nil {
@@ -161,7 +160,7 @@ func TestMirror(t *testing.T) {
 	}
 
 	for i := 0; i < len(handlers); i++ {
-		if handlers[i].ReqCnt != 8 {
+		if handlers[i].ReqCnt != caseCount*len(testCases) {
 			t.Errorf("broadcast request not received, reqcnt: %d, addr: %s", handlers[i].ReqCnt, handlers[i].LocalAddr)
 		}
 	}

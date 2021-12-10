@@ -104,19 +104,16 @@ func newStreamReceiverFilterHandler(activeStream *downStream) *streamReceiverFil
 
 func (f *streamReceiverFilterHandler) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
-	f.activeStream.noConvert = true
 	f.activeStream.appendHeaders(endStream)
 }
 
 func (f *streamReceiverFilterHandler) AppendData(buf types.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
-	f.activeStream.noConvert = true
 	f.activeStream.appendData(endStream)
 }
 
 func (f *streamReceiverFilterHandler) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
-	f.activeStream.noConvert = true
 	f.activeStream.appendTrailers()
 }
 
@@ -130,7 +127,6 @@ func (f *streamReceiverFilterHandler) SendHijackReplyWithBody(code int, headers 
 
 func (f *streamReceiverFilterHandler) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
-	f.activeStream.noConvert = true
 	f.activeStream.downstreamRespHeaders = headers
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.downstreamRespTrailers = trailers
@@ -167,8 +163,8 @@ func (f *streamReceiverFilterHandler) TerminateStream(code int) bool {
 	return true
 }
 
+// DEPRECATED: remove me
 func (f *streamReceiverFilterHandler) SetConvert(on bool) {
-	f.activeStream.noConvert = !on
 }
 
 // GetFilterCurrentPhase get current phase for filter
