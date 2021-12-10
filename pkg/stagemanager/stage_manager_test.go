@@ -129,7 +129,7 @@ func TestStageManager(t *testing.T) {
 		if testCall != 4 {
 			t.Errorf("after start stage call, expect 4 while got %v", testCall)
 		}
-	}).AppendPreStopStage(func(_ Application) {
+	}).AppendGracefulStopStage(func(_ Application) {
 		testCall++
 		if testCall != 5 {
 			t.Errorf("pre stop stage call, expect 5 while got %v", testCall)
