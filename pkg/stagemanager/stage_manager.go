@@ -40,11 +40,11 @@ import (
 	logger "mosn.io/pkg/log"
 )
 
-type QuitAction int
+type StopAction int
 
 const (
-	Quit         QuitAction = iota // terminate directly
-	GracefulQuit                   // graceful shutdown the existing connections firstly
+	Stop         StopAction = iota // stop directly
+	GracefulStop                   // graceful stop the existing connections
 	HupReload                      // start a new server
 	Upgrade                        // transfer the existing connections to new server
 )
@@ -59,7 +59,7 @@ type State int
 // 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
 // 5. The after-start stage. In this stage, do some other init actions after startup.
 // 6. The running stage.
-// 7. The graceful stop stage. In this stage, do graceful shutdown actions before calling Application.Close
+// 7. The graceful stop stage. In this stage, do graceful stop actions before calling Application.Close
 // 8. The stop stage. In this stage, executing Application.Close.
 // 9. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
 // 10. The stopped stage. everything is closed.
@@ -132,7 +132,7 @@ type Data struct {
 // StageManager is used to controls service life stages.
 type StageManager struct {
 	state                   State
-	quitAction              QuitAction
+	stopAction              StopAction
 	data                    Data
 	app                     Application // Application interface
 	wg                      sync.WaitGroup
@@ -351,7 +351,7 @@ func (stm *StageManager) Stop() {
 		return
 	}
 	preState := GetState()
-	if stm.quitAction == GracefulQuit {
+	if stm.stopAction == GracefulStop {
 		stm.runGracefulStopStage()
 	}
 
@@ -404,7 +404,7 @@ func (stm *StageManager) runHupReload() {
 
 	stm.SetState(StartingNewServer)
 
-	// the new started server will notice the current old server to quit
+	// the new started server will notice the current old server to stop
 	// after the new server is ready
 	if err := StartNewServer(); err != nil {
 		stm.resume()
@@ -421,7 +421,7 @@ func (stm *StageManager) runHupReload() {
 	}
 }
 
-func OnGracefulShutdown(f func()) {
+func OnGracefulStop(f func()) {
 	stm.AppendGracefulStopStage(func(Application) {
 		f()
 	})
@@ -481,16 +481,16 @@ func (stm *StageManager) runUpgrade() {
 	stm.wg.Done()
 }
 
-func Notice(action QuitAction) {
-	stm.quitAction = action
+func Notice(action StopAction) {
+	stm.stopAction = action
 	switch action {
 	case HupReload:
 		stm.runHupReload()
 	case Upgrade:
 		stm.runUpgrade()
-	case GracefulQuit:
+	case GracefulStop:
 		fallthrough
-	case Quit:
+	case Stop:
 		if GetState() < AfterStart {
 			// stop directly when it haven't started yet
 			stm.Stop()

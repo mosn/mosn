@@ -269,7 +269,7 @@ func (rsw *registerServerWrapper) Start(graceful time.Duration) {
 			}
 		}()
 		// stop grpc server when mosn process shutdown
-		stagemanager.OnGracefulShutdown(func() {
+		stagemanager.OnGracefulStop(func() {
 			if graceful <= 0 {
 				graceful = v2.GrpcDefaultGracefulStopTimeout // use default timeout
 			}

@@ -69,12 +69,12 @@ func signalHandler(sig os.Signal) {
 		stagemanager.Notice(stagemanager.HupReload)
 	case syscall.SIGQUIT:
 		// stop mosn gracefully
-		stagemanager.Notice(stagemanager.GracefulQuit)
+		stagemanager.Notice(stagemanager.GracefulStop)
 	case syscall.SIGINT: // same as os.Interrupt
 		fallthrough
 	case syscall.SIGTERM:
 		// stop mosn
-		stagemanager.Notice(stagemanager.Quit)
+		stagemanager.Notice(stagemanager.Stop)
 	default:
 		// do nothing
 	}
