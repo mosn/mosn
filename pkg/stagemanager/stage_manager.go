@@ -51,7 +51,7 @@ const (
 
 type State int
 
-// There are 10 main stages:
+// There are 11 main stages:
 // 1. The parameters parsed stage. In this stage, parse different parameters from cli.Context,
 // and finally call config load to create a MOSNConfig.
 // 2. The initialize stage. In this stage, do some init actions based on config, and finally call Application.Init.
@@ -59,10 +59,12 @@ type State int
 // 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
 // 5. The after-start stage. In this stage, do some other init actions after startup.
 // 6. The running stage.
-// 7. The graceful stop stage. In this stage, do graceful stop actions before calling Application.Close
-// 8. The stop stage. In this stage, executing Application.Close.
-// 9. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
-// 10. The stopped stage. everything is closed.
+// 7. The before-stop stage. In this stage, do actions depend on the "stop action" before stopping service actually,
+//    like: unpub from registry or checking the unpub status, make sure it safer for graceful stop.
+// 8. The graceful stop stage. In this stage, stop listen and graceful stop the existing connections.
+// 9. The stop stage. In this stage, executing Application.Close.
+// 10. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
+// 11. The stopped stage. everything is closed.
 // The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
 // that used to startup applicaton.
 //
@@ -80,6 +82,7 @@ const (
 	Starting
 	AfterStart
 	Running
+	BeforeStop
 	GracefulStopping
 	Stopping
 	AfterStop
@@ -142,6 +145,7 @@ type StageManager struct {
 	preStartStages          []func(Application)
 	startupStages           []func(Application)
 	afterStartStages        []func(Application)
+	beforeStopStages        []func(StopAction, Application)
 	gracefulStopStages      []func(Application)
 	afterStopStages         []func(Application)
 	onStateChangedCallbacks []func(State)
@@ -397,6 +401,7 @@ func StartNewServer() error {
 
 // start a new server
 func (stm *StageManager) runHupReload() {
+	// ignore the HUP signal when it's not running
 	if GetState() != Running {
 		log.DefaultLogger.Errorf("[server] SIGHUP received: current state expected running while got %d", GetState())
 		return
@@ -425,6 +430,20 @@ func OnGracefulStop(f func()) {
 	stm.AppendGracefulStopStage(func(Application) {
 		f()
 	})
+}
+
+func OnBeforeStopStage(f func(StopAction, Application)) {
+	stm.beforeStopStages = append(stm.beforeStopStages, f)
+}
+
+func (stm StageManager) runBeforeStopStages() {
+	st := time.Now()
+	stm.SetState(BeforeStop)
+	for _, f := range stm.beforeStopStages {
+		f(stm.stopAction, stm.app)
+	}
+
+	log.StartLogger.Infof("before stop stage cost: %v", time.Since(st))
 }
 
 func GetState() State {
@@ -481,8 +500,10 @@ func (stm *StageManager) runUpgrade() {
 	stm.wg.Done()
 }
 
-func Notice(action StopAction) {
+// notice the stop action to stage manager
+func NoticeStop(action StopAction) {
 	stm.stopAction = action
+	stm.runBeforeStopStages()
 	switch action {
 	case HupReload:
 		stm.runHupReload()

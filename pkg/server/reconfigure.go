@@ -133,7 +133,7 @@ func ReconfigureListener() {
 		}
 		uc.Close()
 
-		stagemanager.Notice(stagemanager.Upgrade)
+		stagemanager.NoticeStop(stagemanager.Upgrade)
 	}
 }
 

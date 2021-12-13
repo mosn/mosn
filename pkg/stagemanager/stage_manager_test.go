@@ -148,7 +148,7 @@ func TestStageManager(t *testing.T) {
 		GetState() == AfterStart) {
 		t.Errorf("run stage failed, testCall: %v, stage: %v", testCall, GetState())
 	}
-	Notice(GracefulQuit)
+	NoticeStop(GracefulStop)
 	stm.WaitFinish()
 	if !(testCall == 4 &&
 		GetState() == Running) {
