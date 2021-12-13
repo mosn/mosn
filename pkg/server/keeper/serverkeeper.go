@@ -67,18 +67,21 @@ func signalHandler(sig os.Signal) {
 	case syscall.SIGHUP:
 		// start a new mosn
 		stagemanager.Notice(stagemanager.HupReload)
-	case syscall.SIGQUIT:
+	case syscall.SIGTERM:
 		// stop mosn gracefully
 		stagemanager.Notice(stagemanager.GracefulStop)
 	case syscall.SIGINT: // same as os.Interrupt
 		fallthrough
-	case syscall.SIGTERM:
-		// stop mosn
+	case syscall.SIGQUIT:
+		// stop mosn immediately
 		stagemanager.Notice(stagemanager.Stop)
 	default:
 		// do nothing
 	}
 }
 
-// deprecated: please use stagemanager.OnGracefulShutdown instead
+// deprecated: please use stagemanager.OnGracefulStop instead
 // func OnProcessShutDown(cb func() error)
+
+// deprecated: please use stagemanager.OnBeforeStop instead
+// func OnProcessShutDownFirst(cb func() error)
