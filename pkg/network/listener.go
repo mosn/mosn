@@ -44,6 +44,7 @@ const (
 	ListenerInited ListenerState = iota
 	ListenerRunning
 	ListenerStopped
+	ListenerClosed
 )
 
 // listener impl based on golang net package
@@ -127,6 +128,13 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				if !restart {
 					return true
 				}
+				if err := l.setDeadline(time.Time{}); err != nil {
+					log.DefaultLogger.Alertf("listener.start", "[network] [listener start] [listen] %s reset deadline failed, %v", l.name, err)
+				}
+			case ListenerClosed:
+				if !restart {
+					return true
+				}
 				log.DefaultLogger.Infof("[network] [listener start] %s restart listener ", l.name)
 				if err := l.listen(lctx); err != nil {
 					// TODO: notify listener callbacks
@@ -201,18 +209,23 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
+	l.state = ListenerStopped
 	if !l.bindToPort {
 		return nil
 	}
 	l.cb.OnClose()
+	return l.setDeadline(time.Now())
+}
+
+func (l *listener) setDeadline(t time.Time) error {
 	var err error
 	switch l.network {
 	case "udp":
-		err = l.packetConn.SetDeadline(time.Now())
+		err = l.packetConn.SetDeadline(t)
 	case "unix":
-		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
+		err = l.rawl.(*net.UnixListener).SetDeadline(t)
 	case "tcp":
-		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
+		err = l.rawl.(*net.TCPListener).SetDeadline(t)
 	}
 	return err
 }
@@ -268,7 +281,7 @@ func (l *listener) UseOriginalDst() bool {
 func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.state = ListenerStopped
+	l.state = ListenerClosed
 
 	if !l.bindToPort {
 		return nil
