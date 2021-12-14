@@ -22,13 +22,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
 )
 
 const content = "this is the content"
 
-func getEncodedReqBuf() buffer.IoBuffer {
+func getEncodedReqBuf() api.IoBuffer {
 	// request build
 	// step 1, build a original request
 	var req = NewRpcRequest(123454321, header.CommonHeader{

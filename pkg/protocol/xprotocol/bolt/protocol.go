@@ -26,7 +26,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/internal/registry"
-	"mosn.io/pkg/buffer"
 )
 
 /**
@@ -72,7 +71,7 @@ func (proto boltProtocol) Name() api.ProtocolName {
 	return ProtocolName
 }
 
-func (proto boltProtocol) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
+func (proto boltProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *Request:
 		return encodeRequest(ctx, frame)
@@ -93,7 +92,7 @@ func (proto boltProtocol) Encode(ctx context.Context, model interface{}) (buffer
 	}
 }
 
-func (proto boltProtocol) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
+func (proto boltProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() > 0 {
 		code := data.Bytes()[0]
 		if code == 0x02 { // protocol boltv2

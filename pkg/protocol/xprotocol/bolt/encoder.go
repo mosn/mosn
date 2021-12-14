@@ -21,11 +21,12 @@ import (
 	"context"
 	"encoding/binary"
 
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
 )
 
-func encodeRequest(ctx context.Context, request *Request) (buffer.IoBuffer, error) {
+func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) {
 	// 1. fast-path, use existed raw data
 	if request.rawData != nil {
 		// 1.1 replace requestId
@@ -94,7 +95,7 @@ func encodeRequest(ctx context.Context, request *Request) (buffer.IoBuffer, erro
 	return buf, nil
 }
 
-func encodeResponse(ctx context.Context, response *Response) (buffer.IoBuffer, error) {
+func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, error) {
 	// 1. fast-path, use existed raw data
 	if response.rawData != nil {
 		// 1. replace requestId

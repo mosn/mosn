@@ -23,11 +23,20 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol/internal/registry"
 	"mosn.io/mosn/pkg/types"
 )
 
 type mockProtocolStreamFactory struct {
 	types.ProtocolStreamFactory
+	prot api.ProtocolName
+}
+
+func (f *mockProtocolStreamFactory) ProtocolMatch(ctx context.Context, prot string, peek []byte) error {
+	if api.ProtocolName(prot) == f.prot {
+		return nil
+	}
+	return FAILED
 }
 
 type mockMapping struct{}
@@ -68,12 +77,6 @@ func TestRegisterProtocol(t *testing.T) {
 	_, err := MappingHeaderStatusCode(context.Background(), unknown, nil)
 	require.ErrorIs(t, err, ErrNoMapping)
 
-	factories := GetProtocolStreamFactories(nil)
-	require.Len(t, factories, 2)
-	f := GetProtocolStreamFactories([]api.ProtocolName{unknown})
-	require.Len(t, f, 0)
-	f2 := GetProtocolStreamFactories([]api.ProtocolName{names[0]})
-	require.Len(t, f2, 1)
 }
 
 func TestRegisterProtocolWithOutMapping(t *testing.T) {
@@ -86,4 +89,45 @@ func TestRegisterProtocolWithOutMapping(t *testing.T) {
 
 	_, err := MappingHeaderStatusCode(context.Background(), name, nil)
 	require.ErrorIs(t, err, ErrNoMapping)
+}
+
+func reset() {
+	protocolsSupported = map[api.ProtocolName]struct{}{
+		Auto: struct{}{}, // reserved protocol, support for Auto protocol config parsed
+	}
+	registry.Reset()
+}
+
+func TestSelectStreamFactory(t *testing.T) {
+	reset()
+	names := []api.ProtocolName{
+		api.ProtocolName("testprotocol"),
+		api.ProtocolName("testprotocol2"),
+		api.ProtocolName("testprotocol3"),
+	}
+	for _, name := range names {
+		RegisterProtocol(name, func(ctx context.Context, host types.Host) types.ConnectionPool {
+			return nil
+		}, &mockProtocolStreamFactory{
+			prot: name,
+		}, &mockMapping{})
+	}
+
+	// test scope is not nil
+	_, err := SelectStreamFactoryProtocol(context.Background(), "testprotocol3", nil, []api.ProtocolName{
+		api.ProtocolName("testprotocol"),
+		api.ProtocolName("testprotocol2"),
+	})
+	require.ErrorIs(t, err, FAILED)
+	prot, err := SelectStreamFactoryProtocol(context.Background(), "testprotocol", nil, []api.ProtocolName{
+		api.ProtocolName("testprotocol"),
+		api.ProtocolName("testprotocol2"),
+	})
+	require.Nil(t, err)
+	require.Equal(t, api.ProtocolName("testprotocol"), prot)
+	// test scope is nil
+	prot, err = SelectStreamFactoryProtocol(context.Background(), "testprotocol3", nil, nil)
+	require.Nil(t, err)
+	require.Equal(t, api.ProtocolName("testprotocol3"), prot)
+
 }

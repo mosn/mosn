@@ -41,6 +41,9 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 	if _, ok := protocolsSupported[name]; ok {
 		return ErrDuplicateProtocol
 	}
+	if newPool == nil || streamFactory == nil {
+		return ErrInvalidParameters
+	}
 	registry.RegisterNewPoolFactory(name, newPool)
 	registry.ResgiterProtocolStreamFactory(name, streamFactory)
 	registry.RegisterMapping(name, mapping)
@@ -51,6 +54,7 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 // The api for get the registered info
 var (
 	ErrNoMapping         = errors.New("no mapping function found")
+	ErrInvalidParameters = errors.New("new connection pool or protocol stream fatcory cannot be nil")
 	ErrDuplicateProtocol = errors.New("duplicated protocol registered")
 )
 
@@ -84,24 +88,46 @@ func GetProtocolStreamFactory(name api.ProtocolName) (types.ProtocolStreamFactor
 	return f, ok
 }
 
-// GetProtocolStreamFactories returns a slice of ProtocolStreamFactory by the name.
-// if the names is empty, return all the registered ProtocolStreamFactory
-func GetProtocolStreamFactories(names []api.ProtocolName) map[api.ProtocolName]types.ProtocolStreamFactory {
-	if len(names) == 0 {
-		// do a copy to avoid be modified
-		m := make(map[api.ProtocolName]types.ProtocolStreamFactory, len(registry.StreamFactories))
-		for p, factory := range registry.StreamFactories {
-			m[p] = factory
-		}
-		return m
-	}
+var (
+	FAILED = errors.New("FAILED")
+	EAGAIN = errors.New("AGAIN")
+)
 
-	m := make(map[api.ProtocolName]types.ProtocolStreamFactory, len(names))
-	for _, p := range names {
-		factory, ok := registry.StreamFactories[p]
-		if ok {
-			m[p] = factory
+// SelectStreamFactoryProtocol match the protocol.
+// if scopes is nil, match all the registered protocols
+// if scopes is not nil, match the protocol in the scopes
+func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte, scopes []api.ProtocolName) (api.ProtocolName, error) {
+	var err error
+	var again bool
+	if len(scopes) == 0 {
+		// if scopes is nil, match all the registered protocols
+		for p, factory := range registry.StreamFactories {
+			err = factory.ProtocolMatch(ctx, prot, peek)
+			if err == nil {
+				return p, nil
+			}
+			if err == EAGAIN {
+				again = true
+			}
+		}
+	} else {
+		// if socopes is not nil,  match the protocol in the scopes
+		for _, p := range scopes {
+			factory, ok := registry.StreamFactories[p]
+			if !ok {
+				continue
+			}
+			err = factory.ProtocolMatch(ctx, prot, peek)
+			if err == nil {
+				return p, nil
+			}
+			if err == EAGAIN {
+				again = true
+			}
 		}
 	}
-	return m
+	if again {
+		return "", EAGAIN
+	}
+	return "", FAILED
 }

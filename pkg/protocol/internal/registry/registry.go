@@ -47,3 +47,10 @@ func RegisterMapping(p api.ProtocolName, m api.HTTPMapping) {
 		HttpMappingFactory[p] = m
 	}
 }
+
+// for test only
+func Reset() {
+	ConnNewPoolFactories = make(map[api.ProtocolName]types.NewConnPool)
+	StreamFactories = make(map[api.ProtocolName]types.ProtocolStreamFactory)
+	HttpMappingFactory = make(map[api.ProtocolName]api.HTTPMapping)
+}

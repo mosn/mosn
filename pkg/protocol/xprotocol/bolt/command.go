@@ -19,7 +19,6 @@ package bolt
 
 import (
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
 )
 
@@ -61,8 +60,8 @@ type Request struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    buffer.IoBuffer // wrapper of raw data
-	Content buffer.IoBuffer // wrapper of raw content
+	Data    api.IoBuffer // wrapper of raw data
+	Content api.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -101,11 +100,11 @@ func (r *Request) GetHeader() api.HeaderMap {
 	return r
 }
 
-func (r *Request) GetData() buffer.IoBuffer {
+func (r *Request) GetData() api.IoBuffer {
 	return r.Content
 }
 
-func (r *Request) SetData(data buffer.IoBuffer) {
+func (r *Request) SetData(data api.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true
@@ -151,8 +150,8 @@ type Response struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    buffer.IoBuffer // wrapper of raw data
-	Content buffer.IoBuffer // wrapper of raw content
+	Data    api.IoBuffer // wrapper of raw data
+	Content api.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -185,11 +184,11 @@ func (r *Response) GetHeader() api.HeaderMap {
 	return r
 }
 
-func (r *Response) GetData() buffer.IoBuffer {
+func (r *Response) GetData() api.IoBuffer {
 	return r.Content
 }
 
-func (r *Response) SetData(data buffer.IoBuffer) {
+func (r *Response) SetData(data api.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true

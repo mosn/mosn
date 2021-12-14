@@ -19,16 +19,16 @@ package stream
 
 import (
 	"context"
-	"errors"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
+// alias for compatible
 var (
-	FAILED = errors.New("FAILED")
-	EAGAIN = errors.New("AGAIN")
+	FAILED = protocol.FAILED
+	EAGAIN = protocol.EAGAIN
 )
 
 func CreateServerStreamConnection(context context.Context, prot api.ProtocolName, connection api.Connection,
@@ -41,24 +41,6 @@ func CreateServerStreamConnection(context context.Context, prot api.ProtocolName
 	return nil
 }
 
-// SelectStreamFactoryProtocol match the protocol.
-// if scopes is nil, match all the registered protocols
-// if scopes is not nil, match the protocol in the scopes
 func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte, scopes []api.ProtocolName) (types.ProtocolName, error) {
-	var err error
-	var again bool
-	streamFactories := protocol.GetProtocolStreamFactories(scopes)
-	for p, factory := range streamFactories {
-		err = factory.ProtocolMatch(ctx, prot, peek)
-		if err == nil {
-			return p, nil
-		}
-		if err == EAGAIN {
-			again = true
-		}
-	}
-	if again {
-		return "", EAGAIN
-	}
-	return "", FAILED
+	return protocol.SelectStreamFactoryProtocol(ctx, prot, peek, scopes)
 }
