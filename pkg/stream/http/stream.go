@@ -386,6 +386,13 @@ var defaultStreamConfig = StreamConfig{
 	MaxRequestBodySize: 0,
 }
 
+func SetDefaultStreamConfig(c *StreamConfig) {
+	if c != nil {
+		defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
+		defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
+	}
+}
+
 func streamConfigHandler(v interface{}) interface{} {
 	extendConfig, ok := v.(map[string]interface{})
 	if !ok {
