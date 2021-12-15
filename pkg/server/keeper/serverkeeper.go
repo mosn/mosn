@@ -80,8 +80,10 @@ func signalHandler(sig os.Signal) {
 	}
 }
 
-// deprecated: please use stagemanager.OnGracefulStop instead
-// func OnProcessShutDown(cb func() error)
+// DEPRECATED: please use stagemanager.OnGracefulStop instead
+func OnProcessShutDown(cb func() error) {
+}
 
-// deprecated: please use stagemanager.OnBeforeStop instead
-// func OnProcessShutDownFirst(cb func() error)
+// DEPRECATED: please use stagemanager.OnBeforeStop instead
+func OnProcessShutDownFirst(cb func() error) {
+}
