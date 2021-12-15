@@ -129,14 +129,21 @@ func TestStageManager(t *testing.T) {
 		if testCall != 4 {
 			t.Errorf("after start stage call, expect 4 while got %v", testCall)
 		}
-	}).AppendGracefulStopStage(func(_ Application) {
+	}).AppendBeforeStopStage(func(StopAction, Application) error {
 		testCall++
 		if testCall != 5 {
 			t.Errorf("pre stop stage call, expect 5 while got %v", testCall)
 		}
-	}).AppendAfterStopStage(func(_ Application) {
+		return nil
+	}).AppendGracefulStopStage(func(_ Application) error {
 		testCall++
 		if testCall != 6 {
+			t.Errorf("pre stop stage call, expect 5 while got %v", testCall)
+		}
+		return nil
+	}).AppendAfterStopStage(func(_ Application) {
+		testCall++
+		if testCall != 7 {
 			t.Errorf("after stop stage call, expect 6 while got %v", testCall)
 		}
 	})
@@ -150,12 +157,13 @@ func TestStageManager(t *testing.T) {
 	}
 	NoticeStop(GracefulStop)
 	stm.WaitFinish()
-	if !(testCall == 4 &&
+	// NoticeStop will call runBeforeStopStage & WaitFinish will set the state to Running
+	if !(testCall == 5 &&
 		GetState() == Running) {
 		t.Errorf("wait stage failed, testCall: %v, stage: %v", testCall, GetState())
 	}
 	stm.Stop()
-	if !(testCall == 6 &&
+	if !(testCall == 7 &&
 		GetState() == Stopped) {
 		t.Errorf("stop stage failed, testCall: %v, stage: %v", testCall, GetState())
 	}

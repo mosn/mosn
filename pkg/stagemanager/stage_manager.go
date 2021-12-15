@@ -135,6 +135,7 @@ type Data struct {
 // StageManager is used to controls service life stages.
 type StageManager struct {
 	state                   State
+	exitCode                int
 	stopAction              StopAction
 	data                    Data
 	app                     Application // Application interface
@@ -145,8 +146,8 @@ type StageManager struct {
 	preStartStages          []func(Application)
 	startupStages           []func(Application)
 	afterStartStages        []func(Application)
-	beforeStopStages        []func(StopAction, Application)
-	gracefulStopStages      []func(Application)
+	beforeStopStages        []func(StopAction, Application) error
+	gracefulStopStages      []func(Application) error
 	afterStopStages         []func(Application)
 	onStateChangedCallbacks []func(State)
 	upgradeHandler          func() error // old server: send listener/config/old connections to new server
@@ -309,8 +310,9 @@ func (stm *StageManager) WaitFinish() {
 	stm.wg.Wait()
 }
 
-// graceful stop handlers
-func (stm *StageManager) AppendGracefulStopStage(f func(Application)) *StageManager {
+// graceful stop handlers,
+// will exit with non-zero code when a callback handler return error
+func (stm *StageManager) AppendGracefulStopStage(f func(Application) error) *StageManager {
 	if f == nil || stm.started {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
@@ -324,7 +326,10 @@ func (stm *StageManager) runGracefulStopStage() {
 	st := time.Now()
 	stm.SetState(GracefulStopping)
 	for _, f := range stm.gracefulStopStages {
-		f(stm.app)
+		if err := f(stm.app); err != nil {
+			log.DefaultLogger.Errorf("failed to run graceful stop callback: %v", err)
+			stm.exitCode = 4
+		}
 	}
 
 	log.StartLogger.Infof("pre stop stage cost: %v", time.Since(st))
@@ -350,6 +355,10 @@ func (stm *StageManager) runAfterStopStage() {
 	log.StartLogger.Infof("after stop stage cost: %v", time.Since(st))
 }
 
+// exit code:
+// 0: normal exit, no error happens
+// 1: failed to start
+// 4: run before-stop/graceful-stop callback failed
 func (stm *StageManager) Stop() {
 	if !stm.started {
 		return
@@ -381,6 +390,12 @@ func (stm *StageManager) Stop() {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
 		os.Exit(1)
 	}
+
+	if stm.exitCode != 0 {
+		os.Exit(stm.exitCode)
+	}
+
+	// will exit with 0 by default
 }
 
 func StartNewServer() error {
@@ -427,21 +442,32 @@ func (stm *StageManager) runHupReload() {
 	}
 }
 
-func OnGracefulStop(f func()) {
-	stm.AppendGracefulStopStage(func(Application) {
-		f()
+// will exit with non-zero code when a callback handler return error
+func OnGracefulStop(f func() error) {
+	stm.AppendGracefulStopStage(func(Application) error {
+		return f()
 	})
 }
 
-func OnBeforeStopStage(f func(StopAction, Application)) {
+// will exit with non-zero code when a callback handler return error
+func (stm *StageManager) AppendBeforeStopStage(f func(StopAction, Application) error) *StageManager {
 	stm.beforeStopStages = append(stm.beforeStopStages, f)
+	return stm
+}
+
+// will exit with non-zero code when a callback handler return error
+func OnBeforeStopStage(f func(StopAction, Application) error) {
+	stm.AppendBeforeStopStage(f)
 }
 
 func (stm StageManager) runBeforeStopStages() {
 	st := time.Now()
 	stm.SetState(BeforeStop)
 	for _, f := range stm.beforeStopStages {
-		f(stm.stopAction, stm.app)
+		if err := f(stm.stopAction, stm.app); err != nil {
+			log.DefaultLogger.Errorf("failed to run before-stop callback: %v", err)
+			stm.exitCode = 4
+		}
 	}
 
 	log.StartLogger.Infof("before stop stage cost: %v", time.Since(st))
