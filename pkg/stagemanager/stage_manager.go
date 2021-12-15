@@ -356,7 +356,7 @@ func (stm *StageManager) Stop() {
 	}
 	preState := GetState()
 	// graceful stop the existing connections and requests
-	if stm.stopAction == GracefulStop || stm.stopAction == HupReload {
+	if stm.stopAction == GracefulStop || stm.stopAction == Upgrade {
 		stm.runGracefulStopStage()
 	}
 
