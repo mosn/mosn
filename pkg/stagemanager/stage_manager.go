@@ -45,7 +45,7 @@ type StopAction int
 const (
 	Stop         StopAction = iota // stop directly
 	GracefulStop                   // graceful stop the existing connections
-	HupReload                      // start a new server
+	Reload                         // start a new server
 	Upgrade                        // transfer the existing connections to new server
 )
 
@@ -416,7 +416,7 @@ func StartNewServer() error {
 }
 
 // start a new server
-func (stm *StageManager) runHupReload() {
+func (stm *StageManager) runReload() {
 	// ignore the HUP signal when it's not running
 	if GetState() != Running {
 		log.DefaultLogger.Errorf("[server] SIGHUP received: current state expected running while got %d", GetState())
@@ -532,8 +532,8 @@ func NoticeStop(action StopAction) {
 	stm.stopAction = action
 	stm.runBeforeStopStages()
 	switch action {
-	case HupReload:
-		stm.runHupReload()
+	case Reload:
+		stm.runReload()
 	case Upgrade:
 		stm.runUpgrade()
 	case GracefulStop:

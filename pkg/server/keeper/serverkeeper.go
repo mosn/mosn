@@ -66,7 +66,7 @@ func signalHandler(sig os.Signal) {
 		log.Reopen()
 	case syscall.SIGHUP:
 		// start a new mosn
-		stagemanager.NoticeStop(stagemanager.HupReload)
+		stagemanager.NoticeStop(stagemanager.Reload)
 	case syscall.SIGTERM:
 		// stop mosn gracefully
 		stagemanager.NoticeStop(stagemanager.GracefulStop)
@@ -81,9 +81,7 @@ func signalHandler(sig os.Signal) {
 }
 
 // DEPRECATED: please use stagemanager.OnGracefulStop instead
-func OnProcessShutDown(cb func() error) {
-}
+// func OnProcessShutDown(cb func() error) {
 
 // DEPRECATED: please use stagemanager.OnBeforeStop instead
-func OnProcessShutDownFirst(cb func() error) {
-}
+// func OnProcessShutDownFirst(cb func() error) {
