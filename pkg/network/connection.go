@@ -61,11 +61,15 @@ var (
 )
 
 func RegisterServerConnFactory(factory ServerConnFactory) {
-	defaultServerConnFactory = factory
+	if factory != nil {
+		defaultServerConnFactory = factory
+	}
 }
 
 func RegisterClientConnFactory(factory ClientConnFactory) {
-	defaultClientConnFactory = factory
+	if factory != nil {
+		defaultClientConnFactory = factory
+	}
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net

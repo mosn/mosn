@@ -56,8 +56,10 @@ func GetListenerFactory() ListenerFactory {
 	return listenerFactory
 }
 
-func SetListenerFactory(factory ListenerFactory) {
-	listenerFactory = factory
+func RegisterListenerFactory(factory ListenerFactory) {
+	if factory != nil {
+		listenerFactory = factory
+	}
 }
 
 // listener impl based on golang net package
