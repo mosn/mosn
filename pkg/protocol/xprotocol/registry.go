@@ -30,7 +30,7 @@ import (
 var (
 	xNewConnpool      func(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool
 	xNewStreamFactory func(codec api.XProtocolCodec) types.ProtocolStreamFactory
-	xRegisterTracer   func(codec api.XProtocolCodec)
+	xExtends          func(codec api.XProtocolCodec)
 )
 
 // ResgisterXProtocolAction register the xprotocol actions that used to
@@ -38,13 +38,13 @@ var (
 // The actions conatins:
 // 1. A function to create a connection pool
 // 2. A function to create a stream factory
-// 3. A function to register in tracer
+// 3. A function to extends, for example, tracer register
 func ResgisterXProtocolAction(newConnpool func(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool,
 	newStreamFactory func(codec api.XProtocolCodec) types.ProtocolStreamFactory,
-	registerTracer func(codec api.XProtocolCodec)) {
+	extends func(codec api.XProtocolCodec)) {
 	xNewConnpool = newConnpool
 	xNewStreamFactory = newStreamFactory
-	xRegisterTracer = registerTracer
+	xExtends = extends
 }
 
 // RegisterXProtocolCodec register the xprotocol to protocol.
@@ -67,9 +67,8 @@ func RegisterXProtocolCodec(codec api.XProtocolCodec) error {
 		return err
 	}
 
-	// trace is not the must
-	if xRegisterTracer != nil {
-		xRegisterTracer(codec)
+	if xExtends != nil {
+		xExtends(codec)
 	}
 
 	return nil

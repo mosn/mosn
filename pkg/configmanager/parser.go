@@ -32,7 +32,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 )
 
 type ContentKey string
@@ -99,9 +98,6 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
 			c.LBSubSetConfig.FallBackPolicy = 0
-		}
-		if ok := protocol.ProtocolRegistered(api.ProtocolName(c.HealthCheck.Protocol)); !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts
