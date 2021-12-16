@@ -38,9 +38,10 @@ type MatcherConfig struct {
 }
 
 type RuleInfo struct {
-	Type             string `json:"-"`
-	UpstreamProtocol string `json:"upstream_protocol,omitempty"`
-	Description      string `json:"description,omitempty"`
+	Type             string                 `json:"-"`
+	UpstreamProtocol string                 `json:"upstream_protocol,omitempty"`
+	Description      string                 `json:"description,omitempty"`
+	Config           map[string]interface{} `json:"config,omitempty"`
 }
 
 func (ri *RuleInfo) GetType(srcPro api.ProtocolName) string {

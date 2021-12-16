@@ -21,8 +21,8 @@ import (
 	"context"
 
 	"github.com/valyala/fasthttp"
+	apit "mosn.io/api/extensions/transcoder"
 	mosnctx "mosn.io/mosn/pkg/context"
-
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -30,10 +30,15 @@ import (
 )
 
 func init() {
-	transcoder.MustRegister("http2bolt_simple", &http2bolt{})
+	transcoder.MustRegister("http2bolt_simple", NewTranscoder)
 }
 
-type http2bolt struct{}
+type http2bolt struct {
+}
+
+func NewTranscoder(config map[string]interface{}) apit.Transcoder {
+	return &http2bolt{}
+}
 
 func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	_, ok := headers.(http.RequestHeader)
