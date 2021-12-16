@@ -33,7 +33,7 @@ var (
 )
 
 // A MOSN Protocol contains three parts:
-// 1. A Factory to create connection pool defines by types.ConnectionPool
+// 1. A Factory to create connection pool defined by types.ConnectionPool
 // 2. An interface to match protocol and create protocol stream for each request.
 // 3. A status code mapping handler to translate protocol status code to HTTP status code, which
 // is used as standard status code in MOSN.
@@ -54,7 +54,7 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 // The api for get the registered info
 var (
 	ErrNoMapping         = errors.New("no mapping function found")
-	ErrInvalidParameters = errors.New("new connection pool or protocol stream fatcory cannot be nil")
+	ErrInvalidParameters = errors.New("new connection pool or protocol stream factory cannot be nil")
 	ErrDuplicateProtocol = errors.New("duplicated protocol registered")
 )
 
@@ -111,7 +111,7 @@ func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte, 
 			}
 		}
 	} else {
-		// if socopes is not nil,  match the protocol in the scopes
+		// if scopes is not nil,  match the protocol in the scopes
 		for _, p := range scopes {
 			factory, ok := registry.StreamFactories[p]
 			if !ok {

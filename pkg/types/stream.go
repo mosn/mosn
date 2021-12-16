@@ -259,7 +259,7 @@ type ConnectionPool interface {
 // NewConnPool is a function to create ConnectionPool
 type NewConnPool func(ctx context.Context, host Host) ConnectionPool
 
-// ProtocolStreamFactory can create protocol stream and check wether the request is macthed or not.
+// ProtocolStreamFactory can create protocol stream and check whether the request is matched or not.
 type ProtocolStreamFactory interface {
 	CreateClientStream(context context.Context, connection ClientConnection,
 		streamConnCallbacks StreamConnectionEventListener,
