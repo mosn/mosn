@@ -341,9 +341,8 @@ github.com/juju/retry v0.0.0-20151029024821-62c620325291/go.mod h1:OohPQGsr4pnxw
 github.com/juju/retry v0.0.0-20180821225755-9058e192b216/go.mod h1:OohPQGsr4pnxwD5YljhQ+TZnuVRYpa5irjugL1Yuif4=
 github.com/juju/testing v0.0.0-20180402130637-44801989f0f7/go.mod h1:63prj8cnj0tU0S9OHjGJn+b1h0ZghCndfnbQolrYTwA=
 github.com/juju/testing v0.0.0-20190723135506-ce30eb24acd2/go.mod h1:63prj8cnj0tU0S9OHjGJn+b1h0ZghCndfnbQolrYTwA=
+github.com/juju/testing v0.0.0-20210324180055-18c50b0c2098 h1:yrhek184cGp0IRyHg0uV1khLaorNg6GtDLkry4oNNjE=
 github.com/juju/testing v0.0.0-20210324180055-18c50b0c2098/go.mod h1:7lxZW0B50+xdGFkvhAb8bwAGt6IU87JB1H9w4t8MNVM=
-github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2 h1:CGabFjAad6prZAYtDsF0OrF8Uqn5VdN8KMa5mH9B5fA=
-github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2/go.mod h1:7lxZW0B50+xdGFkvhAb8bwAGt6IU87JB1H9w4t8MNVM=
 github.com/juju/utils v0.0.0-20180424094159-2000ea4ff043/go.mod h1:6/KLg8Wz/y2KVGWEpkK9vMNGkOnu4k/cqs8Z1fKjTOk=
 github.com/juju/utils v0.0.0-20200116185830-d40c2fe10647/go.mod h1:6/KLg8Wz/y2KVGWEpkK9vMNGkOnu4k/cqs8Z1fKjTOk=
 github.com/juju/utils/v2 v2.0.0-20200923005554-4646bfea2ef1/go.mod h1:fdlDtQlzundleLLz/ggoYinEt/LmnrpNKcNTABQATNI=

@@ -230,8 +230,6 @@ github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 ## explicit
 github.com/juju/errors
-# github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2
-## explicit
 # github.com/k0kubun/pp v3.0.1+incompatible
 github.com/k0kubun/pp
 # github.com/klauspost/compress v1.13.4

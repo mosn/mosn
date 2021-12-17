@@ -25,7 +25,6 @@ require (
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.10
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
-	github.com/juju/testing v0.0.0-20211215003918-77eb13d6cad2 // indirect
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/miekg/dns v1.1.25
