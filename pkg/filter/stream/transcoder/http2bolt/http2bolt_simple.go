@@ -24,9 +24,9 @@ import (
 	apit "mosn.io/api/extensions/transcoder"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/protocol/http"
 )
 
 func init() {
