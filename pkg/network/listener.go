@@ -291,11 +291,15 @@ func (l *listener) Close(lctx context.Context) error {
 	}
 
 	if l.rawl != nil {
-		l.cb.OnClose()
+		if l.cb != nil {
+			l.cb.OnClose()
+		}
 		return l.rawl.Close()
 	}
 	if l.packetConn != nil {
-		l.cb.OnClose()
+		if l.cb != nil {
+			l.cb.OnClose()
+		}
 		return l.packetConn.Close()
 	}
 	return nil
@@ -341,7 +345,9 @@ func (l *listener) accept(lctx context.Context) error {
 
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
-		l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
+		if l.cb != nil {
+			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
+		}
 	}, nil)
 
 	return nil
