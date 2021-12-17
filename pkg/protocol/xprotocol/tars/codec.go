@@ -15,50 +15,32 @@
  * limitations under the License.
  */
 
-package protocol
+package tars
 
 import (
 	"context"
-	"testing"
+
+	"mosn.io/api"
 )
 
-func TestBuffer(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestBuffer error: %v", r)
-		}
-	}()
-
-	buf := ProtocolBuffersByContext(context.Background())
-	if buf == nil {
-		t.Error("New buffer failed.")
-	}
-
-	if d := buf.GetReqData(1024); d == nil {
-		t.Error("GetReqData failed.")
-	}
-
-	if d := buf.GetReqHeader(1024); d == nil {
-		t.Error("GetReqHeader failed.")
-	}
-
-	if d := buf.GetReqTailers(); d == nil {
-		t.Error("GetReqTailers failed.")
-	}
-
-	if d := buf.GetRspData(1024); d == nil {
-		t.Error("GetRspData failed.")
-	}
-
-	if d := buf.GetRspHeader(1024); d == nil {
-		t.Error("GetRspHeader failed.")
-	}
-
-	if d := buf.GetRspTailers(); d == nil {
-		t.Error("GetRspTailers failed.")
-	}
-
-	p := protocolBufferCtx{}
-	p.Reset(buf)
-
+type XCodec struct {
+	proto tarsProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return tarsMatcher
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

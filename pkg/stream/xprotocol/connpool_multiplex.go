@@ -26,8 +26,6 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -39,7 +37,7 @@ type poolMultiplex struct {
 	*connpool
 
 	clientMux              sync.Mutex
-	activeClients          []sync.Map
+	activeClients          []sync.Map // TODO: do not need map anymore
 	currentCheckAndInitIdx int64
 
 	shutdown bool // pool is already shutdown
@@ -95,7 +93,7 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-		ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, string(sub))
+		ctx := context.Background() // TODO: a new context ?
 		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
@@ -120,7 +118,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 	}
 
 	var client *activeClientMultiplex
-	subProtocol := getSubProtocol(ctx)
+	subProtocol := p.connpool.codec.ProtocolName()
 
 	v, ok := p.activeClients[clientIdx].Load(subProtocol)
 	if !ok {
@@ -158,7 +156,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		}
 	}
 
-	subProtocol := getSubProtocol(ctx)
+	subProtocol := p.connpool.codec.ProtocolName()
 
 	client, _ := p.activeClients[clientIdx].Load(subProtocol)
 
@@ -225,7 +223,7 @@ func (p *poolMultiplex) Shutdown() {
 }
 
 func (p *poolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
-	return stream.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
+	return stream.NewStreamClient(context, p.connpool.protocol, connData.Connection, connData.Host)
 }
 
 func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
@@ -237,7 +235,6 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	host := p.Host()
 	data := host.CreateConnection(ctx)
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
-	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, string(subProtocol))
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -249,10 +246,10 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	// protocol is from onNewDetectStream
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := xprotocol.GetProtocol(subProtocol)
+		proto := p.connpool.codec.NewXProtocol(ctx)
 		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
+			rpcKeepAlive := NewKeepAlive(codecClient, proto, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,

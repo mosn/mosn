@@ -15,10 +15,32 @@
  * limitations under the License.
  */
 
-package sofa
+package wasm
 
-import "mosn.io/mosn/pkg/trace"
+import (
+	"context"
 
-func init() {
-	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	"mosn.io/api"
+)
+
+type xCodec struct {
+	proto *wasmProtocol
 }
+
+func (codec *xCodec) ProtocolName() api.ProtocolName {
+	return codec.proto.Name()
+}
+
+func (codec *xCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+func (codec *xCodec) ProtocolMatch() api.ProtocolMatch {
+	return nil
+}
+
+func (codec *xCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*xCodec)(nil)

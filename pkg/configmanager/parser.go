@@ -32,17 +32,9 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 )
 
 type ContentKey string
-
-var ProtocolsSupported = map[string]bool{
-	string(protocol.Auto):      true,
-	string(protocol.HTTP1):     true,
-	string(protocol.HTTP2):     true,
-	string(protocol.Xprotocol): true,
-}
 
 const (
 	MinHostWeight               = uint32(1)
@@ -50,17 +42,6 @@ const (
 	DefaultMaxRequestPerConn    = uint32(1024)
 	DefaultConnBufferLimitBytes = uint32(16 * 1024)
 )
-
-// RegisterProtocolParser
-// used to register parser
-func RegisterProtocolParser(key string) bool {
-	if _, ok := ProtocolsSupported[key]; ok {
-		return false
-	}
-	log.StartLogger.Infof("[config] %s added to ProtocolsSupported", key)
-	ProtocolsSupported[key] = true
-	return true
-}
 
 // ParsedCallback is an
 // alias for closure func(data interface{}, endParsing bool) error
@@ -117,9 +98,6 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
 			c.LBSubSetConfig.FallBackPolicy = 0
-		}
-		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts

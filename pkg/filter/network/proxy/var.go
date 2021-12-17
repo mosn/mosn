@@ -15,14 +15,17 @@
  * limitations under the License.
  */
 
-package xprotocol
+package proxy
 
 import (
-	"mosn.io/pkg/header"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
-var GetHeaderEncodeLength = header.GetHeaderEncodeLength
+var (
+	varProtocolConfig = variable.NewVariable(types.VarProtocolConfig, nil, nil, variable.DefaultSetter, 0)
+)
 
-var EncodeHeader = header.EncodeHeader
-
-var DecodeHeader = header.DecodeHeader
+func init() {
+	variable.Register(varProtocolConfig)
+}

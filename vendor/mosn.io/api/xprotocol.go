@@ -164,19 +164,12 @@ type Hijacker interface {
 type XProtocolCodec interface {
 	ProtocolName() ProtocolName
 
-	XProtocol() XProtocol
+	// If a protocol is stateless, the NewXProtocol is recommended return a singleton.
+	// If a protocol is stateful, the NewXProtocol create a protocol instance for each connection.
+	// The context.Context can provide some configuartion for create protocol instance.
+	NewXProtocol(context.Context) XProtocol
 
 	ProtocolMatch() ProtocolMatch
 
 	HTTPMapping() HTTPMapping
-}
-
-// XProtocolFactory protocol factory
-// Supports automatic creation of a protocol instance for each connection.
-// The ability to determine that a protocol is stateful：
-// 1. The XProtocolCodec instance implements the XProtocolFactory interface or
-// 2. The XProtocol instance implements the XProtocolFactory interface
-// The RegisterProtocolFactory function should be called by the developer.
-type XProtocolFactory interface {
-	NewXProtocol() XProtocol
 }

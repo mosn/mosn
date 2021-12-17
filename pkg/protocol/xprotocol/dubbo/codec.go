@@ -15,30 +15,33 @@
  * limitations under the License.
  */
 
-package xprotocol
+package dubbo
 
 import (
 	"context"
-	"testing"
 
-	"github.com/stretchr/testify/assert"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-// type xprotocolMapping struct{}
-
-func TestMapping(t *testing.T) {
-	var ctx = context.TODO()
-	var xm = xprotocolMapping{}
-	// 1, sub protocol is nil
-	_, err := xm.MappingHeaderStatusCode(ctx, nil)
-	assert.NotNil(t, err)
-
-	// 2. cannot get mapping
-	mCtx := mosnctx.WithValue(ctx, types.ContextSubProtocol, "xxx-proto")
-	_, err = xm.MappingHeaderStatusCode(mCtx, nil)
-	assert.NotNil(t, err)
-
-	// 3. normal
+type XCodec struct {
+	proto dubboProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return dubboMatcher
+}
+
+// TODO: not implement yet.
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

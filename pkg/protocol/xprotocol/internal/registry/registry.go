@@ -15,33 +15,28 @@
  * limitations under the License.
  */
 
-package xprotocol
+package registry
 
 import (
-	"context"
-	"testing"
+	"errors"
 
-	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 )
 
-func TestEngine(t *testing.T) {
-	var mockProto = &mockProtocol{}
-	err := RegisterProtocol("engine-proto", mockProto)
-	assert.Nil(t, err)
+var registry = make(map[api.ProtocolName]api.XProtocolCodec)
 
-	err = RegisterMatcher("engine-proto", mockMatcher)
-	assert.Nil(t, err)
+func RegisterXProtocolCodec(name api.ProtocolName, codec api.XProtocolCodec) error {
+	if _, ok := registry[name]; ok {
+		return errors.New("duplicate protocol register:" + string(name))
+	}
+	registry[name] = codec
+	return nil
+}
 
-	matcher := GetMatcher("engine-proto")
-	assert.NotNil(t, matcher)
-
-	var protocols = []string{"engine-proto"}
-	xEngine, err := NewXEngine(protocols)
-	assert.Nil(t, err)
-	assert.NotNil(t, xEngine)
-
-	_, res := xEngine.Match(context.TODO(), buffer.NewIoBuffer(10))
-	assert.Equal(t, res, api.MatchSuccess)
+func GetXProtocolCodec(name api.ProtocolName) api.XProtocolCodec {
+	codec, ok := registry[name]
+	if !ok {
+		return nil
+	}
+	return codec
 }

@@ -134,13 +134,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// save downstream protocol
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
-	if proto == protocol.Xprotocol {
-		proto = types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
-	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
@@ -716,27 +711,26 @@ func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol := s.proxy.config.UpstreamProtocol
+func (s *downStream) getUpstreamProtocol() types.ProtocolName {
+	// default upstream protocol is auto
+	proto := protocol.Auto
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
 	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
-		configProtocol = s.route.RouteRule().UpstreamProtocol()
+		proto = api.ProtocolName(s.route.RouteRule().UpstreamProtocol())
 	}
 
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
-	if proto, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(string); ok {
-		configProtocol = proto
+	if p, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(api.ProtocolName); ok {
+		proto = p
 	}
 
 	// Auto means same as downstream protocol
-	if configProtocol == string(protocol.Auto) {
-		currentProtocol = s.getDownstreamProtocol()
-	} else {
-		currentProtocol = types.ProtocolName(configProtocol)
+	if proto == protocol.Auto {
+		proto = s.getDownstreamProtocol()
 	}
 
-	return currentProtocol
+	return proto
 }
 
 // getStringOr returns the first argument if it is not empty, otherwise the second.

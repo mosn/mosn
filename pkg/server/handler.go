@@ -46,6 +46,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
@@ -456,7 +457,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	// connection context support variables too
+	ctx := variable.NewVariableContext(context.Background())
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerPort, al.listenPort)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
@@ -679,7 +682,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
 	}
-	
+
 	// If it can’t find any matching listeners and should using the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package xprotocol
+package sofa
 
 import (
 	"context"
@@ -25,16 +25,16 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/log"
 )
 
 type SofaRPCSpan struct {
 	ctx           context.Context
+	ingressLogger *log.Logger
+	egressLogger  *log.Logger
 	startTime     time.Time
 	endTime       time.Time
 	tags          [TRACE_END]string
@@ -201,7 +201,7 @@ func (s *SofaRPCSpan) log() error {
 		printData.WriteString("\"" + s.tags[DOWNSTEAM_HOST_ADDRESS] + "\",")
 
 		printData.WriteString("\"remote.app\":")
-		printData.WriteString("\"" + s.tags[APP_NAME] + "\",")
+		printData.WriteString("\"" + s.tags[CALLER_APP_NAME] + "\",")
 
 		printData.WriteString("\"local.app\":")
 		printData.WriteString("\"" + "TODO" + "\",") //TODO
@@ -215,7 +215,7 @@ func (s *SofaRPCSpan) log() error {
 		printData.WriteString("}")
 		printData.WriteString("\n")
 
-		return sofa.GetIngressLogger(protocol.Xprotocol).Print(printData, true)
+		return s.ingressLogger.Print(printData, true)
 	}
 
 	if s.tags[SPAN_TYPE] == "egress" {
@@ -251,7 +251,7 @@ func (s *SofaRPCSpan) log() error {
 		printData.WriteString("\"" + elapse + "\"")
 		printData.WriteString("}")
 		printData.WriteString("\n")
-		return sofa.GetEgressLogger(protocol.Xprotocol).Print(printData, true)
+		return s.egressLogger.Print(printData, true)
 	}
 	return nil
 }

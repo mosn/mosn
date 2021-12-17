@@ -10,7 +10,6 @@ import (
 	"mosn.io/api"
 
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
@@ -56,7 +55,7 @@ func TestKeepAlive(t *testing.T) {
 	appAddr := "127.0.0.1:8080"
 	server := &heartBeatServer{}
 	server.UpstreamServer = util.NewUpstreamServer(t, appAddr, server.ServeBoltOrHeartbeat)
-	server.boltProto = xprotocol.GetProtocol(bolt.ProtocolName)
+	server.boltProto = (&bolt.XCodec{}).NewXProtocol(context.Background())
 	server.GoServe()
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, bolt.ProtocolName)

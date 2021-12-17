@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -71,7 +70,7 @@ func NewFilterChainWithSub(routerConfigName string, downstream, upstream types.P
 }
 
 func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
-	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
+	proxy := NewProxyFilter(name, types.ProtocolName("X"), types.ProtocolName("X"))
 	proxy.ExtendConfig = map[string]interface{}{
 		"sub_protocol": string(subProtocol),
 	}

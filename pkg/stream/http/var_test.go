@@ -242,6 +242,7 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
 	ctx = mbuffer.NewBufferPoolContext(ctx)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 	ctx = variable.NewVariableContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
@@ -260,30 +261,7 @@ func Benchmark_get_request_length(b *testing.B) {
 	ctx := prepareBenchmarkRequest(b, getRequestBytes)
 
 	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_request_length")
-		if err != nil {
-			b.Error("get variable failed:", err)
-		}
-	}
-}
-
-func Benchmark_get_http_header_without_add(b *testing.B) {
-	ctx := prepareBenchmarkRequest(b, getRequestBytes)
-
-	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_header_scene")
-		if err != nil {
-			b.Error("get variable failed:", err)
-		}
-	}
-}
-
-func Benchmark_get_http_header_with_add(b *testing.B) {
-	variable.Check("http_header_scene")
-	ctx := prepareBenchmarkRequest(b, getRequestBytes)
-
-	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_header_scene")
+		_, err := variable.GetString(ctx, "Http1_request_length")
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}
