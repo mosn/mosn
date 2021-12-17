@@ -45,9 +45,10 @@ require (
 	github.com/wasmerio/wasmer-go v1.0.3
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/net v0.0.0-20210510120150-4163338589ed
+	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
+	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/tools v0.1.4
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.38.0

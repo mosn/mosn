@@ -17,13 +17,14 @@ func (c *Conn) recvMsgs(ms []Message, flags int) (int, error) {
 	for i := range ms {
 		ms[i].raceWrite()
 	}
-	packer := defaultMmsghdrsPool.Get()
-	defer defaultMmsghdrsPool.Put(packer)
+	hs := make(mmsghdrs, len(ms))
 	var parseFn func([]byte, string) (net.Addr, error)
 	if c.network != "tcp" {
 		parseFn = parseInetAddr
 	}
-	hs := packer.pack(ms, parseFn, nil)
+	if err := hs.pack(ms, parseFn, nil); err != nil {
+		return 0, err
+	}
 	var operr error
 	var n int
 	fn := func(s uintptr) bool {
@@ -49,13 +50,14 @@ func (c *Conn) sendMsgs(ms []Message, flags int) (int, error) {
 	for i := range ms {
 		ms[i].raceRead()
 	}
-	packer := defaultMmsghdrsPool.Get()
-	defer defaultMmsghdrsPool.Put(packer)
-	var marshalFn func(net.Addr, []byte) int
+	hs := make(mmsghdrs, len(ms))
+	var marshalFn func(net.Addr) []byte
 	if c.network != "tcp" {
 		marshalFn = marshalInetAddr
 	}
-	hs := packer.pack(ms, nil, marshalFn)
+	if err := hs.pack(ms, nil, marshalFn); err != nil {
+		return 0, err
+	}
 	var operr error
 	var n int
 	fn := func(s uintptr) bool {

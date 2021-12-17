@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package term
+// +build !amd64 gccgo appengine purego
 
-import "golang.org/x/sys/unix"
+package curve25519
 
-const ioctlReadTermios = unix.TCGETS
-const ioctlWriteTermios = unix.TCSETS
+func scalarMult(out, in, base *[32]byte) {
+	scalarMultGeneric(out, in, base)
+}
