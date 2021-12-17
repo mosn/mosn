@@ -15,31 +15,33 @@
  * limitations under the License.
  */
 
-package xprotocol
+package dubbothrift
 
 import (
 	"context"
-	"log"
-	"testing"
-	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-func TestSofaTracerStartFinish(t *testing.T) {
-	tracer, error := NewTracer(nil)
-	if error != nil {
-		log.Fatalln("create test tracer failed:", error)
-	}
-
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
-
-	span := tracer.Start(ctx, nil, time.Now())
-	span.SetTag(TRACE_ID, trace.IdGen().GenerateTraceId())
-	span.SetTag(SPAN_TYPE, string(v2.EGRESS))
-	span.SetTag(PROTOCOL, "bolt")
-	span.FinishSpan()
+type XCodec struct {
+	proto thriftProtocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+// not implement yet
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return nil
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return thriftMatcher
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

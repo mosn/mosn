@@ -73,7 +73,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 			h := headers.Clone()
 			// nolint
 			if _, ok := h.(protocol.CommonHeader); ok {
-				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
+				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", m.getDownStreamProtocol())
 				return
 			}
 			m.headers = h
@@ -149,30 +149,25 @@ func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 }
 
 func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
-	if dp, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigDownStreamProtocol).(string); ok {
-		return types.ProtocolName(dp)
+	if dp, ok := mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol).(types.ProtocolName); ok {
+		return dp
 	}
 	return m.receiveHandler.RequestInfo().Protocol()
 }
 
 func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigUpStreamProtocol).(string)
-	if !ok {
-		configProtocol = string(protocol.Xprotocol)
-	}
+	configProtocol := protocol.Auto
 
 	if m.receiveHandler.Route() != nil && m.receiveHandler.Route().RouteRule() != nil && m.receiveHandler.Route().RouteRule().UpstreamProtocol() != "" {
-		configProtocol = m.receiveHandler.Route().RouteRule().UpstreamProtocol()
+		configProtocol = types.ProtocolName(m.receiveHandler.Route().RouteRule().UpstreamProtocol())
 	}
 
-	if proto, ok := mosnctx.Get(m.ctx, types.ContextKeyUpStreamProtocol).(string); ok {
+	if proto, ok := mosnctx.Get(m.ctx, types.ContextKeyUpStreamProtocol).(types.ProtocolName); ok {
 		configProtocol = proto
 	}
 
-	if configProtocol == string(protocol.Auto) {
+	if configProtocol == protocol.Auto {
 		currentProtocol = m.getDownStreamProtocol()
-	} else {
-		currentProtocol = types.ProtocolName(configProtocol)
 	}
 	return currentProtocol
 }

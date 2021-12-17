@@ -15,25 +15,33 @@
  * limitations under the License.
  */
 
-package network
+package bolt
 
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-func init() {
-	ConnNewPoolFactories = make(map[types.ProtocolName]connNewPool)
+type XCodec struct {
+	mapping BoltStatusMapping
+	proto   boltProtocol
 }
 
-type connNewPool func(ctx context.Context, host types.Host) types.ConnectionPool
-
-var ConnNewPoolFactories map[types.ProtocolName]connNewPool
-
-func RegisterNewPoolFactory(protocol types.ProtocolName, factory connNewPool) {
-	//other
-	log.DefaultLogger.Infof("[network] [ register pool factory] register protocol: %v factory", protocol)
-	ConnNewPoolFactories[protocol] = factory
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
 }
+
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return boltMatcher
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return codec.mapping
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

@@ -19,7 +19,7 @@ package proxy
 
 import (
 	"context"
-	"strings"
+	"os"
 	"testing"
 
 	monkey "github.com/cch123/supermonkey"
@@ -36,13 +36,20 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
+
+func TestMain(m *testing.M) {
+	// mock register variable
+	variable.Register(variable.NewVariable(types.VarProtocolConfig, nil, nil, variable.DefaultSetter, 0))
+	os.Exit(m.Run())
+}
 
 func TestNewProxy(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
-		ctx := context.Background()
+		ctx := variable.NewVariableContext(context.Background())
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 		return ctx
@@ -62,10 +69,11 @@ func TestNewProxy(t *testing.T) {
 			return rm
 		})
 		defer monkey.UnpatchAll()
-		pv := NewProxy(genctx(), &v2.Proxy{
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
+		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "Http1",
-			UpstreamProtocol:   "Http1",
 			RouterConfigName:   "test_router",
 		})
 		// verify
@@ -76,27 +84,23 @@ func TestNewProxy(t *testing.T) {
 	})
 
 	t.Run("config with subprotocol", func(t *testing.T) {
-		subs := "bolt,boltv2"
+		subs := []api.ProtocolName{api.ProtocolName("bolt"), api.ProtocolName("boltv2")}
 		ctx := genctx()
-		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, subs)
+		variable.Set(ctx, types.VarProtocolConfig, subs)
 		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "X",
-			UpstreamProtocol:   "X",
 			RouterConfigName:   "test_router",
 		})
 		// verify
 		p := pv.(*proxy)
-		sub, ok := mosnctx.Get(p.context, types.ContextSubProtocol).(string)
-		if !ok {
-			t.Fatal("no sub protocol got")
-		}
-		if !strings.EqualFold(sub, subs) {
-			t.Fatalf("got subprotocol %s, but expected %s", sub, subs)
+		if len(p.protocols) != 2 || p.protocols[0] != api.ProtocolName("bolt") || p.protocols[1] != api.ProtocolName("boltv2") {
+			t.Fatalf("got subprotocol %v, but expected %v", p.protocols, subs)
 		}
 	})
 	t.Run("config with proxy general HTTP1", func(t *testing.T) {
 		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
 		cfg := &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "Http1",
@@ -136,7 +140,7 @@ func TestNewProxyRequest(t *testing.T) {
 	defer monkey.UnpatchAll()
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
-		ctx := context.Background()
+		ctx := variable.NewVariableContext(context.Background())
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 		return ctx
@@ -151,7 +155,9 @@ func TestNewProxyRequest(t *testing.T) {
 		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
 		return filterManager
 	})
-	pv := NewProxy(genctx(), &v2.Proxy{
+	ctx := genctx()
+	variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
+	pv := NewProxy(ctx, &v2.Proxy{
 		Name:               "test",
 		DownstreamProtocol: "Http1",
 		UpstreamProtocol:   "Http1",

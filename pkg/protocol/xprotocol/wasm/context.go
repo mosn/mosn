@@ -24,7 +24,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
-	"mosn.io/pkg/buffer"
 	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
@@ -36,11 +35,11 @@ type ContextCallback interface {
 	//DrainLength() uint32
 	GetDecodeCmd() api.XFrame
 	SetDecodeCmd(cmd api.XFrame)
-	GetDecodeBuffer() buffer.IoBuffer
+	GetDecodeBuffer() api.IoBuffer
 
 	GetEncodeCmd() api.XFrame
-	SetEncodeBuffer(buf buffer.IoBuffer)
-	GetEncodeBuffer() buffer.IoBuffer
+	SetEncodeBuffer(buf api.IoBuffer)
+	GetEncodeBuffer() api.IoBuffer
 }
 
 var contextId int32
@@ -48,10 +47,10 @@ var contextId int32
 type Context struct {
 	v1.DefaultImportsHandler
 	decodeCmd        api.XFrame
-	decodeBuffer     buffer.IoBuffer
+	decodeBuffer     api.IoBuffer
 	decodeWasmBuffer common.IoBuffer
 	encodeCmd        api.XFrame
-	encodeBuffer     buffer.IoBuffer
+	encodeBuffer     api.IoBuffer
 	encodeWasmBuffer common.IoBuffer
 	proto            *wasmProtocol
 	keepaliveReq     *Request
@@ -71,11 +70,11 @@ func (c *Context) SetDecodeCmd(cmd api.XFrame) {
 	c.decodeCmd = cmd
 }
 
-func (c *Context) GetDecodeBuffer() buffer.IoBuffer {
+func (c *Context) GetDecodeBuffer() api.IoBuffer {
 	return c.decodeBuffer
 }
 
-func (c *Context) SetDecodeBuffer(buf buffer.IoBuffer) {
+func (c *Context) SetDecodeBuffer(buf api.IoBuffer) {
 	c.decodeBuffer = buf
 }
 
@@ -87,11 +86,11 @@ func (c *Context) SetEncodeCmd(cmd api.XFrame) {
 	c.encodeCmd = cmd
 }
 
-func (c *Context) SetEncodeBuffer(buf buffer.IoBuffer) {
+func (c *Context) SetEncodeBuffer(buf api.IoBuffer) {
 	c.encodeBuffer = buf
 }
 
-func (c *Context) GetEncodeBuffer() buffer.IoBuffer {
+func (c *Context) GetEncodeBuffer() api.IoBuffer {
 	return c.encodeBuffer
 }
 

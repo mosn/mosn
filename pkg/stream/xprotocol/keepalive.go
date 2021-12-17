@@ -22,12 +22,9 @@ import (
 	"sync"
 	"time"
 
-	mosnctx "mosn.io/mosn/pkg/context"
-
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -78,10 +75,10 @@ func (kp *xprotocolKeepAlive) loadAndDelete(key uint64) (val *keepAliveTimeout, 
 }
 
 // NewKeepAlive creates a keepalive object
-func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration) types.KeepAlive {
+func NewKeepAlive(codec str.Client, proto api.XProtocol, timeout time.Duration) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
 		Codec:     codec,
-		Protocol:  xprotocol.GetProtocol(proto),
+		Protocol:  proto,
 		Timeout:   timeout,
 		Callbacks: make([]types.KeepAliveCallback, 0),
 		stop:      make(chan struct{}),
@@ -150,7 +147,7 @@ func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 // The function will be called when connection in the codec is idle
 func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, kp.Protocol.Name())
+	ctx := context.Background()
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
 

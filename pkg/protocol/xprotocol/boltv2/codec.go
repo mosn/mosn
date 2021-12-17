@@ -15,14 +15,34 @@
  * limitations under the License.
  */
 
-package xprotocol
+package boltv2
 
-import "mosn.io/mosn/pkg/types"
+import (
+	"context"
 
-var (
-	delegateMap = make(map[types.ProtocolName]SubProtocolDelegate)
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 )
 
-func RegisterSubProtocol(name types.ProtocolName, delegate SubProtocolDelegate) {
-	delegateMap[name] = delegate
+type XCodec struct {
+	mapping bolt.BoltStatusMapping
+	proto   boltv2Protocol
 }
+
+func (codec *XCodec) ProtocolName() api.ProtocolName {
+	return ProtocolName
+}
+
+func (codec *XCodec) NewXProtocol(_ context.Context) api.XProtocol {
+	return codec.proto
+}
+
+func (codec *XCodec) ProtocolMatch() api.ProtocolMatch {
+	return boltv2Matcher
+}
+
+func (codec *XCodec) HTTPMapping() api.HTTPMapping {
+	return codec.mapping
+}
+
+var _ api.XProtocolCodec = (*XCodec)(nil)

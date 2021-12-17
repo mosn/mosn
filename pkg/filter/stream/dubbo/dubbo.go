@@ -60,8 +60,8 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
-	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
-	if subProtocol == nil || dubbo.ProtocolName != subProtocol.(string) {
+	proto := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol)
+	if proto == nil || dubbo.ProtocolName != proto {
 
 		return api.StreamFilterContinue
 	}

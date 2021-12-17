@@ -21,14 +21,14 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/pkg/header"
 )
 
 func TestSofaMapping(t *testing.T) {
-	m := &boltStatusMapping{}
+	m := BoltStatusMapping{}
 	testcases := []struct {
-		Header   types.HeaderMap
+		Header   api.HeaderMap
 		Expected int
 	}{
 		{
@@ -56,7 +56,7 @@ func TestSofaMapping(t *testing.T) {
 			Expected: 500,
 		},
 		{
-			Header:   protocol.CommonHeader{},
+			Header:   header.CommonHeader{},
 			Expected: 0,
 		},
 	}

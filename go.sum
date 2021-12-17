@@ -967,8 +967,8 @@ k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKf
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/api v0.0.0-20211118092229-0f48ccc614b6 h1:lLuAlFJdMsGJFdXM9vzXhpm04CIzVyK5jV0YKFJoOcI=
-mosn.io/api v0.0.0-20211118092229-0f48ccc614b6/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+mosn.io/api v0.0.0-20211217011300-b851d129be01 h1:65nAZDE6BidyDprKL8OAY4O9BIzWSgVzisAM087tAZI=
+mosn.io/api v0.0.0-20211217011300-b851d129be01/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf h1:PaYMeKbmtMnhnzzQyKQifxAtkKrCv5uti8Tr00WvX+Y=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6 h1:6aWdJ5db4OHFhSnSDvZcrAfsJSglbuZNW3DdBPt6PGg=

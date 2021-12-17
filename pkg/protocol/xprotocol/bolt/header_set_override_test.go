@@ -22,17 +22,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/header"
 )
 
 const content = "this is the content"
 
-func getEncodedReqBuf() types.IoBuffer {
+func getEncodedReqBuf() api.IoBuffer {
 	// request build
 	// step 1, build a original request
-	var req = NewRpcRequest(123454321, protocol.CommonHeader{
+	var req = NewRpcRequest(123454321, header.CommonHeader{
 		"k1": "v1",
 		"k2": "v2",
 	}, buffer.NewIoBufferString(content))
@@ -52,7 +52,7 @@ func TestHeaderOverrideBody(t *testing.T) {
 
 	// step 2, set the header of the decoded request
 	req := cmd.(*Request)
-	req.Header.Set("k2", "longer_header_value")
+	req.BytesHeader.Set("k2", "longer_header_value")
 
 	// step 3, re-encode again
 	buf, err := encodeRequest(context.Background(), req)

@@ -18,10 +18,10 @@
 package bolt
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-
-	"testing"
 )
 
 func TestMatcher(t *testing.T) {
