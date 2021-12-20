@@ -78,7 +78,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo api.RequestInfo) {
 	if reqinfo.UpstreamHost() != nil {
 		s.tags[UPSTREAM_HOST_ADDRESS] = reqinfo.UpstreamHost().AddressString()
 	}
-	if reqinfo.DownstreamLocalAddress() != nil {
+	if reqinfo.DownstreamRemoteAddress() != nil {
 		s.tags[DOWNSTEAM_HOST_ADDRESS] = reqinfo.DownstreamRemoteAddress().String()
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())

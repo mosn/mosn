@@ -386,6 +386,14 @@ var defaultStreamConfig = StreamConfig{
 	MaxRequestBodySize: 0,
 }
 
+// SetDefaultStreamConfig can change the default config for http.
+// Call this function before mosn service start.
+// DONOT call it when mosn is serving.
+func SetDefaultStreamConfig(c StreamConfig) {
+	defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
+	defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
+}
+
 func streamConfigHandler(v interface{}) interface{} {
 	extendConfig, ok := v.(map[string]interface{})
 	if !ok {
