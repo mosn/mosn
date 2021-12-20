@@ -277,7 +277,10 @@ func BenchmarkConfigUnmarshal(b *testing.B) {
 	// assume 5K clusters
 	// test dynamic mode
 	clusterPath := "/tmp/clusters"
+	routerPath := "/tmp/routers/test_router"
 	os.RemoveAll(clusterPath)
+	os.RemoveAll(routerPath)
+	os.MkdirAll(routerPath, 0755)
 	os.MkdirAll(clusterPath, 0755)
 	for i := 0; i < 5000; i++ {
 		c := fmt.Sprintf(`{
@@ -312,6 +315,9 @@ func BenchmarkConfigUnmarshal(b *testing.B) {
 
 func BenchmarkConfigMarshal(b *testing.B) {
 	clusterPath := "/tmp/clusters"
+	routerPath := "/tmp/routers/test_router"
+	os.RemoveAll(routerPath)
+	os.MkdirAll(routerPath, 0755)
 	cfg := ClusterManagerConfig{
 		ClusterManagerConfigJson: ClusterManagerConfigJson{
 			ClusterConfigPath: clusterPath,

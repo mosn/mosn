@@ -19,7 +19,6 @@ package stream
 
 import (
 	"context"
-	"errors"
 
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
@@ -35,9 +34,6 @@ const (
 	ServerStream StreamDirection = 1
 	ClientStream StreamDirection = 0
 )
-
-var FAILED = errors.New("FAILED")
-var EAGAIN = errors.New("AGAIN")
 
 type Client interface {
 	api.ConnectionEventListener
@@ -58,19 +54,4 @@ type Client interface {
 	SetStreamConnectionEventListener(listener types.StreamConnectionEventListener)
 
 	Close()
-}
-
-type ProtocolStreamFactory interface {
-	CreateClientStream(context context.Context, connection types.ClientConnection,
-		streamConnCallbacks types.StreamConnectionEventListener,
-		callbacks api.ConnectionEventListener) types.ClientStreamConnection
-
-	CreateServerStream(context context.Context, connection api.Connection,
-		callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection
-
-	CreateBiDirectStream(context context.Context, connection types.ClientConnection,
-		clientCallbacks types.StreamConnectionEventListener,
-		serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection
-
-	ProtocolMatch(context context.Context, prot string, magic []byte) error
 }

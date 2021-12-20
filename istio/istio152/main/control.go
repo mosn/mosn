@@ -23,6 +23,7 @@ import (
 	"runtime"
 
 	"github.com/urfave/cli"
+	"mosn.io/api"
 	"mosn.io/mosn/istio/istio152"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -30,6 +31,18 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	xstream "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/trace"
+	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
+	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 )
 
 var (
@@ -208,4 +221,26 @@ func DefaultParamsParsed(c *cli.Context) {
 			log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
 		}
 	}
+}
+
+// Call the extensions that are needed here, instead of in extensions init() function
+func ExtensionsRegister(c *cli.Context) {
+	// tracer driver register
+	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	// xprotocol action register
+	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+		name := codec.ProtocolName()
+		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
+	})
+	// xprotocol register
+	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&boltv2.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbothrift.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
+	// trace register
+	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
+	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
+	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+
 }

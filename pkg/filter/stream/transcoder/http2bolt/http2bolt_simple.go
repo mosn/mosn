@@ -21,20 +21,24 @@ import (
 	"context"
 
 	"github.com/valyala/fasthttp"
+	apit "mosn.io/api/extensions/transcoder"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
-
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/protocol/http"
 )
 
 func init() {
-	transcoder.MustRegister("http2bolt_simple", &http2bolt{})
+	transcoder.MustRegister("http2bolt_simple", NewTranscoder)
 }
 
-type http2bolt struct{}
+type http2bolt struct {
+}
+
+func NewTranscoder(config map[string]interface{}) apit.Transcoder {
+	return &http2bolt{}
+}
 
 func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	_, ok := headers.(http.RequestHeader)
@@ -43,11 +47,8 @@ func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf typ
 
 func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
 	// 1.set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(protocol.Xprotocol))
-	// 2. set sub protocol
-	// If it is not an extended protocol, you can ignore the sub protocol setting
-	mosnctx.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
-	// 3. assemble target request
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, bolt.ProtocolName)
+	// 2. assemble target request
 	targetRequest := bolt.NewRpcRequest(0, headers, buf)
 	return targetRequest, buf, trailers, nil
 }

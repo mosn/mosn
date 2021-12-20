@@ -38,7 +38,6 @@ import (
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
 	_ "mosn.io/mosn/pkg/network"
 	_ "mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"

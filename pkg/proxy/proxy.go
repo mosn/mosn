@@ -37,6 +37,7 @@ import (
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -97,6 +98,8 @@ type proxy struct {
 	streamFilterFactory streamfilter.StreamFilterFactory
 	routeHandlerFactory router.MakeHandlerFunc
 
+	protocols []api.ProtocolName
+
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
 	// we only start one worker(goroutine) on this connection
@@ -113,6 +116,12 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		stats:          globalStats,
 		context:        ctx,
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+	}
+
+	if pi, err := variable.Get(ctx, types.VarProtocolConfig); err == nil {
+		if protos, ok := pi.([]api.ProtocolName); ok {
+			proxy.protocols = protos
+		}
 	}
 
 	// proxy level worker pool config
@@ -151,7 +160,13 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			prot = conn.ConnectionState().NegotiatedProtocol
 		}
 
-		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
+		scopes := p.protocols
+		// if protocols is Auto only, match all registered protocols
+		if len(scopes) == 1 && scopes[0] == protocol.Auto {
+			scopes = nil
+		}
+
+		proto, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes(), scopes)
 
 		if err == stream.EAGAIN {
 			return api.Stop
@@ -174,10 +189,10 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", proto)
 		}
 
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, proto, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
 
@@ -259,8 +274,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.listenerStats.DownstreamConnectionActive.Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
-	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.ProtocolName(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	if len(p.protocols) == 1 && p.protocols[0] != protocol.Auto {
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, api.ProtocolName(p.protocols[0]), p.readCallbacks.Connection(), p)
 	}
 }
 

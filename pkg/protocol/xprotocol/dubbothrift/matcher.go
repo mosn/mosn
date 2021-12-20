@@ -21,14 +21,7 @@ import (
 	"bytes"
 
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 )
-
-func init() {
-	//thrift must match before tars
-	xprotocol.RegisterMatcher(ProtocolName, thriftMatcher)
-}
 
 // predicate thrift header len and compare magic number
 func thriftMatcher(data []byte) api.MatchResult {

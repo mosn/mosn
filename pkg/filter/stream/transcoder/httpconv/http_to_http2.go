@@ -24,6 +24,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	apitran "mosn.io/api/extensions/transcoder"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
 	"mosn.io/mosn/pkg/protocol"
@@ -35,10 +36,15 @@ import (
 var errProtocolNotRequired = errors.New("protocol is not the required")
 
 func init() {
-	transcoder.MustRegister("httpTohttp2", &httpTohttp2{})
+	transcoder.MustRegister("httpTohttp2", NewHttpToHttp2)
 }
 
-type httpTohttp2 struct{}
+type httpTohttp2 struct {
+}
+
+func NewHttpToHttp2(config map[string]interface{}) apitran.Transcoder {
+	return &httpTohttp2{}
+}
 
 // Accept check the request will be transcoded or not
 // http request will be translated
@@ -60,7 +66,7 @@ func (t *httpTohttp2) TranscodingRequest(ctx context.Context, headers api.Header
 	})
 
 	// set upstream protocol
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, string(protocol.HTTP2))
+	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, protocol.HTTP2)
 
 	return protocol.CommonHeader(cheader), buf, trailers, nil
 }

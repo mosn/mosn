@@ -19,9 +19,7 @@ package bolt
 
 import (
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/header"
 )
 
 // RequestHeader is the header part of bolt v1 request
@@ -38,16 +36,16 @@ type RequestHeader struct {
 	ContentLen uint32
 
 	Class string // payload fields
-	xprotocol.Header
+	header.BytesHeader
 }
 
 // ~ HeaderMap
-func (h *RequestHeader) Clone() types.HeaderMap {
+func (h *RequestHeader) Clone() api.HeaderMap {
 	clone := &RequestHeader{}
 	*clone = *h
 
 	// deep copy
-	clone.Header = *h.Header.Clone()
+	clone.BytesHeader = *h.BytesHeader.Clone()
 
 	return clone
 }
@@ -62,8 +60,8 @@ type Request struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    types.IoBuffer // wrapper of raw data
-	Content types.IoBuffer // wrapper of raw content
+	Data    api.IoBuffer // wrapper of raw data
+	Content api.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -98,15 +96,15 @@ func (r *Request) GetStreamType() api.StreamType {
 	}
 }
 
-func (r *Request) GetHeader() types.HeaderMap {
+func (r *Request) GetHeader() api.HeaderMap {
 	return r
 }
 
-func (r *Request) GetData() types.IoBuffer {
+func (r *Request) GetData() api.IoBuffer {
 	return r.Content
 }
 
-func (r *Request) SetData(data types.IoBuffer) {
+func (r *Request) SetData(data api.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true
@@ -128,16 +126,16 @@ type ResponseHeader struct {
 	ContentLen     uint32
 
 	Class string // payload fields
-	xprotocol.Header
+	header.BytesHeader
 }
 
 // ~ HeaderMap
-func (h *ResponseHeader) Clone() types.HeaderMap {
+func (h *ResponseHeader) Clone() api.HeaderMap {
 	clone := &ResponseHeader{}
 	*clone = *h
 
 	// deep copy
-	clone.Header = *h.Header.Clone()
+	clone.BytesHeader = *h.BytesHeader.Clone()
 
 	return clone
 }
@@ -152,8 +150,8 @@ type Response struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    types.IoBuffer // wrapper of raw data
-	Content types.IoBuffer // wrapper of raw content
+	Data    api.IoBuffer // wrapper of raw data
+	Content api.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -182,15 +180,15 @@ func (r *Response) GetStreamType() api.StreamType {
 	return api.Response
 }
 
-func (r *Response) GetHeader() types.HeaderMap {
+func (r *Response) GetHeader() api.HeaderMap {
 	return r
 }
 
-func (r *Response) GetData() types.IoBuffer {
+func (r *Response) GetData() api.IoBuffer {
 	return r.Content
 }
 
-func (r *Response) SetData(data types.IoBuffer) {
+func (r *Response) SetData(data api.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true

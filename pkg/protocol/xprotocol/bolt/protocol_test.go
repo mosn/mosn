@@ -24,8 +24,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/header"
 )
 
 func TestProto(t *testing.T) {
@@ -33,7 +33,7 @@ func TestProto(t *testing.T) {
 		bp      = boltProtocol{}
 		ctx     = context.TODO()
 		payload = "hello world"
-		header  = protocol.CommonHeader{"k": "v"}
+		header  = header.CommonHeader{"k": "v"}
 		req     = NewRpcRequest(111, header, buffer.NewIoBufferString(payload))
 		resp    = NewRpcResponse(111, 0, header, buffer.NewIoBufferString(payload))
 	)
@@ -81,7 +81,7 @@ func TestMapping(t *testing.T) {
 			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
 			api.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999:                    uint32(ResponseStatusUnknown),
+			999999: uint32(ResponseStatusUnknown),
 		}
 	)
 

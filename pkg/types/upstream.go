@@ -394,14 +394,3 @@ func (ss *SortedStringSetType) Less(i, j int) bool {
 func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
 }
-
-func init() {
-	ConnPoolFactories = make(map[api.ProtocolName]bool)
-}
-
-var ConnPoolFactories map[api.ProtocolName]bool
-
-func RegisterConnPoolFactory(protocol api.ProtocolName, registered bool) {
-	//other
-	ConnPoolFactories[protocol] = registered
-}

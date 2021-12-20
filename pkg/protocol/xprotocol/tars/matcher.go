@@ -20,13 +20,7 @@ package tars
 import (
 	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 )
-
-func init() {
-	xprotocol.RegisterMatcher(ProtocolName, tarsMatcher)
-}
 
 // predicate dubbo header len and compare magic number
 func tarsMatcher(data []byte) api.MatchResult {

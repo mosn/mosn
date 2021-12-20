@@ -25,10 +25,7 @@ import (
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
@@ -40,14 +37,14 @@ type poolPingPong struct {
 
 	totalClientCount atomicex.Uint64 // total clients
 	clientMux        sync.Mutex
-	idleClients      map[api.ProtocolName][]*activeClientPingPong
+	idleClients      []*activeClientPingPong
 }
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
 func NewPoolPingPong(p *connpool) types.ConnectionPool {
 	return &poolPingPong{
 		connpool:    p,
-		idleClients: make(map[api.ProtocolName][]*activeClientPingPong),
+		idleClients: []*activeClientPingPong{},
 	}
 }
 
@@ -60,7 +57,7 @@ func (p *poolPingPong) CheckAndInit(ctx context.Context) bool {
 func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
 
-	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
+	c, reason := p.GetActiveClient(ctx)
 	if reason != "" {
 		return host, nil, reason
 	}
@@ -84,7 +81,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 
 // GetActiveClient get a avail client
 // nolint: dupl
-func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
+func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPong, types.PoolFailureReason) {
 
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -95,7 +92,9 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 
 	p.clientMux.Lock()
 
-	n := len(p.idleClients[subProtocol])
+	proto := p.connpool.codec.ProtocolName()
+
+	n := len(p.idleClients)
 
 	// max conns is 0 means no limit
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
@@ -110,7 +109,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 			// connection not multiplex,
 			// so we can concurrently build connections here
 			p.clientMux.Unlock()
-			c, reason = p.newActiveClient(ctx, subProtocol)
+			c, reason = p.newActiveClient(ctx, proto)
 			if c != nil && reason == "" {
 				p.totalClientCount.Inc()
 			}
@@ -138,9 +137,9 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 			goto RET
 		}
 
-		c = p.idleClients[subProtocol][lastIdx]
-		p.idleClients[subProtocol][lastIdx] = nil
-		p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
+		c = p.idleClients[lastIdx]
+		p.idleClients[lastIdx] = nil
+		p.idleClients = p.idleClients[:lastIdx]
 
 		goto RET
 	}
@@ -159,10 +158,8 @@ func (p *poolPingPong) Close() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for _, clients := range p.idleClients {
-		for _, c := range clients {
-			c.host.Connection.Close(api.NoFlush, api.LocalClose)
-		}
+	for _, c := range p.idleClients {
+		c.host.Connection.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
@@ -170,22 +167,19 @@ func (p *poolPingPong) Shutdown() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for _, clients := range p.idleClients {
-		for _, c := range clients {
-			c.OnGoAway()
-			if c.keepAlive != nil {
-				c.keepAlive.keepAlive.Stop()
-			}
+	for _, c := range p.idleClients {
+		c.OnGoAway()
+		if c.keepAlive != nil {
+			c.keepAlive.keepAlive.Stop()
 		}
 	}
 }
 
 // return client to pool
 func (p *poolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
-	subProto := client.subProtocol
 
 	if !client.closed {
-		p.idleClients[subProto] = append(p.idleClients[subProto], client)
+		p.idleClients = append(p.idleClients, client)
 	}
 }
 
@@ -198,10 +192,6 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 
 	host := p.Host()
 	connCtx := ctx
-
-	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
-	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -217,18 +207,16 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	// bytes total adds all connections data together
 	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
-	if subProtocol != "" {
-		// Add Keep Alive
-		// protocol is from onNewDetectStream
-		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
-			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
-			rpcKeepAlive.StartIdleTimeout()
+	// Add Keep Alive
+	// protocol is from onNewDetectStream
+	// check heartbeat enable, hack: judge trigger result of Heartbeater
+	proto := p.connpool.codec.NewXProtocol(ctx)
+	if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
+		// create keepalive
+		rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
+		rpcKeepAlive.StartIdleTimeout()
 
-			ac.SetHeartBeater(rpcKeepAlive)
-		}
+		ac.SetHeartBeater(rpcKeepAlive)
 	}
 	////////// codec client
 
@@ -279,22 +267,21 @@ func (ac *activeClientPingPong) Close(err error) {
 // removeFromPool removes this client from connection pool
 func (ac *activeClientPingPong) removeFromPool() {
 	p := ac.pool
-	subProtocol := ac.subProtocol
 	p.clientMux.Lock()
 
 	defer p.clientMux.Unlock()
 	p.totalClientCount.Dec()
-	for idx, c := range p.idleClients[subProtocol] {
+	for idx, c := range p.idleClients {
 		if c == ac {
 			// remove this element
-			lastIdx := len(p.idleClients[subProtocol]) - 1
+			lastIdx := len(p.idleClients) - 1
 			// 	1. swap this with the last
-			p.idleClients[subProtocol][idx], p.idleClients[subProtocol][lastIdx] =
-				p.idleClients[subProtocol][lastIdx], p.idleClients[subProtocol][idx]
+			p.idleClients[idx], p.idleClients[lastIdx] =
+				p.idleClients[lastIdx], p.idleClients[idx]
 			// 	2. set last to nil
-			p.idleClients[subProtocol][lastIdx] = nil
+			p.idleClients[lastIdx] = nil
 			// 	3. remove the last
-			p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
+			p.idleClients = p.idleClients[:lastIdx]
 		}
 	}
 	ac.closed = true
@@ -319,23 +306,23 @@ func (ac *activeClientPingPong) OnEvent(event api.ConnectionEvent) {
 
 	switch {
 	case event.IsClose():
-		if p.protocol == protocol.Xprotocol {
-			host.HostStats().UpstreamConnectionClose.Inc(1)
-			host.HostStats().UpstreamConnectionActive.Dec(1)
-			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		// if p.protocol == protocol.Xprotocol {
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
-			switch event { // nolint: exhaustive
-			case api.LocalClose:
-				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
-			case api.RemoteClose:
-				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
-			default:
-				// do nothing
-			}
+		switch event { // nolint: exhaustive
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
 		}
+		// }
 
 		// RemoteClose when read/write error
 		// LocalClose when there is a panic
