@@ -26,6 +26,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
@@ -140,13 +141,15 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 	}
 
 	name := types.ProtocolName(config.SubProtocol)
-	p := xprotocol.GetProtocol(name)
-	if p == nil {
+	if ok := protocol.ProtocolRegistered(name); !ok {
 		// first time plugin init, register proxy protocol.
 		// because the listener contains the types egress and ingress,
 		// the plug-in should be fired only once.
-		p = NewWasmRpcProtocol(pw, wrapper)
-		_ = xprotocol.RegisterProtocol(name, p)
+		// TODO: support factory, mapping and matcher
+		codec := &xCodec{
+			proto: NewWasmRpcProtocol(pw, wrapper),
+		}
+		_ = xprotocol.RegisterXProtocolCodec(codec)
 		// invoke plugin lifecycle pipeline
 		pw.RegisterPluginHandler(wrapper)
 		// todo detect plugin feature (ping-pong, worker pool?)

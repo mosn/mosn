@@ -39,7 +39,7 @@ require (
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.22.1
-	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
+	github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
 	github.com/wasmerio/wasmer-go v1.0.3
 	go.uber.org/atomic v1.7.0
@@ -53,8 +53,8 @@ require (
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20211117121134-06701a68832b
-	mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
+	mosn.io/api v0.0.0-20211217011300-b851d129be01
+	mosn.io/pkg v0.0.0-20211217101631-d914102d1baf
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect

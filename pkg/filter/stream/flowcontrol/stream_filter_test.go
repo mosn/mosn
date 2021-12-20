@@ -100,7 +100,14 @@ func TestStreamFilter(t *testing.T) {
 }
 
 func BenchmarkStreamFilter_OnReceive(b *testing.B) {
-	cb := &DefaultCallbacks{}
+	mockConfig := &Config{
+		GlobalSwitch: true,
+		Monitor:      false,
+		KeyType:      "PATH",
+	}
+	cb := &DefaultCallbacks{
+		config: mockConfig,
+	}
 	filter := NewStreamFilter(cb, base.Inbound)
 
 	filter.SetReceiveFilterHandler(&mockStreamReceiverFilterHandler{})
@@ -115,7 +122,14 @@ func BenchmarkStreamFilter_OnReceive(b *testing.B) {
 }
 
 func BenchmarkStreamFilter_OnReceive_SwitchOn(b *testing.B) {
-	cb := &DefaultCallbacks{}
+	mockConfig := &Config{
+		GlobalSwitch: true,
+		Monitor:      false,
+		KeyType:      "PATH",
+	}
+	cb := &DefaultCallbacks{
+		config: mockConfig,
+	}
 	filter := NewStreamFilter(cb, base.Inbound)
 
 	filter.SetReceiveFilterHandler(&mockStreamReceiverFilterHandler{})

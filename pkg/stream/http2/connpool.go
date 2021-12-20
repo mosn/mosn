@@ -25,16 +25,10 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.HTTP2, true)
-}
 
 // types.ConnectionPool
 // activeClient used as connected client

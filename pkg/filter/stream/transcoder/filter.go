@@ -22,7 +22,11 @@ import (
 	"net/http"
 
 	"mosn.io/api"
+	"mosn.io/api/extensions/transcoder"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -32,8 +36,7 @@ type transcodeFilter struct {
 	ctx context.Context
 	cfg *config
 
-	transcoder Transcoder
-
+	transcoder    transcoder.Transcoder
 	needTranscode bool
 
 	receiveHandler api.StreamReceiverFilterHandler
@@ -45,16 +48,9 @@ func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
 		log.Proxy.Debugf(ctx, "[stream filter][transcoder] create transcoder filter with config: %v", cfg)
 	}
 
-	transcoder := GetTranscoder(cfg.Type)
-	if transcoder == nil {
-		log.Proxy.Errorf(ctx, "[stream filter][transcoder] create failed, no such transcoder type: %s", cfg.Type)
-		return nil
-	}
-
 	return &transcodeFilter{
-		ctx:        ctx,
-		cfg:        cfg,
-		transcoder: transcoder,
+		ctx: ctx,
+		cfg: cfg,
 	}
 }
 
@@ -78,35 +74,54 @@ func (f *transcodeFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilt
 }
 
 func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+
+	ruleInfo, ok := matcher.TransCoderMatches(ctx, headers, f.cfg.Rules)
+	if !ok {
+		return api.StreamFilterContinue
+	}
+	srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
+	//select transcoder
+	transcoderFactory := GetTranscoderFactory(ruleInfo.GetType(srcPro))
+	if transcoderFactory == nil {
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found transcoderFactory")
+		return api.StreamFilterContinue
+	}
+
+	transcoder := transcoderFactory(ruleInfo.Config)
+	if transcoder == nil {
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] create transcoder failed")
+		return api.StreamFilterContinue
+	}
+
 	// check accept
-	if !f.transcoder.Accept(ctx, headers, buf, trailers) {
+	if !transcoder.Accept(ctx, headers, buf, trailers) {
 		return api.StreamFilterContinue
 	}
 
 	// for response check
 	f.needTranscode = true
+	f.transcoder = transcoder
 
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, "[stream filter][transcoder] receive request: %+v", headers)
+	//TODO set transcoder config
+	//set upstream protocol
+	// if ruleInfo.UpstreamProtocol is empty, the ruleinfo maybe created by the old mode: config have type only
+	if ruleInfo.UpstreamProtocol != "" {
+		mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
 	}
 
-	if route := f.receiveHandler.Route(); route != nil {
-		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
-		f.readPerRouteConfig(ctx, route.RouteRule().PerFilterConfig())
-	}
+	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 
-	// do transcoding
-	outHeaders, outBuf, outTrailers, err := f.transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 	if err != nil {
-		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcode request failed: %v", err)
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder request failed: %v", err)
 		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
 		return api.StreamFilterStop
 	}
+
 	f.receiveHandler.SetRequestHeaders(outHeaders)
 	f.receiveHandler.SetRequestData(outBuf)
 	f.receiveHandler.SetRequestTrailers(outTrailers)
-	f.receiveHandler.SetConvert(false)
+
 	return api.StreamFilterContinue
 }
 
@@ -122,21 +137,27 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	if !f.needTranscode {
 		return api.StreamFilterContinue
 	}
+	//select transcoder
+	transcoder := f.transcoder
 
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, "[stream filter][transcoder] receive response: %+v", headers)
+	if transcoder == nil {
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found transcoder")
+		return api.StreamFilterContinue
 	}
 
 	// do transcoding
-	outHeaders, outBuf, outTrailers, err := f.transcoder.TranscodingResponse(ctx, headers, buf, trailers)
+	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingResponse(ctx, headers, buf, trailers)
+
 	if err != nil {
-		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcode response failed: %v", err)
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder response failed: %v", err)
 		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
+		f.needTranscode = false // send hijack should not transcode now.
 		return api.StreamFilterStop
 	}
 	f.sendHandler.SetResponseHeaders(outHeaders)
 	f.sendHandler.SetResponseData(outBuf)
 	f.sendHandler.SetResponseTrailers(outTrailers)
+
 	return api.StreamFilterContinue
 }

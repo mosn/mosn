@@ -10,7 +10,7 @@ XProtocol framework is designed for making extension of new protocols much easie
 
 All you need is to write protocol-level extension and implements the `interfaces` defined by XProtocol.
 
-TODO: pic
+TODO: pic 
 
 # Quick-start
 
@@ -28,15 +28,15 @@ First of all, take a glance at the protocol format. All of the following works a
 ```
 /**
  * Request command
- * 0     1     2           4           6           8          10           12          14         16
+ * 0     1     2           4           6           8          10           12          14         16  
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
- * |magic| type| dir |      requestId        |     payloadLength     |     payload bytes ...       |
+ * |magic| type| dir |      requestId        |     payloadLength     |     payload bytes ...       |   
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  *
  * Response command
- * 0     1     2     3     4           6           8          10           12          14         16
+ * 0     1     2     3     4           6           8          10           12          14         16  
  * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
- * |magic| type| dir |      requestId        |   status  |      payloadLength    | payload bytes ..|
+ * |magic| type| dir |      requestId        |   status  |      payloadLength    | payload bytes ..| 
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  */
 ```
@@ -53,16 +53,16 @@ Usually the struct is determined by the protocol format, keep the logical mappin
 
 ```go
 type Request struct {
-	Type       byte
-	RequestId  uint32
-	PayloadLen uint32
-	Payload    []byte
-	Content    types.IoBuffer
+        Type       byte
+        RequestId  uint32
+        PayloadLen uint32
+        Payload    []byte
+        Content    api.IoBuffer
 }
 
 type Response struct {
-	Request
-	Status uint16
+        Request
+        Status uint16
 }
 ```
 
@@ -75,23 +75,23 @@ Request and response should implement the `XFrame` and `XRespFrame` interface, X
 ```go
 // XFrame represents the minimal programmable object of the protocol.
 type XFrame interface {
-	// TODO: make multiplexing optional, and maybe we can support PING-PONG protocol in this framework.
-	Multiplexing
+        // TODO: make multiplexing optional, and maybe we can support PING-PONG protocol in this framework.
+        Multiplexing
 
-	HeartbeatPredicate
+        HeartbeatPredicate
 
-	GetStreamType() StreamType
+        GetStreamType() StreamType
 
-	GetHeader() types.HeaderMap
+        GetHeader() api.HeaderMap
 
-	GetData() types.IoBuffer
+        GetData() api.IoBuffer
 }
 
 // XRespFrame expose response status code based on the XFrame
 type XRespFrame interface {
-	XFrame
+        XFrame
 
-	GetStatusCode() uint32
+        GetStatusCode() uint32
 }
 ```
 
@@ -104,43 +104,42 @@ Beside the concrete packet frame, XProtocol framework also need some ability whi
 // e.g. A request which cannot find route should be responded with a error response like '404 Not Found', that is what Hijacker
 // interface exactly provides.
 type XProtocol interface {
-	types.Protocol
+        api.Protocol
 
-	Heartbeater
+        Heartbeater
 
-	Hijacker
-}
-```
-
-What you need is to implement the protocol and register it into XProtocol framework.
-
-```go
-func init() {
-	xprotocol.RegisterProtocol(ProtocolName, &proto{})
+        Hijacker
 }
 
+type XProtocolCodec interface {
+	ProtocolName() ProtocolName
+
+	NewXProtocol(context.Context) XProtocol
+
+	ProtocolMatch() ProtocolMatch
+
+	HTTPMapping() HTTPMapping
+}
+
 ```
 
-At last, don't forget to import your implementation at the entry point `cmd/mosn/main` and speficy the sub protocol in configuration.
+
+What you need is to implement the protocol and register it into XProtocol framework at the entry point `cmd/mosn/main` and speficy the sub protocol in configuration.
 
 ```go
-import _ "mosn.io/mosn/pkg/protocol/xprotocol/example"
+func main() {
+	xprotocol.Register
+}
 ```
 
 ```json
-...
 {
   "type": "proxy",
   "config": {
-    "downstream_protocol": "X",
-    "upstream_protocol": "X",
-    "router_config_name": "router",
-    "extend_config": {
-      "sub_protocol": "x_example"
-    }
+    "downstream_protocol": "x_example",
+    "router_config_name": "router"
   }
 }
-...
 ```
 
 That's it, the 'x_example' protocol is done!
@@ -156,7 +155,7 @@ The most common goroutine model for I/O multiplexing codec is like the following
 - FrameReader: responsible for continually read data from connection, and parse the raw data into frame. Frames will be pass to the `FrameProcessor` by channels.
 - FrameProcessor: responsible for continually read frames from `FrameReader`, and process the frames properly.
 
-And the codec logic is embed in the FrameReader, usually write as blocking mode(Take the benefit of golang netpoll mode). So the logic flow is like: 
+And the codec logic is embed in the FrameReader, usually write as blocking mode(Take the benefit of golang netpoll mode). So the logic flow is like:
 1. (entry code) FrameReader: start frame decode loop.
 2. FrameReader: blocking read data util it meets the minimal length(usually the length of frame header).
 3. FrameReader: parse the header and blocking read data util it meets the length of a whole frame.
@@ -175,9 +174,9 @@ In conclusion, your codec codes is running at the `read goroutine`, and you cann
 
 I/O buffer is managed by the `read goroutine`, be careful about its **lifecycle**.For example, while new data is available, `read goroutine` will notify the ReadFilter listeners, including the codec impls. And decoder will receive a parameter with type `types.IoBuffer`, which contains the readable data.
 
-After decode finished you will get a protocol-specific model, like bolt.Request. Make sure no pointers/references in the model points to the `types.IoBuffer` parameter, because it might be recycled by the `read goroutine`. 
+After decode finished you will get a protocol-specific model, like bolt.Request. Make sure no pointers/references in the model points to the `types.IoBuffer` parameter, because it might be recycled by the `read goroutine`.
 
-## Hack of Append headers/data/trailers 
+## Hack of Append headers/data/trailers
 
 > Pass your model as `headers` and ignore data/trailers
 
@@ -186,5 +185,3 @@ The typical stream layer is designed for most common protocols, like HTTP, HTTP/
 But for most RPC protocols, there is no need to divide the transmission of the request into several parts. And, the payload size usually is not large, which means streaming is not critical. On the contrary, use `append headers/data/trailers` for RPC protocols might break the memory recycle usage for the whole request.
 
 So we use a trick here, decorate your model as `types.HeaderMap` and pass it by append headers. The XProtocol framework would recognize this and ignore append data/trailers.
-
- 

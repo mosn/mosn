@@ -1,6 +1,6 @@
 // +build MOSNTest
 
-package autoconfig
+package tls
 
 import (
 	"testing"

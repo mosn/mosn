@@ -138,8 +138,6 @@ type StreamReceiverFilterHandler interface {
 	GetRequestTrailers() HeaderMap
 	SetRequestTrailers(trailers HeaderMap)
 
-	SetConvert(on bool)
-
 	// GetFilterCurrentPhase get current phase for filter
 	GetFilterCurrentPhase() ReceiverFilterPhase
 }

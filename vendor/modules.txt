@@ -38,7 +38,7 @@ github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/core/system_metric
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
-# github.com/andybalholm/brotli v1.0.0
+# github.com/andybalholm/brotli v1.0.2
 github.com/andybalholm/brotli
 # github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
 github.com/antlr/antlr4/runtime/Go/antlr
@@ -187,7 +187,7 @@ github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.3
 github.com/golang/snappy
 # github.com/google/cel-go v0.5.1
 ## explicit
@@ -232,7 +232,7 @@ github.com/json-iterator/go
 github.com/juju/errors
 # github.com/k0kubun/pp v3.0.1+incompatible
 github.com/k0kubun/pp
-# github.com/klauspost/compress v1.10.4
+# github.com/klauspost/compress v1.13.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
@@ -350,7 +350,7 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
+# github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 ## explicit
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
@@ -407,6 +407,7 @@ golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
+golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/iana
@@ -547,10 +548,11 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20211117121134-06701a68832b
+# mosn.io/api v0.0.0-20211217011300-b851d129be01
 ## explicit
 mosn.io/api
-# mosn.io/pkg v0.0.0-20211019125153-96b01e984d62
+mosn.io/api/extensions/transcoder
+# mosn.io/pkg v0.0.0-20211217101631-d914102d1baf
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv
@@ -559,6 +561,7 @@ mosn.io/pkg/buffer
 mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/netpoll
+mosn.io/pkg/protocol/http
 mosn.io/pkg/registry/dubbo
 mosn.io/pkg/registry/dubbo/common
 mosn.io/pkg/registry/dubbo/common/constant

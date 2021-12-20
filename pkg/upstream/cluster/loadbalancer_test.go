@@ -93,16 +93,17 @@ func TestRandomLBWhenNodeFailBalanced(t *testing.T) {
 	}
 	wg.Wait()
 }
-
-func TestWRRLB(t *testing.T) {
-	pool := makePool(4)
+func testWRRLBCase(t *testing.T, hostNum int, weightFunc func(int) int) {
+	pool := makePool(hostNum)
 	hosts := []types.Host{}
-	for i := 0; i < 4; i++ {
+	allWeight := 0.0
+	for i := 0; i < hostNum; i++ {
 		host := &mockHost{
 			addr: pool.Get(),
-			w:    uint32(i + 1), // 1-4
+			w:    uint32(weightFunc(i)), // 1-4
 		}
 		hosts = append(hosts, host)
+		allWeight += float64(host.w)
 	}
 	// 1:2:3:4
 	hs := &hostSet{}
@@ -119,10 +120,10 @@ func TestWRRLB(t *testing.T) {
 			}
 			results[h.AddressString()] = v + 1
 		}
-		for i := 0; i < 4; i++ {
+		for i := 0; i < hostNum; i++ {
 			addr := hosts[i].AddressString()
 			rate := float64(results[addr]) / float64(subTotal)
-			expected := float64(i+1) / 10.0
+			expected := float64(weightFunc(i)) / allWeight
 			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
@@ -144,6 +145,49 @@ func TestWRRLB(t *testing.T) {
 	wg.Wait()
 }
 
+func TestWRRLB(t *testing.T) {
+	type args struct {
+		hostNum    int
+		weightFunc func(int) int
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "normal",
+			args: args{
+				hostNum: 4,
+				weightFunc: func(i int) int {
+					return i + 1
+				},
+			},
+		},
+		{
+			name: "normal",
+			args: args{
+				hostNum: 4,
+				weightFunc: func(i int) int {
+					return i
+				},
+			},
+		},
+		{
+			name: "all host weight are equal",
+			args: args{
+				hostNum: 10,
+				weightFunc: func(i int) int {
+					return 1
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testWRRLBCase(t, tt.args.hostNum, tt.args.weightFunc)
+		})
+	}
+}
 func BenchmarkWRRLbSimple(b *testing.B) {
 	pool := makePool(4)
 	hosts := []types.Host{}
@@ -703,5 +747,60 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 				t.Errorf("roundRobinLoadBalancer choose host count err, gotUniformity: %v, wantUniformity: %v", gotUniformity, tt.wantUniformity)
 			}
 		})
+	}
+}
+
+func TestWRRLoadBalancer(t *testing.T) {
+	testCases := []struct {
+		name                string
+		hosts               []types.Host
+		unhealthHostIndexes []int
+		want                types.Host
+	}{
+		{
+			name: "unhealthy-host-with-a-high-weight",
+			hosts: []types.Host{
+				&mockHost{addr: "192.168.1.1", w: 100},
+				&mockHost{addr: "192.168.1.2", w: 1},
+			},
+			unhealthHostIndexes: []int{0},
+			want:                &mockHost{addr: "192.168.1.2", w: 1},
+		},
+		{
+			name: "without-healthy-hosts",
+			hosts: []types.Host{
+				&mockHost{addr: "192.168.1.1", w: 100},
+				&mockHost{addr: "192.168.1.2", w: 1},
+			},
+			unhealthHostIndexes: []int{0, 1},
+			want:                nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, index := range tc.unhealthHostIndexes {
+			tc.hosts[index].SetHealthFlag(api.FAILED_ACTIVE_HC)
+		}
+		hs := &hostSet{}
+		hs.setFinalHost(tc.hosts)
+		lb := newWRRLoadBalancer(nil, hs)
+		var h types.Host
+		// 3 is the times of retrying to choose host in cluster manager.
+		for i := 0; i < 3; i++ {
+			h = lb.ChooseHost(nil)
+			if h == nil {
+				continue
+			}
+		}
+
+		if h == tc.want {
+			continue
+		}
+
+		if h == nil {
+			t.Fatalf("case:%s, expected %s, but got a nil host", tc.name, tc.want.AddressString())
+		} else if h.AddressString() != tc.want.AddressString() {
+			t.Fatalf("case:%s, expected %s, but got: %s", tc.name, tc.want.AddressString(), h.AddressString())
+		}
 	}
 }

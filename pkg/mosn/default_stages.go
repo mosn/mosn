@@ -22,17 +22,15 @@ import (
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server/keeper"
-	"mosn.io/mosn/pkg/types"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
 // modify it in main function
 func DefaultInitStage(c *v2.MOSNConfig) {
-	types.InitDefaultPath(configmanager.GetConfigPath())
+	InitDefaultPath(c)
 	InitDebugServe(c)
 	InitializePidFile(c)
 	InitializeTracing(c)

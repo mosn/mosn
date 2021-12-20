@@ -37,6 +37,7 @@ type MOSNConfig struct {
 	RawAdmin             *Admin               `json:"admin,omitempty"`             // admin
 	Debug                PProfConfig          `json:"pprof,omitempty"`
 	Pid                  string               `json:"pid,omitempty"`                 // pid file
+	UDSDir               string               `json:"uds_dir,omitempty"`             // unix domain socket directory
 	Plugin               PluginConfig         `json:"plugin,omitempty"`              // plugin config
 	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"`    // third part codec config
 	Extends              []ExtendConfig       `json:"extends,omitempty"`             // extend config

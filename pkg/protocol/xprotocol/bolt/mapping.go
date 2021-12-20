@@ -23,18 +23,11 @@ import (
 	"net/http"
 
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
-func init() {
-	xprotocol.RegisterMapping(ProtocolName, &boltStatusMapping{})
-}
+type BoltStatusMapping struct{}
 
-type boltStatusMapping struct{}
-
-func (m *boltStatusMapping) MappingHeaderStatusCode(ctx context.Context, headers types.HeaderMap) (int, error) {
+func (m BoltStatusMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
 	cmd, ok := headers.(api.XRespFrame)
 	if !ok {
 		return 0, errors.New("no response status in headers")
@@ -49,7 +42,7 @@ func (m *boltStatusMapping) MappingHeaderStatusCode(ctx context.Context, headers
 	case ResponseStatusTimeout:
 		return http.StatusGatewayTimeout, nil
 		//case RESPONSE_STATUS_CLIENT_SEND_ERROR: // CLIENT_SEND_ERROR maybe triggered by network problem, 404 is not match
-		//	return http.StatusNotFound, nil
+		//      return http.StatusNotFound, nil
 	case ResponseStatusConnectionClosed:
 		return http.StatusBadGateway, nil
 	default:

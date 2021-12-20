@@ -122,10 +122,11 @@ func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
 }
 
 type HttpClientConfig struct {
-	TargetAddr string         `json:"target_address"`
-	MaxConn    uint32         `json:"max_connection"`
-	Request    *RequestConfig `json:"request_config"`
-	Verify     *VerifyConfig  `json:"verify_config"`
+	TargetAddr   string         `json:"target_address"`
+	ProtocolName string         `json:"protocol_name"`
+	MaxConn      uint32         `json:"max_connection"`
+	Request      *RequestConfig `json:"request_config"`
+	Verify       *VerifyConfig  `json:"verify_config"`
 }
 
 func NewHttpClientConfig(config interface{}) (*HttpClientConfig, error) {
@@ -144,6 +145,7 @@ func NewHttpClientConfig(config interface{}) (*HttpClientConfig, error) {
 // RequestConfig decides what request to send
 type RequestConfig struct {
 	Method  string              `json:"method"`
+	Path    string              `json:"path"`
 	Header  map[string][]string `json:"header"`
 	Body    json.RawMessage     `json:"body"`
 	Timeout time.Duration       `json:"timeout"` // request timeout
@@ -151,20 +153,23 @@ type RequestConfig struct {
 
 func (c *RequestConfig) BuildRequest(ctx context.Context) (api.HeaderMap, buffer.IoBuffer) {
 	if c == nil {
-		return buildRequest(nil, "GET", nil, nil)
+		return buildRequest(ctx, "GET", "/", nil, nil)
 	}
 	if c.Method == "" {
 		c.Method = "GET"
 	}
-	method := c.Method
-	return buildRequest(ctx, method, c.Header, c.Body)
+	if c.Path == "" {
+		c.Path = "/"
+	}
+	return buildRequest(ctx, c.Method, c.Path, c.Header, c.Body)
 }
 
-func buildRequest(ctx context.Context, method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
+func buildRequest(ctx context.Context, method string, path string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
 	fh := &fasthttp.RequestHeader{}
-	fh.SetMethod(method)
 	// to simulate pkg/stream/http/stream.go injectInternalHeaders
+	// headers will be setted in pkg/stream/http/stream.go
 	variable.SetString(ctx, types.VarMethod, method)
+	variable.SetString(ctx, types.VarPath, path)
 	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}
