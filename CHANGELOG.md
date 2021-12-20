@@ -22,6 +22,7 @@
 - Delete useless type assertion in XProtocol.Dispatch, @alpha-baby, commit 477cbf96d3c0f64a3e6efdedfe261b32fd956e81
 - Refactory default http1 and http2 convert, remove the proxy convert, use transcoder filter instead, @nejisama, commit 311f429010ef6fb12f50bb497f7d636ff52c5dc7
 - Changed to register trancoder factory instead trancoder (#1879), @YIDWang, commit 75bed6646cf92a18235781f282504341e4e9ef20
+- XProtocol is no longer as a protocol and no subprotocol any more, the original subprotocol will upgrade to the protocol, #1874, @nejisama
 
 ### Bug fixes
 
