@@ -14,6 +14,7 @@
 - 支持go plugin加载协议转化插件，并支持动态选择协议转换插件, @Tanc010, commit ac2a2006115611180a4d49661b1353d953b05957
 - 增加更多的 http 协议方法，使动态协议匹配更加精准 (#1870) @XIEZHENGYAO, 7062787c1b7d22cf0b33abbecc5dbe4e930f5aaf
 - 支持动态设置上游协议 (#1808) @YIDWang, commit 102c1aa0e2df8bed96cd34d760b5bb13f07edced
+- 支持动态设置 HTTP 默认最大值配置, @nejisama, #1886
 
 ### 重构
 

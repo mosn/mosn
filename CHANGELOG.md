@@ -14,6 +14,7 @@
 - Support choose dynamic protocol convert dynamically and allow register transcoder through go-plugin, @Tanc010, commit ac2a2006115611180a4d49661b1353d953b05957
 - Added more http protocol method to make protocol matcher work properly (#1870) @XIEZHENGYAO, 7062787c1b7d22cf0b33abbecc5dbe4e930f5aaf
 - Support to set upstream protocol dynamically (#1808) @YIDWang, commit 102c1aa0e2df8bed96cd34d760b5bb13f07edced
+- Support set default http stream config, @nejisama, #1886
 
 ### Refactoring
 
