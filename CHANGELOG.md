@@ -9,11 +9,11 @@
 - Support register protocol factory (#1844), @zonghaishang commit 4b37ac0115f654957c35222c80ad0df9cdc09936
 - Support dynamic phase for stream filter (#1815), @YIDWang, commit d3403fb5d48f43f637547190a46ab29649a8533d
 - Added the SetConnectionState method for tls connection in pkg/mtls/crypto/tls.Conn (#1804), @antJack, commit 3aa494ad06a5427613d9804b690a9b69fbd5a60a
-- Added the after-stop and after-start two new stages, and allow to register handler during these stages. @doujiang24, commit 4fc841e2da08f6281f0a65d9933b122f7519d932
-- Support specify the unix domain socket directory in configuration (#1829), @dengqian, commit 03263f71cfb3ae9ae91f23cd975e9b7559d1aeac
+- Added the after-start and after-stop two new stages, and allow to register handler during these stages. @doujiang24, commit 4fc841e2da08f6281f0a65d9933b122f7519d932
+- Support specify the unix domain socket directory by adding the new "uds_dir" configuration (#1829), @dengqian, commit 03263f71cfb3ae9ae91f23cd975e9b7559d1aeac
 - Support choose dynamic protocol convert dynamically and allow register transcoder through go-plugin, @Tanc010, commit ac2a2006115611180a4d49661b1353d953b05957
 - Added more http protocol method to make protocol matcher work properly (#1870) @XIEZHENGYAO, 7062787c1b7d22cf0b33abbecc5dbe4e930f5aaf
-- Support to set upstream sub protocol dynamically (#1808) @YIDWang, commit 102c1aa0e2df8bed96cd34d760b5bb13f07edced
+- Support to set upstream protocol dynamically (#1808) @YIDWang, commit 102c1aa0e2df8bed96cd34d760b5bb13f07edced
 
 ### Refactoring
 
