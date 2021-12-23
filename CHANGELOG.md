@@ -6,8 +6,7 @@
 
 - Added the ip_access new filter to manage access control based on IP. (#1797) @Bryce-huang, commit 35636c406ee4b80e4898f0da6d026e0dd854d218
 - Support admin api extends auth functions (#1834), @nejisama, commit 6227361f85a13a862a7b6149171c2eab781feaa3
-- Support register protocol factory (#1844), @zonghaishang commit 4b37ac0115f654957c35222c80ad0df9cdc09936
-- Support dynamic phase for stream filter (#1815), @YIDWang, commit d3403fb5d48f43f637547190a46ab29649a8533d
+- Support dynamic phase for stream filter for transcode module (#1815), @YIDWang, commit d3403fb5d48f43f637547190a46ab29649a8533d
 - Added the SetConnectionState method for tls connection in pkg/mtls/crypto/tls.Conn (#1804), @antJack, commit 3aa494ad06a5427613d9804b690a9b69fbd5a60a
 - Added the after-start and after-stop two new stages, and allow to register handler during these stages. @doujiang24, commit 4fc841e2da08f6281f0a65d9933b122f7519d932
 - Support specify the unix domain socket directory by adding the new "uds_dir" configuration (#1829), @dengqian, commit 03263f71cfb3ae9ae91f23cd975e9b7559d1aeac
@@ -19,7 +18,6 @@
 ### Refactoring
 
 - Change the default max header size to 8KB (#1837), @nejisama, commit 2357181fec8df76473a817551815c29e5ac2f7ff
-- remove default convert, use filter instead, @nejisama, commit 67f4c4622950919b6458037fa74749364c8e4cbe
 - Delete useless type assertion in XProtocol.Dispatch, @alpha-baby, commit 477cbf96d3c0f64a3e6efdedfe261b32fd956e81
 - Refactory default http1 and http2 convert, remove the proxy convert, use transcoder filter instead, @nejisama, commit 311f429010ef6fb12f50bb497f7d636ff52c5dc7
 - Changed to register trancoder factory instead trancoder (#1879), @YIDWang, commit 75bed6646cf92a18235781f282504341e4e9ef20
@@ -30,15 +28,15 @@
 - Fix a http buffer reuse related bug that may leads to nil panics in high concurrency case, @nejisama, commit 76ad775ece2b16136dbb67f08be0d6bdce8b43d7
 - Fix: get the proper value of variable response_flag. (#1814), @lemonlinger, commit 0a3144561c6b654b3e0a102d16ea3640a60a4fdf
 - Fix: prefix_write not work with "/" (#1826), @Bryce-Huang, commit c61042d32e02070f57f37d18feb68eb246b6c17a
-- Fix: the reconfig.sock file may be removed unexpectly when killed the old mosn manually during smoothly upgrade. (#1820), @XIEZHENGYAO, commit 56009a3ce1df9ffb227bba652f49bd5d9e3fac76
+- Fix: the reconfig.sock file may be removed unexpectly when killed the old MOSN manually during smoothly upgrade. (#1820), @XIEZHENGYAO, commit 56009a3ce1df9ffb227bba652f49bd5d9e3fac76
 - Fix the bug in doretry: should not set setupRetry to false directly, since the old response should be skip when the new upstream request has been sent out.  (#1807) @taoyuanyuan, commit f2ff455387fcc159bfba6a97b5408f446865b91e
-- Should set the inherit config back to the mosn instance, (#1819), @XIEZHENGYAO, commit 483ea96cfcc55e48ed6042365c5ba0648c4a7841
+- Should set the inherit config back to the MOSN instance, (#1819), @XIEZHENGYAO, commit 483ea96cfcc55e48ed6042365c5ba0648c4a7841
 - Should send resetStreamFrame to upstream when cancel grpc context at client side, otherwise server side context won't be done.  @XIEZHENGYAO, commit a67f2dab5a31fa1effd402ead31b39b087c6a914
 - Should set the resetReason before closing the stream connection, otherwise, may unable to get the real reason. (#1828), @wangfakang, commit 1d6a33c7c1284d60ffb0de9f3edcfd4a9f3fea83
 - Should use the listener that best match when found multi listeners, otherwise, may got 400 error code.  @MengJiapeng, commit 9f35f009afc47479d8e1f27a5665b950799e9ae1
 - Fixed panic due to concurrent map iteration and map write during process setting broadcast, @XIEZHENGYAO, commit bb154333dcbb921af0a24d95db8acd61c637b077
 - Fix memory leak occurred in the binding-connection, (#1821), @Dennis8274, commit 5edac5e075f83e4d2cbba8f4110163f45a0888c9
-- Should close logger at the end, otherwise, may lost log during close Mosn instance. (#1845), @doujiang24, commit 991222d5a78ffffac4ae84a4303e64a66266ba01
+- Should close logger at the end, otherwise, may lost log during close MOSN instance. (#1845), @doujiang24, commit 991222d5a78ffffac4ae84a4303e64a66266ba01
 - codecClient is nil because has not been init (#1849), @cuiweixie, commit 2bc084b329ffe0ab3ce5c6febc33d60da9113fc8
 - Health checker not work when the unhealthyThreshold is an empty value (#1853), @Bryce-Huang, commit 7ef7f9c81e4a26990fd39d842f212606e916b080
 - Fix dead recursion in unweightChooseHost #1860, @alpha-baby, commit f44ed6dae3563b26af41b1535c7046a3a06b58a9

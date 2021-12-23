@@ -6,8 +6,7 @@
 
 - 新增 ip_access filter，基于来源 IP 的 ACL 控制器 (#1797) @Bryce-huang, commit 35636c406ee4b80e4898f0da6d026e0dd854d218
 - 允许 Admin Api 扩展验证方法 (#1834), @nejisama, commit 6227361f85a13a862a7b6149171c2eab781feaa3
-- 支持注册协议工厂 (#1844), @zonghaishang commit 4b37ac0115f654957c35222c80ad0df9cdc09936
-- 支持 stream filter 通过配置指定阶段，取代固定的阶段 (#1815), @YIDWang, commit d3403fb5d48f43f637547190a46ab29649a8533d
+- transcoder 模块支持 stream filter 通过配置指定阶段，取代固定的阶段 (#1815), @YIDWang, commit d3403fb5d48f43f637547190a46ab29649a8533d
 - 为 tls connection 增加 SetConnectionState 方法，在 pkg/mtls/crypto/tls.Conn 中 (#1804), @antJack, commit 3aa494ad06a5427613d9804b690a9b69fbd5a60a
 - 增加了 after-start 和 after-stop 这两个新的执行阶段，并允许在这两个阶段注册处理函数 @doujiang24, commit 4fc841e2da08f6281f0a65d9933b122f7519d932
 - 新增 uds_dir 配置项，用于指定 unix domain socket 的目录 (#1829), @dengqian, commit 03263f71cfb3ae9ae91f23cd975e9b7559d1aeac
@@ -19,7 +18,6 @@
 ### 重构
 
 - 将 http 协议的默认最大请求头大小调整到 8KB (#1837), @nejisama, commit 2357181fec8df76473a817551815c29e5ac2f7ff
-- 移除默认的协议转换，使用过滤器替换 @nejisama, commit 67f4c4622950919b6458037fa74749364c8e4cbe
 - 删除 XProtocol.Dispatch 中无用的类型断言 @alpha-baby, commit 477cbf96d3c0f64a3e6efdedfe261b32fd956e81
 - 重构默认的 http1 和 http2 的协议转换，删除了 proxy 中的转换，使用 transcoder filter 来代替 @nejisama, commit 311f429010ef6fb12f50bb497f7d636ff52c5dc7
 - 使用注册转换器工厂来替代注册转换器 (#1879), @YIDWang, commit 75bed6646cf92a18235781f282504341e4e9ef20
@@ -28,19 +26,19 @@
 ### Bug 修复
 
 - 修复：http buffer 复用在高并发场景下可能导致 nil panic @nejisama, commit 76ad775ece2b16136dbb67f08be0d6bdce8b43d7
-- 修复：response_flage 变量值获取错误 (#1814), @lemonlinger, commit 0a3144561c6b654b3e0a102d16ea3640a60a4fdf
+- 修复：response_flag 变量值获取错误 (#1814), @lemonlinger, commit 0a3144561c6b654b3e0a102d16ea3640a60a4fdf
 - 修复：prefix_write 在 "/" 的场景下不能正常工作 @Bryce-Huang, commit c61042d32e02070f57f37d18feb68eb246b6c17a
-- 修复：在热升级过程中，手动 kill 老的 mosn，可能会导致新 mosn 的 reconfig.sock 会被错误的删除 (#1820), @XIEZHENGYAO, commit 56009a3ce1df9ffb227bba652f49bd5d9e3fac76
+- 修复：在热升级过程中，手动 kill 老的 MOSN，可能会导致新 MOSN 的 reconfig.sock 会被错误的删除 (#1820), @XIEZHENGYAO, commit 56009a3ce1df9ffb227bba652f49bd5d9e3fac76
 - 修复：请求上游失败时，在 doretry 中不应该直接设置 setupRetry (#1807) @taoyuanyuan, commit f2ff455387fcc159bfba6a97b5408f446865b91e
-- 修复：热升级中继承了老 mosn 的配置之后，应该将配置设置到新的 mosn 结构体中 @XIEZHENGYAO, commit 483ea96cfcc55e48ed6042365c5ba0648c4a7841
+- 修复：热升级中继承了老 MOSN 的配置之后，应该将配置设置到新的 MOSN 结构体中 @XIEZHENGYAO, commit 483ea96cfcc55e48ed6042365c5ba0648c4a7841
 - 修复：当取消客户端的 grpc 的时候，没有发送 resetStreamFrame 到上游，使得 server 断没有及时结束 @XIEZHENGYAO, commit a67f2dab5a31fa1effd402ead31b39b087c6a914
 - 修复：应该在关闭 stream connection 之前设置 resetReason，否则可能导致获取不到真实的原因 (#1828), @wangfakang, commit 1d6a33c7c1284d60ffb0de9f3edcfd4a9f3fea83
 - 修复：当有多个匹配的 listener 的时候，应该选择最优的匹配的 listener，否则可能导致 400 错误 @MengJiapeng, commit 9f35f009afc47479d8e1f27a5665b950799e9ae1
 - 修复：处理 broadcast 可能导致 map 并发读写 panic @XIEZHENGYAO, commit bb154333dcbb921af0a24d95db8acd61c637b077
 - 修复：binding-connection 中的内存泄漏 (#1821), @Dennis8274, commit 5edac5e075f83e4d2cbba8f4110163f45a0888c9
-- 修复：应该将 close logger 放在最后，否则在关闭 mosn 实例过程中将没有日志输出 (#1845), @doujiang24, commit 991222d5a78ffffac4ae84a4303e64a66266ba01
+- 修复：应该将 close logger 放在最后，否则在关闭 MOSN 实例过程中将没有日志输出 (#1845), @doujiang24, commit 991222d5a78ffffac4ae84a4303e64a66266ba01
 - 修复：codecClient 没有初始化 (#1849), @cuiweixie, commit 2bc084b329ffe0ab3ce5c6febc33d60da9113fc8
-- 修复：健康检查将不会工作，当 unhealthyThreshold 是一个空值得时候，改为使用默认值 (#1853), @Bryce-Huang, commit 7ef7f9c81e4a26990fd39d842f212606e916b080
+- 修复：当 unhealthyThreshold 是一个空值得时候，健康检查将不会工作，改为使用默认值 (#1853), @Bryce-Huang, commit 7ef7f9c81e4a26990fd39d842f212606e916b080
 - 修复：在 unweightChooseHost 中的死循环 #1860, @alpha-baby, commit f44ed6dae3563b26af41b1535c7046a3a06b58a9
 - 修复：direct response 中 hijack 不应该再执行转换, @nejisama, commit 7e53ac54acb8668765ce97d49672ff8586971df4
 - 修复：当一个不健康的 host 有很高的权重时，EDF wrr 将不再选择其他健康的 host @lemonlinger, commit 67ca88aabe8966962abfd30f0f59114d119e5097
