@@ -11,7 +11,7 @@
 
 - 新增 ip_access filter，基于来源 IP 的 ACL 控制器 (#1797) [@Bryce-huang](https://github.com/Bryce-huang)
 - 允许 Admin Api 扩展验证方法 (#1834) [@nejisama](https://github.com/nejisama)
-- transcoder 模块支持 stream filter 通过配置指定阶段，取代固定的阶段 (#1815) [@YIDWang](https://github.com/YIDWang)
+- transcoder stream filter 模块支持通过配置指定阶段，取代固定的阶段 (#1815) [@YIDWang](https://github.com/YIDWang)
 - 为 tls connection 增加 SetConnectionState 方法，在 pkg/mtls/crypto/tls.Conn 中 (#1804) [@antJack](https://github.com/antJack)
 - 增加了 after-start 和 after-stop 这两个新的执行阶段，并允许在这两个阶段注册处理函数 [@doujiang24](https://github.com/doujiang24)
 - 新增 uds_dir 配置项，用于指定 unix domain socket 的目录 (#1829) [@dengqian](https://github.com/dengqian)

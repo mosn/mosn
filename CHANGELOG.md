@@ -2,11 +2,18 @@
 
 ## v0.26.0
 
+### Incompatible Change
+
+For implementing new protocols more nature, XProtocol is no longer as a protocol and no subprotocol any more.
+XProtocol is a framework to implement protocol easier now.
+So, the old existing code for implementing new protocols need some changes,
+please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the old existing code suit for the new release.
+
 ### New Features
 
 - Added the ip_access new filter to manage access control based on IP (#1797). [@Bryce-huang](https://github.com/Bryce-huang)
 - Support admin api extends auth functions (#1834). [@nejisama](https://github.com/nejisama)
-- Support dynamic phase for stream filter for transcode module (#1815). [@YIDWang](https://github.com/YIDWang)
+- The transcode stream filter module support dynamic phase (#1815). [@YIDWang](https://github.com/YIDWang)
 - Added the SetConnectionState method for tls connection in pkg/mtls/crypto/tls.Conn (#1804). [@antJack](https://github.com/antJack)
 - Added the after-start and after-stop two new stages, and allow to register handler during these stages. [@doujiang24](https://github.com/doujiang24)
 - Support specify the unix domain socket directory by adding the new "uds_dir" configuration (#1829). [@dengqian](https://github.com/dengqian)
@@ -21,7 +28,6 @@
 - Delete useless type assertion in XProtocol.Dispatch. [@alpha-baby](https://github.com/alpha-baby)
 - Refactory default http1 and http2 convert, remove the proxy convert, use transcoder filter instead. [@nejisama](https://github.com/nejisama)
 - Changed to register trancoder factory instead trancoder (#1879). [@YIDWang](https://github.com/YIDWang)
-- XProtocol is no longer as a protocol and no subprotocol any more, the original subprotocol will upgrade to the protocol, #1874. [@nejisama](https://github.com/nejisama)
 
 ### Bug fixes
 
