@@ -2,6 +2,11 @@
 
 ## v0.26.0
 
+### 不兼容变更
+
+为了更自然的添加扩展协议，新版对 XProtocol 进行了重构，XProtocol 不再是一种协议，而是便于协议扩展实现的框架。
+扩展协议的实现需要一些调整，具体请见 [XProtocol协议改造适配指南](reports/xprotocol_0.26.0.md)
+
 ### 新功能
 
 - 新增 ip_access filter，基于来源 IP 的 ACL 控制器 (#1797) [@Bryce-huang](https://github.com/Bryce-huang)
@@ -21,7 +26,6 @@
 - 删除 XProtocol.Dispatch 中无用的类型断言 [@alpha-baby](https://github.com/alpha-baby)
 - 重构默认的 http1 和 http2 的协议转换，删除了 proxy 中的转换，使用 transcoder filter 来代替 [@nejisama](https://github.com/nejisama)
 - 使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
-- 重构 XProtocol，XProtocol不再是一种协议，而是一种协议实现的封装框架 #1874 [@nejisama](https://github.com/nejisama)
 
 ### Bug 修复
 
