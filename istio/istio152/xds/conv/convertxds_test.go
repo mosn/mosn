@@ -21,9 +21,11 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/andreyvit/diff"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -243,6 +245,7 @@ func Test_convertListenerConfig(t *testing.T) {
 		address      core.Address
 		filterName   string
 		filterConfig *xdshttp.HttpConnectionManager
+		tlsContexts  []envoy_api_v2_auth.DownstreamTlsContext
 	}
 
 	accessLogFilterConfig := messageToAny(t, &xdsaccesslog.FileAccessLog{
@@ -431,13 +434,243 @@ func Test_convertListenerConfig(t *testing.T) {
 						},
 					},
 				},
+				tlsContexts: []envoy_api_v2_auth.DownstreamTlsContext{
+					{
+						RequireClientCertificate: NewBoolValue(false),
+						CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+							TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
+								{
+									Name: "mosn-first-cert",
+								},
+							},
+							ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
+								CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
+									ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+										Name: "mosn-first-ca",
+									},
+								},
+							},
+						},
+					},
+					{
+						RequireClientCertificate: NewBoolValue(true),
+						CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+							TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
+								{
+									Name: "mosn-second-cert",
+								},
+							},
+							ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
+								CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
+									ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+										Name: "mosn-second-ca",
+									},
+								},
+							},
+						},
+					},
+					{
+						RequireClientCertificate: NewBoolValue(true),
+						CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+							TlsCertificates: []*envoy_api_v2_auth.TlsCertificate{
+								{
+									CertificateChain: &core.DataSource{
+										Specifier: &core.DataSource_Filename{
+											Filename: "local-cert-file",
+										},
+									},
+									PrivateKey: &core.DataSource{
+										Specifier: &core.DataSource_Filename{
+											Filename: "local-private-file",
+										},
+									},
+								},
+							},
+							ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContext{
+								ValidationContext: &envoy_api_v2_auth.CertificateValidationContext{
+									TrustedCa: &core.DataSource{
+										Specifier: &core.DataSource_Filename{
+											Filename: "local-root-cert-file",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			want: `{"name":"0.0.0.0_80","address":"","bind_port":false,"handoff_restoreddestination":false,"log_path":"stdout","access_logs":[{"log_path":"/dev/stdout"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context":{"status":false,"type":"","extend_verify":null},"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","extend_config":null,"name":"","support_dynamic_route":true,"upstream_protocol":"Http1","validate_clusters":false,"virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","require_tls":"NONE","routers":[{"decorator":"operation:\"istio-egressgateway.istio-system.svc.cluster.local:80/*\" ","match":{"case_sensitive":false,"headers":null,"path":"","prefix":"/","regex":"","runtime":{"default_value":0,"runtime_key":""}},"metadata":{"filter_metadata":{"mosn.lb":null}},"redirect":{"host_redirect":"","path_redirect":"","response_code":0},"route":{"cluster_header":"","cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","metadata_match":{"filter_metadata":{"mosn.lb":null}},"retry_policy":{"num_retries":0,"retry_on":false,"retry_timeout":"0s"},"timeout":"0s","weighted_clusters":null}}],"virtual_clusters":null},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","require_tls":"NONE","routers":[{"decorator":"operation:\"istio-ingressgateway.istio-system.svc.cluster.local:80/*\" ","match":{"case_sensitive":false,"headers":null,"path":"","prefix":"/","regex":"","runtime":{"default_value":0,"runtime_key":""}},"metadata":{"filter_metadata":{"mosn.lb":null}},"redirect":{"host_redirect":"","path_redirect":"","response_code":0},"route":{"cluster_header":"","cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","metadata_match":{"filter_metadata":{"mosn.lb":null}},"retry_policy":{"num_retries":0,"retry_on":false,"retry_timeout":"0s"},"timeout":"0s","weighted_clusters":null}}],"virtual_clusters":null},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","require_tls":"NONE","routers":[{"decorator":"operation:\"nginx-ingress-lb.kube-system.svc.cluster.local:80/*\" ","match":{"case_sensitive":false,"headers":null,"path":"","prefix":"/","regex":"","runtime":{"default_value":0,"runtime_key":""}},"metadata":{"filter_metadata":{"mosn.lb":null}},"redirect":{"host_redirect":"","path_redirect":"","response_code":0},"route":{"cluster_header":"","cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","metadata_match":{"filter_metadata":{"mosn.lb":null}},"retry_policy":{"num_retries":0,"retry_on":false,"retry_timeout":"0s"},"timeout":"0s","weighted_clusters":null}}],"virtual_clusters":null}]}}]}],"inspector":true}`,
+			want: `
+{
+   "access_logs" : [
+      {
+         "log_path" : "/dev/stdout"
+      }
+   ],
+   "address" : "0.0.0.0:80",
+   "filter_chains" : [
+      {
+         "filters" : [
+            {
+               "config" : {
+                  "downstream_protocol" : "Http1",
+                  "router_config_name" : "80",
+                  "upstream_protocol" : "Http1"
+               },
+               "type" : "proxy"
+            },
+            {
+               "config" : {
+                  "router_config_name" : "80",
+                  "virtual_hosts" : [
+                     {
+                        "domains" : [
+                           "istio-egressgateway.istio-system.svc.cluster.local",
+                           "istio-egressgateway.istio-system.svc.cluster.local:80",
+                           "istio-egressgateway.istio-system",
+                           "istio-egressgateway.istio-system:80",
+                           "istio-egressgateway.istio-system.svc.cluster",
+                           "istio-egressgateway.istio-system.svc.cluster:80",
+                           "istio-egressgateway.istio-system.svc",
+                           "istio-egressgateway.istio-system.svc:80",
+                           "172.19.3.204",
+                           "172.19.3.204:80"
+                        ],
+                        "name" : "istio-egressgateway.istio-system.svc.cluster.local:80",
+                        "routers" : [
+                           {
+                              "match" : {
+                                 "prefix" : "/"
+                              },
+                              "route" : {
+                                 "cluster_name" : "outbound|80||istio-egressgateway.istio-system.svc.cluster.local",
+                                 "retry_policy" : {
+                                    "retry_timeout" : "0s"
+                                 },
+                                 "timeout" : "0s"
+                              }
+                           }
+                        ]
+                     },
+                     {
+                        "domains" : [
+                           "istio-ingressgateway.istio-system.svc.cluster.local",
+                           "istio-ingressgateway.istio-system.svc.cluster.local:80",
+                           "istio-ingressgateway.istio-system",
+                           "istio-ingressgateway.istio-system:80",
+                           "istio-ingressgateway.istio-system.svc.cluster",
+                           "istio-ingressgateway.istio-system.svc.cluster:80",
+                           "istio-ingressgateway.istio-system.svc",
+                           "istio-ingressgateway.istio-system.svc:80",
+                           "172.19.8.101",
+                           "172.19.8.101:80"
+                        ],
+                        "name" : "istio-ingressgateway.istio-system.svc.cluster.local:80",
+                        "routers" : [
+                           {
+                              "match" : {
+                                 "prefix" : "/"
+                              },
+                              "route" : {
+                                 "cluster_name" : "outbound|80||istio-ingressgateway.istio-system.svc.cluster.local",
+                                 "retry_policy" : {
+                                    "retry_timeout" : "0s"
+                                 },
+                                 "timeout" : "0s"
+                              }
+                           }
+                        ]
+                     },
+                     {
+                        "domains" : [
+                           "nginx-ingress-lb.kube-system.svc.cluster.local",
+                           "nginx-ingress-lb.kube-system.svc.cluster.local:80",
+                           "nginx-ingress-lb.kube-system",
+                           "nginx-ingress-lb.kube-system:80",
+                           "nginx-ingress-lb.kube-system.svc.cluster",
+                           "nginx-ingress-lb.kube-system.svc.cluster:80",
+                           "nginx-ingress-lb.kube-system.svc",
+                           "nginx-ingress-lb.kube-system.svc:80",
+                           "172.19.6.192:80",
+                           "172.19.8.101:80"
+                        ],
+                        "name" : "nginx-ingress-lb.kube-system.svc.cluster.local:80",
+                        "routers" : [
+                           {
+                              "match" : {
+                                 "prefix" : "/"
+                              },
+                              "route" : {
+                                 "cluster_name" : "outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local",
+                                 "retry_policy" : {
+                                    "retry_timeout" : "0s"
+                                 },
+                                 "timeout" : "0s"
+                              }
+                           }
+                        ]
+                     }
+                  ]
+               },
+               "type" : "connection_manager"
+            }
+         ],
+         "match" : "<nil>",
+         "tls_context_set" : [
+            {
+               "sds_source" : {
+                  "CertificateConfig" : {
+                     "name" : "mosn-first-cert",
+					 "sdsConfig" : {}
+                  },
+                  "ValidationConfig" : {
+                     "name" : "mosn-first-ca",
+					 "sdsConfig" : {}
+                  }
+               },
+               "status" : true,
+               "verify_client" : false
+            },
+            {
+               "sds_source" : {
+                  "CertificateConfig" : {
+                     "name" : "mosn-second-cert",
+					 "sdsConfig" : {}
+                  },
+                  "ValidationConfig" : {
+                     "name" : "mosn-second-ca",
+					 "sdsConfig" : {}
+                  }
+               },
+               "status" : true,
+               "verify_client" : true
+            },
+			{
+			    "status": true,
+			    "ca_cert": "local-root-cert-file",
+			    "cert_chain": "local-cert-file",
+			    "private_key": "local-private-file",
+			    "verify_client": true
+			}
+         ]
+      }
+   ],
+   "inspector" : true,
+   "listener_filters" : [
+      {
+         "type" : "original_dst"
+      }
+   ],
+   "name" : "0.0.0.0_80"
+}
+				`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tls0 := messageToAny(t, &tt.args.tlsContexts[0])
+			tls1 := messageToAny(t, &tt.args.tlsContexts[1])
+			tls2 := messageToAny(t, &tt.args.tlsContexts[2])
 			conf := messageToAny(t, tt.args.filterConfig)
 			listenerConfig := &xdsapi.Listener{
 				Name:    "0.0.0.0_80",
@@ -445,28 +678,16 @@ func Test_convertListenerConfig(t *testing.T) {
 				FilterChains: []*xdslistener.FilterChain{
 					{
 						FilterChainMatch: nil,
-						TlsContext: &envoy_api_v2_auth.DownstreamTlsContext{
-							RequireClientCertificate: NewBoolValue(false),
-							CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-								TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
-									{
-										Name: "mosn-first-cert",
-									},
-								},
-								ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
-									CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
-										ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-											Name: "mosn-first-ca",
-										},
-									},
-								},
+						TransportSocket: &xdscore.TransportSocket{
+							ConfigType: &xdscore.TransportSocket_TypedConfig{
+								TypedConfig: tls0,
 							},
 						},
 						Filters: []*xdslistener.Filter{
 							{
 								Name: tt.args.filterName,
 								ConfigType: &xdslistener.Filter_TypedConfig{
-									conf,
+									TypedConfig: conf,
 								},
 							},
 						},
@@ -474,21 +695,18 @@ func Test_convertListenerConfig(t *testing.T) {
 					{
 						FilterChainMatch: nil,
 						Filters:          nil,
-						TlsContext: &envoy_api_v2_auth.DownstreamTlsContext{
-							RequireClientCertificate: NewBoolValue(true),
-							CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-								TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
-									{
-										Name: "mosn-second-cert",
-									},
-								},
-								ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
-									CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
-										ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-											Name: "mosn-second-ca",
-										},
-									},
-								},
+						TransportSocket: &xdscore.TransportSocket{
+							ConfigType: &xdscore.TransportSocket_TypedConfig{
+								TypedConfig: tls1,
+							},
+						},
+					},
+					{
+						FilterChainMatch: nil,
+						Filters:          nil,
+						TransportSocket: &xdscore.TransportSocket{
+							ConfigType: &xdscore.TransportSocket_TypedConfig{
+								TypedConfig: tls2,
 							},
 						},
 					},
@@ -505,7 +723,6 @@ func Test_convertListenerConfig(t *testing.T) {
 				},
 			}
 
-			tt.want = `{"name":"0.0.0.0_80","address":"0.0.0.0:80", "access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{"status": true,"verify_client":false,"sds_source":{"CertificateConfig":{"name":"mosn-first-cert"},"ValidationConfig":{"name":"mosn-first-ca"}}},{"status": true,"verify_client":true,"sds_source":{"CertificateConfig":{"name":"mosn-second-cert"},"ValidationConfig":{"name":"mosn-second-ca"}}}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
 			got := ConvertListenerConfig(listenerConfig, nil)
 			want := &v2.Listener{}
 			err := json.Unmarshal([]byte(tt.want), want)
@@ -513,8 +730,32 @@ func Test_convertListenerConfig(t *testing.T) {
 				t.Errorf("json.Unmarshal([]byte(tt.want) got error: %v", err)
 			}
 
-			if !reflect.DeepEqual(want.ListenerConfig.ListenerFilters, got.ListenerConfig.ListenerFilters) {
-				t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%+v\nwant=%+v\n", got.ListenerConfig.ListenerFilters, want.ListenerConfig.ListenerFilters)
+			if !reflect.DeepEqual(got.ListenerConfig.ListenerFilters, want.ListenerConfig.ListenerFilters) {
+				t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener) ListenerFilters\ngot=%+v\nwant=%+v\n",
+					got.ListenerConfig.ListenerFilters,
+					want.ListenerConfig.ListenerFilters)
+			}
+
+			/*
+				if !reflect.DeepEqual(want.ListenerConfig.FilterChains[0].TLSContexts, got.ListenerConfig.FilterChains[0].TLSContexts) {
+					t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener) TLSContexts\ngot=%+v\nwant=%+v\n",
+						got.ListenerConfig.FilterChains[0].TLSContexts,
+						want.ListenerConfig.FilterChains[0].TLSContexts)
+				}
+			*/
+
+			// can not use DeepEqual here since the empty struct of SdsConfig have different address
+			tls_want_str, err := json.MarshalIndent(want.ListenerConfig.FilterChains[0].TLSContexts, "", "    ")
+			if err != nil {
+				t.Errorf("tls want json MarshalIndent err: %v", err)
+			}
+			tls_got_str, err := json.MarshalIndent(got.ListenerConfig.FilterChains[0].TLSContexts, "", "    ")
+			if err != nil {
+				t.Errorf("tls got json MarshalIndent err: %v", err)
+			}
+			if strings.Compare(string(tls_want_str), string(tls_got_str)) != 0 {
+				t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener) TLSContexts: got vs want not match: %s\n",
+					diff.LineDiff(string(tls_got_str), string(tls_want_str)))
 			}
 		})
 	}
