@@ -42,6 +42,8 @@
 - 修复：在 unweightChooseHost 中的死循环 #1860 [@alpha-baby](https://github.com/alpha-baby)
 - 修复：direct response 中 hijack 不应该再执行转换 [@nejisama](https://github.com/nejisama)
 - 修复：当一个不健康的 host 有很高的权重时，EDF wrr 将不再选择其他健康的 host [@lemonlinger](https://github.com/lemonlinger)
+- 修复：Istio LDS 中的 CACert 文件名获取错误，导致 MOSN listen 失败，不会接受请求 (#1893). [@doujiang24](https://github.com/doujiang24)
+- 修复：DNS 解析 STRICT_DNS_CLUSTER 中 host 的 goroutine 没法停止 #1894 [@bincherry](https://github.com/bincherry)
 
 ## v0.25.0
 

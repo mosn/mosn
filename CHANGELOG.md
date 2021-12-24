@@ -42,6 +42,8 @@
 - Fix dead recursion in unweightChooseHost #1860. [@alpha-baby](https://github.com/alpha-baby)
 - Fix direct response, send hijack should not transcode. [@nejisama](https://github.com/nejisama)
 - Fix EDF wrr lb cannot choose a healthy host when there's a unhealthy host with a high weight. [@lemonlinger](https://github.com/lemonlinger)
+- Got the wrong CACert filename when converting the listen filter from Istio LDS, MOSN may not listen success (#1893). [@doujiang24](https://github.com/doujiang24)
+- The goroutine for resolving hosts in STRICT_DNS_CLUSTER cannot be stopped #1894 [@bincherry](https://github.com/bincherry)
 
 ## v0.25.0
 
