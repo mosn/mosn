@@ -249,16 +249,17 @@ func (rt *ResolveTarget) StartResolve() {
 	for {
 		select {
 		case <-rt.stop:
-			rt.resolveTimeout.Stop()
-			rt.resolveTimer.Stop()
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
+			}
+			return
 		default:
 			select {
 			case <-rt.stop:
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
 				}
-				rt.resolveTimeout.Stop()
-				rt.resolveTimer.Stop()
+				return
 			case <-rt.timeout:
 				rt.resolveTimer.Stop()
 				// if timeout, start a new timer
