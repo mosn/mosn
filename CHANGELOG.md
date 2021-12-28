@@ -13,7 +13,7 @@ please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the 
 
 - Added the ip_access new filter to manage access control based on IP (#1797). [@Bryce-huang](https://github.com/Bryce-huang)
 - Support admin api extends auth functions (#1834). [@nejisama](https://github.com/nejisama)
-- The transcode stream filter module support dynamic phase (#1815). [@YIDWang](https://github.com/YIDWang)
+- The transcode filter module support dynamic phase (#1815). [@YIDWang](https://github.com/YIDWang)
 - Added the SetConnectionState method for tls connection in pkg/mtls/crypto/tls.Conn (#1804). [@antJack](https://github.com/antJack)
 - Added the after-start and after-stop two new stages, and allow to register handler during these stages. [@doujiang24](https://github.com/doujiang24)
 - Support specify the unix domain socket directory by adding the new "uds_dir" configuration (#1829). [@dengqian](https://github.com/dengqian)
@@ -26,7 +26,7 @@ please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the 
 
 - Change the default max header size to 8KB (#1837). [@nejisama](https://github.com/nejisama)
 - Refactory default http1 and http2 convert, remove the proxy convert, use transcoder filter instead. [@nejisama](https://github.com/nejisama)
-- Transcoder Filter: changed to register trancoder factory instead trancoder (#1879). [@YIDWang](https://github.com/YIDWang)
+- transcoder filter: changed to register trancoder factory instead trancoder (#1879). [@YIDWang](https://github.com/YIDWang)
 
 ### Bug fixes
 

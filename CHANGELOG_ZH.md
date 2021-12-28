@@ -11,7 +11,7 @@
 
 - 新增 ip_access filter，基于来源 IP 的 ACL 控制器 (#1797) [@Bryce-huang](https://github.com/Bryce-huang)
 - 允许 Admin Api 扩展验证方法 (#1834) [@nejisama](https://github.com/nejisama)
-- transcoder stream filter 模块支持通过配置指定阶段，取代固定的阶段 (#1815) [@YIDWang](https://github.com/YIDWang)
+- transcoder filter：支持通过配置指定阶段，取代固定的阶段 (#1815) [@YIDWang](https://github.com/YIDWang)
 - 为 tls connection 增加 SetConnectionState 方法，在 pkg/mtls/crypto/tls.Conn 中 (#1804) [@antJack](https://github.com/antJack)
 - 增加了 after-start 和 after-stop 这两个新的执行阶段，并允许在这两个阶段注册处理函数 [@doujiang24](https://github.com/doujiang24)
 - 新增 uds_dir 配置项，用于指定 unix domain socket 的目录 (#1829) [@dengqian](https://github.com/dengqian)
@@ -24,7 +24,7 @@
 
 - 将 http 协议的默认最大请求头大小调整到 8KB (#1837) [@nejisama](https://github.com/nejisama)
 - 重构默认的 http1 和 http2 的协议转换，删除了 proxy 中的转换，使用 transcoder filter 来代替 [@nejisama](https://github.com/nejisama)
-- Transcoder Filter：使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
+- transcoder filter：使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
 
 ### Bug 修复
 
@@ -41,7 +41,7 @@
 - 修复：xprotocol 连接池(binding-connection) 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
 - 修复：应该将 close logger 放在最后，否则在关闭 MOSN 实例过程中将没有日志输出 (#1845) [@doujiang24](https://github.com/doujiang24)
 - 修复：XProtocol PingPong 类型连接超时的时候，因为 codecClient 没有初始化，会导致 panic (#1849) [@cuiweixie](https://github.com/cuiweixie)
-- 修复：当 unhealthyThreshold 是一个空值得时候，健康检查将不会工作，改为使用默认值 (#1853) [@Bryce-huang](https://github.com/Bryce-huang)
+- 修复：当 unhealthyThreshold 是一个空值时，健康检查将不会工作，修改为空值时使用默认值 (#1853) [@Bryce-huang](https://github.com/Bryce-huang)
 - 修复：WRR 负载均衡算法可能导致死循环（发生在 unweightChooseHost）#1860 [@alpha-baby](https://github.com/alpha-baby)
 - 修复：direct response 中 hijack 不应该再执行转换 [@nejisama](https://github.com/nejisama)
 - 修复：当一个不健康的 host 有很高的权重时，EDF wrr 将不再选择其他健康的 host [@lemonlinger](https://github.com/lemonlinger)
