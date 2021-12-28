@@ -58,13 +58,10 @@ func isCollectionSerialize(name string) bool {
 	return getCollectionSerialize(name) != nil
 }
 
-type JavaCollectionSerializer struct {
-}
+type JavaCollectionSerializer struct{}
 
 func (JavaCollectionSerializer) EncObject(e *Encoder, vv POJO) error {
-	var (
-		err error
-	)
+	var err error
 	v, ok := vv.(JavaCollectionObject)
 	if !ok {
 		return perrors.New("can not be converted into java collection object")
@@ -88,8 +85,8 @@ func (JavaCollectionSerializer) EncObject(e *Encoder, vv POJO) error {
 	return nil
 }
 
-func (JavaCollectionSerializer) DecObject(d *Decoder, typ reflect.Type, cls classInfo) (interface{}, error) {
-	//for the java impl of hessian encode collections as list, which will not be decoded as object in go impl, this method should not be called
+func (JavaCollectionSerializer) DecObject(d *Decoder, typ reflect.Type, cls *classInfo) (interface{}, error) {
+	// for the java impl of hessian encode collections as list, which will not be decoded as object in go impl, this method should not be called
 	return nil, perrors.New("unexpected collection decode call")
 }
 
@@ -107,10 +104,7 @@ func (d *Decoder) decodeCollection(length int, listTyp string) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	listInterface, err := EnsureInterface(list, nil)
-	if err != nil {
-		return nil, err
-	}
+	listInterface := EnsureRawAny(list)
 	listV, listOk := listInterface.([]interface{})
 	if !listOk {
 		return nil, perrors.New("collection deserialize err " + listTyp)

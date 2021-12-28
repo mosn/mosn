@@ -14,17 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java8_time
 
-// java8-time java.time.Year
-type Year struct {
-	Year int32 `hessian:"year"`
+package java_util
+
+// java.util.UUID
+type UUID struct {
+	Value string `hessian:"value"`
 }
 
-func (Year) JavaClassName() string {
-	return "com.alibaba.com.caucho.hessian.io.java8.YearHandle"
+func (UUID) JavaClassName() string {
+	return "java.util.UUID"
 }
 
-func (Year) Error() string {
-	return "encode Year error"
+//String returns a string object representing this UUID.
+func (uuid UUID) String() string {
+	return uuid.Value
 }

@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java8_time
 
-// java8-time java.time.Year
-type Year struct {
-	Year int32 `hessian:"year"`
-}
+package hessian
 
-func (Year) JavaClassName() string {
-	return "com.alibaba.com.caucho.hessian.io.java8.YearHandle"
-}
+import (
+	"github.com/apache/dubbo-go-hessian2/java_util"
+)
 
-func (Year) Error() string {
-	return "encode Year error"
+func init() {
+	RegisterPOJO(&java_util.UUID{
+		Value: "",
+	})
+	RegisterPOJO(&java_util.LocaleHandle{
+		Value: "",
+	})
 }

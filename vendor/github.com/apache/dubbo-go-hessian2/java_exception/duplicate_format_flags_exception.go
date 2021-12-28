@@ -34,7 +34,6 @@ func (e DuplicateFormatFlagsException) Error() string {
 	} else {
 		return e.DetailMessage + " flags=" + e.Flags
 	}
-
 }
 
 // JavaClassName  java fully qualified path

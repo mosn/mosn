@@ -25,7 +25,7 @@ package hessian
 // ::= 'T'
 // ::= 'F'
 func encBool(b []byte, v bool) []byte {
-	var c = BC_FALSE
+	c := BC_FALSE
 	if v {
 		c = BC_TRUE
 	}

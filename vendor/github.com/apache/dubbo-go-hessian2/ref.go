@@ -84,7 +84,7 @@ func (d *Decoder) appendRefs(v interface{}) *_refHolder {
 	return holder
 }
 
-//encRef encode ref index
+// encRef encode ref index
 func encRef(b []byte, index int) []byte {
 	return encInt32(append(b, BC_REF), int32(index))
 }
@@ -157,7 +157,7 @@ func (d *Decoder) decRef(flag int32) (interface{}, error) {
 	if flag != TAG_READ {
 		tag = byte(flag)
 	} else {
-		tag, _ = d.readByte()
+		tag, _ = d.ReadByte()
 	}
 
 	switch {
@@ -169,7 +169,7 @@ func (d *Decoder) decRef(flag int32) (interface{}, error) {
 
 		if len(d.refs) <= int(i) {
 			return nil, nil
-			//return nil, ErrIllegalRefIndex
+			// return nil, ErrIllegalRefIndex
 		}
 		// return the exact ref object, which maybe a _refHolder
 		return d.refs[i], nil

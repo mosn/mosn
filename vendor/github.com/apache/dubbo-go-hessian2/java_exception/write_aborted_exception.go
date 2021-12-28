@@ -29,8 +29,10 @@ type WriteAbortedException struct {
 
 // NewWriteAbortedException is the constructor
 func NewWriteAbortedException(detailMessage string, detail Throwabler) *WriteAbortedException {
-	return &WriteAbortedException{DetailMessage: detailMessage, StackTrace: nil,
-		Detail: detail}
+	return &WriteAbortedException{
+		DetailMessage: detailMessage, StackTrace: nil,
+		Detail: detail,
+	}
 }
 
 // Error output error message
