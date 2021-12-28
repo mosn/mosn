@@ -20,12 +20,11 @@
 - 支持动态设置上游协议 (#1808) [@YIDWang](https://github.com/YIDWang)
 - 支持动态设置 HTTP 默认最大值配置, #1886 [@nejisama](https://github.com/nejisama)
 
-### 重构
+### 变更
 
 - 将 http 协议的默认最大请求头大小调整到 8KB (#1837) [@nejisama](https://github.com/nejisama)
-- 删除 XProtocol.Dispatch 中无用的类型断言 [@alpha-baby](https://github.com/alpha-baby)
 - 重构默认的 http1 和 http2 的协议转换，删除了 proxy 中的转换，使用 transcoder filter 来代替 [@nejisama](https://github.com/nejisama)
-- 使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
+- Transcoder Filter：使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
 
 ### Bug 修复
 
@@ -38,12 +37,12 @@
 - 修复：当取消客户端的 grpc 的时候，没有发送 resetStreamFrame 到上游，使得 server 断没有及时结束 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
 - 修复：应该在关闭 stream connection 之前设置 resetReason，否则可能导致获取不到真实的原因 (#1828) [@wangfakang](https://github.com/wangfakang)
 - 修复：当有多个匹配的 listener 的时候，应该选择最优的匹配的 listener，否则可能导致 400 错误 [@MengJiapeng](https://github.com/MengJiapeng)
-- 修复：处理 broadcast 可能导致 map 并发读写 panic [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
-- 修复：binding-connection 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
+- 修复：H2 协议处理 broadcast 可能导致 map 并发读写 panic [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复：xprotocol 连接池(binding-connection) 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
 - 修复：应该将 close logger 放在最后，否则在关闭 MOSN 实例过程中将没有日志输出 (#1845) [@doujiang24](https://github.com/doujiang24)
-- 修复：codecClient 没有初始化 (#1849) [@cuiweixie](https://github.com/cuiweixie)
+- 修复：XProtocol PingPong 类型连接超时的时候，因为 codecClient 没有初始化，会导致 panic (#1849) [@cuiweixie](https://github.com/cuiweixie)
 - 修复：当 unhealthyThreshold 是一个空值得时候，健康检查将不会工作，改为使用默认值 (#1853) [@Bryce-huang](https://github.com/Bryce-huang)
-- 修复：在 unweightChooseHost 中的死循环 #1860 [@alpha-baby](https://github.com/alpha-baby)
+- 修复：WRR 负载均衡算法可能导致死循环（发生在 unweightChooseHost）#1860 [@alpha-baby](https://github.com/alpha-baby)
 - 修复：direct response 中 hijack 不应该再执行转换 [@nejisama](https://github.com/nejisama)
 - 修复：当一个不健康的 host 有很高的权重时，EDF wrr 将不再选择其他健康的 host [@lemonlinger](https://github.com/lemonlinger)
 - 修复：Istio LDS 中的 CACert 文件名获取错误，导致 MOSN listen 失败，不会接受请求 (#1893). [@doujiang24](https://github.com/doujiang24)
