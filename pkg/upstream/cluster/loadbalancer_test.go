@@ -493,16 +493,16 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			},
 			args: args{
 				context:  nil,
-				runCount: 1000000,
+				runCount: 1000,
 			},
 			want: map[string]int{
 				"address1": 0,
-				"address2": 500000,
+				"address2": 500,
 				"address3": 0,
-				"address4": 500000,
+				"address4": 500,
 			},
 			wantUniformity: 0.0001,
-			resultChan:     make(chan types.Host, 1000000),
+			resultChan:     make(chan types.Host, 1000),
 		},
 	}
 	// testcase2
@@ -541,16 +541,16 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		},
 		args: args{
 			context:  nil,
-			runCount: 1000000,
+			runCount: 1000,
 		},
 		want: map[string]int{
 			"address-1": 0,
 			"address-2": 0,
 			"address-3": 0,
-			"address-4": 1000000,
+			"address-4": 1000,
 		},
 		wantUniformity: 0.0,
-		resultChan:     make(chan types.Host, 1000000),
+		resultChan:     make(chan types.Host, 1000),
 	})
 	// testcase3
 	mockHosts_testcase3 := []types.Host{
@@ -616,21 +616,21 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		},
 		args: args{
 			context:  nil,
-			runCount: 1500000,
+			runCount: 1500,
 		},
 		want: map[string]int{
-			"address--1": 500000,
+			"address--1": 500,
 			"address--2": 0,
 			"address--3": 0,
-			"address--4": 500000,
+			"address--4": 500,
 			"address--5": 0,
 			"address--6": 0,
-			"address--7": 500000,
+			"address--7": 500,
 			"address--8": 0,
 			"address--9": 0,
 		},
 		wantUniformity: 0.0001,
-		resultChan:     make(chan types.Host, 1500000),
+		resultChan:     make(chan types.Host, 1500),
 	})
 	// testcase4
 	mockHosts_testcase4 := []types.Host{
@@ -691,21 +691,21 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		},
 		args: args{
 			context:  nil,
-			runCount: 900000,
+			runCount: 900,
 		},
 		want: map[string]int{
-			"address--1": 100000,
-			"address--2": 100000,
-			"address--3": 100000,
-			"address--4": 100000,
-			"address--5": 100000,
-			"address--6": 100000,
-			"address--7": 100000,
-			"address--8": 100000,
-			"address--9": 100000,
+			"address--1": 100,
+			"address--2": 100,
+			"address--3": 100,
+			"address--4": 100,
+			"address--5": 100,
+			"address--6": 100,
+			"address--7": 100,
+			"address--8": 100,
+			"address--9": 100,
 		},
 		wantUniformity: 0.0,
-		resultChan:     make(chan types.Host, 900000),
+		resultChan:     make(chan types.Host, 900),
 	})
 
 	for _, tt := range tests {
