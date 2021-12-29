@@ -30,7 +30,9 @@ import (
 )
 
 var (
-	ErrAGAIN = errors.New("EAGAIN")
+	ErrAGAIN       = errors.New("EAGAIN")
+	ErrStreamID    = errStreamID
+	ErrDepStreamID = errDepStreamID
 	//todo: support configuration
 	initialConnRecvWindowSize = int32(1 << 30)
 )

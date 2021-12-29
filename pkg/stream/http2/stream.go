@@ -1068,6 +1068,12 @@ reset:
 		s.ResetStream(types.StreamConnectionFailed)
 		return
 	}
+	// fix: https://github.com/mosn/mosn/issues/1900
+	if err == http2.ErrStreamID || err == http2.ErrDepStreamID {
+		s.sc.streamConnectionEventListener.OnGoAway()
+		s.ResetStream(types.StreamConnectionFailed)
+		return
+	}
 	s.ResetStream(types.StreamLocalReset)
 }
 
