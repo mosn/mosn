@@ -2,7 +2,7 @@
 	"close_graceful": true,
 	"servers": [
 		{
-			"default_log_path": "debug",
+			"default_log_path": "stdout",
 			"routers": [
 				{
 					"router_config_name": "client_router",
@@ -38,7 +38,7 @@
 										"upstream_protocol": "X",
 										"router_config_name": "client_router",
 										"extend_config": {
-											"sub_protocol": "x_example"
+											"sub_protocol": "codec"
 										}
 									}
 								}
