@@ -44,17 +44,15 @@ func SetJavaSqlTimeSerialize(time java_sql_time.JavaSqlTime) {
 }
 
 // JavaSqlTimeSerializer used to encode & decode java.sql.Time & java.sql.Date
-type JavaSqlTimeSerializer struct {
-}
+type JavaSqlTimeSerializer struct{}
 
 // nolint
 func (JavaSqlTimeSerializer) EncObject(e *Encoder, vv POJO) error {
-
 	var (
 		i         int
 		idx       int
 		err       error
-		clsDef    classInfo
+		clsDef    *classInfo
 		className string
 		ptrV      reflect.Value
 	)
@@ -88,7 +86,7 @@ func (JavaSqlTimeSerializer) EncObject(e *Encoder, vv POJO) error {
 		}
 	}
 	if idx == -1 {
-		idx, ok = checkPOJORegistry(typeof(vv))
+		idx, ok = checkPOJORegistry(vv)
 		if !ok {
 			idx = RegisterPOJO(v)
 		}
@@ -116,8 +114,7 @@ func (JavaSqlTimeSerializer) EncObject(e *Encoder, vv POJO) error {
 }
 
 // nolint
-func (JavaSqlTimeSerializer) DecObject(d *Decoder, typ reflect.Type, cls classInfo) (interface{}, error) {
-
+func (JavaSqlTimeSerializer) DecObject(d *Decoder, typ reflect.Type, cls *classInfo) (interface{}, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, perrors.Errorf("wrong type expect Struct but get:%s", typ.String())
 	}
@@ -126,8 +123,8 @@ func (JavaSqlTimeSerializer) DecObject(d *Decoder, typ reflect.Type, cls classIn
 	// add pointer ref so that ref the same object
 	d.appendRefs(vRef.Interface())
 
-	tag, err := d.readByte()
-	if err == io.EOF {
+	tag, err := d.ReadByte()
+	if perrors.Is(err, io.EOF) {
 		return nil, err
 	}
 	date, err := d.decDate(int32(tag))

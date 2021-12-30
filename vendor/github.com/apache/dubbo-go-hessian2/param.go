@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java8_time
 
-// java8-time java.time.Year
-type Year struct {
-	Year int32 `hessian:"year"`
-}
+package hessian
 
-func (Year) JavaClassName() string {
-	return "com.alibaba.com.caucho.hessian.io.java8.YearHandle"
-}
-
-func (Year) Error() string {
-	return "encode Year error"
+// Param interface
+// !!! Pls attention that Every field name should be upper case.
+// specifies the Java method parameter type.
+// if this interface is not implemented, the pojo javaClassName is
+// used as the method parameter type by default
+type Param interface {
+	POJO
+	JavaParamName() string
 }

@@ -66,9 +66,7 @@ func EnsureResponse(body interface{}) *Response {
 // https://github.com/apache/dubbo/blob/dubbo-2.7.1/dubbo-remoting/dubbo-remoting-api/src/main/java/org/apache/dubbo/remoting/exchange/codec/ExchangeCodec.java#L256
 // hessian encode response
 func packResponse(header DubboHeader, ret interface{}) ([]byte, error) {
-	var (
-		byteArray []byte
-	)
+	var byteArray []byte
 
 	response := EnsureResponse(ret)
 
@@ -148,7 +146,6 @@ func packResponse(header DubboHeader, ret interface{}) ([]byte, error) {
 	// byteArray{body length}
 	binary.BigEndian.PutUint32(byteArray[12:], uint32(pkgLen-HEADER_LENGTH))
 	return byteArray, nil
-
 }
 
 // hessian decode response body
@@ -361,7 +358,7 @@ func version2Int(version string) int {
 	if len(version) == 0 {
 		return 0
 	}
-	var v = 0
+	v := 0
 	varr := strings.Split(version, ".")
 	length := len(varr)
 	for key, value := range varr {
