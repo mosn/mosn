@@ -109,7 +109,14 @@ func catchSignalsCrossPlatform() {
 			case syscall.SIGHUP:
 				executeSignalCallback(syscall.SIGHUP)
 			case syscall.SIGINT:
+				// stop to quit
+				exitCode := ExecuteShutdownCallbacks("SIGINT")
+				for _, f := range onProcessExit {
+					f() // only perform important cleanup actions
+				}
+				//Stop()
 				executeSignalCallback(syscall.SIGINT)
+				os.Exit(exitCode)
 			}
 		}
 	}, nil)
@@ -142,20 +149,6 @@ func catchSignalsPosix() {
 				}
 				os.Exit(2)
 			}
-
-			// important cleanup actions before shutdown callbacks
-			for _, f := range onProcessExit {
-				f()
-			}
-
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-					}
-				}()
-				os.Exit(ExecuteShutdownCallbacks("SIGINT"))
-			}()
 		}
 	}()
 }
