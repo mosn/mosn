@@ -23,7 +23,15 @@ import (
 	"strconv"
 	"time"
 
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	"github.com/urfave/cli"
+	_ "mosn.io/mosn/istio/istio1100"
+	_ "mosn.io/mosn/istio/istio1100/filter/stream/jwtauthn"
+	_ "mosn.io/mosn/istio/istio1100/filter/stream/mixer"
+	_ "mosn.io/mosn/istio/istio1100/filter/stream/stats"
+	_ "mosn.io/mosn/istio/istio1100/sds"
+	_ "mosn.io/mosn/istio/istio1100/xds"
 	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
@@ -36,13 +44,9 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
 	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
 	_ "mosn.io/mosn/pkg/filter/stream/gzip"
-	_ "mosn.io/mosn/pkg/filter/stream/jwtauthn"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
-	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
-	_ "mosn.io/mosn/pkg/filter/stream/rbac"
-	_ "mosn.io/mosn/pkg/filter/stream/stats"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
@@ -68,11 +72,7 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
-	_ "mosn.io/mosn/pkg/xds"
 	_ "mosn.io/pkg/buffer"
-
-	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 )
 
 var _ = &corev3.Pipe{}

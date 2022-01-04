@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 	"net/http"
 	"testing"
 	"time"
@@ -65,7 +65,7 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 
 	d := abiContext.GetABIImports().(*DefaultImportsHandler)
 
-	reqHeader :=  common.CommonHeader(map[string]string{
+	reqHeader := common.CommonHeader(map[string]string{
 		"reqHeader1": "reqValue1",
 		"reqHeader2": "reqValue2",
 	})

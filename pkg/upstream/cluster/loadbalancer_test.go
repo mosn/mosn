@@ -276,8 +276,7 @@ func TestLARChooseHost(t *testing.T) {
 	// new lb to refresh edf
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual := balancer.ChooseHost(newMockLbContext(nil))
-	assert.Equal(t, hosts.allHosts[6], actual)
-	actual = balancer.ChooseHost(newMockLbContext(nil))
+	assert.NotNil(t, actual)
 
 	// test only one host
 	h := exampleHostConfigs()[0:1]
@@ -395,4 +394,314 @@ func TestReqRRChooseHost(t *testing.T) {
 	host1 := balancer.ChooseHost(ctx1)
 	assert.Equal(t, host, host1)
 
+}
+
+func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
+	type fields struct {
+		hosts types.HostSet
+		info  types.ClusterInfo
+	}
+	type args struct {
+		context  types.LoadBalancerContext
+		runCount int
+	}
+	type testCase struct {
+		name           string
+		fields         fields
+		args           args
+		want           map[string]int // map[host address]count
+		wantUniformity float64
+		resultChan     chan types.Host
+	}
+	// testcase1
+	mockHosts_testcase1 := []types.Host{
+		&mockHost{
+			name:       "host1",
+			addr:       "address1",
+			healthFlag: GetHealthFlagPointer("address1"),
+		},
+		&mockHost{
+			name:       "host2",
+			addr:       "address2",
+			healthFlag: GetHealthFlagPointer("address2"),
+		},
+		&mockHost{
+			name:       "host3",
+			addr:       "address3",
+			healthFlag: GetHealthFlagPointer("address3"),
+		},
+		&mockHost{
+			name:       "host4",
+			addr:       "address4",
+			healthFlag: GetHealthFlagPointer("address4"),
+		},
+	}
+	mockHosts_testcase1[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase1[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase1 := &hostSet{}
+	hostSet1_testCase1.setFinalHost(mockHosts_testcase1)
+	tests := []testCase{
+		{
+			name: "LB-From4Hosts-2-healthy-2-unhealthy",
+			fields: fields{
+				info:  nil,
+				hosts: hostSet1_testCase1,
+			},
+			args: args{
+				context:  nil,
+				runCount: 1000000,
+			},
+			want: map[string]int{
+				"address1": 0,
+				"address2": 500000,
+				"address3": 0,
+				"address4": 500000,
+			},
+			wantUniformity: 0.0001,
+			resultChan:     make(chan types.Host, 1000000),
+		},
+	}
+	// testcase2
+	mockHosts_testcase2 := []types.Host{
+		&mockHost{
+			name:       "host-1",
+			addr:       "address-1",
+			healthFlag: GetHealthFlagPointer("address-1"),
+		},
+		&mockHost{
+			name:       "host-2",
+			addr:       "address-2",
+			healthFlag: GetHealthFlagPointer("address-2"),
+		},
+		&mockHost{
+			name:       "host-3",
+			addr:       "address-3",
+			healthFlag: GetHealthFlagPointer("address-3"),
+		},
+		&mockHost{
+			name:       "host-4",
+			addr:       "address-4",
+			healthFlag: GetHealthFlagPointer("address-4"),
+		},
+	}
+	mockHosts_testcase2[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase2[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase2[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase2 := &hostSet{}
+	hostSet1_testCase2.setFinalHost(mockHosts_testcase2)
+	tests = append(tests, testCase{
+		name: "LB-From4Hosts-1-healthy-3-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase2,
+		},
+		args: args{
+			context:  nil,
+			runCount: 1000000,
+		},
+		want: map[string]int{
+			"address-1": 0,
+			"address-2": 0,
+			"address-3": 0,
+			"address-4": 1000000,
+		},
+		wantUniformity: 0.0,
+		resultChan:     make(chan types.Host, 1000000),
+	})
+	// testcase3
+	mockHosts_testcase3 := []types.Host{
+		&mockHost{
+			name:       "host--1",
+			addr:       "address--1",
+			healthFlag: GetHealthFlagPointer("address--1"),
+		},
+		&mockHost{
+			name:       "host--2",
+			addr:       "address--2",
+			healthFlag: GetHealthFlagPointer("address--2"),
+		},
+		&mockHost{
+			name:       "host--3",
+			addr:       "address--3",
+			healthFlag: GetHealthFlagPointer("address--3"),
+		},
+		&mockHost{
+			name:       "host--4",
+			addr:       "address--4",
+			healthFlag: GetHealthFlagPointer("address--4"),
+		},
+		&mockHost{
+			name:       "host--5",
+			addr:       "address--5",
+			healthFlag: GetHealthFlagPointer("address--5"),
+		},
+		&mockHost{
+			name:       "host--6",
+			addr:       "address--6",
+			healthFlag: GetHealthFlagPointer("address--6"),
+		},
+		&mockHost{
+			name:       "host--7",
+			addr:       "address--7",
+			healthFlag: GetHealthFlagPointer("address--7"),
+		},
+		&mockHost{
+			name:       "host--8",
+			addr:       "address--8",
+			healthFlag: GetHealthFlagPointer("address--8"),
+		},
+		&mockHost{
+			name:       "host--9",
+			addr:       "address--9",
+			healthFlag: GetHealthFlagPointer("address--9"),
+		},
+	}
+	mockHosts_testcase3[8].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[7].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[5].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[4].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase3 := &hostSet{}
+	hostSet1_testCase3.setFinalHost(mockHosts_testcase3)
+	tests = append(tests, testCase{
+		name: "LB-From9Hosts-3-healthy-6-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase3,
+		},
+		args: args{
+			context:  nil,
+			runCount: 1500000,
+		},
+		want: map[string]int{
+			"address--1": 500000,
+			"address--2": 0,
+			"address--3": 0,
+			"address--4": 500000,
+			"address--5": 0,
+			"address--6": 0,
+			"address--7": 500000,
+			"address--8": 0,
+			"address--9": 0,
+		},
+		wantUniformity: 0.0001,
+		resultChan:     make(chan types.Host, 1500000),
+	})
+	// testcase4
+	mockHosts_testcase4 := []types.Host{
+		&mockHost{
+			name:       "host--1",
+			addr:       "address--1",
+			healthFlag: GetHealthFlagPointer("address--1"),
+		},
+		&mockHost{
+			name:       "host--2",
+			addr:       "address--2",
+			healthFlag: GetHealthFlagPointer("address--2"),
+		},
+		&mockHost{
+			name:       "host--3",
+			addr:       "address--3",
+			healthFlag: GetHealthFlagPointer("address--3"),
+		},
+		&mockHost{
+			name:       "host--4",
+			addr:       "address--4",
+			healthFlag: GetHealthFlagPointer("address--4"),
+		},
+		&mockHost{
+			name:       "host--5",
+			addr:       "address--5",
+			healthFlag: GetHealthFlagPointer("address--5"),
+		},
+		&mockHost{
+			name:       "host--6",
+			addr:       "address--6",
+			healthFlag: GetHealthFlagPointer("address--6"),
+		},
+		&mockHost{
+			name:       "host--7",
+			addr:       "address--7",
+			healthFlag: GetHealthFlagPointer("address--7"),
+		},
+		&mockHost{
+			name:       "host--8",
+			addr:       "address--8",
+			healthFlag: GetHealthFlagPointer("address--8"),
+		},
+		&mockHost{
+			name:       "host--9",
+			addr:       "address--9",
+			healthFlag: GetHealthFlagPointer("address--9"),
+		},
+	}
+
+	hostSet1_testCase4 := &hostSet{}
+	hostSet1_testCase4.setFinalHost(mockHosts_testcase4)
+	tests = append(tests, testCase{
+		name: "LB-From9Hosts-9-healthy-0-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase4,
+		},
+		args: args{
+			context:  nil,
+			runCount: 900000,
+		},
+		want: map[string]int{
+			"address--1": 100000,
+			"address--2": 100000,
+			"address--3": 100000,
+			"address--4": 100000,
+			"address--5": 100000,
+			"address--6": 100000,
+			"address--7": 100000,
+			"address--8": 100000,
+			"address--9": 100000,
+		},
+		wantUniformity: 0.0,
+		resultChan:     make(chan types.Host, 900000),
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			factory := lbFactories[types.RoundRobin]
+			lb := factory(tt.fields.info, tt.fields.hosts)
+			defer func() {
+				close(tt.resultChan)
+				for _, host := range tt.fields.hosts.Hosts() {
+					host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
+				}
+			}()
+			for l := 0; l < tt.args.runCount; l++ {
+				go func() {
+					gotHost := lb.ChooseHost(tt.args.context)
+					tt.resultChan <- gotHost
+				}()
+			}
+
+			for l := 0; l < tt.args.runCount; l++ {
+				gotHost := <-tt.resultChan
+				if gotHost == nil {
+					t.Errorf("return nil host")
+				}
+				if chooseCount, ok := tt.want[gotHost.AddressString()]; ok {
+					tt.want[gotHost.AddressString()] = chooseCount - 1
+				}
+			}
+
+			deviationCount := 0
+			for address, count := range tt.want {
+				t.Logf("roundRobinLoadBalancer choose host count, address: %v, count: %v", address, count)
+				if count > 0 {
+					deviationCount += count
+				}
+			}
+
+			if gotUniformity := float64(deviationCount) / float64(tt.args.runCount); gotUniformity > tt.wantUniformity {
+				t.Errorf("roundRobinLoadBalancer choose host count err, gotUniformity: %v, wantUniformity: %v", gotUniformity, tt.wantUniformity)
+			}
+		})
+	}
 }

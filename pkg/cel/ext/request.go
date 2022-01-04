@@ -28,7 +28,7 @@ import (
 
 // rewrite request url
 func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	variable.SetVariableValue(ctx, types.VarPath, dstUrl)
+	variable.SetString(ctx, types.VarPath, dstUrl)
 	return true
 }
 

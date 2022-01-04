@@ -46,7 +46,7 @@ func (c *Conn) chooseCiphersuitesFromConfig() []uint16 {
 
 func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	config := c.config
-	if len(c.serverName) == 0 && len(c.serverSan) == 0 && !config.InsecureSkipVerify {
+	if len(config.ServerName) == 0 && !config.InsecureSkipVerify {
 		return nil, nil, errors.New("tls: either ServerName or InsecureSkipVerify must be specified in the tls.Config")
 	}
 
@@ -262,7 +262,7 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	}
 
 	// Try to resume a previously negotiated TLS session, if available.
-	cacheKey = clientSessionCacheKey(c.conn.RemoteAddr(), c.serverName)
+	cacheKey = clientSessionCacheKey(c.conn.RemoteAddr(), c.config)
 	session, ok := c.config.ClientSessionCache.Get(cacheKey)
 	if !ok || session == nil {
 		return cacheKey, nil, nil, nil
@@ -294,14 +294,8 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 			c.config.ClientSessionCache.Put(cacheKey, nil)
 			return cacheKey, nil, nil, nil
 		}
-		if c.serverSan == "" {
-			if err := serverCert.VerifyHostname(c.serverName); err != nil {
-				return cacheKey, nil, nil, nil
-			}
-		} else {
-			if err := verifyURI(serverCert, c.serverSan); err != nil {
-				return cacheKey, nil, nil, nil
-			}
+		if err := serverCert.VerifyHostname(c.config.ServerName); err != nil {
+			return cacheKey, nil, nil, nil
 		}
 	}
 
@@ -849,14 +843,11 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 	}
 
 	if !c.config.InsecureSkipVerify {
-		verifyDNSName := c.serverSan == ""
 		opts := x509.VerifyOptions{
 			Roots:         c.config.RootCAs,
 			CurrentTime:   c.config.time(),
+			DNSName:       c.config.ServerName,
 			Intermediates: x509.NewCertPool(),
-		}
-		if verifyDNSName {
-			opts.DNSName = c.serverName
 		}
 
 		for i, cert := range certs {
@@ -870,11 +861,6 @@ func (c *Conn) verifyServerCertificate(certificates [][]byte) error {
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
 			return err
-		}
-		if !verifyDNSName {
-			if err := verifyURI(certs[0], c.serverSan); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -1010,9 +996,9 @@ func (c *Conn) getClientCertificate(cri *CertificateRequestInfo) (*Certificate, 
 
 // clientSessionCacheKey returns a key used to cache sessionTickets that could
 // be used to resume previously negotiated TLS sessions with a server.
-func clientSessionCacheKey(serverAddr net.Addr, serverName string) string {
-	if len(serverName) > 0 {
-		return serverName
+func clientSessionCacheKey(serverAddr net.Addr, config *Config) string {
+	if len(config.ServerName) > 0 {
+		return config.ServerName
 	}
 	return serverAddr.String()
 }
@@ -1051,18 +1037,4 @@ func hostnameInSNI(name string) string {
 		name = name[:len(name)-1]
 	}
 	return name
-}
-
-func verifyURI(cert *x509.Certificate, u string) error {
-	sanMatched := false
-	for _, uri := range cert.URIs {
-		if uri.String() == u {
-			sanMatched = true
-			break
-		}
-	}
-	if !sanMatched {
-		return fmt.Errorf("tls: SAN uri not matched, want: %v, got: %s", cert.URIs, u)
-	}
-	return nil
 }

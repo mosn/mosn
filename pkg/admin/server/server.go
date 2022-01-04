@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
@@ -42,7 +41,6 @@ func init() {
 	// default admin api
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
 		"/api/v1/config_dump":     configDump,
-		"/config_dump":            envoyConfigDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/stats_glob":      statsDumpProxyTotal,
 		"/api/v1/update_loglevel": updateLogLevel,
@@ -51,8 +49,6 @@ func init() {
 		"/api/v1/disable_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/api/v1/plugin":          pluginApi,
-		"/stats":                  statsForIstio,
-		"/server_info":            serverInfoForIstio,
 		"/api/v1/features":        knownFeatures,
 		"/api/v1/env":             getEnv,
 		"/":                       help,
@@ -73,10 +69,7 @@ func (s *Server) Start(config Config) {
 			log.DefaultLogger.Warnf("no admin config, no admin api served")
 			return
 		}
-		address := adminConfig.GetAddress()
-		if xdsPort, ok := address.GetSocketAddress().GetPortSpecifier().(*core.SocketAddress_PortValue); ok {
-			addr = fmt.Sprintf("%s:%d", address.GetSocketAddress().GetAddress(), xdsPort.PortValue)
-		}
+		addr = fmt.Sprintf("%s:%d", adminConfig.GetAddress(), adminConfig.GetPortValue())
 	}
 
 	mux := http.NewServeMux()

@@ -79,7 +79,7 @@ func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleIm
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
-		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
+		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, route.Route.RequestHeadersToRemove),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		upstreamProtocol:      route.Route.UpstreamProtocol,
 		perFilterConfig:       route.PerFilterConfig,
@@ -206,22 +206,34 @@ func (rri *RouteRuleImplBase) RedirectRule() api.RedirectRule {
 // Select Cluster for Routing
 // if weighted cluster is nil, return clusterName directly, else
 // select cluster from weighted-clusters
-func (rri *RouteRuleImplBase) ClusterName() string {
+func (rri *RouteRuleImplBase) ClusterName(ctx context.Context) string {
 	if len(rri.weightedClusters) == 0 {
+		// If both 'cluster_name' and 'cluster_variable' are configured, 'cluster_name' is preferred.
+		if rri.defaultCluster.clusterName != "" {
+			return rri.defaultCluster.clusterName
+		}
+
+		if clusterName, err := variable.GetString(ctx, rri.routerAction.ClusterVariable); err == nil {
+			return clusterName
+		}
+
 		return rri.defaultCluster.clusterName
 	}
+
 	rri.lock.Lock()
 	if rri.randInstance == nil {
 		rri.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
-	rri.lock.Unlock()
 	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
+	rri.lock.Unlock()
+
 	for _, weightCluster := range rri.weightedClusters {
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
 		if selectedValue <= 0 {
 			return weightCluster.clusterName
 		}
 	}
+
 	return rri.defaultCluster.clusterName
 }
 
@@ -265,7 +277,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		return
 	}
 
-	path, err := variable.GetVariableValue(ctx, types.VarPath)
+	path, err := variable.GetString(ctx, types.VarPath)
 	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
@@ -274,7 +286,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
 				headers.Set(types.HeaderOriginalPath, path)
-				variable.SetVariableValue(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
+				variable.SetString(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
 				}
@@ -287,7 +299,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(types.HeaderOriginalPath, path)
-				variable.SetVariableValue(ctx, types.VarPath, rewritedPath)
+				variable.SetString(ctx, types.VarPath, rewritedPath)
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
 				}
@@ -305,15 +317,15 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
+		variable.SetString(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, headerValue)
+			variable.SetString(ctx, types.VarIstioHeaderHost, headerValue)
 		}
 	} else if rri.autoHostRewrite {
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
+			variable.SetString(ctx, types.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
 		}
 	}
 }

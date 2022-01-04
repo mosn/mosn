@@ -19,20 +19,8 @@ package types
 
 import (
 	"crypto/sha256"
-	"github.com/stretchr/testify/assert"
 	"testing"
-
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 )
-
-func TestSecretConvert(t *testing.T) {
-	var sec = envoy_api_v2_auth.Secret{
-		Name: "mosn",
-	}
-
-	sdsSec := SecretConvertV2(&sec)
-	assert.Equal(t, sdsSec.Name, "mosn")
-}
 
 func TestHashValue(t *testing.T) {
 	data := []byte("123456")

@@ -199,7 +199,7 @@ func TestFeatureDump(t *testing.T) {
 	if !(fromFile.Debug.StartDebug &&
 		fromFile.Tracing.Enable &&
 		fromFile.Metrics.StatsMatcher.RejectAll &&
-		fromFile.GetAdmin().GetAddress().GetSocketAddress().GetAddress() == "127.0.0.1") {
+		fromFile.GetAdmin().GetAddress() == "127.0.0.1") {
 		t.Fatalf("basic server config is not dumped, %+v", fromFile)
 
 	}

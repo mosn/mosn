@@ -199,12 +199,12 @@ func (a *App) Run(arguments []string) (err error) {
 	// always appends the completion flag at the end of the command
 	shellComplete, arguments := checkShellCompleteFlag(a, arguments)
 
-	set, err := a.newFlagSet()
+	_, err = a.newFlagSet()
 	if err != nil {
 		return err
 	}
 
-	err = parseIter(set, a, arguments[1:])
+	set, err := parseIter(a, arguments[1:])
 	nerr := normalizeFlags(a.Flags, set)
 	context := NewContext(a, set, nil)
 	if nerr != nil {
@@ -322,12 +322,12 @@ func (a *App) RunAsSubcommand(ctx *Context) (err error) {
 	}
 	a.Commands = newCmds
 
-	set, err := a.newFlagSet()
+	_, err = a.newFlagSet()
 	if err != nil {
 		return err
 	}
 
-	err = parseIter(set, a, ctx.Args().Tail())
+	set, err := parseIter(a, ctx.Args().Tail())
 	nerr := normalizeFlags(a.Flags, set)
 	context := NewContext(a, set, ctx)
 

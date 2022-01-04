@@ -157,6 +157,7 @@ func Test_NewConfigImpl(t *testing.T) {
 								Append: &FALSE,
 							},
 						},
+						RequestHeadersToRemove:  []string{"test"},
 						ResponseHeadersToRemove: []string{"status"},
 					},
 				},
@@ -172,6 +173,7 @@ func Test_NewConfigImpl(t *testing.T) {
 							},
 						},
 					},
+					headersToRemove: []string{"test"},
 				},
 				responseHeadersParser: &headerParser{
 					headersToAdd: []*headerPair{
@@ -289,7 +291,7 @@ func TestHTTPHeaderMatch(t *testing.T) {
 			},
 		}
 		ctx := variable.NewVariableContext(context.Background())
-		variable.SetVariableValue(ctx, types.VarMethod, "POST")
+		variable.SetString(ctx, types.VarMethod, "POST")
 		matcher := CreateHTTPHeaderMatcher(headersConfig)
 		for idx, c := range []struct {
 			requestHeader map[string]string

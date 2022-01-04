@@ -944,6 +944,7 @@ func testResumption(t *testing.T, version uint16) {
 		CipherSuites:       []uint16{TLS_RSA_WITH_RC4_128_SHA},
 		ClientSessionCache: NewLRUClientSessionCache(32),
 		RootCAs:            rootCAs,
+		ServerName:         "example.golang",
 	}
 
 	testResumeState := func(test string, didResume bool) {
@@ -1422,9 +1423,9 @@ func TestServerSelectingUnconfiguredCipherSuite(t *testing.T) {
 
 	go func() {
 		client := Client(c, &Config{
+			ServerName:   "foo",
 			CipherSuites: []uint16{TLS_RSA_WITH_AES_128_GCM_SHA256},
 		})
-		client.SetServerName("foo")
 		errChan <- client.Handshake()
 	}()
 
@@ -1611,13 +1612,12 @@ func testVerifyPeerCertificate(t *testing.T, version uint16) {
 		}()
 
 		config := testConfig.Clone()
+		config.ServerName = "example.golang"
 		config.RootCAs = rootCAs
 		config.Time = now
 		config.MaxVersion = version
 		test.configureClient(config, &clientCalled)
-		conn := Client(c, config)
-		conn.SetServerName("example.golang")
-		clientErr := conn.Handshake()
+		clientErr := Client(c, config).Handshake()
 		c.Close()
 		serverErr := <-done
 

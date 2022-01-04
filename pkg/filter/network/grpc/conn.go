@@ -57,7 +57,7 @@ var _ net.Conn = (*Connection)(nil)
 
 func (c *Connection) Read(b []byte) (n int, err error) {
 	data, ok := <-c.r
-	if !ok { // connction closed
+	if !ok { // connection closed
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("grpc connection read error: %s", c.event)
 		}

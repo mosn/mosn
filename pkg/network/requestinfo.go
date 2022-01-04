@@ -143,7 +143,7 @@ func (r *RequestInfo) GetResponseFlag(flag api.ResponseFlag) bool {
 }
 
 func (r *RequestInfo) GetResponseFlagResult() string {
-	return fmt.Sprintf("0x%s", strconv.FormatInt(r.responseCode.Load(), 16))
+	return fmt.Sprintf("0x%s", strconv.FormatInt(int64(r.responseFlag), 16))
 }
 
 func (r *RequestInfo) SetResponseFlag(flag api.ResponseFlag) {

@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/mixer/v1/config/client"
 )
 
 type HealthCheckFilterConfig struct {
@@ -90,18 +89,16 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER                      = "mixer"
 	FaultStream                = "fault"
 	PayloadLimit               = "payload_limit"
 	Gzip                       = "gzip"
 	FaultTolerance             = "fault_tolerance"
-	IstioStats                 = "istio.stats"
-	RBAC                       = "rbac"
 	DSL                        = "dsl"
 	Mirror                     = "mirror"
 	DubboStream                = "dubbo_stream"
-	JwtAuthn                   = "jwt_authn"
 	GoPluginStreamFilterSuffix = "so_plugin"
+	GrpcMetricFilter           = "grpc_metric"
+	IPAccess                   = "ip_access"
 )
 
 // HealthCheckFilter
@@ -182,8 +179,4 @@ func (d *DelayInject) UnmarshalJSON(b []byte) error {
 type AbortInject struct {
 	Status  int    `json:"status,omitempty"`
 	Percent uint32 `json:"percentage,omitempty"`
-}
-
-type Mixer struct {
-	client.HttpClientConfig
 }

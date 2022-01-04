@@ -352,7 +352,6 @@ func testHandshake(t *testing.T, clientConfig, serverConfig *Config) (serverStat
 	errChan := make(chan error)
 	go func() {
 		cli := Client(c, clientConfig)
-		cli.SetServerName("example.golang")
 		err := cli.Handshake()
 		if err != nil {
 			errChan <- fmt.Errorf("client: %v", err)

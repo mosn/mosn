@@ -21,8 +21,6 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
-	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/golang/protobuf/jsonpb"
 )
 
 // MOSNConfig make up mosn to start the mosn project
@@ -37,8 +35,8 @@ type MOSNConfig struct {
 	Metrics              MetricsConfig        `json:"metrics,omitempty"`
 	RawDynamicResources  json.RawMessage      `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin             json.RawMessage      `json:"admin,omitempty"`             // admin raw message
-	Node                 json.RawMessage      `json:"node"`
+	Node                 json.RawMessage      `json:"node,omitempty"`              // node info for pilot
+	RawAdmin             *Admin               `json:"admin,omitempty"`             // admin
 	Debug                PProfConfig          `json:"pprof,omitempty"`
 	Pid                  string               `json:"pid,omitempty"`                 // pid file
 	Plugin               PluginConfig         `json:"plugin,omitempty"`              // plugin config
@@ -141,13 +139,33 @@ func (c *MOSNConfig) Mode() Mode {
 	return File
 }
 
-func (c *MOSNConfig) GetAdmin() *xdsboot.Admin {
-	if len(c.RawAdmin) > 0 {
-		adminConfig := &xdsboot.Admin{}
-		err := jsonpb.UnmarshalString(string(c.RawAdmin), adminConfig)
-		if err == nil {
-			return adminConfig
-		}
+type Admin struct {
+	Address *AddressInfo `json:"address,omitempty"`
+}
+
+func (admin *Admin) GetAddress() string {
+	if admin.Address == nil {
+		return ""
 	}
-	return nil
+	return admin.Address.SocketAddress.Address
+}
+
+func (admin *Admin) GetPortValue() uint32 {
+	if admin.Address == nil {
+		return 0
+	}
+	return admin.Address.SocketAddress.PortValue
+}
+
+type AddressInfo struct {
+	SocketAddress SocketAddress `json:"socket_address,omitempty"`
+}
+
+type SocketAddress struct {
+	Address   string `json:"address,omitempty"`
+	PortValue uint32 `json:"port_value,omitempty"`
+}
+
+func (c *MOSNConfig) GetAdmin() *Admin {
+	return c.RawAdmin
 }

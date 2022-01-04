@@ -117,9 +117,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	// set listener filter , network filter and stream filter
 	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
-	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
+	listenerFiltersFactories = configmanager.AddOrUpdateListenerFilterFactories(listenerName, lc.ListenerFilters)
 	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
-	networkFiltersFactories = configmanager.GetNetworkFilters(lc)
+	networkFiltersFactories = configmanager.AddOrUpdateNetworkFilterFactories(listenerName, lc)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -522,7 +522,8 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
-func (al *activeListener) OnClose() {}
+func (al *activeListener) OnClose() {
+}
 
 // PreStopHook used for graceful stop
 func (al *activeListener) PreStopHook(ctx context.Context) func() error {
@@ -639,21 +640,9 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	}
 }
 
-func (arc activeRawConn) isVirtualInbound() bool {
-	config := arc.activeListener.listener.Config().ListenerConfig
-	return config.Type == v2.INGRESS && config.BindToPort && config.UseOriginalDst
-}
-
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
 	var found bool
-	var localIP string
-
-	if arc.isVirtualInbound() {
-		localIP = "127.0.0.1"
-	} else {
-		localIP = "0.0.0.0"
-	}
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -661,9 +650,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			break
 		}
 
-		if lst.listenPort == arc.originalDstPort && lst.listenIP == localIP {
+		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
 			localListener = lst
 		}
+
 	}
 
 	var ch chan api.Connection

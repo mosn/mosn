@@ -19,11 +19,10 @@ package v2
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 )
 
 // TLSConfig is a configuration of tls context
@@ -31,7 +30,6 @@ type TLSConfig struct {
 	Status            bool                   `json:"status,omitempty"`
 	Type              string                 `json:"type,omitempty"`
 	ServerName        string                 `json:"server_name,omitempty"`
-	ServerSan         string                 `json:"server_san,omitempty"`
 	CACert            string                 `json:"ca_cert,omitempty"`
 	CertChain         string                 `json:"cert_chain,omitempty"`
 	PrivateKey        string                 `json:"private_key,omitempty"`
@@ -55,39 +53,43 @@ type SdsConfig struct {
 }
 
 type SecretConfigWrapper struct {
-	Config           *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig
-	ConfigDeprecated *envoy_api_v2_auth.SdsSecretConfig
+	Name      string      `json:"-"`
+	SdsConfig interface{} `json:"-"`
+	raw       SecretConfigWrapperConfig
 }
 
-func (sc SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
-	newData := &bytes.Buffer{}
-	marshaler := &jsonpb.Marshaler{}
-	err = marshaler.Marshal(newData, sc.Config)
-	return newData.Bytes(), err
+func (scw SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
+	// if we build SecretConfigWrapper directly, we should use a proto.Message to build it.
+	if pm, ok := scw.SdsConfig.(proto.Message); ok {
+		var buf bytes.Buffer
+		marshaler := &jsonpb.Marshaler{}
+		_ = marshaler.Marshal(&buf, pm)
+		// use jsonpb format to marshal
+		m := map[string]interface{}{}
+		json.Unmarshal(buf.Bytes(), &m)
+		scw.raw.SdsConfig = m
+	}
+	scw.raw.Name = scw.Name
+	return json.Marshal(scw.raw)
 }
 
-func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
-	secretConfigV3 := &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{}
-	err1 := jsonpb.Unmarshal(bytes.NewReader(b), secretConfigV3)
-	if err1 == nil {
-		sc.Config = secretConfigV3
-		// first Unmarshal with v3, if no err will return fast.
-		return nil
+func (scw *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
+	cfg := SecretConfigWrapperConfig{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return err
 	}
-
-	secretConfigV2 := &envoy_api_v2_auth.SdsSecretConfig{}
-	err2 := jsonpb.Unmarshal(bytes.NewBuffer(b), secretConfigV2)
-	if err2 == nil {
-		sc.ConfigDeprecated = secretConfigV2
-		// try UnmarshalJSON with v2, if no err will return fast.
-		return nil
-	}
-
-	// neither of v2 and v3
-	return fmt.Errorf("Unmarshal SdsSecretConfig with V3 failed: {%s}, with V2 failed: {%s}", err1, err2)
+	scw.Name = cfg.Name
+	scw.SdsConfig = cfg.SdsConfig
+	scw.raw = cfg
+	return nil
 }
 
 // Valid checks the whether the SDS Config is valid or not
 func (c *SdsConfig) Valid() bool {
 	return c != nil && c.CertificateConfig != nil && c.ValidationConfig != nil
+}
+
+type SecretConfigWrapperConfig struct {
+	Name      string                 `json:"name"`
+	SdsConfig map[string]interface{} `json:"sdsConfig"`
 }

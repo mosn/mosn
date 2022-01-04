@@ -19,6 +19,7 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -136,28 +137,6 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func envoyConfigDump(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "config dump envoy", r.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	r.ParseForm()
-	if len(r.Form) == 0 {
-		buf := configmanager.EnvoyConfigDump()
-		log.DefaultLogger.Infof("[admin api] [config dump envoy] config dump envoy")
-		w.WriteHeader(200)
-		w.Write(buf)
-		return
-	}
-	if len(r.Form) > 1 {
-		w.WriteHeader(400)
-		fmt.Fprintf(w, "only support one parameter")
-		return
-	}
-	log.DefaultLogger.Warnf("[admin api] [config dump envoy] r.Form %+v", r.Form)
-}
-
 func statsDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "stats dump", r.Method)
@@ -248,7 +227,7 @@ func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := &LogLevelData{}
-	if err := json.Unmarshal(body, data); err == nil {
+	if err = json.Unmarshal(body, data); err == nil {
 		if level, ok := levelMap[data.LogLevel]; ok {
 			if log.UpdateErrorLoggerLevel(data.LogPath, level) {
 				log.DefaultLogger.Infof("[admin api] [update log level] update log: %s level as %s", data.LogPath, data.LogLevel)
@@ -257,8 +236,10 @@ func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+
+		err = errors.New("not found log level: " + data.LogLevel)
 	}
-	log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, update logger level failed with bad request data: %s", "update log level", string(body))
+	log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, update logger level failed with bad request data: %s, error: %v", "update log level", string(body), err)
 	w.WriteHeader(http.StatusBadRequest) // 400
 	msg := fmt.Sprintf(errMsgFmt, "update logger failed")
 	fmt.Fprint(w, msg)

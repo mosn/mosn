@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	//nolint:staticcheck // Ignore SA1019. Need to keep deprecated package for compatibility.
+	//lint:ignore SA1019 Need to keep deprecated package for compatibility.
 	"github.com/golang/protobuf/proto"
 	"github.com/prometheus/common/model"
 
@@ -58,7 +58,7 @@ type Metric interface {
 }
 
 // Opts bundles the options for creating most Metric types. Each metric
-// implementation XXX has its own XXXOpts type, but in most cases, it is just
+// implementation XXX has its own XXXOpts type, but in most cases, it is just be
 // an alias of this type (which might change when the requirement arises.)
 //
 // It is mandatory to set Name to a non-empty string. All other fields are

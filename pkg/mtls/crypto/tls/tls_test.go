@@ -967,6 +967,9 @@ func TestConnectionState(t *testing.T) {
 			if ss.ServerName != serverName {
 				t.Errorf("Got server name %q, expected %q", ss.ServerName, serverName)
 			}
+			if cs.ServerName != "" {
+				t.Errorf("Got unexpected server name on the client side")
+			}
 
 			if len(ss.PeerCertificates) != 1 || len(cs.PeerCertificates) != 1 {
 				t.Errorf("Got %d (server) and %d (client) peer certificates, expected %d", len(ss.PeerCertificates), len(cs.PeerCertificates), 1)

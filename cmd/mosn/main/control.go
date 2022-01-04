@@ -23,13 +23,13 @@ import (
 	"runtime"
 
 	"github.com/urfave/cli"
+	"mosn.io/mosn/istio/istio1100"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -141,6 +141,31 @@ var (
 			// parameter parsed registered
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
 			// initial registerd
+			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
+				// istio parameters
+				serviceCluster := c.String("service-cluster")
+				serviceNode := c.String("service-node")
+				serviceType := c.String("service-type")
+				serviceMeta := c.StringSlice("service-meta")
+				metaLabels := c.StringSlice("service-lables")
+				clusterDomain := c.String("cluster-domain")
+				podName := c.String("pod-name")
+				podNamespace := c.String("pod-namespace")
+				podIp := c.String("pod-ip")
+
+				if serviceNode != "" {
+					istio1100.InitXdsInfo(cfg, serviceCluster, serviceNode, serviceMeta, metaLabels)
+				} else {
+					if istio1100.IsApplicationNodeType(serviceType) {
+						sn := podName + "." + podNamespace
+						serviceNode = serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
+						istio1100.InitXdsInfo(cfg, serviceCluster, serviceNode, serviceMeta, metaLabels)
+					} else {
+						log.StartLogger.Infof("[mosn] [start] xds service type is not router/sidecar, use config only")
+						istio1100.InitXdsInfo(cfg, "", "", nil, nil)
+					}
+				}
+			})
 			stm.AppendInitStage(mosn.DefaultInitStage)
 			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
 				// set version and go version
@@ -196,25 +221,5 @@ func DefaultParamsParsed(c *cli.Context) {
 		log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 		os.Exit(1)
 	}
-	// istio parameters
-	serviceCluster := c.String("service-cluster")
-	serviceNode := c.String("service-node")
-	serviceType := c.String("service-type")
-	serviceMeta := c.StringSlice("service-meta")
-	metaLabels := c.StringSlice("service-lables")
-	clusterDomain := c.String("cluster-domain")
-	podName := c.String("pod-name")
-	podNamespace := c.String("pod-namespace")
-	podIp := c.String("pod-ip")
-	if serviceNode != "" {
-		types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-	} else {
-		if types.IsApplicationNodeType(serviceType) {
-			sn := podName + "." + podNamespace
-			serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
-			types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-		} else {
-			log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
-		}
-	}
+
 }

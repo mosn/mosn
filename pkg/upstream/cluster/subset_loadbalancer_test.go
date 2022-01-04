@@ -19,13 +19,18 @@ package cluster
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 	"reflect"
 	"sort"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -395,10 +400,6 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 			expectedHost: "e7",
 		},
 		{
-			ctx:          newMockLbContext(nil),
-			expectedHost: "e7",
-		},
-		{
 			ctx:          newMockLbContext(map[string]string{}),
 			expectedHost: "e7",
 		},
@@ -716,4 +717,149 @@ func TestDynamicSubsetHost(t *testing.T) {
 		}
 	}
 
+}
+
+func TestFallbackAny(t *testing.T) {
+	// use cluster manager to register dynamic host changed
+	clusterName := "TestSubset"
+	hostA := &mockHost{
+		addr: "127.0.0.1:8080",
+		name: "A",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "a",
+		},
+	}
+	hostB := &mockHost{
+		addr: "127.0.0.1:8081",
+		name: "B",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "b",
+		},
+	}
+	clusterConfig := v2.Cluster{
+		Name:                 clusterName,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 1024,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: uint8(types.AnyEndPoint),
+			SubsetSelectors: [][]string{
+				[]string{"group"},
+				[]string{"zone"},
+			},
+		},
+	}
+	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
+	cluster.UpdateHosts([]types.Host{hostA, hostB})
+	lb := cluster.lbInstance.(*subsetLoadBalancer)
+	ctx := newMockLbContext(map[string]string{
+		"zone":  "zone0",
+		"group": "a",
+	})
+
+	// should run into fallback policy: AnyEndPoint, and return all 2 hosts
+	assert.Equal(t, 2, lb.HostNum(ctx.MetadataMatchCriteria()))
+	assert.True(t, lb.IsExistsHosts(ctx.MetadataMatchCriteria()))
+}
+
+func TestNoFallbackWithEmpty(t *testing.T) {
+	// allback policy is no fallback
+	// but empty meta data can be used as any point fallback
+	ps := createHostset(exampleHostConfigs())
+	cfg := exampleSubsetConfig()
+	cfg.FallBackPolicy = uint8(types.NoFallBack) // NoFallBack
+	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(cfg))
+
+	cases := []struct {
+		ctx   types.LoadBalancerContext
+		hosts int
+	}{
+		{
+			ctx:   newMockLbContext(map[string]string{"stage": "prod", "version": "1.0"}),
+			hosts: 3,
+		},
+		{
+			ctx:   newMockLbContext(map[string]string{"stage": "prod"}),
+			hosts: 0,
+		},
+		{
+			ctx:   newMockLbContext(nil),
+			hosts: 7, // all hosts
+		},
+	}
+	for _, c := range cases {
+		hnum := lb.HostNum(c.ctx.MetadataMatchCriteria())
+		require.Equal(t, c.hosts, hnum)
+		for i := 0; i < 7; i++ {
+			h := lb.ChooseHost(c.ctx)
+			if c.hosts > 0 {
+				require.True(t, lb.IsExistsHosts(c.ctx.MetadataMatchCriteria()))
+				require.NotNil(t, h)
+			} else {
+				require.False(t, lb.IsExistsHosts(c.ctx.MetadataMatchCriteria()))
+				require.Nil(t, h)
+			}
+		}
+	}
+
+}
+
+func benchHostConfigs(hostCount int, keyValues int) []v2.Host {
+	ret := make([]v2.Host, 0, hostCount)
+	keyValues = int(math.Max(float64(keyValues), 1))
+	rand.Seed(time.Now().UnixNano())
+	keys := []string{"zone", "physics", "mosn_aig", "mosn_version"}
+	for i := 0; i < hostCount; i++ {
+
+		metadata := make(map[string]string)
+		for _, key := range keys {
+			r := rand.Intn(keyValues + 1)
+			if r < keyValues {
+				metadata[key] = fmt.Sprintf("%s-%d", key, r)
+			}
+		}
+		host := v2.Host{
+			HostConfig: v2.HostConfig{
+				Hostname: fmt.Sprintf("e%d", i),
+				Address:  fmt.Sprintf("127.0.0.1:%d", i),
+			},
+			MetaData: metadata,
+		}
+		ret = append(ret, host)
+	}
+	return ret
+}
+
+func benchSubsetConfig() *v2.LBSubsetConfig {
+	return &v2.LBSubsetConfig{
+		SubsetSelectors: [][]string{
+			{"zone", "physics"},
+			{"zone"},
+			{"physics"},
+			{"zone", "physics", "mosn_aig"},
+			{"zone", "physics", "mosn_version"},
+			{"zone", "physics", "mosn_aig", "mosn_version"},
+			{"zone", "mosn_aig"},
+			{"zone", "mosn_version"},
+			{"zone", "mosn_aig", "mosn_version"},
+			{"physics", "mosn_aig"},
+			{"physics", "mosn_version"},
+			{"physics", "mosn_aig", "mosn_version"},
+			{"mosn_aig"},
+			{"mosn_version"},
+			{"mosn_aig", "mosn_version"},
+		}}
+}
+
+func BenchmarkSubsetLoadBalancer(b *testing.B) {
+	ps := createHostset(benchHostConfigs(8000, 2))
+	subsetConfig := benchSubsetConfig()
+	b.Run("subsetLoadBalancer", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("BenchmarkSubsetLoadBalancer"), NewLBSubsetInfo(subsetConfig))
+		}
+	})
 }

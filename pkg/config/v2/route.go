@@ -34,6 +34,7 @@ import (
 type RouterConfigurationConfig struct {
 	RouterConfigName        string               `json:"router_config_name,omitempty"`
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
+	RequestHeadersToRemove  []string             `json:"request_headers_to_remove,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 	RouterConfigPath        string               `json:"router_configs,omitempty"`
@@ -52,6 +53,7 @@ type RouterConfig struct {
 
 type RouterActionConfig struct {
 	ClusterName             string               `json:"cluster_name,omitempty"`
+	ClusterVariable         string               `json:"cluster_variable,omitempty"`
 	UpstreamProtocol        string               `json:"upstream_protocol,omitempty"`
 	ClusterHeader           string               `json:"cluster_header,omitempty"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`
@@ -65,6 +67,7 @@ type RouterActionConfig struct {
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
 	AutoHostRewriteHeader   string               `json:"auto_host_rewrite_header,omitempty"`
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
+	RequestHeadersToRemove  []string             `json:"request_headers_to_remove,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 }
@@ -289,6 +292,7 @@ type VirtualHost struct {
 	Routers                 []Router               `json:"routers,omitempty"`
 	RequireTLS              string                 `json:"require_tls,omitempty"` // not used yet
 	RequestHeadersToAdd     []*HeaderValueOption   `json:"request_headers_to_add,omitempty"`
+	RequestHeadersToRemove  []string               `json:"request_headers_to_remove,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption   `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string               `json:"response_headers_to_remove,omitempty"`
 	PerFilterConfig         map[string]interface{} `json:"per_filter_config,omitempty"`

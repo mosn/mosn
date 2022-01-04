@@ -74,7 +74,7 @@ func GetMaxFloat(flen int, decimal int) float64 {
 func TruncateFloat(f float64, flen int, decimal int) (float64, error) {
 	if math.IsNaN(f) {
 		// nan returns 0
-		//todo ErrOverflow.GenWithStackByArgs("DOUBLE", "")
+		// todo ErrOverflow.GenWithStackByArgs("DOUBLE", "")
 		return 0, nil
 	}
 
@@ -87,12 +87,12 @@ func TruncateFloat(f float64, flen int, decimal int) (float64, error) {
 	var err error
 	if f > maxF {
 		f = maxF
-		//err = ErrOverflow.GenWithStackByArgs("DOUBLE", "")
+		// err = ErrOverflow.GenWithStackByArgs("DOUBLE", "")
 	} else if f < -maxF {
 		f = -maxF
 		//	err = ErrOverflow.GenWithStackByArgs("DOUBLE", "")
 	}
-	//todo errors.Trace(err)
+	// todo errors.Trace(err)
 	return f, err
 }
 

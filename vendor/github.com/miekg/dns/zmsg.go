@@ -36,14 +36,6 @@ func (rr *ANY) pack(msg []byte, off int, compression compressionMap, compress bo
 	return off, nil
 }
 
-func (rr *APL) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
-	off, err = packDataApl(rr.Prefixes, msg, off)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
 func (rr *AVC) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
 	off, err = packStringTxt(rr.Txt, msg, off)
 	if err != nil {
@@ -310,22 +302,6 @@ func (rr *HIP) pack(msg []byte, off int, compression compressionMap, compress bo
 		return off, err
 	}
 	off, err = packDataDomainNames(rr.RendezvousServers, msg, off, compression, false)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
-func (rr *HTTPS) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
-	off, err = packUint16(rr.Priority, msg, off)
-	if err != nil {
-		return off, err
-	}
-	off, err = packDomainName(rr.Target, msg, off, compression, false)
-	if err != nil {
-		return off, err
-	}
-	off, err = packDataSVCB(rr.Value, msg, off)
 	if err != nil {
 		return off, err
 	}
@@ -922,22 +898,6 @@ func (rr *SSHFP) pack(msg []byte, off int, compression compressionMap, compress 
 	return off, nil
 }
 
-func (rr *SVCB) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
-	off, err = packUint16(rr.Priority, msg, off)
-	if err != nil {
-		return off, err
-	}
-	off, err = packDomainName(rr.Target, msg, off, compression, false)
-	if err != nil {
-		return off, err
-	}
-	off, err = packDataSVCB(rr.Value, msg, off)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
 func (rr *TA) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
 	off, err = packUint16(rr.KeyTag, msg, off)
 	if err != nil {
@@ -1118,26 +1078,6 @@ func (rr *X25) pack(msg []byte, off int, compression compressionMap, compress bo
 	return off, nil
 }
 
-func (rr *ZONEMD) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
-	off, err = packUint32(rr.Serial, msg, off)
-	if err != nil {
-		return off, err
-	}
-	off, err = packUint8(rr.Scheme, msg, off)
-	if err != nil {
-		return off, err
-	}
-	off, err = packUint8(rr.Hash, msg, off)
-	if err != nil {
-		return off, err
-	}
-	off, err = packStringHex(rr.Digest, msg, off)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
 // unpack*() functions
 
 func (rr *A) unpack(msg []byte, off int) (off1 int, err error) {
@@ -1184,17 +1124,6 @@ func (rr *ANY) unpack(msg []byte, off int) (off1 int, err error) {
 	rdStart := off
 	_ = rdStart
 
-	return off, nil
-}
-
-func (rr *APL) unpack(msg []byte, off int) (off1 int, err error) {
-	rdStart := off
-	_ = rdStart
-
-	rr.Prefixes, off, err = unpackDataApl(msg, off)
-	if err != nil {
-		return off, err
-	}
 	return off, nil
 }
 
@@ -1605,31 +1534,6 @@ func (rr *HIP) unpack(msg []byte, off int) (off1 int, err error) {
 		return off, err
 	}
 	rr.RendezvousServers, off, err = unpackDataDomainNames(msg, off, rdStart+int(rr.Hdr.Rdlength))
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
-func (rr *HTTPS) unpack(msg []byte, off int) (off1 int, err error) {
-	rdStart := off
-	_ = rdStart
-
-	rr.Priority, off, err = unpackUint16(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Target, off, err = UnpackDomainName(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Value, off, err = unpackDataSVCB(msg, off)
 	if err != nil {
 		return off, err
 	}
@@ -2538,31 +2442,6 @@ func (rr *SSHFP) unpack(msg []byte, off int) (off1 int, err error) {
 	return off, nil
 }
 
-func (rr *SVCB) unpack(msg []byte, off int) (off1 int, err error) {
-	rdStart := off
-	_ = rdStart
-
-	rr.Priority, off, err = unpackUint16(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Target, off, err = UnpackDomainName(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Value, off, err = unpackDataSVCB(msg, off)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
 func (rr *TA) unpack(msg []byte, off int) (off1 int, err error) {
 	rdStart := off
 	_ = rdStart
@@ -2836,38 +2715,6 @@ func (rr *X25) unpack(msg []byte, off int) (off1 int, err error) {
 	_ = rdStart
 
 	rr.PSDNAddress, off, err = unpackString(msg, off)
-	if err != nil {
-		return off, err
-	}
-	return off, nil
-}
-
-func (rr *ZONEMD) unpack(msg []byte, off int) (off1 int, err error) {
-	rdStart := off
-	_ = rdStart
-
-	rr.Serial, off, err = unpackUint32(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Scheme, off, err = unpackUint8(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Hash, off, err = unpackUint8(msg, off)
-	if err != nil {
-		return off, err
-	}
-	if off == len(msg) {
-		return off, nil
-	}
-	rr.Digest, off, err = unpackStringHex(msg, off, rdStart+int(rr.Hdr.Rdlength))
 	if err != nil {
 		return off, err
 	}

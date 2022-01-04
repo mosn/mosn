@@ -32,8 +32,8 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/log"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/log"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -578,37 +578,37 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(varStartTime, nil, startTimeGetter, nil, 0),
-		variable.NewBasicVariable(varRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
-		variable.NewBasicVariable(varResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
-		variable.NewBasicVariable(varRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
-		variable.NewBasicVariable(varBytesSent, nil, bytesSentGetter, nil, 0),
-		variable.NewBasicVariable(varBytesReceived, nil, bytesReceivedGetter, nil, 0),
-		variable.NewBasicVariable(varProtocol, nil, protocolGetter, nil, 0),
-		variable.NewBasicVariable(varResponseCode, nil, responseCodeGetter, nil, 0),
-		variable.NewBasicVariable(varDuration, nil, durationGetter, nil, 0),
-		variable.NewBasicVariable(varResponseFlag, nil, responseFlagGetter, nil, 0),
-		variable.NewBasicVariable(varUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
-		variable.NewBasicVariable(varDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
-		variable.NewBasicVariable(varDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
-		variable.NewBasicVariable(varUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewStringVariable(varStartTime, nil, startTimeGetter, nil, 0),
+		variable.NewStringVariable(varRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
+		variable.NewStringVariable(varResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
+		variable.NewStringVariable(varRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewStringVariable(varBytesSent, nil, bytesSentGetter, nil, 0),
+		variable.NewStringVariable(varBytesReceived, nil, bytesReceivedGetter, nil, 0),
+		variable.NewStringVariable(varProtocol, nil, protocolGetter, nil, 0),
+		variable.NewStringVariable(varResponseCode, nil, responseCodeGetter, nil, 0),
+		variable.NewStringVariable(varDuration, nil, durationGetter, nil, 0),
+		variable.NewStringVariable(varResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewStringVariable(varUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
+		variable.NewStringVariable(varDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
+		variable.NewStringVariable(varDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
+		variable.NewStringVariable(varUpstreamHost, nil, upstreamHostGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(reqHeaderPrefix, nil, requestHeaderMapGetter, nil, 0),
-		variable.NewBasicVariable(respHeaderPrefix, nil, responseHeaderMapGetter, nil, 0),
+		variable.NewStringVariable(reqHeaderPrefix, nil, requestHeaderMapGetter, nil, 0),
+		variable.NewStringVariable(respHeaderPrefix, nil, responseHeaderMapGetter, nil, 0),
 	}
 )
 
 func registerTestVarDefs() {
 	// register built-in variables
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 
 	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
 	for idx := range prefixVariables {
-		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+		variable.RegisterPrefix(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
 }
 
