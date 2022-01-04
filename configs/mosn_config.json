@@ -28,10 +28,41 @@
 							}
 						]
 					}]
-
+				},
+				{
+					"router_config_name":"application",
+					"virtual_hosts":[{
+						"name":"appHost",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"prefix":"/"},
+								"direct_response":{
+									"status": 200,
+									"body": "Welcome to MOSN!\nThe Cloud-Native Network Proxy Platform.\n"
+								}
+							}
+						]
+					}]
 				}
 			],
 			"listeners":[
+				{
+					"name":"appListener",
+					"address": "127.0.0.1:2047",
+					"bind_port": true,
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Http1",
+									"router_config_name":"application"
+								}
+							}
+						]
+					}]
+				},
 				{
 					"name":"serverListener",
 					"address": "127.0.0.1:2046",
@@ -42,7 +73,6 @@
 								"type": "proxy",
 								"config": {
 									"downstream_protocol": "Auto",
-									"upstream_protocol": "Auto",
 									"router_config_name":"server_router"
 								}
 							}
@@ -59,7 +89,6 @@
 								"type": "proxy",
 								"config": {
 									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
 									"router_config_name":"client_router"
 								}
 							}
@@ -78,7 +107,7 @@
 				"max_request_per_conn": 1024,
 				"conn_buffer_limit_bytes":32768,
 				"hosts":[
-					{"address":"127.0.0.1:8080"}
+					{"address":"127.0.0.1:2047"}
 				]
 			},
 			{
