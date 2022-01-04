@@ -13,7 +13,7 @@
 
 It's a golang hessian library used by [Apache/dubbo-go](https://github.com/apache/dubbo-go).
 
-There is a big performance improvement, and some bugs fix for v1.6.0, 
+There is a big performance improvement, and some bugs fix for v1.6.0,
 thanks to [micln](https://github.com/micln), [pantianying](https://github.com/pantianying), [zonghaishang](https://github.com/zonghaishang),
  [willson-chen](https://github.com/willson-chen), [champly](https://github.com/champly).
 
@@ -25,6 +25,7 @@ thanks to [micln](https://github.com/micln), [pantianying](https://github.com/pa
 * [Java Date & Time](https://github.com/apache/dubbo-go-hessian2/issues/90)
 * [java8 time.Date](https://github.com/apache/dubbo-go-hessian2/pull/212)
 * [java8 java.sql.Time & java.sql.Date](https://github.com/apache/dubbo-go-hessian2/pull/219)
+* [java UUID](https://github.com/apache/dubbo-go-hessian2/pull/256)
 * [Java Generic Invokation](https://github.com/apache/dubbo-go-hessian2/issues/84)
 * [Java Extends](https://github.com/apache/dubbo-go-hessian2/issues/157)
 * [Dubbo Attachements](https://github.com/apache/dubbo-go-hessian2/issues/49)
@@ -40,10 +41,10 @@ Cross languages message definition should be careful, the following situations s
 
 So we can maintain a cross language type mapping:
 
-| hessian type |  java type  |  golang type | 
-| --- | --- | --- | 
-| **null** | null | nil | 
-| **binary** | byte[] | []byte | 
+| hessian type |  java type  |  golang type |
+| --- | --- | --- |
+| **null** | null | nil |
+| **binary** | byte[] | []byte |
 | **boolean** | boolean | bool |
 | **date** | java.util.Date | time.Time |
 | **double** | double | float64 |
@@ -53,9 +54,12 @@ So we can maintain a cross language type mapping:
 | **list** | java.util.List | slice |
 | **map** | java.util.Map | map |
 | **object** | custom define object | custom define struct|
-| **OTHER COMMON USING TYPE** | | | 
+| **OTHER COMMON USING TYPE** | | |
 | **big decimal** | java.math.BigDecimal | github.com/dubbogo/gost/math/big/Decimal |
 | **big integer** | java.math.BigInteger | github.com/dubbogo/gost/math/big/Integer |
+| **date** | java.sql.Date | github.com/apache/dubbo-go-hessian2/java_sql_time/Date |
+| **date** | java.sql.Time | github.com/apache/dubbo-go-hessian2/java_sql_time/Time |
+| **date** | all java8 sdk time | github.com/apache/dubbo-go-hessian2/java8_time |
 
 ## reference
 
@@ -191,8 +195,74 @@ type MyUser struct {
 
 ```
 
+#### Encoding param name
 
-##### hessian.SetTagIdentifier
+When a Java method declares an argument as a parent class, it actually hope receives a subclass，
+You can specify the encoding type of the parameter separately.
+
+##### java-server
+
+```java
+public abstract class User {
+}
+
+public class MyUser extends User implements Serializable {
+
+    private String userFullName;
+
+    private String familyPhoneNumber;
+}
+
+public interface UserProvider {
+    String GetUser(User user);
+}
+
+public class UserProviderImpl implements UserProvider {
+    public UserProviderImpl() {
+    }
+    
+    public String GetUser(User user) {
+        MyUser myUser=(MyUser)user;
+        return myUser.getUserFullName();
+    }
+}
+
+```
+
+##### go-client
+
+```go
+type MyUser struct {
+    UserFullName      string   `hessian:"userFullName"`
+    FamilyPhoneNumber string   // default convert to => familyPhoneNumber
+}
+
+func (m *MyUser) JavaClassName() string {
+    return "com.company.MyUser"
+}
+
+func (m *MyUser) JavaParamName() string {
+    return "com.company.User"
+}
+
+type UserProvider struct {
+    GetUser func(ctx context.Context, user *MyUser) (string, error) `dubbo:"GetUser"`
+}
+```
+
+
+
+#### Set method Alias
+
+When the Go client calls the Java server, the first letter of the method is converted to lowercase by default,you can use the dubbo tag to set method alias.
+
+```go
+type UserProvider struct {
+    GetUser func(ctx context.Context) (*User, error) `dubbo:"GetUser"`
+}
+```
+
+#### hessian.SetTagIdentifier
 
 You can use `hessian.SetTagIdentifier` to customize tag-identifier of hessian, which takes effect to both encoder and decoder.
 
@@ -233,6 +303,7 @@ The encoded bytes of the struct `MyUser` is as following:
 ```
 
 #### Using Java collections
+
 By default, the output of Hessian Java impl of a Java collection like java.util.HashSet will be decoded as `[]interface{}` in `go-hessian2`.
 To apply the one-to-one mapping relationship between certain Java collection class and your Go struct, examples are as follows:
 
@@ -253,13 +324,13 @@ func (j *JavaHashSet) Set(v []interface{}) {
 	j.value = v
 }
 
-//should be the same as the class name of the Java collection 
+//should be the same as the class name of the Java collection
 func (j *JavaHashSet) JavaClassName() string {
 	return "java.util.HashSet"
 }
 
 func init() {
-        //register your struct so that hessian can recognized it when encoding and decoding 
+        //register your struct so that hessian can recognized it when encoding and decoding
 	SetCollectionSerialize(&JavaHashSet{})
 }
 ```
@@ -272,7 +343,7 @@ func init() {
 
 + **Avoid fields with the same name in multiple parent struct**
 
-The following struct `C` have inherited field `Name`(default from the first parent), 
+The following struct `C` have inherited field `Name`(default from the first parent),
 but it's confused in logic.
 
 ```go
@@ -286,9 +357,9 @@ type C struct {
 
 + **Avoid inheritance for a pointer of struct**
 
-The following definition is valid for golang syntax, 
-but the parent will be nil when create a new Dog, like `dog := Dog{}`, 
-which will not happen in java inheritance, 
+The following definition is valid for golang syntax,
+but the parent will be nil when create a new Dog, like `dog := Dog{}`,
+which will not happen in java inheritance,
 and is also not supported by `go-hessian2`.
 
 ```go

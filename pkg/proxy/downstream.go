@@ -37,13 +37,13 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/protocol/http"
 	"mosn.io/pkg/utils"
 )
 
@@ -94,8 +94,6 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone uatomic.Bool
-	// don't convert headers, data and trailers.  e.g. streamReceiverFilterHandler.Appendxx
-	noConvert bool
 	// direct response.  e.g. sendHijack
 	directResponse bool
 	// oneway
@@ -136,13 +134,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// save downstream protocol
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
-	if proto == protocol.Xprotocol {
-		proto = types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
-	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
@@ -704,12 +697,6 @@ func (s *downStream) matchRoute() {
 	}
 }
 
-func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
-	dp = s.getDownstreamProtocol()
-	up = s.getUpstreamProtocol()
-	return
-}
-
 // used for adding stream filters.
 func (s *downStream) getStreamFilterChainRegisterCallback() api.StreamFilterChainFactoryCallbacks {
 	return &s.streamFilterChain
@@ -724,22 +711,26 @@ func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol := s.proxy.config.UpstreamProtocol
+func (s *downStream) getUpstreamProtocol() types.ProtocolName {
+	// default upstream protocol is auto
+	proto := protocol.Auto
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
 	if s.route != nil && s.route.RouteRule() != nil && s.route.RouteRule().UpstreamProtocol() != "" {
-		configProtocol = s.route.RouteRule().UpstreamProtocol()
+		proto = api.ProtocolName(s.route.RouteRule().UpstreamProtocol())
+	}
+
+	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
+	if p, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(api.ProtocolName); ok {
+		proto = p
 	}
 
 	// Auto means same as downstream protocol
-	if configProtocol == string(protocol.Auto) {
-		currentProtocol = s.getDownstreamProtocol()
-	} else {
-		currentProtocol = types.ProtocolName(configProtocol)
+	if proto == protocol.Auto {
+		proto = s.getDownstreamProtocol()
 	}
 
-	return currentProtocol
+	return proto
 }
 
 // getStringOr returns the first argument if it is not empty, otherwise the second.
@@ -1010,7 +1001,7 @@ func (s *downStream) onResponseTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 
 			if log.Proxy.GetLogLevel() >= log.INFO {
-				log.Proxy.Infof(s.context, "[proxy] [downstream] onResponseTimeout，host: %s, time: %s",
+				log.Proxy.Infof(s.context, "[proxy] [downstream] onResponseTimeout, host: %s, time: %s",
 					s.upstreamRequest.host.AddressString(), s.timeout.GlobalTimeout.String())
 			}
 		}
@@ -1105,7 +1096,7 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 
 func (s *downStream) appendHeaders(endStream bool) {
 	s.upstreamProcessDone.Store(endStream)
-	headers := s.convertHeader(s.downstreamRespHeaders)
+	headers := s.downstreamRespHeaders
 	// Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
 		log.Proxy.Errorf(s.context, "append headers error: %s", err)
@@ -1116,30 +1107,10 @@ func (s *downStream) appendHeaders(endStream bool) {
 	}
 }
 
-func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
-	if s.noConvert {
-		return headers
-	}
-
-	dp, up := s.convertProtocol()
-
-	// need protocol convert
-	if dp != up {
-		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
-			return convHeader
-		} else {
-			if log.Proxy.GetLogLevel() >= log.WARN {
-				log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
-			}
-		}
-	}
-	return headers
-}
-
 func (s *downStream) appendData(endStream bool) {
 	s.upstreamProcessDone.Store(endStream)
 
-	data := s.convertData(s.downstreamRespDataBuf)
+	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	s.responseSender.AppendData(s.context, data, endStream)
 
@@ -1148,51 +1119,11 @@ func (s *downStream) appendData(endStream bool) {
 	}
 }
 
-func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
-	if s.noConvert {
-		return data
-	}
-
-	dp, up := s.convertProtocol()
-
-	// need protocol convert
-	if dp != up {
-		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
-			return convData
-		} else {
-			if log.Proxy.GetLogLevel() >= log.WARN {
-				log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
-			}
-		}
-	}
-	return data
-}
-
 func (s *downStream) appendTrailers() {
 	s.upstreamProcessDone.Store(true)
-	trailers := s.convertTrailer(s.downstreamRespTrailers)
+	trailers := s.downstreamRespTrailers
 	s.responseSender.AppendTrailers(s.context, trailers)
 	s.endStream()
-}
-
-func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
-	if s.noConvert {
-		return trailers
-	}
-
-	dp, up := s.convertProtocol()
-
-	// need protocol convert
-	if dp != up {
-		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
-			return convTrailer
-		} else {
-			if log.Proxy.GetLogLevel() >= log.WARN {
-				log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
-			}
-		}
-	}
-	return trailers
 }
 
 // ~~~ upstream event handler
@@ -1374,6 +1305,11 @@ func (s *downStream) doRetry() {
 	host, pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
+		// https://github.com/mosn/mosn/issues/1750
+		if s.upstreamRequest != nil {
+			s.upstreamRequest.setupRetry = false
+		}
+
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()

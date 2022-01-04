@@ -31,8 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
@@ -43,17 +41,19 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
+// TODO: move it to main
 func init() {
-	str.Register(protocol.HTTP1, &streamConnFactory{})
 	protocol.RegisterProtocolConfigHandler(protocol.HTTP1, streamConfigHandler)
+	protocol.RegisterProtocol(protocol.HTTP1, NewConnPool, &StreamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
-const defaultMaxHeaderSize = 4 * 1024
+const defaultMaxHeaderSize = 8 * 1024
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -75,28 +75,32 @@ var (
 		"DELETE":  {},
 		"TRACE":   {},
 		"CONNECT": {},
+		// See https://datatracker.ietf.org/doc/html/rfc2068#section-19.6.1
+		"PATCH":  {},
+		"LINK":   {},
+		"UNLINK": {},
 	}
 )
 
-type streamConnFactory struct{}
+type StreamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, streamConnCallbacks, connCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
+func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	if len(magic) < minMethodLengh {
 		return str.EAGAIN
 	}
@@ -202,10 +206,12 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 }
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
+	// because streamConnection's Read will do some processing depends it.
+	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
 	close(conn.connClosed)
-	conn.resetReason = reason
 }
 
 // types.ClientStreamConnection
@@ -237,7 +243,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	}
 
 	// Per-connection buffer size for responses' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[string]interface{}); ok {
@@ -374,10 +380,18 @@ type StreamConfig struct {
 
 var defaultStreamConfig = StreamConfig{
 	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	MaxHeaderSize: defaultMaxHeaderSize,
 	// 0 is means no limit request body size
 	MaxRequestBodySize: 0,
+}
+
+// SetDefaultStreamConfig can change the default config for http.
+// Call this function before mosn service start.
+// DONOT call it when mosn is serving.
+func SetDefaultStreamConfig(c StreamConfig) {
+	defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
+	defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
 }
 
 func streamConfigHandler(v interface{}) interface{} {
@@ -737,10 +751,6 @@ func (s *clientStream) handleResponse() {
 				s.receiver.OnReceive(s.ctx, header, nil, nil)
 			}
 		}
-
-		//TODO cannot recycle immediately, headers might be used by proxy logic
-		s.request = nil
-		s.response = nil
 	}
 }
 

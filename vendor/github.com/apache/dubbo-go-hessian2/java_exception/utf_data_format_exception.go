@@ -17,7 +17,7 @@
 
 package java_exception
 
-//UTFDataFormatException represents an exception of the same name in java
+// UTFDataFormatException represents an exception of the same name in java
 type UTFDataFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -31,12 +31,12 @@ func NewUTFDataFormatException(detailMessage string) *UTFDataFormatException {
 	return &UTFDataFormatException{DetailMessage: detailMessage}
 }
 
-//Error output error message
+// Error output error message
 func (e UTFDataFormatException) Error() string {
 	return e.DetailMessage
 }
 
-//JavaClassName  java fully qualified path
+// JavaClassName  java fully qualified path
 func (UTFDataFormatException) JavaClassName() string {
 	return "java.io.UTFDataFormatException"
 }

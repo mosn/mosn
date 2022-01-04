@@ -30,7 +30,9 @@ import (
 )
 
 var (
-	ErrAGAIN = errors.New("EAGAIN")
+	ErrAGAIN       = errors.New("EAGAIN")
+	ErrStreamID    = errStreamID
+	ErrDepStreamID = errDepStreamID
 	//todo: support configuration
 	initialConnRecvWindowSize = int32(1 << 30)
 )
@@ -836,6 +838,8 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 
 // processSettings processes Settings Frame for Http2 Server
 func (sc *MServerConn) processSettings(f *SettingsFrame) error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	if f.IsAck() {
 		sc.unackedSettings--
 		if sc.unackedSettings < 0 {
@@ -847,9 +851,9 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 		return nil
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
-		sc.cond.Broadcast()
 		return err
 	}
+	sc.cond.Broadcast()
 	buf := buffer.NewIoBuffer(frameHeaderLen)
 	sc.Framer.startWrite(buf, FrameSettings, FlagSettingsAck, 0)
 	return sc.Framer.endWrite(buf)
@@ -1238,6 +1242,11 @@ func (ms *MClientStream) Reset() {
 	if ms.clientStream == nil {
 		return
 	}
+	serr := StreamError{
+		StreamID: ms.ID,
+		Code:     ErrCodeCancel,
+	}
+	_ = ms.conn.resetStream(serr)
 	ms.conn.streamByID(ms.ID, true)
 }
 

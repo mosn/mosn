@@ -25,8 +25,7 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/protocol/xprotocol/internal/registry"
 )
 
 /**
@@ -65,18 +64,14 @@ import (
  * respstatus: response status
  */
 
-func init() {
-	xprotocol.RegisterProtocol(ProtocolName, &boltProtocol{})
-}
-
 type boltProtocol struct{}
 
-// types.Protocol
-func (proto *boltProtocol) Name() api.ProtocolName {
+// api.Protocol
+func (proto boltProtocol) Name() api.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *boltProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (proto boltProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *Request:
 		return encodeRequest(ctx, frame)
@@ -90,16 +85,20 @@ func (proto *boltProtocol) Encode(ctx context.Context, model interface{}) (types
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[protocol][bolt] bolt maybe receive boltv2 encode")
 		}
-		engine := xprotocol.GetProtocol("boltv2")
+		// TODO: use internal package to avoid cycle import temporary
+		// makes bolt and boltv2 reuse in same package
+		engine := registry.GetXProtocolCodec("boltv2").NewXProtocol(ctx)
 		return engine.Encode(ctx, model)
 	}
 }
 
-func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (proto boltProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() > 0 {
 		code := data.Bytes()[0]
 		if code == 0x02 { // protocol boltv2
-			engine := xprotocol.GetProtocol("boltv2")
+			// TODO: use internal package to avoid cycle import temporary
+			// makes bolt and boltv2 reuse in same package
+			engine := registry.GetXProtocolCodec("boltv2").NewXProtocol(ctx)
 			return engine.Decode(ctx, data)
 		}
 	}
@@ -123,7 +122,7 @@ func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 }
 
 // Heartbeater
-func (proto *boltProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
+func (proto boltProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
 			Protocol:  ProtocolCode,
@@ -137,7 +136,7 @@ func (proto *boltProtocol) Trigger(ctx context.Context, requestId uint64) api.XF
 	}
 }
 
-func (proto *boltProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
+func (proto boltProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -152,7 +151,7 @@ func (proto *boltProtocol) Reply(ctx context.Context, request api.XFrame) api.XR
 }
 
 // Hijacker
-func (proto *boltProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto boltProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -166,7 +165,7 @@ func (proto *boltProtocol) Hijack(ctx context.Context, request api.XFrame, statu
 	}
 }
 
-func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
+func (proto boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	switch httpStatusCode {
 	case http.StatusOK:
 		return uint32(ResponseStatusSuccess)
@@ -195,14 +194,14 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *boltProtocol) PoolMode() api.PoolMode {
+func (proto boltProtocol) PoolMode() api.PoolMode {
 	return api.Multiplex
 }
 
-func (proto *boltProtocol) EnableWorkerPool() bool {
+func (proto boltProtocol) EnableWorkerPool() bool {
 	return true
 }
 
-func (proto *boltProtocol) GenerateRequestID(streamID *uint64) uint64 {
+func (proto boltProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }

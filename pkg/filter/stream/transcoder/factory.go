@@ -21,7 +21,9 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/api/extensions/transcoder"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 )
 
 // stream factory
@@ -35,10 +37,12 @@ type filterChainFactory struct {
 
 func (f *filterChainFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	transcodeFilter := newTranscodeFilter(context, f.cfg)
-	if transcodeFilter != nil {
-		callbacks.AddStreamReceiverFilter(transcodeFilter, api.AfterRoute)
-		callbacks.AddStreamSenderFilter(transcodeFilter, api.BeforeSend)
+	if transcodeFilter == nil {
+		return
 	}
+
+	callbacks.AddStreamReceiverFilter(transcodeFilter, f.cfg.GetPhase("receiver_phase"))
+	callbacks.AddStreamSenderFilter(transcodeFilter, api.BeforeSend)
 }
 
 func createFilterChainFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
@@ -49,10 +53,12 @@ func createFilterChainFactory(conf map[string]interface{}) (api.StreamFilterChai
 	return &filterChainFactory{cfg}, nil
 }
 
-// transcoder factory
-var transcoderFactory = make(map[string]Transcoder)
+type TranscoderFactory func(cfg map[string]interface{}) transcoder.Transcoder
 
-func MustRegister(typ string, transcoder Transcoder) {
+// transcoder factory
+var transcoderFactory = make(map[string]TranscoderFactory)
+
+func MustRegister(typ string, transcoder TranscoderFactory) {
 	if transcoderFactory[typ] != nil {
 		panic("target stream transcoder already exists: " + typ)
 	}
@@ -60,6 +66,13 @@ func MustRegister(typ string, transcoder Transcoder) {
 	transcoderFactory[typ] = transcoder
 }
 
-func GetTranscoder(typ string) Transcoder {
-	return transcoderFactory[typ]
+func GetTranscoderFactory(typ string) TranscoderFactory {
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream filter][transcoder] GetTranscoder, typ %s, transcoderFactory %+v", typ, transcoderFactory)
+	}
+
+	if tf, ok := transcoderFactory[typ]; ok {
+		return tf
+	}
+	return nil
 }

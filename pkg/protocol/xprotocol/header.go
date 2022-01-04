@@ -23,3 +23,9 @@ import "mosn.io/pkg/header"
 type BytesKV = header.BytesKV
 
 type Header = header.BytesHeader
+
+var GetHeaderEncodeLength = header.GetHeaderEncodeLength
+
+var EncodeHeader = header.EncodeHeader
+
+var DecodeHeader = header.DecodeHeader

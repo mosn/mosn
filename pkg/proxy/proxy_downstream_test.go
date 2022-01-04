@@ -236,6 +236,8 @@ func TestProxyWithFilters(t *testing.T) {
 	}).AnyTimes()
 	// mock response sender
 	sender := gomockStreamSender(ctrl)
+	// set variable for proxy parsed
+	variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
 
 	// finish mock, start test
 	pv := NewProxy(ctx, &v2.Proxy{

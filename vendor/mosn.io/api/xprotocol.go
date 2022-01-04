@@ -164,7 +164,10 @@ type Hijacker interface {
 type XProtocolCodec interface {
 	ProtocolName() ProtocolName
 
-	XProtocol() XProtocol
+	// If a protocol is stateless, the NewXProtocol is recommended return a singleton.
+	// If a protocol is stateful, the NewXProtocol create a protocol instance for each connection.
+	// The context.Context can provide some configuartion for create protocol instance.
+	NewXProtocol(context.Context) XProtocol
 
 	ProtocolMatch() ProtocolMatch
 

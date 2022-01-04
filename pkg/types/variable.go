@@ -38,6 +38,7 @@ const (
 	VarUpstreamCluster                string = "upstream_cluster"
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
+	VarProtocolConfig                 string = "protocol_config"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"

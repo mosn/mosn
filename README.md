@@ -9,7 +9,7 @@
 
 [中文](README_ZH.md)
 
-MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh which support xDS API. It also can be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
+MOSN (Modular Open Smart Network) is a cloud-native network proxy written in Go language. It is open sourced by Ant Group and verified by hundreds of thousands of production containers in 11.11 global shopping festival. MOSN provides the capabilities of multiple protocol, modularity, intelligent and security. It integrates a large number of cloud-native components, and also integrates a Envoy network library, which is high-performance and easy to expand. MOSN and Istio can be integrated to build Service Mesh, and can also be used as independent L4/L7 load balancers, API gateways, cloud native Ingress, and etc.
 
 ## Features
 
@@ -199,7 +199,7 @@ Visit the [MOSN website](https://mosn.io/docs/community/) for more information o
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## Community meeting

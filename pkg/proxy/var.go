@@ -165,7 +165,7 @@ func responseFlagGetter(ctx context.Context, value *variable.IndexedValue, data 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	return strconv.FormatBool(info.GetResponseFlag(0)), nil
+	return strconv.FormatBool(info.GetResponseFlag(^0)), nil
 }
 
 // UpstreamLocalAddressGetter

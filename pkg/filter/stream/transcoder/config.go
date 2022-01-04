@@ -19,10 +19,32 @@ package transcoder
 
 import (
 	"encoding/json"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
+	"mosn.io/mosn/pkg/filter/stream/transcoder/simplematcher"
 )
 
 type config struct {
-	Type string `json:"type,omitempty"`
+	Type        string                        `json:"type,omitempty"`
+	Rules       []*matcher.TransferRule       `json:"-"`
+	Trans       map[string]interface{}        `json:"trans,omitempty"`
+	RuleConfigs []*matcher.TransferRuleConfig `json:"rules,omitempty"`
+}
+
+type transcodeGoPluginConfig struct {
+	Transcoders []*TranscoderGoPlugin `json:"transcoders,omitempty"`
+}
+
+func (c *config) GetPhase(key string) api.ReceiverFilterPhase {
+	phase, ok := c.Trans[key].(float64)
+	if !ok {
+		return api.AfterRoute
+	}
+	if api.ReceiverFilterPhase(phase) <= api.AfterChooseHost && api.ReceiverFilterPhase(phase) >= api.BeforeRoute {
+		return api.ReceiverFilterPhase(phase)
+	}
+	// If receiver_phase does not exist in the configuration, set the default api.AfterRoute value
+	return api.AfterRoute
 }
 
 func parseConfig(cfg interface{}) (*config, error) {
@@ -33,6 +55,21 @@ func parseConfig(cfg interface{}) (*config, error) {
 	}
 	if err := json.Unmarshal(data, filterConfig); err != nil {
 		return nil, err
+	}
+	for _, rc := range filterConfig.RuleConfigs {
+		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
+			Macther:  matcher.NewMatcher(rc.MatcherConfig),
+			RuleInfo: rc.RuleInfo,
+		})
+	}
+
+	if filterConfig.Type != "" {
+		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
+			Macther: &simplematcher.SimpleRuleMatcher{},
+			RuleInfo: &matcher.RuleInfo{
+				Type: filterConfig.Type,
+			},
+		})
 	}
 	return filterConfig, nil
 }

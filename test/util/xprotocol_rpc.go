@@ -12,14 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/thrift/lib/go/thrift"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
-
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	hessian "github.com/apache/dubbo-go-hessian2"
+	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls"
@@ -27,12 +24,39 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"mosn.io/mosn/pkg/stream"
+	xstream "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/trace"
+	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
+	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
+
+func init() {
+	// tracer driver register
+	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	// xprotocol action register
+	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+		name := codec.ProtocolName()
+		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
+	})
+	// xprotocol register
+	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&boltv2.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbothrift.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
+	// trace register
+	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
+	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv1Delegate)
+	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+}
 
 type RPCClient struct {
 	t              *testing.T
@@ -70,17 +94,21 @@ func NewRPCClient(t *testing.T, id string, proto types.ProtocolName) *RPCClient 
 
 func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) error {
 	stopChan := make(chan struct{})
-	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
+	var remoteAddr net.Addr
+	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		remoteAddr, _ = net.ResolveUnixAddr("unix", addr)
+	}
 	cc := network.NewClientConnection(0, tlsMng, remoteAddr, stopChan)
 	c.conn = cc
 	if err := cc.Connect(); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
-	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
+	ctx := context.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, string(c.Protocol))
+	c.Codec = stream.NewStreamClient(ctx, c.Protocol, cc, nil)
 	if c.Codec == nil {
-		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)
+		return fmt.Errorf("NewStreamClient error %v, %v", c.Protocol, cc)
 	}
 	return nil
 }
@@ -278,7 +306,7 @@ func NewRPCServer(t *testing.T, addr string, proto types.ProtocolName) UpstreamS
 
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(bolt.ProtocolName)
+		protocol := (&bolt.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -304,7 +332,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(dubbo.ProtocolName)
+		protocol := (&dubbo.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -330,7 +358,7 @@ func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(dubbothrift.ProtocolName)
+		protocol := (&dubbothrift.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false
@@ -356,7 +384,7 @@ func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
 
 func (s *RPCServer) ServeTars(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		protocol := xprotocol.GetProtocol(tars.ProtocolName)
+		protocol := (&tars.XCodec{}).NewXProtocol(context.Background())
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
 			return nil, false

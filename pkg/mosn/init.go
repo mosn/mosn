@@ -24,7 +24,8 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
@@ -97,6 +98,10 @@ func initializeMetrics(config v2.MetricsConfig) {
 		}
 		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
 	}
+}
+
+func InitDefaultPath(c *v2.MOSNConfig) {
+	types.InitDefaultPath(configmanager.GetConfigPath(), c.UDSDir)
 }
 
 func InitializePidFile(c *v2.MOSNConfig) {
@@ -185,13 +190,7 @@ func readProtocolPlugin(path, loadFuncName string) error {
 	protocolName := codec.ProtocolName()
 	log.StartLogger.Infof("[mosn] [init codec] loading protocol [%v] from third part codec", protocolName)
 
-	if err := xprotocol.RegisterProtocol(protocolName, codec.XProtocol()); err != nil {
-		return err
-	}
-	if err := xprotocol.RegisterMapping(protocolName, codec.HTTPMapping()); err != nil {
-		return err
-	}
-	if err := xprotocol.RegisterMatcher(protocolName, codec.ProtocolMatch()); err != nil {
+	if err := xprotocol.RegisterXProtocolCodec(codec); err != nil {
 		return err
 	}
 

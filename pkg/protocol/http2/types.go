@@ -171,7 +171,7 @@ func DecodeHeader(header types.HeaderMap) types.HeaderMap {
 	case *HeaderMap:
 		in = h.H
 	default:
-		return nil
+		return header.Clone()
 	}
 
 	out := make(map[string]string)

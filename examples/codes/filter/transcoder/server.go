@@ -11,34 +11,26 @@ import (
 	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/types"
 )
 
 type Server struct {
 	Listener     net.Listener
-	protocolName types.ProtocolName
+	protocolName api.ProtocolName
 	protocol     api.XProtocol
 }
 
-func NewServer(addr string, proto types.ProtocolName) *Server {
+func NewServer(addr string, proto api.XProtocol) *Server {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
-	protocol := xprotocol.GetProtocol(proto)
-	if protocol == nil {
-		fmt.Println("unknown protocol:" + proto)
-		return nil
-	}
-
 	return &Server{
 		Listener:     ln,
-		protocolName: proto,
-		protocol:     protocol,
+		protocolName: proto.Name(),
+		protocol:     proto,
 	}
 }
 
@@ -118,7 +110,7 @@ func (s *Server) HandleRequest(conn net.Conn, cmd interface{}) (api.XRespFrame, 
 }
 
 func main() {
-	if server := NewServer("127.0.0.1:8080", bolt.ProtocolName); server != nil {
+	if server := NewServer("127.0.0.1:8080", (&bolt.XCodec{}).NewXProtocol(context.Background())); server != nil {
 		server.Run()
 	}
 }

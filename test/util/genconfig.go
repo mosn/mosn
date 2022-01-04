@@ -1,10 +1,10 @@
 package util
 
 import (
+	"net"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -63,15 +63,15 @@ func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol
 
 func NewFilterChainWithSub(routerConfigName string, downstream, upstream types.ProtocolName, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(routerConfigName, downstream, upstream)
-	proxy.ExtendConfig = map[string]interface{} {
+	proxy.ExtendConfig = map[string]interface{}{
 		"sub_protocol": string(subProtocol),
 	}
 	return makeFilterChain(proxy, routers, routerConfigName)
 }
 
 func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
-	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
-	proxy.ExtendConfig = map[string]interface{} {
+	proxy := NewProxyFilter(name, types.ProtocolName("X"), types.ProtocolName("X"))
+	proxy.ExtendConfig = map[string]interface{}{
 		"sub_protocol": string(subProtocol),
 	}
 	return makeFilterChain(proxy, routers, name)
@@ -117,12 +117,17 @@ func NewWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
 }
 
 func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
+	nw := "tcp"
+	if _, err := net.ResolveTCPAddr(nw, addr); err != nil {
+		nw = "unix"
+	}
 	return v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:         name,
 			AddrConfig:   addr,
 			BindToPort:   true,
 			FilterChains: chains,
+			Network:      nw,
 		},
 	}
 }

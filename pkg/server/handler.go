@@ -46,6 +46,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
@@ -456,7 +457,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
+	// connection context support variables too
+	ctx := variable.NewVariableContext(context.Background())
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerPort, al.listenPort)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
@@ -642,7 +645,6 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
-	var found bool
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -666,28 +668,26 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
-		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		return
 	}
 
 	if localListener != nil {
-		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		return
 	}
 
 	// If it can’t find any matching listeners and should using the self listener.
-	if !found {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
-		}
-		arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
+	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {

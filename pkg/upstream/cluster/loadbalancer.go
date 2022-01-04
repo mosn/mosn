@@ -217,7 +217,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	return lb.ChooseHost(context)
+	return lb.rrLB.ChooseHost(context)
 }
 
 const default_choice = 2
@@ -297,22 +297,19 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		}
 		return nil
 	}
-	for i := 0; i < total; i++ {
-		if lb.scheduler != nil {
+
+	if lb.scheduler != nil {
+		for i := 0; i < total; i++ {
 			// do weight selection
 			candicate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
-		} else {
-			// do unweight selection
-			candicate = lb.unweightChooseHostFunc(context)
-		}
-		// only return when candicate is healthy
-		if candicate.Health() {
-			return candicate
+			if candicate != nil && candicate.Health() {
+				return candicate
+			}
 		}
 	}
-	// refer https://github.com/mosn/mosn/pull/1713
-	// return nil when all instances are unhealthy
-	return nil
+
+	// Use unweighted roud-robin as a fallback while failed to pick a healthy host by weighted round-robin.
+	return lb.unweightChooseHostFunc(context)
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
