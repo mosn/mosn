@@ -143,6 +143,16 @@ type XProtocol interface {
 	GenerateRequestID(*uint64) uint64
 }
 
+// Shutdown provides the ability to construct proper GoAway command for xprotocol
+type Shutdown interface {
+	// GoAway builds an active GoAway command
+	GoAway(context context.Context, requestId uint64) XFrame
+
+	// Reply builds heartbeat command corresponding to the given requestID
+	// Received a GoAway frame from remote
+	OnGoAway(context context.Context, request XFrame)
+}
+
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols
 type Heartbeater interface {
 	// Trigger builds an active heartbeat command
