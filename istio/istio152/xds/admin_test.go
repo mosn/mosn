@@ -64,24 +64,6 @@ func TestGetState(t *testing.T) {
 		return string(b), nil
 	}
 
-	mosnState2IstioState := map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
-		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		// 10 main stages
-		stagemanager.ParamsParsed:     envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		stagemanager.Initing:          envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
-		stagemanager.PreStart:         envoy_admin_v2alpha.ServerInfo_INITIALIZING,
-		stagemanager.Starting:         envoy_admin_v2alpha.ServerInfo_INITIALIZING,
-		stagemanager.AfterStart:       envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.Running:          envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.GracefulStopping: envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.Stopping:         envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.AfterStop:        envoy_admin_v2alpha.ServerInfo_DRAINING,
-		stagemanager.Stopped:          envoy_admin_v2alpha.ServerInfo_DRAINING,
-		// 2 additional stages
-		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
-		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
-	}
-
 	verifyMosnState2IstioState := func(state stagemanager.State, expectedState envoy_admin_v2alpha.ServerInfo_State) {
 		stateForIstio, err := getMosnStateForIstio()
 		if err != nil {

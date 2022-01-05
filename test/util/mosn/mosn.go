@@ -13,8 +13,7 @@ type MosnWrapper struct {
 func NewMosn(c *v2.MOSNConfig) *MosnWrapper {
 	mosn.DefaultInitStage(c)
 	m := mosn.NewMosn()
-	m.InheritConfig(c)
-	m.Init()
+	m.Init(c)
 	return &MosnWrapper{
 		m: m,
 	}

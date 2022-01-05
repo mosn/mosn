@@ -96,9 +96,8 @@ const (
 // we may implement more applications in the feature
 type Application interface {
 	// inherit config from old server when it exists, otherwise, use the local config
-	InheritConfig(*v2.MOSNConfig) error
 	// init its object members
-	Init()
+	Init(*v2.MOSNConfig) error
 	// start to work, accepting new connections
 	Start()
 	// transfer existing connection from old server for smooth upgrade
@@ -204,11 +203,10 @@ func (stm *StageManager) runInitStage() {
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
-	if err := stm.app.InheritConfig(stm.data.config); err != nil {
+	// after all registered stages are completed
+	if err := stm.app.Init(stm.data.config); err != nil {
 		stm.Stop()
 	}
-	// after all registered stages are completed
-	stm.app.Init()
 
 	log.StartLogger.Infof("init stage cost: %v", time.Since(st))
 }
@@ -376,7 +374,7 @@ func (stm *StageManager) Stop() {
 	if preState != Upgrading {
 		pid.RemovePidFile()
 	}
-	// close applicaiton
+	// close application
 	stm.app.Close()
 
 	// other cleanup actions
@@ -536,11 +534,9 @@ func NoticeStop(action StopAction) {
 		stm.runReload()
 	case Upgrade:
 		stm.runUpgrade()
-	case GracefulStop:
-		fallthrough
-	case Stop:
+	case GracefulStop, Stop:
 		if GetState() < AfterStart {
-			// stop directly when it haven't started yet
+			// stop directly when it hasn't started yet
 			stm.Stop()
 		} else {
 			// will go back to the main goroutine and stop

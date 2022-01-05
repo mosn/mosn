@@ -49,9 +49,9 @@ type Mosn struct {
 	RouterManager  types.RouterManager
 	Config         *v2.MOSNConfig
 	// internal data
-	servers       []server.Server
-	xdsClient     *istio.ADSClient
-	isFromUpgrade bool // config is inherit from old mosn
+	servers      []server.Server
+	xdsClient    *istio.ADSClient
+	isHotUpgrade bool // hot upgrade from old MOSN
 }
 
 // create an empty mosn
@@ -64,7 +64,11 @@ func NewMosn() *Mosn {
 }
 
 // generate mosn structure members
-func (m *Mosn) Init() {
+func (m *Mosn) Init(c *v2.MOSNConfig) error {
+	if err := m.inheritConfig(c); err != nil {
+		return err
+	}
+
 	log.StartLogger.Infof("[mosn start] init the members of the mosn")
 
 	m.initClusterManager()
@@ -72,6 +76,7 @@ func (m *Mosn) Init() {
 
 	// set the mosn config finally
 	configmanager.SetMosnConfig(m.Config)
+	return nil
 }
 
 // receive from old mosn
@@ -106,13 +111,13 @@ func (m *Mosn) inheritHandler() error {
 // inherit listener fds / config from old mosn when it exists,
 // use the local config by default,
 // stop the new mosn when error happens
-func (m *Mosn) InheritConfig(c *v2.MOSNConfig) (err error) {
+func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	m.Config = c
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// default is graceful mode, turn graceful off by set it to false
 	if !c.CloseGraceful && server.IsReconfigure() {
-		m.isFromUpgrade = true
+		m.isHotUpgrade = true
 		if err = m.inheritHandler(); err != nil {
 			return
 		}
