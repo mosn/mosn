@@ -8,6 +8,8 @@ package cgosm4
 // #cgo linux,!arm,!arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_lib/lib -lssl -lcrypto -ldl -lpthread
 // #cgo linux,arm64 CFLAGS: -I/usr/local/BabaSSL/linux_BabaSSL_arm_lib/include -Wno-deprecated-declarations
 // #cgo linux,arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_arm_lib/lib -lssl -lcrypto -ldl -lpthread
+// #cgo windows pkg-config: --static libssl libcrypto
+// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN
 /*
 #include <openssl/evp.h>
 

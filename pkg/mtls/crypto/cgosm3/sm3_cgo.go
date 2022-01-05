@@ -8,6 +8,8 @@ package cgosm3
 // #cgo linux,!arm,!arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_lib/lib -lssl -lcrypto -ldl -lpthread
 // #cgo linux,arm64 CFLAGS: -I/usr/local/BabaSSL/linux_BabaSSL_arm_lib/include -Wno-deprecated-declarations
 // #cgo linux,arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_arm_lib/lib -lssl -lcrypto -ldl -lpthread
+// #cgo windows pkg-config: --static libssl libcrypto
+// #cgo windows CFLAGS: -DWIN32_LEAN_AND_MEAN
 /*
 #include <openssl/evp.h>
 */
@@ -48,7 +50,7 @@ func New() hash.Hash {
 func (sm3 *SM3) Write(p []byte) (int, error) {
 	toWrite := len(p)
 	if toWrite != 0 {
-		ret := C.EVP_DigestUpdate(sm3.mdCtx, unsafe.Pointer(&p[0]), C.ulong(toWrite))
+		ret := C.EVP_DigestUpdate(sm3.mdCtx, unsafe.Pointer(&p[0]), C.size_t(toWrite))
 		if int(ret) <= 0 {
 			return 0, errors.New("sm3 update digest error")
 		}
@@ -62,7 +64,7 @@ func (sm3 *SM3) Sum(in []byte) []byte {
 	toWrite := len(in)
 	out := make([]byte, sm3.Size(), sm3.Size())
 	if toWrite != 0 {
-		ret := C.EVP_DigestUpdate(sm3.mdCtx, unsafe.Pointer(&in[0]), C.ulong(toWrite))
+		ret := C.EVP_DigestUpdate(sm3.mdCtx, unsafe.Pointer(&in[0]), C.size_t(toWrite))
 		if int(ret) <= 0 {
 			panic("sm3 update digest error")
 		}
