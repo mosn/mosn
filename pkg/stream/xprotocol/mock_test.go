@@ -160,3 +160,7 @@ func (ci *mockClusterInfo) SourceAddress() net.Addr {
 func (ci *mockClusterInfo) ConnectTimeout() time.Duration {
 	return network.DefaultConnectTimeout
 }
+
+func (ci *mockClusterInfo) IdleTimeout() time.Duration {
+	return 0
+}
