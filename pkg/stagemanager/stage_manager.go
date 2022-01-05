@@ -293,6 +293,8 @@ func (stm *StageManager) Run() {
 	stm.runStartStage()
 	// 5: after start
 	stm.runAfterStartStage()
+
+	stm.SetState(Running)
 }
 
 // used for the main goroutine wait the finish signal
@@ -301,10 +303,6 @@ func (stm *StageManager) WaitFinish() {
 	if !stm.started {
 		return
 	}
-	if state := GetState(); state == Stopped {
-		return
-	}
-	stm.SetState(Running)
 	stm.wg.Wait()
 }
 

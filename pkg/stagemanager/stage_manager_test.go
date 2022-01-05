@@ -37,7 +37,7 @@ func testSetGetState(state State, t *testing.T) {
 	}
 }
 
-var allStates []State = []State{ParamsParsed, Initing, PreStart, Starting, AfterStart, Running, GracefulStopping, Stopping, AfterStop, Stopped}
+var allStates = []State{ParamsParsed, Initing, PreStart, Starting, AfterStart, Running, GracefulStopping, Stopping, AfterStop, Stopped}
 
 func TestSetGetState(t *testing.T) {
 	state := GetState()
@@ -80,8 +80,7 @@ func TestStageManager(t *testing.T) {
 
 	app := mock.NewMockApplication(ctrl)
 
-	app.EXPECT().InheritConfig(gomock.Any()).Return(nil)
-	app.EXPECT().Init().Return()
+	app.EXPECT().Init(gomock.Any()).Return(nil)
 	app.EXPECT().Start().Return()
 	app.EXPECT().InheritConnections().Return(nil)
 	app.EXPECT().Close().Return()
@@ -152,7 +151,7 @@ func TestStageManager(t *testing.T) {
 	}
 	stm.Run()
 	if !(testCall == 4 &&
-		GetState() == AfterStart) {
+		GetState() == Running) {
 		t.Errorf("run stage failed, testCall: %v, stage: %v", testCall, GetState())
 	}
 	NoticeStop(GracefulStop)

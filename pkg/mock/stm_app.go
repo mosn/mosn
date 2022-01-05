@@ -46,20 +46,6 @@ func (mr *MockApplicationMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockApplication)(nil).Close))
 }
 
-// InheritConfig mocks base method.
-func (m *MockApplication) InheritConfig(arg0 *v2.MOSNConfig) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InheritConfig", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// InheritConfig indicates an expected call of InheritConfig.
-func (mr *MockApplicationMockRecorder) InheritConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InheritConfig", reflect.TypeOf((*MockApplication)(nil).InheritConfig), arg0)
-}
-
 // InheritConnections mocks base method.
 func (m *MockApplication) InheritConnections() error {
 	m.ctrl.T.Helper()
@@ -75,15 +61,17 @@ func (mr *MockApplicationMockRecorder) InheritConnections() *gomock.Call {
 }
 
 // Init mocks base method.
-func (m *MockApplication) Init() {
+func (m *MockApplication) Init(arg0 *v2.MOSNConfig) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Init")
+	ret := m.ctrl.Call(m, "Init", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Init indicates an expected call of Init.
-func (mr *MockApplicationMockRecorder) Init() *gomock.Call {
+func (mr *MockApplicationMockRecorder) Init(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockApplication)(nil).Init))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockApplication)(nil).Init), arg0)
 }
 
 // Start mocks base method.
