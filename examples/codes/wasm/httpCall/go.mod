@@ -1,4 +1,4 @@
-module example
+module mosn.io/mosn/examples/codes/wasm/httpcall
 
 go 1.14
 
