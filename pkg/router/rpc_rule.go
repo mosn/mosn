@@ -19,6 +19,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -75,7 +76,7 @@ func (srri *RPCRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) 
 		}
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
+		log.Proxy.Debugf(ctx, RouterLogFormat, "Match", "sofa rotue rule", fmt.Sprintf("failed match, macther %s", srri.fastmatch))
 	}
 	return nil
 }
