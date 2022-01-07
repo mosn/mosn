@@ -46,6 +46,7 @@ type streamConn struct {
 	protocol     api.XProtocol
 	protocolName api.ProtocolName
 
+	maxStreamID     uint64
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
 	clientMutex        sync.RWMutex // client side fields
@@ -168,11 +169,12 @@ func (sc *streamConn) EnableWorkerPool() bool {
 }
 
 func (sc *streamConn) GoAway() {
-	// unsupported
-	// TODO: client-side conn pool go away
 	if drain, ok := sc.protocol.(api.DrainConnection); ok {
-		// TODO
-		drain.GoAway(nil, 1)
+		// TODO: not a good idea to newClientStream here.
+		ctx := context.Background()
+		sender := sc.newClientStream(ctx)
+		fr := drain.GoAway(ctx, sc.maxStreamID)
+		sender.AppendHeaders(ctx, fr.GetHeader(), true)
 	}
 }
 
@@ -267,6 +269,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
+	// record the max stream id
+	sc.maxStreamID = serverStream.id
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, "[stream] [xprotocol] new stream detect, requestId = %v", serverStream.id)
