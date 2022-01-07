@@ -143,6 +143,9 @@ type ListenerEventListener interface {
 	// OnClose is called on listener close
 	OnClose()
 
+	// OnGracefulClose is called for graceful stop existing connections
+	OnGracefulClose()
+
 	// PreStopHook is called on listener quit(but before closed)
 	PreStopHook(ctx context.Context) func() error
 }

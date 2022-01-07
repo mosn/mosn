@@ -235,6 +235,9 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 		}
 		return
 	}
+	if event == api.GracefulClose {
+		p.serverStreamConn.GoAway()
+	}
 }
 
 func (p *proxy) shouldFallback() bool {

@@ -107,6 +107,10 @@ func (srv *server) Restart() {
 	// TODO
 }
 
+func (srv *server) GracefulClose() {
+	srv.handler.StopListeners(nil, true)
+}
+
 // Close the server
 func (srv *server) Close() {
 	// stop listener and connections

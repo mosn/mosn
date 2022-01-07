@@ -850,6 +850,14 @@ func (c *connection) writeBufLen() (bufLen int) {
 	return
 }
 
+// OnGracefulClose called on graceful close listener
+func (c *connection) OnGracefulClose() {
+	eventType := api.GracefulClose
+	for _, cb := range c.connCallbacks {
+		cb.OnEvent(eventType)
+	}
+}
+
 func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.ConnectionEvent) error {
 	defer func() {
 		if p := recover(); p != nil {

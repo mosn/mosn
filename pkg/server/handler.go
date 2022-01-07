@@ -525,6 +525,16 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
+func (al *activeListener) OnGracefulClose() {
+	al.connsMux.Lock()
+	defer al.connsMux.Unlock()
+
+	for i := al.conns.Front(); i != nil; i = i.Next() {
+		conn := i.Value.(*activeConnection).conn
+		conn.OnGracefulClose()
+	}
+}
+
 func (al *activeListener) OnClose() {
 }
 

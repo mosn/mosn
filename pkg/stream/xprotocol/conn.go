@@ -170,6 +170,10 @@ func (sc *streamConn) EnableWorkerPool() bool {
 func (sc *streamConn) GoAway() {
 	// unsupported
 	// TODO: client-side conn pool go away
+	if drain, ok := sc.protocol.(api.DrainConnection); ok {
+		// TODO
+		drain.GoAway(nil, 1)
+	}
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
