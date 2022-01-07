@@ -143,17 +143,29 @@
 			{
 				"name": "xds-grpc",
 				"type": "STRICT_DNS",
-				"connect_timeout": "10s",
-				"lb_policy": "RANDOM",
-				"hosts": [
-					{
-						"socket_address": {
-							"address": "istiod.istio-system.svc",
-							"port_value": 15010
+				"respect_dns_ttl": true,
+				"dns_lookup_family": "V4_ONLY",
+				"connect_timeout": "1s",
+				"lb_policy": "ROUND_ROBIN",
+				"load_assignment": {
+					"cluster_name": "xds-grpc",
+					"endpoints": [
+						{
+							"lb_endpoints": [
+								{
+									"endpoint": {
+										"address": {
+											"socket_address": {
+												"address": "istiod.istio-system.svc",
+												"port_value": 15010
+											}
+										}
+									}
+								}
+							]
 						}
-					}
-				],
-				"http2_protocol_options": {}
+					]
+				}
 			}
 		]
 	},
@@ -166,6 +178,7 @@
 		},
 		"ads_config": {
 			"api_type": "GRPC",
+			"transport_api_version": "V3",
 			"grpc_services": [
 				{
 					"envoy_grpc": {

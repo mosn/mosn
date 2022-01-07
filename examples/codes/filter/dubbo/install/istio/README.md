@@ -3,22 +3,22 @@
 ## download istioctl
 
 ```shell
-$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.7.3 sh -
+$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.7.7 sh -
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   107  100   107    0     0     58      0  0:00:01  0:00:01 --:--:--    58
 100  3896  100  3896    0     0   1683      0  0:00:02  0:00:02 --:--:-- 3804k
-Downloading istio-1.7.3 from https://github.com/istio/istio/releases/download/1.7.3/istio-1.7.3-osx.tar.gz ...
-Istio 1.7.3 Download Complete!
+Downloading istio-1.7.7 from https://github.com/istio/istio/releases/download/1.7.7/istio-1.7.7-osx.tar.gz ...
+Istio 1.7.7 Download Complete!
 
-Istio has been successfully downloaded into the istio-1.7.3 folder on your system.
+Istio has been successfully downloaded into the istio-1.7.7 folder on your system.
 
 Next Steps:
 See https://istio.io/docs/setup/kubernetes/install/ to add Istio to your Kubernetes cluster.
 
 To configure the istioctl client tool for your workstation,
-add the /tmp/istio-1.7.3/bin directory to your environment path variable with:
-	 export PATH="$PATH:/tmp/istio-1.7.3/bin"
+add the /tmp/istio-1.7.7/bin directory to your environment path variable with:
+	 export PATH="$PATH:/tmp/istio-1.7.7/bin"
 
 Begin the Istio pre-installation verification check by running:
 	 istioctl verify-install
@@ -29,7 +29,7 @@ Need more information? Visit https://istio.io/docs/setup/kubernetes/install/
 ## install
 
 ```shell
-$ ./istio-1.7.3/bin/istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.logLevel=info --set values.kiali.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.autoInject=disabled
+$ ./istio-1.7.7/bin/istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=docker.io/mosnio --set values.global.proxy.logLevel=info --set values.kiali.hub=docker.io/mosnio --set values.global.proxy.autoInject=disabled
 Detected that your cluster does not support third party JWT authentication. Falling back to less secure first party JWT. See https://istio.io/docs/ops/best-practices/security/#configure-third-party-service-account-tokens for details.
 ! addonComponents.kiali.enabled is deprecated; use the samples/addons/ deployments instead
 ✔ Istio core installed
@@ -41,7 +41,7 @@ Detected that your cluster does not support third party JWT authentication. Fall
 
 if already install istioctl
 
-> istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.logLevel=info --set values.kiali.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.autoInject=disabled
+> istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=docker.io/mosnio --set values.global.proxy.logLevel=info --set values.kiali.hub=docker.io/mosnio --set values.global.proxy.autoInject=disabled
 
 ## kiali config
 

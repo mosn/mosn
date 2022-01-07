@@ -5,7 +5,7 @@ TARGET_SIDECAR  = mosn
 CONFIG_FILE     = mosn_config.json
 PROJECT_NAME    = mosn.io/mosn
 
-ISTIO_VERSION   = 1.7.3
+ISTIO_VERSION   = 1.7.7
 
 SCRIPT_DIR      = $(shell pwd)/etc/script
 
@@ -137,4 +137,4 @@ shell:
 
 proxyv2:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./build/mosn -ldflags "-X mosn.io/mosn/pkg/types.IstioVersion=${ISTIO_VERSION}" ../../../../../cmd/mosn/main
-	docker build -t symcn.tencentcloudcr.com/symcn/proxyv2:${ISTIO_VERSION} -f ./build/Dockerfile .
+	docker build -t mosnio/proxyv2:${ISTIO_VERSION} -f ./build/Dockerfile .
