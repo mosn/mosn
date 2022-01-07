@@ -34,11 +34,7 @@
 								{
 									"type": "proxy",
 									"config": {
-										"downstream_protocol": "X",
-										"upstream_protocol": "X",
-										"extend_config": {
-											"sub_protocol": "codec"
-										},
+										"downstream_protocol": "x_example",
 										"router_config_name": "server_router"
 									}
 								}
