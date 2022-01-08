@@ -107,8 +107,7 @@ type Application interface {
 }
 
 var (
-	newServerC chan bool
-	stm        StageManager = StageManager{
+	stm StageManager = StageManager{
 		state:          Nil,
 		data:           Data{},
 		started:        false,
@@ -116,6 +115,7 @@ var (
 		initStages:     []func(*v2.MOSNConfig){},
 		preStartStages: []func(Application){},
 		startupStages:  []func(Application){},
+		newServerC:     make(chan bool, 1),
 	}
 )
 
@@ -150,14 +150,13 @@ type StageManager struct {
 	afterStopStages         []func(Application)
 	onStateChangedCallbacks []func(State)
 	upgradeHandler          func() error // old server: send listener/config/old connections to new server
+	newServerC              chan bool
 }
 
 func InitStageManager(ctx *cli.Context, path string, app Application) *StageManager {
 	stm.data.configPath = path
 	stm.data.ctx = ctx
 	stm.app = app
-
-	newServerC = make(chan bool, 1)
 
 	RegisterOnStateChanged(func(s State) {
 		metrics.SetStateCode(int64(s))
@@ -428,7 +427,7 @@ func (stm *StageManager) runReload() {
 	}
 
 	select {
-	case <-newServerC:
+	case <-stm.newServerC:
 		// do nothing
 	case <-time.After(5 * time.Second):
 		// wait max 5 seconds
@@ -503,7 +502,7 @@ func (stm *StageManager) resume() {
 // hot upgrade, sending config/existing connections to new server firstly
 func (stm *StageManager) runUpgrade() {
 	if GetState() == StartingNewServer {
-		newServerC <- true
+		stm.newServerC <- true
 	}
 	stm.SetState(Upgrading)
 
