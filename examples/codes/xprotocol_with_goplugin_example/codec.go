@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"mosn.io/api"
 	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
 )
@@ -17,7 +18,7 @@ func (r Codec) ProtocolName() api.ProtocolName {
 	return r.proto.Name()
 }
 
-func (r Codec) XProtocol() api.XProtocol {
+func (r Codec) NewXProtocol(context.Context) api.XProtocol {
 	return &r.proto
 }
 
