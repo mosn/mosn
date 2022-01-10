@@ -23,27 +23,43 @@ import (
 	"testing"
 )
 
-// assertHeapOrdering for testing
-func (h *edfHeap) assertHeapOrdering(onFail func(i int, element interface{})) {
-	for i := 0; i < h.size; i++ {
-		if (i*2+1 < h.size && edfEntryLess(h.elements[i*2+1], h.elements[i])) ||
-			(i*2+2 < h.size && edfEntryLess(h.elements[i*2+2], h.elements[i])) {
-			onFail(i, h.elements[i])
+func (h *edfHeap) verify(t *testing.T, i int) {
+	t.Helper()
+	n := h.size
+	left := 2*i + 1
+	right := 2*i + 2
+	if left < n {
+		if edfEntryLess(h.elements[left], h.elements[i]) {
+			t.Errorf("heap invariant invalidated [%d] = %v > [%d] = %v", i, h.elements[i], left, h.elements[left])
 		}
+		h.verify(t, left)
+	}
+	if right < n {
+		if edfEntryLess(h.elements[left], h.elements[i]) {
+			t.Errorf("heap invariant invalidated [%d] = %v > [%d] = %v", i, h.elements[i], right, h.elements[right])
+		}
+		h.verify(t, right)
 	}
 }
 
-func TestHeap_PushAndPop(t *testing.T) {
+func TestEdfHeap_PushAndPop(t *testing.T) {
 	h := newEdfHeap(16)
 	// Test that the push operation conforms to heap ordering
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 50; i++ {
 		h.Push(&edfEntry{
-			weight: rand.Float64(),
+			deadline: float64(i / 4), // for same deadline
+			weight:   rand.Float64(),
 		})
 	}
-	h.assertHeapOrdering(func(i int, element interface{}) {
-		t.Errorf("Element[%d] = %v does not conform to heap ordering", i, element)
-	})
+	h.verify(t, 0)
+
+	for i := 50; i < 100; i++ {
+		h.Push(&edfEntry{
+			deadline: float64(i / 4), // for same deadline
+			weight:   rand.Float64(),
+		})
+		h.verify(t, 0)
+	}
 
 	// Test that the return result of the pop operation is non-decreasing
 	var preValue *edfEntry = nil
@@ -64,7 +80,25 @@ func TestHeap_PushAndPop(t *testing.T) {
 	}
 }
 
-func BenchmarkHeap_Push(b *testing.B) {
+func TestEdfHeap_Fix(t *testing.T) {
+	h := newEdfHeap(16)
+	for i := 0; i < 100; i++ {
+		h.Push(&edfEntry{
+			deadline: float64(i / 4),
+			weight:   rand.Float64(),
+		})
+	}
+	h.verify(t, 0)
+
+	for i := 0; i < 100; i++ {
+		e := h.Peek()
+		e.deadline += 1 / e.weight
+		h.Fix(0)
+		h.verify(t, 0)
+	}
+}
+
+func BenchmarkEdfHeap_Push(b *testing.B) {
 	b.StopTimer()
 	h := newEdfHeap(16)
 	b.StartTimer()
@@ -73,7 +107,7 @@ func BenchmarkHeap_Push(b *testing.B) {
 	}
 }
 
-func BenchmarkHeap_Pop(b *testing.B) {
+func BenchmarkEdfHeap_Pop(b *testing.B) {
 	b.StopTimer()
 	h := newEdfHeap(16)
 	for i := 0; i < b.N; i++ {
@@ -85,7 +119,7 @@ func BenchmarkHeap_Pop(b *testing.B) {
 	}
 }
 
-func BenchmarkHeap_Fix(b *testing.B) {
+func BenchmarkEdfHeap_Fix(b *testing.B) {
 	b.StopTimer()
 	h := newEdfHeap(16)
 	for i := 0; i < b.N; i++ {
