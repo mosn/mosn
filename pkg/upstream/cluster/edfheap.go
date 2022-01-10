@@ -139,7 +139,7 @@ func (h *edfHeap) ensureIncrement() {
 }
 
 func (h *edfHeap) ensureDecrement() {
-	if minCap < h.size && h.size*2 < cap(h.elements) {
+	if minCap < cap(h.elements) && h.size*2 < cap(h.elements) {
 		newCap := cap(h.elements) / 2
 		oldElements := h.elements
 		h.elements = make([]*edfEntry, newCap)
