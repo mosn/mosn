@@ -358,7 +358,7 @@ func (stm *StageManager) Stop() {
 	if !stm.started {
 		return
 	}
-	preState := GetState()
+	preState := stm.state
 	// graceful stop the existing connections and requests
 	if stm.stopAction == GracefulStop || stm.stopAction == Upgrade {
 		stm.runGracefulStopStage()
@@ -413,8 +413,8 @@ func StartNewServer() error {
 // start a new server
 func (stm *StageManager) runReload() {
 	// ignore the HUP signal when it's not running
-	if GetState() != Running {
-		log.DefaultLogger.Errorf("[server] SIGHUP received: current state expected running while got %d", GetState())
+	if stm.state != Running {
+		log.DefaultLogger.Errorf("[server] SIGHUP received: current state expected running while got %d", stm.state)
 		return
 	}
 
@@ -501,7 +501,7 @@ func (stm *StageManager) resume() {
 
 // hot upgrade, sending config/existing connections to new server firstly
 func (stm *StageManager) runUpgrade() {
-	if GetState() == StartingNewServer {
+	if stm.state == StartingNewServer {
 		stm.newServerC <- true
 	}
 	stm.SetState(Upgrading)
@@ -532,7 +532,7 @@ func NoticeStop(action StopAction) {
 	case Upgrade:
 		stm.runUpgrade()
 	case GracefulStop, Stop:
-		if GetState() < AfterStart {
+		if stm.state < AfterStart {
 			// stop directly when it hasn't started yet
 			stm.Stop()
 		} else {
