@@ -146,13 +146,3 @@ func (h *edfHeap) ensureDecrement() {
 		copy(h.elements, oldElements)
 	}
 }
-
-// assertHeapOrdering for testing
-func (h *edfHeap) assertHeapOrdering(onFail func(i int, element interface{})) {
-	for i := 0; i < h.size; i++ {
-		if (i*2+1 < h.size && edfEntryLess(h.elements[i*2+1], h.elements[i])) ||
-			(i*2+2 < h.size && edfEntryLess(h.elements[i*2+2], h.elements[i])) {
-			onFail(i, h.elements[i])
-		}
-	}
-}
