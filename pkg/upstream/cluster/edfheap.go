@@ -107,7 +107,10 @@ func (h *edfHeap) fixDown(i, n int) bool {
 	var element *edfEntry
 	for element = h.elements[i]; ; i = child {
 		child = i*2 + 1
+		// In order to reduce one calculation
 		if child < n {
+			// According to the heap order, select the element with the smallest value
+			// in the left and right child nodes as the value of the parent node
 			if child+1 < n && edfEntryLess(h.elements[child+1], h.elements[child]) {
 				child++
 			}
