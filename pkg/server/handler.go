@@ -274,6 +274,12 @@ func (ch *connHandler) StopListener(lctx context.Context, name string, close boo
 	return nil
 }
 
+func (ch *connHandler) GracefulStopListeners() {
+	for _, l := range ch.listeners {
+		l.listener.GracefulStop()
+	}
+}
+
 func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 	var errGlobal error
 	for _, l := range ch.listeners {
