@@ -274,9 +274,9 @@ func (ch *connHandler) StopListener(lctx context.Context, name string, close boo
 	return nil
 }
 
-func (ch *connHandler) GracefulStopListeners() {
+func (ch *connHandler) ShutdownListeners() {
 	for _, l := range ch.listeners {
-		l.listener.GracefulStop()
+		l.listener.Shutdown()
 	}
 }
 
@@ -531,13 +531,13 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
-func (al *activeListener) OnGracefulClose() {
+func (al *activeListener) OnShutdown() {
 	al.connsMux.Lock()
 	defer al.connsMux.Unlock()
 
 	for i := al.conns.Front(); i != nil; i = i.Next() {
 		conn := i.Value.(*activeConnection).conn
-		conn.OnGracefulClose()
+		conn.OnShutdown()
 	}
 }
 

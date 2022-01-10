@@ -107,8 +107,9 @@ func (srv *server) Restart() {
 	// TODO
 }
 
-func (srv *server) GracefulClose() {
-	srv.handler.GracefulStopListeners()
+// Shutdown graceful stop server
+func (srv *server) Shutdown() {
+	srv.handler.ShutdownListeners()
 }
 
 // Close the server

@@ -206,12 +206,12 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 	})
 }
 
-// GracefulStop stop accepting new connections and graceful stop the existing connections
-func (l *listener) GracefulStop() {
+// Shutdown stop accepting new connections and graceful stop the existing connections
+func (l *listener) Shutdown() {
 	// todo: change to StopAccept
 	l.Stop()
 
-	l.cb.OnGracefulClose()
+	l.cb.OnShutdown()
 }
 
 // Stop listen and graceful stop existing connections

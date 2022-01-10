@@ -143,8 +143,8 @@ type XProtocol interface {
 	GenerateRequestID(*uint64) uint64
 }
 
-// DrainConnection provides the ability to construct proper GoAway command for xprotocol
-type DrainConnection interface {
+// GracefulShutdown provides the ability to construct proper GoAway command for xprotocol
+type GracefulShutdown interface {
 	// GoAway builds an active GoAway command
 	GoAway(context context.Context, requestId uint64) XFrame
 }

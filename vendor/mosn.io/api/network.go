@@ -74,8 +74,8 @@ type Connection interface {
 	//      - ConnectFailed
 	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
 	
-	// OnGracefulClose called on graceful close listener
-	OnGracefulClose()
+	// OnShutdown called on graceful close listener
+	OnShutdown()
 
 	// LocalAddr returns the local address of the connection.
 	// For client connection, this is the origin address
@@ -177,7 +177,7 @@ const (
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
 	OnWriteTimeout  ConnectionEvent = "OnWriteTimeout"
-	GracefulClose	ConnectionEvent = "GracefulClose"
+	OnShutdown 		ConnectionEvent = "OnShutdown"
 )
 
 // IsClose represents whether the event is triggered by connection close

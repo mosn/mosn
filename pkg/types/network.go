@@ -98,8 +98,8 @@ type Listener interface {
 	// Accepted connections and listening sockets will not be closed
 	Stop() error
 
-	// GracefulStop stop accepting new connections and graceful stop the existing connections
-	GracefulStop()
+	// Shutdown stop accepting new connections and graceful stop the existing connections
+	Shutdown()
 
 	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
@@ -146,8 +146,8 @@ type ListenerEventListener interface {
 	// OnClose is called on listener close
 	OnClose()
 
-	// OnGracefulClose is called for graceful stop existing connections
-	OnGracefulClose()
+	// OnShutdown is called for graceful stop existing connections
+	OnShutdown()
 
 	// PreStopHook is called on listener quit(but before closed)
 	PreStopHook(ctx context.Context) func() error
@@ -227,9 +227,9 @@ type ConnectionHandler interface {
 	// The close indicates whether the listening sockets will be closed.
 	StopListeners(lctx context.Context, close bool) error
 
-	// GracefulStopListeners graceful stop accept all listeners the ConnectionHandler has.
+	// ShutdownListeners graceful stop accept all listeners the ConnectionHandler has.
 	// and graceful stop all the existing connections
-	GracefulStopListeners()
+	ShutdownListeners()
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFile(lctx context.Context) []*os.File

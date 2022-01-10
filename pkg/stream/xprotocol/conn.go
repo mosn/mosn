@@ -46,8 +46,9 @@ type streamConn struct {
 	protocol     api.XProtocol
 	protocolName api.ProtocolName
 
-	maxStreamID     uint64
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
+	maxStreamID     uint64
+	inGoAway        bool
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
@@ -169,12 +170,20 @@ func (sc *streamConn) EnableWorkerPool() bool {
 }
 
 func (sc *streamConn) GoAway() {
-	if drain, ok := sc.protocol.(api.DrainConnection); ok {
-		// TODO: not a good idea to newClientStream here.
+	if gs, ok := sc.protocol.(api.GracefulShutdown); ok {
+		if sc.inGoAway {
+			return
+		}
+		sc.inGoAway = true
+
+		// TODO: may not a good idea to newClientStream here.
 		ctx := context.Background()
 		sender := sc.newClientStream(ctx)
-		fr := drain.GoAway(ctx, sc.maxStreamID)
+		fr := gs.GoAway(ctx, sc.maxStreamID)
 		sender.AppendHeaders(ctx, fr.GetHeader(), true)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
+		}
 	}
 }
 
@@ -258,6 +267,10 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
 		sc.clientCallbacks.OnGoAway()
+		return
+	}
+
+	if sc.inGoAway {
 		return
 	}
 
