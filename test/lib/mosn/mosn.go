@@ -49,6 +49,10 @@ func (op *MosnOperator) Stop() {
 	syscall.Kill(op.pid, syscall.SIGKILL) // force kill mosn
 }
 
+func (op *MosnOperator) GracefulStop() {
+	syscall.Kill(op.pid, syscall.SIGTERM) // graceful stop mosn
+}
+
 // TODO: More MOSN Operation
 // Restart mosn, hot restart
 func (op *MosnOperator) Restart() error {

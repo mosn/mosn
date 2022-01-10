@@ -235,7 +235,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 		}
 		return
 	}
-	if event == api.Shutdown {
+	if event == api.OnShutdown {
 		p.serverStreamConn.GoAway()
 	}
 }
