@@ -44,14 +44,14 @@ type UpgradeData struct {
 }
 
 type Mosn struct {
+	isFromUpgrade  bool // hot upgrade from old MOSN
 	Upgrade        UpgradeData
 	Clustermanager types.ClusterManager
 	RouterManager  types.RouterManager
 	Config         *v2.MOSNConfig
 	// internal data
-	servers      []server.Server
-	xdsClient    *istio.ADSClient
-	isHotUpgrade bool // hot upgrade from old MOSN
+	servers   []server.Server
+	xdsClient *istio.ADSClient
 }
 
 // create an empty mosn
@@ -65,6 +65,9 @@ func NewMosn() *Mosn {
 
 // generate mosn structure members
 func (m *Mosn) Init(c *v2.MOSNConfig) error {
+	if c.CloseGraceful {
+		c.DisableUpgrade = true
+	}
 	if err := m.inheritConfig(c); err != nil {
 		return err
 	}
@@ -104,6 +107,9 @@ func (m *Mosn) inheritHandler() error {
 		c.ClusterManager = oldMosnConfig.ClusterManager
 		c.Extends = oldMosnConfig.Extends
 	}
+	if c.CloseGraceful {
+		c.DisableUpgrade = true
+	}
 	m.Config = c
 	return nil
 }
@@ -116,8 +122,8 @@ func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// default is graceful mode, turn graceful off by set it to false
-	if !c.CloseGraceful && server.IsReconfigure() {
-		m.isHotUpgrade = true
+	if !c.DisableUpgrade && server.IsReconfigure() {
+		m.isFromUpgrade = true
 		if err = m.inheritHandler(); err != nil {
 			return
 		}
@@ -332,7 +338,7 @@ func (m *Mosn) Start() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	if !m.Config.CloseGraceful {
+	if !m.Config.DisableUpgrade {
 		stagemanager.RegsiterUpgradeHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {

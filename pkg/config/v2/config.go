@@ -28,7 +28,8 @@ import (
 type MOSNConfig struct {
 	Servers              []ServerConfig       `json:"servers,omitempty"`                //server config
 	ClusterManager       ClusterManagerConfig `json:"cluster_manager,omitempty"`        //cluster config
-	CloseGraceful        bool                 `json:"close_graceful,omitempty"`         // graceful switch, default false
+	DisableUpgrade       bool                 `json:"disable_upgrade,omitempty"`        // not upgrade from old mosn, default false
+	CloseGraceful        bool                 `json:"close_graceful,omitempty"`         // deprecated, same as disable_upgrade
 	InheritOldMosnconfig bool                 `json:"inherit_old_mosnconfig,omitempty"` // inherit old mosn config switch, default false
 	Tracing              TracingConfig        `json:"tracing,omitempty"`
 	Metrics              MetricsConfig        `json:"metrics,omitempty"`
