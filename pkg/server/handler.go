@@ -267,7 +267,7 @@ func (ch *connHandler) StopListener(lctx context.Context, name string, close boo
 				return l.listener.Close(lctx)
 			}
 
-			return l.listener.Stop()
+			return l.listener.StopAccept()
 		}
 	}
 
@@ -289,7 +289,7 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 				errGlobal = err
 			}
 		} else {
-			if err := l.listener.Stop(); err != nil {
+			if err := l.listener.StopAccept(); err != nil {
 				errGlobal = err
 			}
 		}

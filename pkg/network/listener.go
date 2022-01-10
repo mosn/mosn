@@ -209,16 +209,16 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 // Shutdown stop accepting new connections and graceful stop the existing connections
 func (l *listener) Shutdown() {
 	// todo: change to StopAccept
-	l.Stop()
+	l.StopAccept()
 
 	l.cb.OnShutdown()
 }
 
-// Stop listen and graceful stop existing connections
-func (l *listener) Stop() error {
+// StopAccept stop accepting new connections
+func (l *listener) StopAccept() error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.state == ListenerClosed {
+	if l.state == ListenerClosed || l.state == ListenerStopped {
 		return nil
 	}
 	l.state = ListenerStopped

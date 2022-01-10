@@ -94,9 +94,9 @@ type Listener interface {
 	// Start starts listener with context
 	Start(lctx context.Context, restart bool)
 
-	// Stop stops listener
+	// Stop accepting new connections from listener
 	// Accepted connections and listening sockets will not be closed
-	Stop() error
+	StopAccept() error
 
 	// Shutdown stop accepting new connections and graceful stop the existing connections
 	Shutdown()
