@@ -947,6 +947,13 @@ func (sc *MServerConn) processGoAway(f *GoAwayFrame) error {
 	return nil
 }
 
+// GracefulShutdown is called when server graceful shutdown
+func (sc *MServerConn) GracefulShutdown() {
+	// NOTICE: may block in connection.Write (writeDirectly or write into c.writeBufferChan)
+	// maybe it's worth to introduce another independent channel?
+	sc.goAway(ErrCodeNo, nil)
+}
+
 func (sc *MServerConn) startGracefulShutdownInternal() {
 	sc.goAway(ErrCodeNo, nil)
 }
