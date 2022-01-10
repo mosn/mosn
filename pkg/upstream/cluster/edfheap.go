@@ -86,6 +86,8 @@ func (h *edfHeap) fixUp(i int) bool {
 	oldI := i
 	var parent int
 	var element *edfEntry
+	// Find the largest element position from the current node to the root
+	// that is smaller than the current value, and move all elements on the path down
 	for element = h.elements[i]; i > 0; i = parent {
 		parent = (i - 1) / 2
 		if edfEntryLess(element, h.elements[parent]) {
