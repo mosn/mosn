@@ -169,6 +169,10 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		proto, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes(), scopes)
 
 		if err == stream.EAGAIN {
+			if p.config.FallbackForUnknownProtocol {
+				p.fallback = true
+				return api.Continue
+			}
 			return api.Stop
 		}
 		if err == stream.FAILED {
