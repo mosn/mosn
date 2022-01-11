@@ -14,7 +14,7 @@ MAJOR_VERSION   = $(shell cat VERSION)
 GIT_VERSION     = $(shell git log -1 --pretty=format:%h)
 GIT_NOTES       = $(shell git log -1 --oneline)
 
-BUILD_IMAGE     = godep-builder
+BUILD_IMAGE     = golang:1.14.13
 
 WASM_IMAGE      = mosn-wasm
 
@@ -35,46 +35,39 @@ ifneq ($(TAGS),)
 TAGS_OPT 		= -tags ${TAGS}
 endif
 
-
 ut-local:
-	GO111MODULE=off go test -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
+	GO111MODULE=on go test -mod=vendor -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
 	make unit-test-istio-${ISTIO_VERSION}
 
 unit-test:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make ut-local
 
 coverage-local:
 	sh ${SCRIPT_DIR}/report.sh
 
 coverage:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 integrate-local:
-	GO111MODULE=off go test -p 1 -v ./test/integrate/...
+	GO111MODULE=on go test -mod=vendor -p 1 -v ./test/integrate/...
 
 integrate-local-netpoll:
-	GO111MODULE=off NETPOLL=on go test -p 1 -v ./test/integrate/...
+	GO111MODULE=on NETPOLL=on go test -mod=vendor -p 1 -v ./test/integrate/...
 
 integrate:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local
 
 
 integrate-netpoll:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local-netpoll
 
 integrate-framework:
 	@cd ./test/cases && bash run_all.sh
 
 integrate-new:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-framework
 
 build:
-	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
 
 build-wasm-image:
@@ -95,14 +88,12 @@ build-local:
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
 	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
-
 image:
 	@rm -rf IMAGEBUILD
 	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r configs IMAGEBUILD && cp -r etc IMAGEBUILD
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} IMAGEBUILD
 	docker tag ${IMAGE_NAME}:${MAJOR_VERSION}-${GIT_VERSION} ${REPOSITORY}:${MAJOR_VERSION}-${GIT_VERSION}
 	rm -rf IMAGEBUILD
-
 
 # change istio version support
 istio-1.5.2:
@@ -114,7 +105,6 @@ istio-1.5.2:
 
 # istio test
 unit-test-istio-1.5.2:
-	GO111MODULE=off go test -gcflags=-l -v `go list ./istio/istio152/...`	
-
+	GO111MODULE=on go test -mod=vendor -gcflags=-l -v `go list ./istio/istio152/...`
 
 .PHONY: unit-test build image rpm upload shell
