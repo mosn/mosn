@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# source file => output file
 files=(
 ../../vendor/mosn.io/api/network.go network.go
 ../../vendor/mosn.io/api/network_filter.go network_filter.go
@@ -25,7 +26,11 @@ do
         echo "ERROR: $infile not existing"
         exit 1
     fi
-    echo $infile
-    echo $outfile
-    mockgen -source=$infile -package=mock > $outfile
+
+    # echo $infile
+    # echo $outfile
+    mockgen -source=$infile -package=mock > $outfile || exit 1
 done
+
+# wasm.go
+mockgen --build_flags=--mod=mod -package mock mosn.io/mosn/pkg/types ABIHandler,ABI,WasmFunction,WasmInstance,WasmModule,WasmVM,WasmPlugin,WasmPluginHandler,WasmPluginWrapper,WasmManager > wasm.go || exit 1
