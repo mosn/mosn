@@ -15,37 +15,46 @@
  * limitations under the License.
  */
 
-package store
+package pid
 
 import (
-	"sync/atomic"
-	"testing"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
+
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 )
 
-func TestOnStateChanged(t *testing.T) {
-	calls := map[State]uint32{
-		Init:                  0,
-		Running:               0,
-		Active_Reconfiguring:  0,
-		Passive_Reconfiguring: 0,
-	}
-	onChanged := func(s State) {
-		cnt, ok := calls[s]
-		if ok {
-			calls[s] = atomic.AddUint32(&cnt, 1)
+var (
+	pidFile string
+)
+
+func SetPid(pid string) {
+	if pid == "" {
+		pidFile = types.MosnPidDefaultFileName
+	} else {
+		if err := os.MkdirAll(filepath.Dir(pid), 0755); err != nil {
+			pidFile = types.MosnPidDefaultFileName
+		} else {
+			pidFile = pid
 		}
 	}
-	RegisterOnStateChanged(onChanged)
-	for _, s := range []State{
-		Init, Running, Active_Reconfiguring, Passive_Reconfiguring,
-	} {
-		for i := 0; i < 10; i++ {
-			SetMosnState(s)
-		}
+	WritePidFile()
+}
+
+func WritePidFile() (err error) {
+	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
+
+	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
+		log.DefaultLogger.Errorf("write pid file error: %v", err)
 	}
-	for s, cnt := range calls {
-		if cnt != 10 {
-			t.Errorf("state:%d count is %d", s, cnt)
-		}
+	return err
+}
+
+func RemovePidFile() {
+	if pidFile != "" {
+		os.Remove(pidFile)
 	}
 }

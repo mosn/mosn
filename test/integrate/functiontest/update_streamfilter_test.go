@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/mosn"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // Test Update stream filters by LDS can effect the connections that created before.

@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -152,7 +153,7 @@ func postToggleLogger(port uint32, logger string, disable bool) (string, error) 
 
 }
 
-func getMosnState(port uint32) (pid int, state store.State, err error) {
+func getMosnState(port uint32) (pid int, state stagemanager.State, err error) {
 	url := fmt.Sprintf("http://localhost:%d/api/v1/states", port)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -172,7 +173,7 @@ func getMosnState(port uint32) (pid int, state store.State, err error) {
 	stateStr := strings.Split(p[1], "=")[1]
 	pid, _ = strconv.Atoi(pidStr)
 	stateInt, _ := strconv.Atoi(stateStr)
-	state = store.State(stateInt)
+	state = stagemanager.State(stateInt)
 	return pid, state, nil
 }
 
@@ -417,46 +418,47 @@ func TestGetState(t *testing.T) {
 
 	time.Sleep(time.Second) //wait server start
 
-	// init
-	pid, state, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
+	verifyState := func(expectedState stagemanager.State, expectedPid int) {
+		pid, state, err := getMosnState(config.Port)
+		if err != nil {
+			t.Fatalf("get mosn states failed: %v", err)
+		}
+
+		// verify
+		if pid != expectedPid {
+			t.Error("mosn pid is not expected", pid, expectedPid)
+		}
+		if state != expectedState {
+			t.Error("mosn state is not expected", state, expectedState)
+		}
 	}
 
-	// reconfiguring
-	store.SetMosnState(store.Passive_Reconfiguring)
-	pid2, state2, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
+	allStates := []stagemanager.State{
+		stagemanager.Nil,
+		stagemanager.ParamsParsed,
+		stagemanager.Initing,
+		stagemanager.PreStart,
+		stagemanager.Starting,
+		stagemanager.AfterStart,
+		stagemanager.Running,
+		stagemanager.GracefulStopping,
+		stagemanager.Stopping,
+		stagemanager.AfterStop,
+		stagemanager.Stopped,
+		stagemanager.StartingNewServer,
+		stagemanager.Upgrading,
 	}
 
-	// running
-	store.SetMosnState(store.Running)
-	pid3, state3, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// active reconfiguring
-	store.SetMosnState(store.Active_Reconfiguring)
-	pid4, state4, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// verify
 	curPid := os.Getpid()
-	if !(pid == curPid &&
-		pid2 == curPid &&
-		pid3 == curPid &&
-		pid4 == curPid) {
-		t.Error("mosn pid is not expected", pid, pid2, pid3, pid4)
-	}
-	if !(state == store.Init &&
-		state2 == store.Passive_Reconfiguring &&
-		state3 == store.Running &&
-		state4 == store.Active_Reconfiguring) {
-		t.Error("mosn state is not expected", state, state2, state3, state4)
+
+	// verify init
+	verifyState(stagemanager.Nil, curPid)
+
+	// verify set state
+	stm := stagemanager.InitStageManager(nil, "", nil)
+	for _, state := range allStates {
+		stm.SetState(state)
+		verifyState(state, curPid)
 	}
 }
 
