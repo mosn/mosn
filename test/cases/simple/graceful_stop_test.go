@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"io/ioutil"
+	"mosn.io/mosn/pkg/log"
 	"net"
 	goHttp "net/http"
 	"testing"
@@ -18,8 +19,6 @@ import (
 	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib/mosn"
 )
-
-var body = make([]byte, 1<<18)
 
 func TestHttp2NotUseStream2(t *testing.T) {
 	Scenario(t, "http2 not use stream", func() {
@@ -56,7 +55,7 @@ func TestHttp2NotUseStream2(t *testing.T) {
 				reqBody []byte
 			}{
 				{
-					reqBody: []byte("xxxxx"),
+					reqBody: []byte("test-req-body"),
 				},
 			}
 
@@ -70,15 +69,22 @@ func TestHttp2NotUseStream2(t *testing.T) {
 					},
 				}
 				// 1. simple
+				var start time.Time
+				start = time.Now()
 				resp, err := client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
+				log.DefaultLogger.Errorf("client.Post cost %v ms", time.Now().UnixMilli()-start.UnixMilli())
 				Verify(err, Equal, nil)
 				respBody, err := ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)
 				Verify(len(respBody), Equal, len(tc.reqBody))
 
-				// 2. graceful stop after send request
+				// 2. graceful stop after send request and before received the response
+				go func() {
+					time.Sleep(time.Millisecond * 100)
+					m.GracefulStop()
+				}()
 				resp, err = client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
-				m.GracefulStop()
+				log.DefaultLogger.Errorf("after post request")
 				Verify(err, Equal, nil)
 				respBody, err = ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)
@@ -91,3 +97,57 @@ func TestHttp2NotUseStream2(t *testing.T) {
 		})
 	})
 }
+
+const ConfigSimpleHTTP2 = `{
+        "servers":[
+                {
+                        "default_log_path":"stdout",
+                        "default_log_level": "ERROR",
+                        "routers": [
+                                {
+                                        "router_config_name":"router_to_server",
+                                        "virtual_hosts":[{
+                                                "name":"server_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
+                                                        {
+                                                                "match":{"prefix":"/"},
+                                                                "route":{"cluster_name":"server_cluster"}
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
+                        "listeners":[
+                                {
+                                        "address":"127.0.0.1:2046",
+                                        "bind_port": true,
+                                        "filter_chains": [{
+                                                "filters": [
+                                                        {
+                                                                "type": "proxy",
+                                                                "config": {
+                                                                        "downstream_protocol": "Http2",
+                                                                        "upstream_protocol": "Http2",
+                                                                        "router_config_name":"router_to_server"
+                                                                }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ]
+                }
+        ],
+        "cluster_manager":{
+                "clusters":[
+                        {
+                                "name": "server_cluster",
+                                "type": "SIMPLE",
+                                "lb_type": "LB_RANDOM",
+                                "hosts":[
+                                        {"address":"127.0.0.1:8080"}
+                                ]
+                        }
+                ]
+        }
+}`
