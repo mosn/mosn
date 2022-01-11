@@ -50,8 +50,6 @@ func (h *edfHeap) Fix(i int) {
 }
 
 func (h *edfHeap) Push(element *edfEntry) {
-	// TODO: It seems don't need to change the slice capacity dynamically?
-	h.ensureIncrement()
 	n := h.size
 	h.size++
 	h.elements[n] = element
@@ -69,8 +67,6 @@ func (h *edfHeap) Pop() *edfEntry {
 	h.elements[0] = h.elements[n]
 	h.elements[n] = nil // For gc
 	h.fixDown(0, n)
-	// TODO: It seems don't need to change the slice capacity dynamically?
-	h.ensureDecrement() // Avoid only growing but not decreasing
 	return value
 }
 
@@ -130,21 +126,4 @@ func (h *edfHeap) fixDown(i, n int) bool {
 	}
 	h.elements[i] = element
 	return true
-}
-
-func (h *edfHeap) ensureIncrement() {
-	if h.size+1 > cap(h.elements) {
-		oldElements := h.elements
-		h.elements = make([]*edfEntry, 2*cap(h.elements))
-		copy(h.elements, oldElements)
-	}
-}
-
-func (h *edfHeap) ensureDecrement() {
-	if minCap < cap(h.elements) && h.size*2 < cap(h.elements) {
-		newCap := cap(h.elements) / 2
-		oldElements := h.elements
-		h.elements = make([]*edfEntry, newCap)
-		copy(h.elements, oldElements)
-	}
 }

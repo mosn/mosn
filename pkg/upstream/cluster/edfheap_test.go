@@ -43,7 +43,7 @@ func (h *edfHeap) verify(t *testing.T, i int) {
 }
 
 func TestEdfHeap_PushAndPop(t *testing.T) {
-	h := newEdfHeap(16)
+	h := newEdfHeap(100)
 	// Test that the push operation conforms to heap ordering
 	for i := 0; i < 50; i++ {
 		h.Push(&edfEntry{
@@ -60,6 +60,9 @@ func TestEdfHeap_PushAndPop(t *testing.T) {
 		})
 		h.verify(t, 0)
 	}
+	if h.Size() != 100 {
+		t.Errorf("Expected heap size to be 100, but was %d", h.Size())
+	}
 
 	// Test that the return result of the pop operation is non-decreasing
 	var preValue *edfEntry = nil
@@ -74,14 +77,29 @@ func TestEdfHeap_PushAndPop(t *testing.T) {
 		}
 	}
 
-	// Test the minimum capacity after pop operation
-	if cap(h.elements) != minCap {
-		t.Errorf("Heap elements cap after decrement should not be less than %d", minCap)
+	if h.Size() != 0 {
+		t.Errorf("Expected heap size to be 0, but was %d", h.Size())
+	}
+}
+
+func TestEdfHeap_PushAndPopNotChangeCapacity(t *testing.T) {
+	h := newEdfHeap(100)
+	for i := 0; i < 100; i++ {
+		h.Push(&edfEntry{
+			deadline: float64(i / 4), // for same deadline
+			weight:   rand.Float64(),
+		})
+	}
+	for !h.Empty() {
+		h.Pop()
+	}
+	if cap(h.elements) != 100 {
+		t.Errorf("Heap continuous push and continuous pop should not change the capacity. cap = %d", cap(h.elements))
 	}
 }
 
 func TestEdfHeap_Fix(t *testing.T) {
-	h := newEdfHeap(16)
+	h := newEdfHeap(100)
 	for i := 0; i < 100; i++ {
 		h.Push(&edfEntry{
 			deadline: float64(i / 4),
