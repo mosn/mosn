@@ -99,7 +99,7 @@ type Listener interface {
 	StopAccept() error
 
 	// Shutdown stop accepting new connections and graceful stop the existing connections
-	Shutdown()
+	Shutdown() error
 
 	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
@@ -220,16 +220,19 @@ type ConnectionHandler interface {
 	// RemoveListeners find and removes a listener by listener name.
 	RemoveListeners(name string)
 
-	// StopListener stops a listener  by listener name
-	StopListener(lctx context.Context, name string, stop bool) error
+	// GracefulCloseListener graceful close a listener by listener name
+	// stop accept connections + graceful stop existing connections + close listener
+	GracefulCloseListener(lctx context.Context, name string) error
 
-	// StopListeners stops all listeners the ConnectionHandler has.
-	// The close indicates whether the listening sockets will be closed.
-	StopListeners(lctx context.Context, close bool) error
+	// StopAcceptListeners just stop accept connections from all listeners the ConnectionHandler has.
+	StopAcceptListeners()
 
-	// ShutdownListeners graceful stop accept all listeners the ConnectionHandler has.
-	// and graceful stop all the existing connections
-	ShutdownListeners()
+	// ShutdownListeners stop accept connections from all listeners the ConnectionHandler has.
+	// and graceful stop all the existing connections.
+	ShutdownListeners() error
+
+	// CloseListeners close listeners immediately
+	CloseListeners()
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFile(lctx context.Context) []*os.File

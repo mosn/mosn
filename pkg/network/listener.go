@@ -207,11 +207,15 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 // Shutdown stop accepting new connections and graceful stop the existing connections
-func (l *listener) Shutdown() {
-	// todo: change to StopAccept
-	l.StopAccept()
+func (l *listener) Shutdown() error {
+	if err := l.StopAccept(); err != nil {
+		return err
+	}
 
 	l.cb.OnShutdown()
+
+	// todo: wait connections done
+	return nil
 }
 
 // StopAccept stop accepting new connections

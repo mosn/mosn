@@ -102,7 +102,9 @@ type Application interface {
 	Start()
 	// transfer existing connection from old server for smooth upgrade
 	InheritConnections() error
-	// stop working
+	// Shutdown means graceful stop
+	Shutdown() error
+	// Close means stop working immediately
 	Close()
 }
 
@@ -320,6 +322,12 @@ func (stm *StageManager) AppendGracefulStopStage(f func(Application) error) *Sta
 func (stm *StageManager) runGracefulStopStage() {
 	st := time.Now()
 	stm.SetState(GracefulStopping)
+	// 1. graceful stop the app firstly
+	if err := stm.app.Shutdown(); err != nil {
+		log.DefaultLogger.Errorf("failed to graceful stop app: %v", err)
+		stm.exitCode = 4
+	}
+	// 2. run the registered hooks
 	for _, f := range stm.gracefulStopStages {
 		if err := f(stm.app); err != nil {
 			log.DefaultLogger.Errorf("failed to run graceful stop callback: %v", err)

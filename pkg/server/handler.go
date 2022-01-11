@@ -259,43 +259,45 @@ func (ch *connHandler) RemoveListeners(name string) {
 	}
 }
 
-func (ch *connHandler) StopListener(lctx context.Context, name string, close bool) error {
-	for _, l := range ch.listeners {
-		if l.listener.Name() == name {
-			// stop goroutine
-			if close {
-				return l.listener.Close(lctx)
-			}
-
-			return l.listener.StopAccept()
-		}
-	}
-
-	return nil
-}
-
-func (ch *connHandler) ShutdownListeners() {
-	for _, l := range ch.listeners {
-		l.listener.Shutdown()
-	}
-}
-
-func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
+func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) error {
 	var errGlobal error
 	for _, l := range ch.listeners {
-		// stop goroutine
-		if close {
+		if l.listener.Name() == name {
+			if err := l.listener.Shutdown(); err != nil {
+				errGlobal = err
+			}
 			if err := l.listener.Close(lctx); err != nil {
 				errGlobal = err
 			}
-		} else {
-			if err := l.listener.StopAccept(); err != nil {
-				errGlobal = err
-			}
 		}
 	}
-
 	return errGlobal
+}
+
+// StopAcceptListeners just stop accept connections
+func (ch *connHandler) StopAcceptListeners() {
+	for _, l := range ch.listeners {
+		l.listener.StopAccept()
+	}
+}
+
+// ShutdownListeners stop accept connections
+// and graceful stop all the existing connections.
+func (ch *connHandler) ShutdownListeners() error {
+	var errGlobal error
+	for _, l := range ch.listeners {
+		if err := l.listener.Shutdown(); err != nil {
+			errGlobal = err
+		}
+	}
+	return errGlobal
+}
+
+// CloseListeners close listeners immediately
+func (ch *connHandler) CloseListeners() {
+	for _, l := range ch.listeners {
+		l.listener.Close(nil)
+	}
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
@@ -329,10 +331,8 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 func (ch *connHandler) findActiveListenerByName(name string) *activeListener {
 	for _, l := range ch.listeners {
-		if l.listener != nil {
-			if l.listener.Name() == name {
-				return l
-			}
+		if l.listener != nil && l.listener.Name() == name {
+			return l
 		}
 	}
 

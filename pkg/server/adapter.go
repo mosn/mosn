@@ -124,7 +124,7 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 	}
 
 	// stop listener first
-	if err := connHandler.StopListener(nil, listenerName, true); err != nil {
+	if err := connHandler.GracefulCloseListener(nil, listenerName); err != nil {
 		return err
 	}
 

@@ -41,6 +41,9 @@ type Server interface {
 
 	Restart()
 
+	// Shutdown means graceful stop
+	Shutdown() error
+
 	Close()
 
 	Handler() types.ConnectionHandler

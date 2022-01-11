@@ -355,7 +355,17 @@ func (m *Mosn) Start() {
 			srv.Start()
 		}, nil)
 	}
+}
 
+// Shutdown means graceful stop servers
+func (m *Mosn) Shutdown() error {
+	var errGlobal error
+	for _, srv := range m.servers {
+		if err := srv.Shutdown(); err != nil {
+			errGlobal = err
+		}
+	}
+	return errGlobal
 }
 
 func (m *Mosn) Close() {
