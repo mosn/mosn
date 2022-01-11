@@ -9,10 +9,10 @@ import (
 
 	"mosn.io/api"
 
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 type heartBeatServer struct {

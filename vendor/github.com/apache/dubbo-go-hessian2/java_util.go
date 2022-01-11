@@ -15,48 +15,17 @@
  * limitations under the License.
  */
 
-package store
+package hessian
 
 import (
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/metrics"
-)
-
-type State int
-
-var state = Init
-
-const (
-	Init State = iota
-	Running
-	Active_Reconfiguring
-	Passive_Reconfiguring
+	"github.com/apache/dubbo-go-hessian2/java_util"
 )
 
 func init() {
-	RegisterOnStateChanged(SetStateCode)
-}
-
-func GetMosnState() State {
-	return state
-}
-
-func SetMosnState(s State) {
-	state = s
-	log.DefaultLogger.Infof("[admin store] [mosn state] state changed to %d", s)
-	for _, cb := range onStateChangedCallbacks {
-		cb(s)
-	}
-}
-
-type OnStateChanged func(s State)
-
-var onStateChangedCallbacks []OnStateChanged
-
-func RegisterOnStateChanged(f OnStateChanged) {
-	onStateChangedCallbacks = append(onStateChangedCallbacks, f)
-}
-
-func SetStateCode(s State) {
-	metrics.SetStateCode(int64(s))
+	RegisterPOJO(&java_util.UUID{
+		Value: "",
+	})
+	RegisterPOJO(&java_util.LocaleHandle{
+		Value: "",
+	})
 }

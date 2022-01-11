@@ -38,16 +38,20 @@ github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/core/system_metric
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
+# github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
+## explicit
+github.com/andreyvit/diff
 # github.com/andybalholm/brotli v1.0.2
 github.com/andybalholm/brotli
 # github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
 github.com/antlr/antlr4/runtime/Go/antlr
-# github.com/apache/dubbo-go-hessian2 v1.7.0
+# github.com/apache/dubbo-go-hessian2 v1.10.2
 ## explicit
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java8_time
 github.com/apache/dubbo-go-hessian2/java_exception
 github.com/apache/dubbo-go-hessian2/java_sql_time
+github.com/apache/dubbo-go-hessian2/java_util
 # github.com/apache/thrift v0.13.0
 ## explicit
 github.com/apache/thrift/lib/go/thrift
@@ -301,6 +305,9 @@ github.com/rcrowley/go-metrics
 github.com/russross/blackfriday/v2
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
+# github.com/sergi/go-diff v1.2.0
+## explicit
+github.com/sergi/go-diff/diffmatchpatch
 # github.com/shirou/gopsutil v3.20.11+incompatible
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/internal/common
@@ -493,6 +500,7 @@ google.golang.org/grpc/tap
 google.golang.org/grpc/examples/features/proto/echo
 google.golang.org/grpc/examples/helloworld/helloworld
 # google.golang.org/protobuf v1.25.0
+## explicit
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

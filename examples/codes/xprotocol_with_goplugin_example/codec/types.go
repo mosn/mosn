@@ -23,7 +23,7 @@ import (
 
 // protocol constants
 const (
-	ProtocolName api.ProtocolName = "codec" // protocol
+	ProtocolName api.ProtocolName = "x_example" // protocol
 
 	Magic       byte = 'x' //magic
 	MagicIdx         = 0   //magicIndex

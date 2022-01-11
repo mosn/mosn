@@ -159,7 +159,9 @@ func initMetrics(config *v2.MOSNConfig) {
 func initializeMetrics(config v2.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), store.GetMosnState() != store.Active_Reconfiguring)
+		// TODO: use the real value when we support hot upgrade
+		isFromUpgrade := false
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), isFromUpgrade)
 	}
 
 	// set metrics package

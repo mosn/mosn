@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 func AddFaultInject(mosn *v2.MOSNConfig, listenername string, faultstr string) error {

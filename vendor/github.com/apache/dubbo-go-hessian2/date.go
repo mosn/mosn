@@ -36,12 +36,10 @@ var ZeroDate = time.Time{}
 // ::= x4a b7 b6 b5 b4 b3 b2 b1 b0
 // ::= x4b b3 b2 b1 b0       # minutes since epoch
 func encDateInMs(b []byte, i interface{}) []byte {
-
 	value := UnpackPtrValue(reflect.ValueOf(i))
 	vi := value.Interface().(time.Time)
 	if vi == ZeroDate {
-		b = append(b, BC_NULL)
-		return nil
+		return append(b, BC_NULL)
 	}
 	b = append(b, BC_DATE)
 	return append(b, PackInt64(vi.UnixNano()/1e6)...)
@@ -73,7 +71,7 @@ func (d *Decoder) decDate(flag int32) (time.Time, error) {
 	if flag != TAG_READ {
 		tag = byte(flag)
 	} else {
-		tag, _ = d.readByte()
+		tag, _ = d.ReadByte()
 	}
 
 	switch {
@@ -81,7 +79,7 @@ func (d *Decoder) decDate(flag int32) (time.Time, error) {
 		return ZeroDate, nil
 	case tag == BC_DATE: //'d': //date
 		s = buf[:8]
-		l, err = d.next(s)
+		l, err = d.nextFull(s)
 		if err != nil {
 			return t, err
 		}
@@ -94,7 +92,7 @@ func (d *Decoder) decDate(flag int32) (time.Time, error) {
 
 	case tag == BC_DATE_MINUTE:
 		s = buf[:4]
-		l, err = d.next(s)
+		l, err = d.nextFull(s)
 		if err != nil {
 			return t, err
 		}

@@ -29,7 +29,7 @@ import (
 	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/istio/istio152/xds/conv"
-	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 func TestGetState(t *testing.T) {
@@ -64,81 +64,38 @@ func TestGetState(t *testing.T) {
 		return string(b), nil
 	}
 
-	// init
-	stateForIstio, err := getMosnStateForIstio()
-	if err != nil {
-		t.Fatalf("get mosn states for istio failed: %v", err)
-	}
-	stats, err := getStatsForIstio()
-	if err != nil {
-		t.Fatalf("get mosn stats for istio failed: %v", err)
+	verifyMosnState2IstioState := func(state stagemanager.State, expectedState envoy_admin_v2alpha.ServerInfo_State) {
+		stateForIstio, err := getMosnStateForIstio()
+		if err != nil {
+			t.Fatalf("get mosn states for istio failed: %v", err)
+		}
+		stats, err := getStatsForIstio()
+		if err != nil {
+			t.Fatal("get mosn stats for istio failed")
+		}
+		if stateForIstio != expectedState {
+			t.Errorf("unexpected istio state %v while expected %v from state %v", stateForIstio, expectedState, state)
+		}
+
+		prefix := fmt.Sprintf("%s: ", SERVER_STATE)
+		stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, expectedState), stats)
+		if err != nil {
+			t.Errorf("regex match err %v", err)
+		}
+		if !stateMatched {
+			t.Errorf("not found state %v from stats: %v", expectedState, stats)
+		}
 	}
 
-	// reconfiguring
-	store.SetMosnState(store.Passive_Reconfiguring)
-	stateForIstio2, err := getMosnStateForIstio()
-	if err != nil {
-		t.Fatal("get mosn states for istio failed")
-	}
-	stats2, err := getStatsForIstio()
-	if err != nil {
-		t.Fatal("get mosn stats for istio failed")
-	}
+	// verify init state
+	verifyMosnState2IstioState(stagemanager.Nil, envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING)
 
-	// running
-	store.SetMosnState(store.Running)
-	stateForIstio3, err := getMosnStateForIstio()
-	if err != nil {
-		t.Fatal("get mosn states for istio failed")
+	// verify set state
+	stm := stagemanager.InitStageManager(nil, "", nil)
+	for mosnState, istioState := range mosnState2IstioState {
+		stm.SetState(mosnState)
+		verifyMosnState2IstioState(mosnState, istioState)
 	}
-	stats3, err := getStatsForIstio()
-	if err != nil {
-		t.Fatal("get mosn stats for istio failed")
-	}
-
-	// active reconfiguring
-	store.SetMosnState(store.Active_Reconfiguring)
-	stateForIstio4, err := getMosnStateForIstio()
-	if err != nil {
-		t.Fatal("get mosn states for istio failed")
-	}
-	stats4, err := getStatsForIstio()
-	if err != nil {
-		t.Fatal("get mosn stats for istio failed")
-	}
-
-	// verify
-	if !(stateForIstio == envoy_admin_v2alpha.ServerInfo_INITIALIZING &&
-		stateForIstio2 == envoy_admin_v2alpha.ServerInfo_DRAINING &&
-		stateForIstio3 == envoy_admin_v2alpha.ServerInfo_LIVE &&
-		stateForIstio4 == envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING) {
-		t.Error("mosn state for istio is not expected", stateForIstio, stateForIstio2, stateForIstio3, stateForIstio4)
-	}
-	prefix := fmt.Sprintf("%s: ", SERVER_STATE)
-	stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_INITIALIZING), stats)
-	if err != nil {
-		t.Errorf("regex match err %v", err)
-	}
-	state2Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_DRAINING), stats2)
-	if err != nil {
-		t.Errorf("regex match err %v", err)
-	}
-	state3Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_LIVE), stats3)
-	if err != nil {
-		t.Errorf("regex match err %v", err)
-	}
-	state4Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING), stats4)
-	if err != nil {
-		t.Errorf("regex match err %v", err)
-	}
-
-	if !(stateMatched &&
-		state2Matched &&
-		state3Matched &&
-		state4Matched) {
-		t.Error("mosn state is not expected", stateMatched, state2Matched, state3Matched, state4Matched)
-	}
-
 }
 
 func TestDumpStatsForIstio(t *testing.T) {

@@ -16,7 +16,7 @@
  */
 package java8_time
 
-//java8-time java.time.Period
+// java8-time java.time.Period
 type Period struct {
 	Days   int32 `hessian:"days"`
 	Months int32 `hessian:"months"`

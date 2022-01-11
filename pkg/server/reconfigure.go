@@ -28,16 +28,9 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
-
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
-}
 
 var (
 	GracefulTimeout            = time.Second * 30 //default 30s
@@ -48,33 +41,8 @@ func EnableInheritOldMosnconfig(enable bool) {
 	enableInheritOldMosnconfig = enable
 }
 
-func startNewMosn() error {
-	execSpec := &syscall.ProcAttr{
-		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
-	}
-
-	// Fork exec the new version of your server
-	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
-	if err != nil {
-		log.DefaultLogger.Errorf("[server] [reconfigure] Fail to fork %v", err)
-		return err
-	}
-
-	log.DefaultLogger.Infof("[server] [reconfigure] SIGHUP received: fork-exec to %d", fork)
-	return nil
-}
-
-func reconfigure(start bool) {
-	if start {
-		startNewMosn()
-		return
-	}
-	// set mosn State Passive_Reconfiguring
-	store.SetMosnState(store.Passive_Reconfiguring)
-	// if reconfigure failed, set mosn state to Running
-	defer store.SetMosnState(store.Running)
-
+// stage manager will resume the current old mosn when return error
+func ReconfigureHandler() error {
 	// dump lastest config, and stop DumpConfigHandler()
 	configmanager.DumpLock()
 	configmanager.DumpConfig()
@@ -87,16 +55,14 @@ func reconfigure(start bool) {
 	var n int
 	var buf [1]byte
 	if listenSockConn, err = sendInheritListeners(); err != nil {
-		return
+		return err
 	}
 
 	if enableInheritOldMosnconfig {
 		if err = SendInheritConfig(); err != nil {
 			listenSockConn.Close()
 			log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [SendInheritConfig] new mosn start failed")
-			// Restore PID
-			keeper.WritePidFile()
-			return
+			return err
 		}
 	}
 
@@ -105,17 +71,13 @@ func reconfigure(start bool) {
 	n, err = listenSockConn.Read(buf[:])
 	if n != 1 {
 		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [read ack] new mosn start failed")
-		// Restore PID
-		keeper.WritePidFile()
-		return
+		return err
 	}
 
 	// ack new mosn
 	if _, err := listenSockConn.Write([]byte{0}); err != nil {
 		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [write ack] new mosn start failed")
-		// Restore PID
-		keeper.WritePidFile()
-		return
+		return err
 	}
 
 	// stop other services
@@ -132,13 +94,11 @@ func reconfigure(start bool) {
 
 	log.DefaultLogger.Infof("[server] [reconfigure] process %d gracefully shutdown", os.Getpid())
 
-	keeper.ExecuteShutdownCallbacks("")
-
-	// Stop the old server, all the connections have been closed and the new one is running
-	os.Exit(0)
+	// will stop the current old mosn in stage manager
+	return nil
 }
 
-func ReconfigureHandler() {
+func ReconfigureListener() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[server] [reconfigure] transferServer panic %v\n%s", r, string(debug.Stack()))
@@ -173,18 +133,24 @@ func ReconfigureHandler() {
 		}
 		uc.Close()
 
-		reconfigure(false)
+		stagemanager.NoticeStop(stagemanager.Upgrade)
 	}
 }
 
 func StopReconfigureHandler() {
-	if store.GetMosnState() == store.Passive_Reconfiguring {
+	if stagemanager.GetState() == stagemanager.Upgrading {
 		return
 	}
 	syscall.Unlink(types.ReconfigureDomainSocket)
 }
 
-func isReconfigure() bool {
+// will notice the old mosn when the reconfigure.sock exists
+func IsReconfigure() bool {
+	defer func() {
+		if r := recover(); r != nil {
+			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
+		}
+	}()
 	var unixConn net.Conn
 	var err error
 	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
@@ -197,8 +163,6 @@ func isReconfigure() bool {
 	uc := unixConn.(*net.UnixConn)
 	buf := make([]byte, 1)
 	n, _ := uc.Read(buf)
-	if n != 1 {
-		return false
-	}
-	return true
+
+	return n == 1
 }

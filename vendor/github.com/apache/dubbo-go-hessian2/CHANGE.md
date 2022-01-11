@@ -1,5 +1,93 @@
 # Release Notes
 
+## v1.10.2
+
+### Bugfixes
+- fix list value not unpacked. [#300](https://github.com/apache/dubbo-go-hessian2/pull/300)
+
+## v1.10.1
+
+### Bugfixes
+- support java integer null. [#296](https://github.com/apache/dubbo-go-hessian2/pull/296)
+- fix parse basic type bug. [#298](https://github.com/apache/dubbo-go-hessian2/pull/298)
+ 
+## v1.10.0
+
+### New Features
+- support java function param type. [#295](https://github.com/apache/dubbo-go-hessian2/pull/295)
+
+## v1.9.5
+
+### New Features
+- support serialize UUID to string. [#285](https://github.com/apache/dubbo-go-hessian2/pull/285)
+- support encode non-pointer instance for pointer POJO definition. [#289](https://github.com/apache/dubbo-go-hessian2/pull/289)
+
+### Bugfixes
+- fix POJO registration. [#287](https://github.com/apache/dubbo-go-hessian2/pull/287)
+- fix EOF error check. [#288](https://github.com/apache/dubbo-go-hessian2/pull/288)
+- fix go type name for list. [#290](https://github.com/apache/dubbo-go-hessian2/pull/290)
+
+## v1.9.4
+
+### New Features
+- support wrapper classes for Java basic types. [#278](https://github.com/apache/dubbo-go-hessian2/pull/278)
+
+### Bugfixes
+- fix registration ignored for struct with same name in diff package. [#279](https://github.com/apache/dubbo-go-hessian2/pull/279)
+- fix cannot encode pointer of raw type. [#283](https://github.com/apache/dubbo-go-hessian2/pull/283)
+
+## v1.9.3
+
+### New Features
+- add new api `Encoder.ReuseBufferClean()`. [#271](https://github.com/apache/dubbo-go-hessian2/pull/271)
+
+### Bugfixes
+- fix not unpack ref holder for list. [#269](https://github.com/apache/dubbo-go-hessian2/pull/269)
+- fix encode null for empty map, add map tag instead. [#275](https://github.com/apache/dubbo-go-hessian2/pull/275)
+- Fix getArgType reflection value logic. [#276](https://github.com/apache/dubbo-go-hessian2/pull/276)
+
+## v1.9.2
+
+### New Features
+- support java.util.Locale. [#264](https://github.com/apache/dubbo-go-hessian2/pull/264)
+
+## v1.9.1
+
+### Bugfixes
+- fix repeatedly adding list type in type map. [#263](https://github.com/apache/dubbo-go-hessian2/pull/263)
+
+## v1.9.0
+
+### New Features
+- support java UUID object. [#256](https://github.com/apache/dubbo-go-hessian2/pull/256)
+
+### Bugfixes
+- fix map decode error. [#261](https://github.com/apache/dubbo-go-hessian2/pull/261)
+
+## v1.8.2
+
+### Bugfixes
+- fix insufficient bytes for string encoding buffers. [#255](https://github.com/apache/dubbo-go-hessian2/pull/255)
+
+## v1.8.1
+
+### Bugfixes
+- fix get wrong javaclassname for POJO struct. [#247](https://github.com/apache/dubbo-go-hessian2/pull/247)
+- fix not enough buf error when decode date. [#249](https://github.com/apache/dubbo-go-hessian2/pull/249)
+- fix emoji decoding error. [#254](https://github.com/apache/dubbo-go-hessian2/pull/254)
+
+## v1.8.0
+
+### New Features
+- support clean encoder/decoder, discard decode buffer. [#242](https://github.com/apache/dubbo-go-hessian2/pull/242)
+- support encode no pojo object. [#243](https://github.com/apache/dubbo-go-hessian2/pull/243)
+
+### Enhancement
+- change value reference to ptr to improve performance. [#244](https://github.com/apache/dubbo-go-hessian2/pull/244)
+
+### Bugfixes
+- fix issue that cannot decode java generic type. [#239](https://github.com/apache/dubbo-go-hessian2/pull/239)
+
 ## v1.7.0
 
 ### New Features
@@ -13,10 +101,9 @@
 - Export function EncNull. [#225](https://github.com/apache/dubbo-go-hessian2/pull/225)
 
 ### Bugfixes
-- fix eunm encode error in request. [#203](https://github.com/apache/dubbo-go-hessian2/pull/203)
+- fix enum encode error in request. [#203](https://github.com/apache/dubbo-go-hessian2/pull/203)
 - fix []byte field decoding issue. [#216](https://github.com/apache/dubbo-go-hessian2/pull/216)
 - fix decoding error for map in map. [#229](https://github.com/apache/dubbo-go-hessian2/pull/229)
-- fix fields name mismatch in Duration class. [#234](https://github.com/apache/dubbo-go-hessian2/pull/234)
 
 ## v1.6.0
 

@@ -1,4 +1,4 @@
-module mosn.io/mosn/seata-filter-samples
+module mosn.io/mosn/examples/codes/seata
 
 go 1.15
 

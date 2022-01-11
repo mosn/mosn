@@ -74,7 +74,7 @@ import (
 )
 
 // Version mosn version
-var Version = "0.25.0"
+var Version = "0.26.0"
 
 func main() {
 	app := newMosnApp(&cmdStart)
@@ -92,14 +92,14 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 
-	//commands
+	// commands
 	app.Commands = []cli.Command{
 		cmdStart,
 		cmdStop,
 		cmdReload,
 	}
 
-	//action
+	// action
 	app.Action = func(c *cli.Context) error {
 		if c.NumFlags() == 0 {
 			return cli.ShowAppHelp(c)

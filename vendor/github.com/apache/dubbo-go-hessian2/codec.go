@@ -118,35 +118,35 @@ func PackFloat64(v float64) []byte {
 // UnpackInt16 unpacks int16 from byte array
 //(0,2).unpack('n')
 func UnpackInt16(b []byte) int16 {
-	var arr = b[:2]
+	arr := b[:2]
 	return int16(binary.BigEndian.Uint16(arr))
 }
 
 // UnpackUint16 unpacks int16 from byte array
 //(0,2).unpack('n')
 func UnpackUint16(b []byte) uint16 {
-	var arr = b[:2]
+	arr := b[:2]
 	return binary.BigEndian.Uint16(arr)
 }
 
 // UnpackInt32 unpacks int32 from byte array
 //(0,4).unpack('N')
 func UnpackInt32(b []byte) int32 {
-	var arr = b[:4]
+	arr := b[:4]
 	return int32(binary.BigEndian.Uint32(arr))
 }
 
 // UnpackInt64 unpacks int64 from byte array
-//long (0,8).unpack('q>')
+// long (0,8).unpack('q>')
 func UnpackInt64(b []byte) int64 {
-	var arr = b[:8]
+	arr := b[:8]
 	return int64(binary.BigEndian.Uint64(arr))
 }
 
 // UnpackFloat64 unpacks float64 from byte array
-//Double (0,8).unpack('G)
+// Double (0,8).unpack('G)
 func UnpackFloat64(b []byte) float64 {
-	var arr = b[:8]
+	arr := b[:8]
 	return math.Float64frombits(binary.BigEndian.Uint64(arr))
 }
 
@@ -159,14 +159,14 @@ func UnpackPtr(v reflect.Value) reflect.Value {
 	return v
 }
 
-//PackPtr pack a Ptr value
+// PackPtr pack a Ptr value
 func PackPtr(v reflect.Value) reflect.Value {
 	vv := reflect.New(v.Type())
 	vv.Elem().Set(v)
 	return vv
 }
 
-//UnpackPtrType unpack pointer type to original type
+// UnpackPtrType unpack pointer type to original type
 func UnpackPtrType(typ reflect.Type) reflect.Type {
 	for typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
@@ -194,54 +194,6 @@ func SprintHex(b []byte) (rs string) {
 	return
 }
 
-// EnsureFloat64 convert i to float64
-func EnsureFloat64(i interface{}) float64 {
-	if i64, ok := i.(float64); ok {
-		return i64
-	}
-	if i32, ok := i.(float32); ok {
-		return float64(i32)
-	}
-	panic(fmt.Errorf("can't convert to float64: %v, type:%v", i, reflect.TypeOf(i)))
-}
-
-// EnsureInt64 convert i to int64
-func EnsureInt64(i interface{}) int64 {
-	if i64, ok := i.(int64); ok {
-		return i64
-	}
-	if i32, ok := i.(int32); ok {
-		return int64(i32)
-	}
-	if i, ok := i.(int); ok {
-		return int64(i)
-	}
-	if i16, ok := i.(int16); ok {
-		return int64(i16)
-	}
-	if i8, ok := i.(int8); ok {
-		return int64(i8)
-	}
-	panic(fmt.Errorf("can't convert to int64: %v, type:%v", i, reflect.TypeOf(i)))
-}
-
-// EnsureUint64 convert i to uint64
-func EnsureUint64(i interface{}) uint64 {
-	if i64, ok := i.(uint64); ok {
-		return i64
-	}
-	if i64, ok := i.(int64); ok {
-		return uint64(i64)
-	}
-	if i32, ok := i.(int32); ok {
-		return uint64(i32)
-	}
-	if i32, ok := i.(uint32); ok {
-		return uint64(i32)
-	}
-	panic(fmt.Errorf("can't convert to uint64: %v, type:%v", i, reflect.TypeOf(i)))
-}
-
 // EnsurePackValue pack the interface with value
 func EnsurePackValue(in interface{}) reflect.Value {
 	if v, ok := in.(reflect.Value); ok {
@@ -257,18 +209,10 @@ func EnsureInterface(in interface{}, err error) (interface{}, error) {
 		return in, err
 	}
 
-	if v, ok := in.(reflect.Value); ok {
-		in = v.Interface()
-	}
-
-	if v, ok := in.(*_refHolder); ok {
-		in = v.value.Interface()
-	}
-
-	return in, nil
+	return EnsureRawAny(in), nil
 }
 
-//EnsureRawValue pack the interface with value, and make sure it's not a ref holder
+// EnsureRawValue pack the interface with value, and make sure it's not a ref holder
 func EnsureRawValue(in interface{}) reflect.Value {
 	if v, ok := in.(reflect.Value); ok {
 		if v.IsValid() {
@@ -284,6 +228,31 @@ func EnsureRawValue(in interface{}) reflect.Value {
 	return reflect.ValueOf(in)
 }
 
+// EnsureRawAny unpack if in is a reflect.Value or a ref holder.
+func EnsureRawAny(in interface{}) interface{} {
+	if v, ok := in.(reflect.Value); ok {
+		if !v.IsValid() {
+			return nil
+		}
+
+		in = v.Interface()
+	}
+
+	if v, ok := in.(*_refHolder); ok {
+		in = v.value
+	}
+
+	if v, ok := in.(reflect.Value); ok {
+		if !v.IsValid() {
+			return nil
+		}
+
+		in = v.Interface()
+	}
+
+	return in
+}
+
 // SetValue set the value to dest.
 // It will auto check the Ptr pack level and unpack/pack to the right level.
 // It make sure success to set value
@@ -295,7 +264,7 @@ func SetValue(dest, v reflect.Value) {
 			return
 		}
 	}
-	//temporary process, only handle the same type of situation
+	// temporary process, only handle the same type of situation
 	if v.IsValid() && UnpackPtrType(dest.Type()) == UnpackPtrType(v.Type()) && dest.Kind() == reflect.Ptr && dest.CanSet() {
 		for dest.Type() != v.Type() {
 			v = PackPtr(v)
@@ -350,13 +319,13 @@ func SetValue(dest, v reflect.Value) {
 	kind := dest.Kind()
 	switch kind {
 	case reflect.Float32, reflect.Float64:
-		dest.SetFloat(EnsureFloat64(v.Interface()))
+		dest.SetFloat(v.Float())
 		return
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		dest.SetInt(EnsureInt64(v.Interface()))
+		dest.SetInt(v.Int())
 		return
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		dest.SetUint(EnsureUint64(v.Interface()))
+		dest.SetUint(v.Uint())
 		return
 	}
 
@@ -381,7 +350,7 @@ func AddrEqual(x, y interface{}) bool {
 	return v1.Pointer() == v2.Pointer()
 }
 
-//SetSlice set value into slice object
+// SetSlice set value into slice object
 func SetSlice(dest reflect.Value, objects interface{}) error {
 	if objects == nil {
 		return nil
@@ -397,14 +366,7 @@ func SetSlice(dest reflect.Value, objects interface{}) error {
 	}
 
 	if ref, ok := objects.(*_refHolder); ok {
-		v, err := ConvertSliceValueType(destTyp, ref.value)
-		if err != nil {
-			return err
-		}
-		SetValue(dest, v)
-		ref.change(v) // change finally
-		ref.notify()  // delay set value to all destinations
-		return nil
+		return unpackRefHolder(dest, destTyp, ref)
 	}
 
 	v := EnsurePackValue(objects)
@@ -422,9 +384,21 @@ func SetSlice(dest reflect.Value, objects interface{}) error {
 	return nil
 }
 
-//ConvertSliceValueType convert to slice of destination type
+// unpackRefHolder unpack the ref holder when decoding slice finished.
+func unpackRefHolder(dest reflect.Value, destTyp reflect.Type, ref *_refHolder) error {
+	v, err := ConvertSliceValueType(destTyp, ref.value)
+	if err != nil {
+		return err
+	}
+	SetValue(dest, v)
+	ref.change(v) // change finally
+	ref.notify()  // delay set value to all destinations
+	return nil
+}
+
+// ConvertSliceValueType convert to slice of destination type
 func ConvertSliceValueType(destTyp reflect.Type, v reflect.Value) (reflect.Value, error) {
-	if destTyp == v.Type() {
+	if destTyp == v.Type() || destTyp.Kind() == reflect.Interface {
 		return v, nil
 	}
 
@@ -450,7 +424,11 @@ func ConvertSliceValueType(destTyp reflect.Type, v reflect.Value) (reflect.Value
 		if cv, ok := item.(reflect.Value); ok {
 			itemValue = cv
 		} else {
-			itemValue = reflect.ValueOf(item)
+			if item == nil {
+				itemValue = reflect.Zero(destTyp.Elem())
+			} else {
+				itemValue = reflect.ValueOf(item)
+			}
 		}
 
 		if !elemPtrType && itemValue.Kind() == reflect.Ptr {
@@ -459,15 +437,22 @@ func ConvertSliceValueType(destTyp reflect.Type, v reflect.Value) (reflect.Value
 
 		switch {
 		case elemFloatType:
-			sl.Index(i).SetFloat(EnsureFloat64(itemValue.Interface()))
+			sl.Index(i).SetFloat(itemValue.Float())
 		case elemIntType:
-			sl.Index(i).SetInt(EnsureInt64(itemValue.Interface()))
+			sl.Index(i).SetInt(itemValue.Int())
 		case elemUintType:
-			sl.Index(i).SetUint(EnsureUint64(itemValue.Interface()))
+			sl.Index(i).SetUint(itemValue.Uint())
 		default:
 			SetValue(sl.Index(i), itemValue)
 		}
 	}
 
 	return sl, nil
+}
+
+//PackPtrInterface pack struct interface to pointer interface
+func PackPtrInterface(s interface{}, value reflect.Value) interface{} {
+	vv := reflect.New(reflect.TypeOf(s))
+	vv.Elem().Set(value)
+	return vv.Interface()
 }

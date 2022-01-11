@@ -103,10 +103,14 @@ func getArgType(v interface{}) string {
 	default:
 		t := reflect.TypeOf(v)
 		if reflect.Ptr == t.Kind() {
-			t = reflect.TypeOf(reflect.ValueOf(v).Elem())
+			t = t.Elem()
 		}
 		switch t.Kind() {
 		case reflect.Struct:
+			v, ok := v.(POJO)
+			if ok {
+				return v.JavaClassName()
+			}
 			return "java.lang.Object"
 		case reflect.Slice, reflect.Array:
 			if t.Elem().Kind() == reflect.Struct {
@@ -261,7 +265,6 @@ END:
 
 // hessian decode request body
 func unpackRequestBody(decoder *Decoder, reqObj interface{}) error {
-
 	if decoder == nil {
 		return perrors.Errorf("@decoder is nil")
 	}
