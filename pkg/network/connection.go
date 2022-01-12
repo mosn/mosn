@@ -852,9 +852,8 @@ func (c *connection) writeBufLen() (bufLen int) {
 
 // OnShutdown called on graceful close listener
 func (c *connection) OnShutdown() {
-	eventType := api.OnShutdown
 	for _, cb := range c.connCallbacks {
-		cb.OnEvent(eventType)
+		cb.OnEvent(api.OnShutdown)
 	}
 }
 

@@ -123,7 +123,7 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 		return fmt.Errorf("DeleteListener error, servername = %s not found", serverName)
 	}
 
-	// stop listener first
+	// graceful close listener first
 	if err := connHandler.GracefulCloseListener(nil, listenerName); err != nil {
 		return err
 	}

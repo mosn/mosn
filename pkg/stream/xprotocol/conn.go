@@ -46,9 +46,9 @@ type streamConn struct {
 	protocol     api.XProtocol
 	protocolName api.ProtocolName
 
-	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
-	maxStreamID     uint64
-	inGoAway        bool
+	serverCallbacks   types.ServerStreamConnectionEventListener // server side fields
+	maxClientStreamID uint64
+	inGoAway          bool
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
@@ -176,10 +176,11 @@ func (sc *streamConn) GoAway() {
 		}
 		sc.inGoAway = true
 
-		// TODO: may not a good idea to newClientStream here.
+		// Notice: may not a good idea to newClientStream here,
+		// since goaway frame usually not have a stream ID.
 		ctx := context.Background()
 		sender := sc.newClientStream(ctx)
-		fr := gs.GoAway(ctx, sc.maxStreamID)
+		fr := gs.GoAway(ctx, sc.maxClientStreamID)
 		sender.AppendHeaders(ctx, fr.GetHeader(), true)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
@@ -283,7 +284,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
 	// record the max stream id
-	sc.maxStreamID = serverStream.id
+	sc.maxClientStreamID = serverStream.id
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, "[stream] [xprotocol] new stream detect, requestId = %v", serverStream.id)

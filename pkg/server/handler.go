@@ -274,15 +274,15 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 	return errGlobal
 }
 
-// StopAcceptListeners just stop accept connections
+// StopAcceptListeners just stop accept new connections
 func (ch *connHandler) StopAcceptListeners() {
 	for _, l := range ch.listeners {
 		l.listener.StopAccept()
 	}
 }
 
-// ShutdownListeners stop accept connections
-// and graceful stop all the existing connections.
+// ShutdownListeners stop accept new connections
+// and graceful close all the existing connections.
 func (ch *connHandler) ShutdownListeners() error {
 	var errGlobal error
 	wg := sync.WaitGroup{}
@@ -548,14 +548,14 @@ func (al *activeListener) OnShutdown() {
 		conn.OnShutdown()
 	}
 
-	// TODO: introduce a configuration instead of hardcode
+	// TODO: introduce a configuration instead of the hardcoded 15 seconds
 	al.waitConnectionsClose(15000)
 }
 
 func (al *activeListener) OnClose() {
 }
 
-// waitConnectionsClose wait all connections to be closed and wait maxWaitMilliseconds at most
+// waitConnectionsClose wait all connections to be closed, wait maxWaitMilliseconds at most.
 func (al *activeListener) waitConnectionsClose(maxWaitMilliseconds int64) {
 	// if there is any stream being processed and without timeout,
 	// we try to wait for processing to complete, or wait for a timeout.

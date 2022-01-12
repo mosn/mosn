@@ -73,7 +73,7 @@ type Connection interface {
 	//      - ConnectTimeout
 	//      - ConnectFailed
 	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
-	
+
 	// OnShutdown called on graceful close listener
 	OnShutdown()
 
@@ -177,7 +177,7 @@ const (
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
 	OnWriteTimeout  ConnectionEvent = "OnWriteTimeout"
-	OnShutdown 		ConnectionEvent = "OnShutdown"
+	OnShutdown      ConnectionEvent = "OnShutdown"
 )
 
 // IsClose represents whether the event is triggered by connection close
