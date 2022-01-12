@@ -107,7 +107,8 @@ func (srv *server) Restart() {
 	// TODO
 }
 
-// Shutdown graceful stop server
+// Shutdown graceful stop server.
+// stop accept new connections and graceful close the existing connections if it supports graceful close.
 func (srv *server) Shutdown() error {
 	return srv.handler.ShutdownListeners()
 }
@@ -132,10 +133,9 @@ func Stop() {
 	}
 }
 
-// StopAccept stops all listeners in servers
-func StopAccept() {
+func shutdownServers() {
 	for _, server := range servers {
-		server.handler.StopAcceptListeners()
+		server.Shutdown()
 	}
 }
 
