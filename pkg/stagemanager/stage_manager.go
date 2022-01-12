@@ -335,7 +335,7 @@ func (stm *StageManager) runGracefulStopStage() {
 		}
 	}
 
-	log.StartLogger.Infof("pre stop stage cost: %v", time.Since(st))
+	log.StartLogger.Infof("graceful stop stage cost: %v", time.Since(st))
 }
 
 // after application is not working

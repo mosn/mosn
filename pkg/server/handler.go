@@ -539,9 +539,34 @@ func (al *activeListener) OnShutdown() {
 		conn := i.Value.(*activeConnection).conn
 		conn.OnShutdown()
 	}
+
+	// TODO: introduce a configuration instead of hardcode
+	al.waitConnectionsClose(15000)
 }
 
 func (al *activeListener) OnClose() {
+}
+
+// waitConnectionsClose wait all connections to be closed and wait maxWaitMilliseconds at most
+func (al *activeListener) waitConnectionsClose(maxWaitMilliseconds int64) {
+	// if there is any stream being processed and without timeout,
+	// we try to wait for processing to complete, or wait for a timeout.
+	current := time.Now()
+	remainStream, waitedMilliseconds := al.activeStreamSize(), Milliseconds(time.Since(current))
+	for ; remainStream > 0 && waitedMilliseconds <= maxWaitMilliseconds; remainStream, waitedMilliseconds =
+		al.activeStreamSize(), Milliseconds(time.Since(current)) {
+		// sleep 10ms
+		time.Sleep(10 * time.Millisecond)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms",
+				al.listener.Name(), remainStream, waitedMilliseconds)
+		}
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms",
+			al.listener.Name(), remainStream, waitedMilliseconds)
+	}
 }
 
 // PreStopHook used for graceful stop
@@ -550,35 +575,14 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 	// check that the preconditions are met.
 	// for example: whether all request queues are processed ?
 	return func() error {
-		var remainStream int
-		var waitedMilliseconds int64
 		if ctx != nil {
 			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
 				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
-					current := time.Now()
-					// if there any stream being processed and without timeout,
-					// we try to wait for processing to complete, or wait for a timeout.
-					remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current))
-					for ; remainStream > 0 && waitedMilliseconds <= timeout; remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current)) {
-						// waiting for 10ms
-						time.Sleep(10 * time.Millisecond)
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[activeListener] listener %s invoking stop hook, remaining stream count %d, waited time %dms",
-								al.listener.Name(), remainStream, waitedMilliseconds)
-						}
-					}
+					al.waitConnectionsClose(timeout)
 				}
 			}
 		}
-
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete, remaining stream count %d, waited time %dms",
-				al.listener.Name(), remainStream, waitedMilliseconds)
-		}
-
 		return nil
 	}
 }

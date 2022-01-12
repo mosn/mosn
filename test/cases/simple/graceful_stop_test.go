@@ -20,8 +20,8 @@ import (
 	"mosn.io/mosn/test/lib/mosn"
 )
 
-func TestHttp2NotUseStream2(t *testing.T) {
-	Scenario(t, "http2 not use stream", func() {
+func TestGracefulStop(t *testing.T) {
+	Scenario(t, "graceful stop", func() {
 		var m *mosn.MosnOperator
 		var server *goHttp.Server
 		Setup(func() {
@@ -83,8 +83,9 @@ func TestHttp2NotUseStream2(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 					m.GracefulStop()
 				}()
+				start = time.Now()
 				resp, err = client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
-				log.DefaultLogger.Errorf("after post request")
+				log.DefaultLogger.Errorf("client.Post cost %v ms", time.Now().UnixMilli()-start.UnixMilli())
 				Verify(err, Equal, nil)
 				respBody, err = ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)

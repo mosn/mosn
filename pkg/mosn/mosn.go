@@ -369,7 +369,7 @@ func (m *Mosn) Shutdown() error {
 }
 
 func (m *Mosn) Close() {
-	log.StartLogger.Infof("[mosn start] mosn stop server")
+	log.StartLogger.Infof("[mosn close] mosn stop server")
 
 	// close service
 	store.CloseService()
