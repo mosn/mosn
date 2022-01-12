@@ -94,13 +94,6 @@ type Listener interface {
 	// Start starts listener with context
 	Start(lctx context.Context, restart bool)
 
-	// Stop accepting new connections from listener
-	// Accepted connections and listening sockets will not be closed
-	StopAccept() error
-
-	// Shutdown stop accepting new connections and graceful stop the existing connections
-	Shutdown() error
-
 	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
 
@@ -127,6 +120,9 @@ type Listener interface {
 
 	// GetListenerCallbacks set a listener event listener
 	GetListenerCallbacks() ListenerEventListener
+
+	// Shutdown stop accepting new connections and graceful stop the existing connections
+	Shutdown() error
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
@@ -223,9 +219,6 @@ type ConnectionHandler interface {
 	// GracefulCloseListener graceful close a listener by listener name
 	// stop accept connections + graceful stop existing connections + close listener
 	GracefulCloseListener(lctx context.Context, name string) error
-
-	// StopAcceptListeners just stop accept connections from all listeners the ConnectionHandler has.
-	StopAcceptListeners()
 
 	// ShutdownListeners stop accept connections from all listeners the ConnectionHandler has.
 	// and graceful stop all the existing connections.

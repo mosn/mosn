@@ -208,7 +208,7 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 
 // Shutdown stop accepting new connections and graceful close the existing connections
 func (l *listener) Shutdown() error {
-	if err := l.StopAccept(); err != nil {
+	if err := l.stopAccept(); err != nil {
 		return err
 	}
 

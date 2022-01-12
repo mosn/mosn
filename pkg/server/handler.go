@@ -274,13 +274,6 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 	return errGlobal
 }
 
-// StopAcceptListeners just stop accept new connections
-func (ch *connHandler) StopAcceptListeners() {
-	for _, l := range ch.listeners {
-		l.listener.StopAccept()
-	}
-}
-
 // ShutdownListeners stop accept new connections
 // and graceful close all the existing connections.
 func (ch *connHandler) ShutdownListeners() error {
