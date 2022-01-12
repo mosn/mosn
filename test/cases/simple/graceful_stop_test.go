@@ -20,7 +20,7 @@ import (
 	"mosn.io/mosn/test/lib/mosn"
 )
 
-func TestGracefulStop(t *testing.T) {
+func TestHTTP2GracefulStop(t *testing.T) {
 	Scenario(t, "graceful stop", func() {
 		var m *mosn.MosnOperator
 		var server *goHttp.Server

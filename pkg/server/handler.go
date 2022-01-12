@@ -285,11 +285,18 @@ func (ch *connHandler) StopAcceptListeners() {
 // and graceful stop all the existing connections.
 func (ch *connHandler) ShutdownListeners() error {
 	var errGlobal error
+	wg := sync.WaitGroup{}
+	wg.Add(len(ch.listeners))
 	for _, l := range ch.listeners {
-		if err := l.listener.Shutdown(); err != nil {
-			errGlobal = err
-		}
+		// Shutdown listener in parallel
+		go func() {
+			defer wg.Done()
+			if err := l.listener.Shutdown(); err != nil {
+				errGlobal = err
+			}
+		}()
 	}
+	wg.Wait()
 	return errGlobal
 }
 
@@ -531,6 +538,7 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
+// OnShutdown graceful stop the existing connection and wait all connections to be closed
 func (al *activeListener) OnShutdown() {
 	al.connsMux.Lock()
 	defer al.connsMux.Unlock()

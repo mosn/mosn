@@ -951,7 +951,7 @@ func (sc *MServerConn) processGoAway(f *GoAwayFrame) error {
 func (sc *MServerConn) GracefulShutdown() {
 	// NOTICE: may block in connection.Write (writeDirectly or write into c.writeBufferChan)
 	// maybe it's worth to introduce another independent channel?
-	sc.goAway(ErrCodeNo, nil)
+	sc.startGracefulShutdownInternal()
 }
 
 func (sc *MServerConn) startGracefulShutdownInternal() {

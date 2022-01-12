@@ -213,8 +213,6 @@ func (l *listener) Shutdown() error {
 	}
 
 	l.cb.OnShutdown()
-
-	// todo: wait connections done
 	return nil
 }
 
