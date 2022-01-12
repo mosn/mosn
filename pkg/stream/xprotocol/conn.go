@@ -179,8 +179,14 @@ func (sc *streamConn) GoAway() {
 		// Notice: may not a good idea to newClientStream here,
 		// since goaway frame usually not have a stream ID.
 		ctx := context.Background()
-		sender := sc.newClientStream(ctx)
 		fr := gs.GoAway(ctx, sc.maxClientStreamID)
+		if fr == nil {
+			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
+			sc.inGoAway = true
+			return
+		}
+
+		sender := sc.newClientStream(ctx)
 		sender.AppendHeaders(ctx, fr.GetHeader(), true)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
@@ -274,6 +280,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	if sc.inGoAway {
 		return
 	}
+	sc.maxClientStreamID = frame.GetRequestId()
 
 	// inject timeout
 	// if Timeout is zero, do not set the variable, which makes route timeout config can be activated
@@ -284,7 +291,6 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
 	// record the max stream id
-	sc.maxClientStreamID = serverStream.id
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, "[stream] [xprotocol] new stream detect, requestId = %v", serverStream.id)

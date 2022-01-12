@@ -31,6 +31,31 @@ type Request struct {
 	Content    types.IoBuffer
 }
 
+func (r *Request) IsHeartbeatFrame() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Request) GetTimeout() int32 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Request) GetHeader() api.HeaderMap {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Request) GetData() api.IoBuffer {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *Request) SetData(data api.IoBuffer) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (r *Request) GetStreamType() api.StreamType {
 	return api.Request
 }

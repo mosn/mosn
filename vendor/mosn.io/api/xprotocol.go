@@ -143,7 +143,8 @@ type XProtocol interface {
 	GenerateRequestID(*uint64) uint64
 }
 
-// GracefulShutdown provides the ability to construct proper GoAway command for xprotocol
+// GracefulShutdown provides the ability to construct proper GoAway command for xprotocol,
+// it's not required, please NOT implement this interface if the protocol doesn't has goaway.
 type GracefulShutdown interface {
 	// GoAway builds an active GoAway command, requestId is the maxClientStreamID
 	GoAway(context context.Context, requestId uint64) XFrame
