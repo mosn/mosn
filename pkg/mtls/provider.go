@@ -19,6 +19,7 @@ package mtls
 
 import (
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -39,6 +40,7 @@ func (p *staticProvider) Empty() bool {
 // NewProvider returns a types.Provider.
 // we support sds provider and static provider.
 func NewProvider(cfg *v2.TLSConfig) (types.TLSProvider, error) {
+	log.DefaultLogger.Infof("[mtls] [NewProvider] config:%v", cfg)
 	if !cfg.Status {
 		return nil, nil
 	}
