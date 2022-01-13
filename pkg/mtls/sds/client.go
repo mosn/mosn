@@ -78,7 +78,9 @@ func CloseSdsClient() {
 func (client *SdsClientImpl) AddUpdateCallback(name string, callback types.SdsUpdateCallbackFunc) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
-	client.SdsCallbackMap[name] = callback
+	if callback != nil {
+		client.SdsCallbackMap[name] = callback
+	}
 	client.sdsSubscriber.SendSdsRequest(name)
 	return nil
 }
