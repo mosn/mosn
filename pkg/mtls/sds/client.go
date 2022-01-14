@@ -115,10 +115,11 @@ func (client *SdsClientImpl) GetSdsClient() v2.SecretDiscoveryServiceClient {
 		return client.sdsClient
 	}
 	nativeClient, err := GetSdsNativeClient(client.sdsConfig)
-	if err == nil {
+	if err != nil {
 		log.DefaultLogger.Errorf("[xds] [sds client],native client init failed,error = %v", err)
 		return nil
 	}
+	client.sdsClient = nativeClient
 	return nativeClient
 }
 

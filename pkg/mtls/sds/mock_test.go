@@ -19,6 +19,8 @@ package sds
 
 import (
 	"errors"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"google.golang.org/grpc"
 	"time"
 
 	"mosn.io/mosn/pkg/types"
@@ -101,4 +103,25 @@ func (msc *MockSdsStreamClient) Recv(provider types.SecretProvider, callback fun
 func (msc *MockSdsStreamClient) Stop() {
 	close(msc.ch)
 	msc.closed = true
+}
+
+func NewMockSdsNativeClient(config interface{}) (v2.SecretDiscoveryServiceClient, error) {
+	cfg, ok := config.(*MockSdsConfig)
+	if !ok {
+		return nil, errors.New("invalid config")
+	}
+	if cfg.Timeout == 0 {
+		cfg.Timeout = time.Hour // never timeout
+	}
+
+	udsPath := "unix:@/var/run/test"
+	conn, err := grpc.Dial(
+		udsPath,
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return v2.NewSecretDiscoveryServiceClient(conn), nil
 }

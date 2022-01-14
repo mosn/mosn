@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -33,6 +34,8 @@ func testClean() {
 func TestSdsClient(t *testing.T) {
 	// Init
 	RegisterSdsStreamClientFactory(NewMockSdsStreamClient)
+
+	RegisterSdsNativeClientFactory(NewMockSdsNativeClient)
 
 	t.Run("create a new sds client, mock a certificate request registered", func(t *testing.T) {
 		testClean()
@@ -98,5 +101,17 @@ func TestSdsClient(t *testing.T) {
 		require.Len(t, c.SdsCallbackMap, 1)
 		require.Nil(t, client.DeleteUpdateCallback("test"))
 		require.Len(t, c.SdsCallbackMap, 0)
+	})
+
+	t.Run("test get sds native client", func(t *testing.T) {
+		client := NewSdsClientSingleton(&MockSdsConfig{
+			Timeout: time.Second,
+		})
+		c, ok := client.(*SdsClientImpl)
+		if !ok {
+			t.Errorf("Got error client type failed")
+		}
+		sdsClient := c.GetSdsClient()
+		assert.NotNilf(t, sdsClient, "GetSdsClient failed")
 	})
 }
