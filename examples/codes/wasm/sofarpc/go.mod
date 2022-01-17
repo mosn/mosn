@@ -1,4 +1,4 @@
-module example
+module mosn.io/mosn/examples/codes/wasm/sofarpc
 
 go 1.14
 

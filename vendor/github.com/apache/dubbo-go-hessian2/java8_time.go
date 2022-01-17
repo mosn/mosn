@@ -35,5 +35,4 @@ func init() {
 	RegisterPOJO(&java8_time.OffsetDateTime{DateTime: java8_time.LocalDateTime{Date: java8_time.LocalDate{Year: 2020, Month: 6, Day: 16}, Time: java8_time.LocalTime{Hour: 6, Minute: 5, Second: 4, Nano: 3}}, Offset: java8_time.ZoneOffSet{Seconds: 7200}})
 	RegisterPOJO(&java8_time.OffsetTime{LocalTime: java8_time.LocalTime{Hour: 6, Minute: 5, Second: 4, Nano: 3}, ZoneOffset: java8_time.ZoneOffSet{Seconds: 7200}})
 	RegisterPOJO(&java8_time.ZonedDateTime{DateTime: java8_time.LocalDateTime{Date: java8_time.LocalDate{Year: 2020, Month: 6, Day: 16}, Time: java8_time.LocalTime{Hour: 6, Minute: 5, Second: 4, Nano: 3}}, Offset: java8_time.ZoneOffSet{Seconds: 7200}, ZoneId: "Z"})
-
 }

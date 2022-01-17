@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/router"
@@ -160,7 +160,8 @@ func TestNewMosn(t *testing.T) {
 			t.Fatal(err)
 		}
 		DefaultInitStage(cfg)
-		NewMosn(cfg)
+		m := NewMosn()
+		m.Init(cfg)
 		// verify routers
 		routerMng := router.GetRoutersMangerInstance()
 		rw := routerMng.GetRouterWrapperByName("server_router")
@@ -179,7 +180,8 @@ func TestNewMosn(t *testing.T) {
 			t.Fatal(err)
 		}
 		DefaultInitStage(cfg)
-		m := NewMosn(cfg)
+		m := NewMosn()
+		m.Init(cfg)
 		routerMng := router.GetRoutersMangerInstance()
 		rw0 := routerMng.GetRouterWrapperByName("server_router")
 		if rw0 == nil {

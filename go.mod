@@ -8,7 +8,7 @@ require (
 	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
-	github.com/apache/dubbo-go-hessian2 v1.7.0
+	github.com/apache/dubbo-go-hessian2 v1.10.2
 	github.com/apache/thrift v0.13.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
@@ -53,7 +53,7 @@ require (
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.25.0 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20211217011300-b851d129be01

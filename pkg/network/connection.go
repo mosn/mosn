@@ -59,8 +59,6 @@ type connection struct {
 	localAddr  net.Addr
 	remoteAddr net.Addr
 
-	nextProtocol         string
-	noDelay              bool
 	readEnabled          bool
 	readEnabledChan      chan bool
 	readDisableCount     int
@@ -68,13 +66,11 @@ type connection struct {
 	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
 	tlsMng               types.TLSClientContextManager
-	closeWithFlush       bool
 	connCallbacks        []api.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
 	filterManager        api.FilterManager
-	idleEventListener    api.ConnectionEventListener
 	network              string
 
 	stopChan           chan struct{}

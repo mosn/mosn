@@ -97,15 +97,24 @@ func typeof(v interface{}) string {
 //  x04 BLUE                # BLUE value
 //
 //x51 x91                   # object ref #1, i.e. Color.GREEN
-func (e *Encoder) encObject(v POJO) error {
+func (e *Encoder) encObject(v interface{}) error {
 	var (
-		ok     bool
 		i      int
 		idx    int
 		num    int
 		err    error
-		clsDef classInfo
+		clsDef *classInfo
 	)
+	pojo, isPojo := v.(POJO)
+	// get none pojo JavaClassName
+	var nonePojoJavaName string
+	if !isPojo {
+		s, ok := loadPOJORegistry(v)
+		if !ok {
+			return perrors.Errorf("non-pojo obj %s has not being registered before!", typeof(v))
+		}
+		nonePojoJavaName = s.javaName
+	}
 
 	vv := reflect.ValueOf(v)
 	// check ref
@@ -124,19 +133,22 @@ func (e *Encoder) encObject(v POJO) error {
 	// write object definition
 	idx = -1
 	for i = range e.classInfoList {
-		if v.JavaClassName() == e.classInfoList[i].javaName {
+		if isPojo && pojo.JavaClassName() == e.classInfoList[i].javaName || !isPojo && nonePojoJavaName == e.classInfoList[i].javaName {
 			idx = i
 			break
 		}
 	}
 
+	var ok bool
 	if idx == -1 {
-		idx, ok = checkPOJORegistry(typeof(v))
+		idx, ok = checkPOJORegistry(v)
 		if !ok {
 			if reflect.TypeOf(v).Implements(javaEnumType) {
 				idx = RegisterJavaEnum(v.(POJOEnum))
+			} else if isPojo {
+				idx = RegisterPOJO(pojo)
 			} else {
-				idx = RegisterPOJO(v)
+				return perrors.Errorf("non-pojo obj %s has not being registered before!", typeof(v))
 			}
 		}
 		_, clsDef, err = getStructDefByIndex(idx)
@@ -292,7 +304,7 @@ func (d *Decoder) decClassDef() (interface{}, error) {
 		fieldList[i] = fieldName
 	}
 
-	return classInfo{javaName: clsName, fieldNameList: fieldList}, nil
+	return &classInfo{javaName: clsName, fieldNameList: fieldList}, nil
 }
 
 type fieldInfo struct {
@@ -362,7 +374,7 @@ func findField(name string, typ reflect.Type) ([]int, *reflect.StructField, erro
 	return []int{}, nil, perrors.Errorf("failed to find field %s", name)
 }
 
-func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, error) {
+func (d *Decoder) decInstance(typ reflect.Type, cls *classInfo) (interface{}, error) {
 	if typ.Kind() != reflect.Struct {
 		return nil, perrors.Errorf("wrong type expect Struct but get:%s", typ.String())
 	}
@@ -412,9 +424,9 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 				// java enum
 				if fldRawValue.Type().Implements(javaEnumType) {
 					d.unreadByte() // Enum parsing, decInt64 above has read a byte, so you need to return a byte here
-					s, err := d.DecodeValue()
-					if err != nil {
-						return nil, perrors.Wrapf(err, "decInstance->decObject field name:%s", fieldName)
+					s, decErr := d.DecodeValue()
+					if decErr != nil {
+						return nil, perrors.Wrapf(decErr, "decInstance->decObject field name:%s", fieldName)
 					}
 					enumValue, _ := s.(JavaEnum)
 					num = int32(enumValue)
@@ -434,9 +446,9 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 			if err != nil {
 				if fldTyp.Implements(javaEnumType) {
 					d.unreadByte() // Enum parsing, decInt64 above has read a byte, so you need to return a byte here
-					s, err := d.Decode()
-					if err != nil {
-						return nil, perrors.Wrapf(err, "decInstance->decObject field name:%s", fieldName)
+					s, decErr := d.Decode()
+					if decErr != nil {
+						return nil, perrors.Wrapf(decErr, "decInstance->decObject field name:%s", fieldName)
 					}
 					enumValue, _ := s.(JavaEnum)
 					num = int64(enumValue)
@@ -487,7 +499,7 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 		case reflect.Slice, reflect.Array:
 			m, err := d.decList(TAG_READ)
 			if err != nil {
-				if err == io.EOF {
+				if perrors.Is(err, io.EOF) {
 					break
 				}
 				return nil, perrors.WithStack(err)
@@ -498,13 +510,13 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 			if err != nil {
 				return nil, err
 			}
-		case reflect.Struct, reflect.Interface:
+		case reflect.Struct:
 			var (
 				err error
 				s   interface{}
 			)
-			typ := UnpackPtrType(fldRawValue.Type())
-			if typ.String() == "time.Time" {
+			fldType := UnpackPtrType(fldRawValue.Type())
+			if fldType.String() == "time.Time" {
 				s, err = d.decDate(TAG_READ)
 				if err != nil {
 					return nil, perrors.WithStack(err)
@@ -520,7 +532,19 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 					SetValue(fldRawValue, EnsurePackValue(s))
 				}
 			}
-
+		case reflect.Interface:
+			s, err := d.DecodeValue()
+			if err != nil {
+				return nil, perrors.WithStack(err)
+			}
+			if s != nil {
+				if ref, ok := s.(*_refHolder); ok {
+					_ = unpackRefHolder(fldRawValue, fldTyp, ref)
+				} else {
+					// set value which accepting pointers
+					SetValue(fldRawValue, EnsurePackValue(s))
+				}
+			}
 		default:
 			return nil, perrors.Errorf("unknown struct member type: %v %v", kind, typ.Name()+"."+fieldStruct.Name)
 		}
@@ -529,15 +553,15 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 	return vRef.Interface(), nil
 }
 
-func (d *Decoder) appendClsDef(cd classInfo) {
+func (d *Decoder) appendClsDef(cd *classInfo) {
 	d.classInfoList = append(d.classInfoList, cd)
 }
 
-func (d *Decoder) getStructDefByIndex(idx int) (reflect.Type, classInfo, error) {
+func (d *Decoder) getStructDefByIndex(idx int) (reflect.Type, *classInfo, error) {
 	var (
 		ok  bool
-		cls classInfo
-		s   structInfo
+		cls *classInfo
+		s   *structInfo
 		err error
 	)
 
@@ -565,7 +589,7 @@ func (d *Decoder) decEnum(javaName string, flag int32) (JavaEnum, error) {
 		err       error
 		enumName  string
 		ok        bool
-		info      structInfo
+		info      *structInfo
 		enumValue JavaEnum
 	)
 	enumName, err = d.decString(TAG_READ) // java enum class member is "name"
@@ -583,7 +607,7 @@ func (d *Decoder) decEnum(javaName string, flag int32) (JavaEnum, error) {
 }
 
 // skip this object
-func (d *Decoder) skip(cls classInfo) error {
+func (d *Decoder) skip(cls *classInfo) error {
 	len := len(cls.fieldNameList)
 	if len < 1 {
 		return nil
@@ -605,13 +629,13 @@ func (d *Decoder) decObject(flag int32) (interface{}, error) {
 		idx int32
 		err error
 		typ reflect.Type
-		cls classInfo
+		cls *classInfo
 	)
 
 	if flag != TAG_READ {
 		tag = byte(flag)
 	} else {
-		tag, _ = d.readByte()
+		tag, _ = d.ReadByte()
 	}
 
 	switch {
@@ -620,12 +644,12 @@ func (d *Decoder) decObject(flag int32) (interface{}, error) {
 	case tag == BC_REF:
 		return d.decRef(int32(tag))
 	case tag == BC_OBJECT_DEF:
-		clsDef, err := d.decClassDef()
-		if err != nil {
-			return nil, perrors.Wrap(err, "decObject->decClassDef byte double")
+		clsDef, decErr := d.decClassDef()
+		if decErr != nil {
+			return nil, perrors.Wrap(decErr, "decObject->decClassDef byte double")
 		}
-		cls, _ = clsDef.(classInfo)
-		//add to slice
+		cls, _ = clsDef.(*classInfo)
+		// add to slice
 		d.appendClsDef(cls)
 
 		return d.DecodeValue()

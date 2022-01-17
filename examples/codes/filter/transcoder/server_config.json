@@ -1,5 +1,5 @@
 {
-  "close_graceful": true,
+  "disable_upgrade": true,
   "servers": [
     {
       "default_log_path": "stdout",

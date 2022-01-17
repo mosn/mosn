@@ -25,8 +25,8 @@ import (
 	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/server"
-	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 const (
@@ -36,6 +36,26 @@ const (
 	LDS_UPDATE_REJECT    = "listener_manager.lds.update_rejected"
 	SERVER_STATE         = "server.state"
 	STAT_WORKERS_STARTED = "listener_manager.workers_started"
+)
+
+var (
+	mosnState2IstioState = map[stagemanager.State]envoy_admin_v2alpha.ServerInfo_State{
+		stagemanager.Nil: envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		// 10 main stages
+		stagemanager.ParamsParsed:     envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.Initing:          envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING,
+		stagemanager.PreStart:         envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.Starting:         envoy_admin_v2alpha.ServerInfo_INITIALIZING,
+		stagemanager.AfterStart:       envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Running:          envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.GracefulStopping: envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopping:         envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.AfterStop:        envoy_admin_v2alpha.ServerInfo_DRAINING,
+		stagemanager.Stopped:          envoy_admin_v2alpha.ServerInfo_DRAINING,
+		// 2 additional stages
+		stagemanager.StartingNewServer: envoy_admin_v2alpha.ServerInfo_LIVE,
+		stagemanager.Upgrading:         envoy_admin_v2alpha.ServerInfo_DRAINING,
+	}
 )
 
 func init() {
@@ -84,18 +104,10 @@ func serverInfoForIstio(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getIstioState() (envoy_admin_v2alpha.ServerInfo_State, error) {
-	mosnState := store.GetMosnState()
-
-	switch mosnState {
-	case store.Active_Reconfiguring:
-		return envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING, nil
-	case store.Init:
-		return envoy_admin_v2alpha.ServerInfo_INITIALIZING, nil
-	case store.Running:
-		return envoy_admin_v2alpha.ServerInfo_LIVE, nil
-	case store.Passive_Reconfiguring:
-		return envoy_admin_v2alpha.ServerInfo_DRAINING, nil
+	state := stagemanager.GetState()
+	if s, ok := mosnState2IstioState[state]; ok {
+		return s, nil
 	}
 
-	return 0, fmt.Errorf("parse mosn state %v to istio state failed", mosnState)
+	return 0, fmt.Errorf("parse mosn state %v to istio state failed", state)
 }

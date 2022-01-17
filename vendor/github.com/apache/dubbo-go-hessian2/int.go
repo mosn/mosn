@@ -66,7 +66,7 @@ func (d *Decoder) decInt32(flag int32) (int32, error) {
 	if flag != TAG_READ {
 		tag = byte(flag)
 	} else {
-		tag, _ = d.readByte()
+		tag, _ = d.ReadByte()
 	}
 
 	switch {
@@ -101,6 +101,9 @@ func (d *Decoder) decInt32(flag int32) (int32, error) {
 		var i32 int32
 		err = binary.Read(d.reader, binary.BigEndian, &i32)
 		return i32, perrors.WithStack(err)
+
+	case tag == BC_NULL:
+		return int32(0), nil
 
 	default:
 		return 0, perrors.Errorf("decInt32 integer wrong tag:%#x", tag)

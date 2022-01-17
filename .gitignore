@@ -1,6 +1,5 @@
 .*
 !./.travis.yml
-!./.gitignore
 build/bundles/
 *.log
 IMAGEBUILD/

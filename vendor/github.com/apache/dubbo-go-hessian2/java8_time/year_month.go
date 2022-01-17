@@ -16,7 +16,7 @@
  */
 package java8_time
 
-//java8-time java.time.YearMonth
+// java8-time java.time.YearMonth
 type YearMonth struct {
 	Month int32 `hessian:"month"`
 	Year  int32 `hessian:"year"`
