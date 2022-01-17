@@ -79,7 +79,7 @@ func Test_filtermgr(t *testing.T) {
 		return
 	}
 	fm.InitializeReadFilters()
-	fm.OnRead()
+	fm.OnRead(conn.readBuffer)
 	fm.OnWrite(nil)
 
 	if !tf.read || !tf.write || !tf.init {

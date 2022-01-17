@@ -69,48 +69,43 @@ func (fm *filterManager) InitializeReadFilters() bool {
 	if len(fm.upstreamFilters) == 0 {
 		return false
 	}
-
-	fm.onContinueReading(nil)
-	return true
-}
-
-func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 	var index int
 	var uf *activeReadFilter
-
-	if filter != nil {
-		index = filter.index + 1
-	}
-
+	var status api.FilterStatus
 	for ; index < len(fm.upstreamFilters); index++ {
 		uf = fm.upstreamFilters[index]
 		uf.index = index
 
 		if !uf.initialized {
 			uf.initialized = true
-
-			status := uf.filter.OnNewConnection()
-
+			status = uf.filter.OnNewConnection()
 			if status == api.Stop {
-				return
+				return false
 			}
 		}
+	}
+	return true
+}
 
-		buf := fm.conn.GetReadBuffer()
+func (fm *filterManager) onContinueReading(previousIndex int, buf buffer.IoBuffer) {
+	var index int
+	var uf *activeReadFilter
 
-		if buf != nil && buf.Len() > 0 {
-			status := uf.filter.OnData(buf)
+	if previousIndex != 0 {
+		index = previousIndex + 1
+	}
 
-			if status == api.Stop {
-				//fm.conn.Write("your data")
-				return
-			}
+	for ; index < len(fm.upstreamFilters); index++ {
+		uf = fm.upstreamFilters[index]
+		status := uf.filter.OnData(buf)
+		if status == api.Stop {
+			return
 		}
 	}
 }
 
-func (fm *filterManager) OnRead() {
-	fm.onContinueReading(nil)
+func (fm *filterManager) OnRead(buf buffer.IoBuffer) { //增加 buf 参数
+	fm.onContinueReading(0, buf)
 }
 
 func (fm *filterManager) OnWrite(buf []buffer.IoBuffer) api.FilterStatus {
@@ -138,7 +133,11 @@ func (arf *activeReadFilter) Connection() api.Connection {
 }
 
 func (arf *activeReadFilter) ContinueReading() {
-	arf.filterManager.onContinueReading(arf)
+	buf := arf.filterManager.conn.GetReadBuffer()
+	if buf == nil || buf.Len() <= 0 {
+		return
+	}
+	arf.filterManager.onContinueReading(arf.index, buf)
 }
 
 func (arf *activeReadFilter) UpstreamHost() api.HostInfo {

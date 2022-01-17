@@ -556,7 +556,7 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20211217011300-b851d129be01
+# mosn.io/api v0.0.0-20211217011300-b851d129be01 => /Users/fujianhao3/Desktop/bak/mosn-api
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
@@ -590,3 +590,4 @@ vimagination.zapto.org/byteio
 # vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d
 ## explicit
 # github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
+# mosn.io/api => /Users/fujianhao3/Desktop/bak/mosn-api
