@@ -44,6 +44,9 @@ func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
 
 	fd := int(f.Fd())
 	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
+	if err != nil {
+		return nil, 0, fmt.Errorf("syscall.GetsockoptIPv6Mreq %v", err)
+	}
 
 	if err := syscall.SetNonblock(fd, true); err != nil {
 		return nil, 0, fmt.Errorf("setnonblock %v", err)
