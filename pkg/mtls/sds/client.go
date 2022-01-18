@@ -19,6 +19,7 @@ package sds
 
 import (
 	"errors"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"sync"
 
 	"mosn.io/mosn/pkg/log"
@@ -30,6 +31,8 @@ type SdsClientImpl struct {
 	SdsCallbackMap map[string]types.SdsUpdateCallbackFunc
 	updatedLock    sync.Mutex
 	sdsSubscriber  *SdsSubscriber
+	sdsClient      v2.SecretDiscoveryServiceClient
+	sdsConfig      interface{}
 }
 
 var sdsClient *SdsClientImpl
@@ -46,10 +49,12 @@ func NewSdsClientSingleton(cfg interface{}) types.SdsClient {
 	if sdsClient != nil {
 		// update sds config
 		sdsClient.sdsSubscriber.sdsConfig = cfg
+		sdsClient.sdsConfig = cfg
 		return sdsClient
 	} else {
 		sdsClient = &SdsClientImpl{
 			SdsCallbackMap: make(map[string]types.SdsUpdateCallbackFunc),
+			sdsConfig:      cfg,
 		}
 		// For Istio , sds config should be the same
 		// So we use first sds config to init sds subscriber
@@ -73,7 +78,9 @@ func CloseSdsClient() {
 func (client *SdsClientImpl) AddUpdateCallback(name string, callback types.SdsUpdateCallbackFunc) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
-	client.SdsCallbackMap[name] = callback
+	if callback != nil {
+		client.SdsCallbackMap[name] = callback
+	}
 	client.sdsSubscriber.SendSdsRequest(name)
 	return nil
 }
@@ -99,4 +106,23 @@ func (client *SdsClientImpl) SetSecret(name string, secret *types.SdsSecret) {
 // SetPostCallback
 func SetSdsPostCallback(fc func()) {
 	sdsPostCallback = fc
+}
+
+func (client *SdsClientImpl) GetSdsClient() v2.SecretDiscoveryServiceClient {
+	client.updatedLock.Lock()
+	defer client.updatedLock.Unlock()
+	if client.sdsClient != nil {
+		return client.sdsClient
+	}
+	nativeClient, err := GetSdsNativeClient(client.sdsConfig)
+	if err != nil {
+		log.DefaultLogger.Errorf("[xds] [sds client],native client init failed,error = %v", err)
+		return nil
+	}
+	client.sdsClient = nativeClient
+	return nativeClient
+}
+
+func (client *SdsClientImpl) GetSdsSubscriber() *SdsSubscriber {
+	return client.sdsSubscriber
 }

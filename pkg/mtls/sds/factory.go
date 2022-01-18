@@ -17,11 +17,15 @@
 
 package sds
 
+import v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+
 // var getSdsClientFunc func(cfg *auth.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
 
 var globalSds struct {
 	// getSdsStreamClient for extensions
 	getSdsStreamClient func(config interface{}) (SdsStreamClient, error)
+
+	getSdsNativeClient func(config interface{}) (v2.SecretDiscoveryServiceClient, error)
 }
 
 // func GetSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {}
@@ -30,6 +34,14 @@ func RegisterSdsStreamClientFactory(f func(config interface{}) (SdsStreamClient,
 	globalSds.getSdsStreamClient = f
 }
 
+func RegisterSdsNativeClientFactory(f func(config interface{}) (v2.SecretDiscoveryServiceClient, error)) {
+	globalSds.getSdsNativeClient = f
+}
+
 func GetSdsStreamClient(config interface{}) (SdsStreamClient, error) {
 	return globalSds.getSdsStreamClient(config)
+}
+
+func GetSdsNativeClient(config interface{}) (v2.SecretDiscoveryServiceClient, error) {
+	return globalSds.getSdsNativeClient(config)
 }

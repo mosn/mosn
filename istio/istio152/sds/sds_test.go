@@ -19,6 +19,7 @@ package sds
 
 import (
 	"encoding/json"
+	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"reflect"
 	"testing"
 	"time"
@@ -180,4 +181,44 @@ func TestConvertFromJson(t *testing.T) {
 		require.Nil(t, err)
 		require.True(t, equalJsonStr(sdsJson, string(b)))
 	})
+}
+
+func TestCreateSdsNativeClient(t *testing.T) {
+	scw := &v2.SecretConfigWrapper{}
+	if err := json.Unmarshal([]byte(sdsJson), scw); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	type args struct {
+		config interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    envoy_service_discovery_v2.SecretDiscoveryServiceClient
+		wantErr bool
+	}{
+		{
+			name: "initSuccess",
+			args: args{
+				config: scw.SdsConfig,
+			},
+		},
+		{
+			name: "initError",
+			args: args{
+				config: nil,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CreateSdsNativeClient(tt.args.config)
+			if tt.name == "initError" && err == nil {
+				t.Errorf("[TestCreateSdsNativeClient] should failed,but init success")
+			}
+			if tt.name == "initSuccess" && err != nil {
+				t.Errorf("[TestCreateSdsNativeClient] failed")
+			}
+		})
+	}
 }

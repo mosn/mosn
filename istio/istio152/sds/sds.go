@@ -46,6 +46,7 @@ var _ sds.SdsStreamClient = (*SdsStreamClientImpl)(nil)
 
 func init() {
 	sds.RegisterSdsStreamClientFactory(CreateSdsStreamClient)
+	sds.RegisterSdsNativeClientFactory(CreateSdsNativeClient)
 }
 
 func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
@@ -79,6 +80,25 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 	sdsStreamClient.streamSecretsClient = streamSecretsClient
 
 	return sdsStreamClient, nil
+}
+
+func CreateSdsNativeClient(config interface{}) (v2.SecretDiscoveryServiceClient, error) {
+	sdsConfig, err := convertConfig(config)
+	if err != nil {
+		log.DefaultLogger.Alertf("sds.native.client", "[xds][sds native client] convert sds config fail %v", err)
+		return nil, err
+	}
+
+	udsPath := "unix:" + sdsConfig.sdsUdsPath
+	conn, err := grpc.Dial(
+		udsPath,
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.DefaultLogger.Alertf("sds.native.client", "[sds][sds native client] dial grpc server failed %v", err)
+		return nil, err
+	}
+	return v2.NewSecretDiscoveryServiceClient(conn), nil
 }
 
 func (sc *SdsStreamClientImpl) Send(name string) error {

@@ -124,7 +124,7 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 	}
 	if secret.ValidationPEM != "" {
 		v.pem = secret.ValidationPEM
-		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a validation set", name)
+		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a validation set, set = %s", name, v)
 		// set the validation
 		for _, cert := range v.certificates {
 			cert.setValidation(v.pem)
@@ -152,7 +152,7 @@ func (p *sdsProvider) setCertificate(name string, secret *types.SdsSecret) {
 	if secret.CertificatePEM != "" {
 		p.info.Certificate = secret.CertificatePEM
 		p.info.PrivateKey = secret.PrivateKeyPEM
-		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a cerificate set", name)
+		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a cerificate set,certificate = %s ", name, secret.CertificatePEM)
 	}
 	if p.info.full() {
 		p.update()
