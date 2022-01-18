@@ -97,6 +97,10 @@ func (l *listener) IsBindToPort() bool {
 	return l.bindToPort
 }
 
+func (l *listener) SetBindToPort(bind bool) {
+	l.bindToPort = bind
+}
+
 func (l *listener) Config() *v2.Listener {
 	return l.config
 }

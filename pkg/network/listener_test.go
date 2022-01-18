@@ -144,3 +144,25 @@ func TestUDSToFileListener(t *testing.T) {
 	assert.Equal(t, f.Name(), f1.Name())
 	l.Close()
 }
+
+func Test_SetBindToPort(t *testing.T) {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:11111")
+	cfg := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:       "test_listener",
+			Network:    addr.Network(),
+			BindToPort: true,
+		},
+		PerConnBufferLimitBytes: 1024,
+		Addr:                    addr,
+	}
+	ln := NewListener(cfg)
+	if !ln.IsBindToPort() {
+		t.Errorf("Test_SetBindToPort Error %+v", ln)
+	}
+
+	ln.SetBindToPort(false)
+	if ln.IsBindToPort() {
+		t.Errorf("Test_SetBindToPort Error %+v", ln)
+	}
+}

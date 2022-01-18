@@ -130,6 +130,9 @@ type Listener interface {
 
 	// IsBindToPort
 	IsBindToPort() bool
+
+	// SetBindToPort
+	SetBindToPort(bind bool)
 }
 
 // ListenerEventListener is a Callback invoked by a listener.
