@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -382,5 +383,38 @@ func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 			}
 			b.StopTimer()
 		})
+	}
+}
+
+func Test_InitialDelaySeconds(t *testing.T) {
+	cfg := v2.HealthCheck{
+		HealthCheckConfig: v2.HealthCheckConfig{
+			Protocol:           "testInitialDelay",
+			HealthyThreshold:   1,
+			UnhealthyThreshold: 1,
+			ServiceName:        "testServiceName",
+			CommonCallbacks:    []string{"test"},
+		},
+	}
+	hc := CreateHealthCheck(cfg)
+	hcx := hc.(*healthChecker)
+	if hcx.initialDelay != firstInterval {
+		t.Errorf("Test_InitialDelaySeconds Error %+v", hcx)
+	}
+
+	cfg = v2.HealthCheck{
+		HealthCheckConfig: v2.HealthCheckConfig{
+			Protocol:            "testInitialDelay",
+			HealthyThreshold:    1,
+			UnhealthyThreshold:  1,
+			InitialDelaySeconds: api.DurationConfig{time.Second * 2},
+			ServiceName:         "testServiceName",
+			CommonCallbacks:     []string{"test"},
+		},
+	}
+	hc = CreateHealthCheck(cfg)
+	hcx = hc.(*healthChecker)
+	if hcx.initialDelay != time.Second*2 {
+		t.Errorf("Test_InitialDelaySeconds Error %+v", hcx)
 	}
 }
