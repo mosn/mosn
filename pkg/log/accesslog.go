@@ -118,7 +118,7 @@ func (l *accesslog) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeade
 		return
 	}
 
-	buf := buffer.GetIoBuffer(AccessLogLen)
+	buf := log.GetLogBuffer(AccessLogLen)
 	for idx := range l.entries {
 		l.entries[idx].log(ctx, buf)
 	}

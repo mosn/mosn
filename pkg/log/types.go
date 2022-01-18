@@ -44,3 +44,10 @@ const (
 func GetOrCreateLogger(output string, roller *log.Roller) (*log.Logger, error) {
 	return log.GetOrCreateLogger(output, roller)
 }
+
+// GetLogBuffer is an alias for log.GetLogBuffer
+var GetLogBuffer = log.GetLogBuffer
+
+// LogBuffer is an alias for log.LogBuffer
+// nolint
+type LogBuffer = log.LogBuffer
