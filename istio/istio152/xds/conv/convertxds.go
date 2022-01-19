@@ -94,7 +94,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(xdsListener.Address),
+		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -172,6 +172,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			ConnectTimeout:       &api.DurationConfig{Duration: convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
+			IdleTimeout:          convertIdleTimeout(xdsCluster),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Hosts:           convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:            convertSpec(xdsCluster),
@@ -193,6 +194,19 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 
 	return clusters
+}
+
+func convertIdleTimeout(cluster *xdsapi.Cluster) *api.DurationConfig {
+	option := cluster.GetCommonHttpProtocolOptions()
+	if option == nil {
+		return nil
+	}
+	if option.IdleTimeout != nil {
+		return &api.DurationConfig{
+			Duration: option.IdleTimeout.AsDuration(),
+		}
+	}
+	return nil
 }
 
 func convertDnsLookupFamily(family xdsapi.Cluster_DnsLookupFamily) v2.DnsLookupFamily {

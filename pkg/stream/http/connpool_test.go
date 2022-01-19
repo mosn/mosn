@@ -67,6 +67,10 @@ func (ci *fakeClusterInfo) ConnectTimeout() time.Duration {
 	return network.DefaultConnectTimeout
 }
 
+func (ci *fakeClusterInfo) IdleTimeout() time.Duration {
+	return 0
+}
+
 func (ci *fakeClusterInfo) ConnBufferLimitBytes() uint32 {
 	return 0
 }

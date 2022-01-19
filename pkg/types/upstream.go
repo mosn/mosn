@@ -185,6 +185,9 @@ type ClusterInfo interface {
 	// ConectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
 
+	// IdleTimeout returns the idle timeout
+	IdleTimeout() time.Duration
+
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
 
