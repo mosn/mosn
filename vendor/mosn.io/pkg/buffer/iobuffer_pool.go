@@ -49,26 +49,37 @@ func (p *IoBufferPool) give(buf IoBuffer) {
 }
 
 // GetIoBuffer returns IoBuffer from pool
-func GetIoBuffer(size int) IoBuffer {
-	return ibPool.take(size)
-}
-
-// NewIoBuffer is an alias for GetIoBuffer
-func NewIoBuffer(size int) IoBuffer {
-	return GetIoBuffer(size)
+func (p *IoBufferPool) GetIoBuffer(size int) IoBuffer {
+	return p.take(size)
 }
 
 // PutIoBuffer returns IoBuffer to pool
-func PutIoBuffer(buf IoBuffer) error {
+func (p *IoBufferPool) PutIoBuffer(buf IoBuffer) error {
 	count := buf.Count(-1)
 	if count > 0 {
 		return nil
 	} else if count < 0 {
 		return errors.New("PutIoBuffer duplicate")
 	}
-	if p, _ := buf.(*pipe); p != nil {
-		buf = p.IoBuffer
+
+	if pb, _ := buf.(*pipe); pb != nil {
+		buf = pb.IoBuffer
 	}
-	ibPool.give(buf)
+	p.give(buf)
 	return nil
+}
+
+// GetIoBuffer is a wrapper for ibPool
+func GetIoBuffer(size int) IoBuffer {
+	return ibPool.GetIoBuffer(size)
+}
+
+// NewIoBuffer is an alias for GetIoBuffer
+func NewIoBuffer(size int) IoBuffer {
+	return ibPool.GetIoBuffer(size)
+}
+
+// PutIoBuffer is a a wrapper for ibPool
+func PutIoBuffer(buf IoBuffer) error {
+	return ibPool.PutIoBuffer(buf)
 }
