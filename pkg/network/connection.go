@@ -60,10 +60,18 @@ var (
 	defaultClientConnFactory ClientConnFactory = newClientConnection
 )
 
+func GetServerConnFactory() ServerConnFactory {
+	return defaultServerConnFactory
+}
+
 func RegisterServerConnFactory(factory ServerConnFactory) {
 	if factory != nil {
 		defaultServerConnFactory = factory
 	}
+}
+
+func GetClientConnFactory() ClientConnFactory {
+	return defaultClientConnFactory
 }
 
 func RegisterClientConnFactory(factory ClientConnFactory) {
