@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -29,13 +30,13 @@ func Test_NewSession(t *testing.T) {
 	h1.addr = "127.0.0.1"
 	cfg := make(map[string]interface{})
 	hcs := hdsf.NewSession(cfg, h1)
-	if hcs != nil {
+	if reflect.TypeOf(hcs) != reflect.TypeOf(&TCPDialSession{}) {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
 	h1.addr = "127.0.0.1:22222"
 	hcs = hdsf.NewSession(cfg, h1)
-	if hcs != nil {
+	if reflect.TypeOf(hcs) != reflect.TypeOf(&TCPDialSession{}) {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 

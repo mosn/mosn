@@ -63,8 +63,9 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 
 	v, ok := cfg[HTTPCheckConfigKey]
 	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig is not config")
-		return nil
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig is not config fallback to tcpDial")
+		tcpDialSessionFactory := &TCPDialSessionFactory{}
+		return tcpDialSessionFactory.NewSession(cfg, host)
 	}
 
 	httpCheckConfig, ok := v.(*HttpCheckConfig)
