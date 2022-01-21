@@ -123,11 +123,20 @@ type SdsSecret struct {
 type SdsUpdateCallbackFunc func(name string, secret *SdsSecret)
 
 type SdsClient interface {
+	// AddUpdateCallback will send a sds request to get secret and handle the
+	// response by the SdsUpdateCallbackFunc
 	AddUpdateCallback(name string, callback SdsUpdateCallbackFunc) error
 	DeleteUpdateCallback(name string) error
+	// RequireSecret will send a sds request to get secret, the response will be
+	// handled by the SdsUpdateCallbackFunc that added by AddUpdateCallback
+	RequireSecret(name string)
+	// FetchSecret will send a sds request to get secret and wait the response
+	// the response will not be handled by the callback functions
+	FetchSecret(name string) (*SdsSecret, error)
 	SecretProvider
 }
 
 type SecretProvider interface {
 	SetSecret(name string, secret *SdsSecret)
+	AckResponse(resp interface{})
 }

@@ -66,7 +66,7 @@ func InitSdsSecertConfig(sdsUdsPath string) proto.Message {
 
 }
 
-func Test_AddUpdateCallback(t *testing.T) {
+func Test_SdsClient(t *testing.T) {
 	// init prepare
 	sdsUdsPath := "/tmp/sds2"
 	sds.SubscriberRetryPeriod = 500 * time.Millisecond
@@ -75,7 +75,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 	}()
 	callback := 0
 	sds.SetSdsPostCallback(func() {
-		callback = 1
+		callback++
 	})
 	// mock sds server
 	srv := InitMockSdsServer(sdsUdsPath, t)
@@ -93,28 +93,51 @@ func Test_AddUpdateCallback(t *testing.T) {
 	updatedChan := make(chan int, 1) // do not block the update channel
 	log.DefaultLogger.Infof("add update callback")
 
-	sdsClient.AddUpdateCallback("default", func(name string, secret *types.SdsSecret) {
-		if name != "default" {
-			t.Errorf("name should same with config.name")
+	t.Run("test add update callback", func(t *testing.T) {
+		sdsClient.AddUpdateCallback("default", func(name string, secret *types.SdsSecret) {
+			if name != "default" {
+				t.Errorf("name should same with config.name")
+			}
+			log.DefaultLogger.Infof("update callback is called")
+			updatedChan <- 1
+		})
+		time.Sleep(time.Second)
+		go func() {
+			err := srv.Start()
+			if !srv.started {
+				t.Fatalf("%s start error: %v", sdsUdsPath, err)
+			}
+		}()
+		select {
+		case <-updatedChan:
+			if callback != 1 {
+				t.Fatalf("sds post callback unexpected")
+			}
+		case <-time.After(time.Second * 10):
+			t.Errorf("callback reponse timeout")
 		}
-		log.DefaultLogger.Infof("update callback is called")
-		updatedChan <- 1
 	})
-	time.Sleep(time.Second)
-	go func() {
-		err := srv.Start()
-		if !srv.started {
-			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+
+	t.Run("test fetch secrets", func(t *testing.T) {
+		secret, err := sdsClient.FetchSecret("default")
+		require.Nil(t, err)
+		require.Equal(t, "default", secret.Name)
+		time.Sleep(time.Second)
+		// FetchSecret should not take effects on callback
+		require.Equal(t, 1, callback)
+	})
+
+	t.Run("test require secret", func(t *testing.T) {
+		sdsClient.RequireSecret("default")
+		select {
+		case <-updatedChan:
+			if callback != 2 {
+				t.Fatalf("sds post callback unexpected")
+			}
+		case <-time.After(time.Second * 10):
+			t.Errorf("callback reponse timeout")
 		}
-	}()
-	select {
-	case <-updatedChan:
-		if callback != 1 {
-			t.Fatalf("sds post callback unexpected")
-		}
-	case <-time.After(time.Second * 10):
-		t.Errorf("callback reponse timeout")
-	}
+	})
 }
 
 const sdsJson = `{

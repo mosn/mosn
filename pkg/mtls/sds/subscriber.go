@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 type SdsSubscriber struct {
 	provider             types.SecretProvider
 	reqQueue             chan string
+	ackChan              chan interface{}
 	sdsConfig            interface{}
 	sdsStreamClient      SdsStreamClient
 	sdsStreamClientMutex sync.RWMutex
@@ -40,6 +42,10 @@ type SdsStreamClient interface {
 	Send(name string) error
 	// Recv receive a secret discovert response, handle it and send a ack response
 	Recv(provider types.SecretProvider, callback func()) error
+	// Fetch creates a secret discovery request with name, and wait the response
+	Fetch(name string) (*types.SdsSecret, error)
+	// AckResponse creates an ack request based on the response
+	AckResponse(resp interface{})
 	// Stop stops a stream client
 	Stop()
 }
@@ -49,6 +55,7 @@ func NewSdsSubscriber(provider types.SecretProvider, sdsConfig interface{}) *Sds
 		provider:    provider,
 		sdsConfig:   sdsConfig,
 		reqQueue:    make(chan string, 10),
+		ackChan:     make(chan interface{}, 10),
 		stopChannel: make(chan struct{}),
 	}
 }
@@ -100,6 +107,20 @@ func (subscribe *SdsSubscriber) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
+func (subscribe *SdsSubscriber) FetchSdsSecret(name string) (*types.SdsSecret, error) {
+	subscribe.sdsStreamClientMutex.RLock()
+	clt := subscribe.sdsStreamClient
+	subscribe.sdsStreamClientMutex.RUnlock()
+	if clt == nil {
+		return nil, fmt.Errorf("fetch secret %s failed, because the sds stream client is not ready yet", name)
+	}
+	return clt.Fetch(name)
+}
+
+func (subscribe *SdsSubscriber) SendAck(resp interface{}) {
+	subscribe.ackChan <- resp
+}
+
 var retryInterval = time.Second
 
 func (subscribe *SdsSubscriber) sendRequestLoop() {
@@ -127,6 +148,15 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 					continue
 				}
 				break
+			}
+		case ack := <-subscribe.ackChan:
+			// send ack should always on the original connection(sdsStreamClient)
+			// so if get sdsStreamClient failed, we will ignore the ack
+			subscribe.sdsStreamClientMutex.RLock()
+			clt := subscribe.sdsStreamClient
+			subscribe.sdsStreamClientMutex.RUnlock()
+			if clt != nil {
+				clt.AckResponse(ack)
 			}
 		}
 	}
