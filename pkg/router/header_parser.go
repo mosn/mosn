@@ -33,7 +33,7 @@ func (h *headerParser) evaluateHeaders(headers types.HeaderMap, requestInfo type
 		return
 	}
 	for _, toAdd := range h.headersToAdd {
-		value := toAdd.headerFormatter.format(requestInfo)
+		value := toAdd.headerFormatter.format(headers, requestInfo)
 		if v, ok := headers.Get(toAdd.headerName); ok && len(v) > 0 && toAdd.headerFormatter.append() {
 			value = fmt.Sprintf("%s,%s", v, value)
 		}
