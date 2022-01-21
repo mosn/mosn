@@ -18,6 +18,7 @@
 package mtls
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -46,8 +47,18 @@ func (c *mockSdsClient) SetSecret(name string, secret *types.SdsSecret) {
 	}
 }
 
+func (c *mockSdsClient) AckResponse(resp interface{}) {
+}
+
 func (c *mockSdsClient) DeleteUpdateCallback(name string) error {
 	return nil
+}
+
+func (c *mockSdsClient) RequireSecret(name string) {
+}
+
+func (c *mockSdsClient) FetchSecret(name string) (*types.SdsSecret, error) {
+	return nil, errors.New("not implement yet")
 }
 
 func getMockSdsClient(cfg interface{}) types.SdsClient {
