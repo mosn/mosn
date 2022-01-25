@@ -40,9 +40,6 @@ type upstreamRequest struct {
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
 
-	// ~~~ upstream response buf
-	upstreamRespHeaders types.HeaderMap
-
 	//~~~ state
 	sendComplete bool
 	dataSent     bool
@@ -112,7 +109,6 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 		r.downStream.requestInfo.SetResponseCode(code)
 	}
 
-	r.upstreamRespHeaders = headers
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
 	r.downStream.downstreamRespHeaders = headers
 	r.downStream.downstreamRespDataBuf = data
