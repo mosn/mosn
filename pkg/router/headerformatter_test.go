@@ -64,7 +64,10 @@ func Test_getHeaderFormatter(t *testing.T) {
 				value:  "%host%",
 				append: false,
 			},
-			want: nil,
+			want: &plainHeaderFormatter{
+				isAppend:    false,
+				staticValue: "%host%",
+			},
 		},
 		{
 			name: "case4",
@@ -72,7 +75,21 @@ func Test_getHeaderFormatter(t *testing.T) {
 				value:  "%address",
 				append: false,
 			},
-			want: nil,
+			want: &plainHeaderFormatter{
+				isAppend:    false,
+				staticValue: "%address",
+			},
+		},
+		{
+			name: "case5",
+			args: args{
+				value:  "%%",
+				append: false,
+			},
+			want: &plainHeaderFormatter{
+				isAppend:    false,
+				staticValue: "%%",
+			},
 		},
 	}
 
