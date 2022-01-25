@@ -18,8 +18,8 @@
 package router
 
 import (
-	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/protocol"
+	"context"
+	"errors"
 	"mosn.io/mosn/pkg/variable"
 	"reflect"
 	"testing"
@@ -127,8 +127,8 @@ func Test_plainHeaderFormatter_format(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatter.format(nil, nil); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("(f *plainHeaderFormatter) format(types.HeaderMap, types.RequestInfo) = %v, want %v", got, tt.want)
+			if got := formatter.format(nil); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("(f *plainHeaderFormatter) format(_ context.Context) = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -144,7 +144,7 @@ func Test_variableHeaderFormatter_append(t *testing.T) {
 			name: "case1",
 			formatter: &variableHeaderFormatter{
 				isAppend:     false,
-				variableName: "address",
+				variableName: "",
 			},
 			want: false,
 		},
@@ -152,7 +152,7 @@ func Test_variableHeaderFormatter_append(t *testing.T) {
 			name: "case2",
 			formatter: &variableHeaderFormatter{
 				isAppend:     true,
-				variableName: "address",
+				variableName: "",
 			},
 			want: true,
 		},
@@ -168,36 +168,43 @@ func Test_variableHeaderFormatter_append(t *testing.T) {
 }
 
 func Test_variableHeaderFormatter_format(t *testing.T) {
-	headers := protocol.CommonHeader{"host": "a.com"}
-	requestInfo := &network.RequestInfo{}
-	requestInfo.SetProtocol("http")
-
+	_ = variable.Register(variable.NewStringVariable("normal", nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+		return "normal", nil
+	}, variable.DefaultStringSetter, 0))
+	_ = variable.Register(variable.NewStringVariable("error", nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+		return "err", errors.New("error")
+	}, variable.DefaultStringSetter, 0))
+	_ = variable.Register(variable.NewVariable("non_string", nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (interface{}, error) {
+		return struct {
+			temp string
+		}{}, nil
+	}, variable.DefaultSetter, 0))
 	tests := []struct {
 		name      string
 		formatter *variableHeaderFormatter
 		want      string
 	}{
 		{
-			name: "case1",
+			name: "normal",
 			formatter: &variableHeaderFormatter{
 				isAppend:     false,
-				variableName: "request_header_host",
+				variableName: "normal",
 			},
-			want: "a.com",
+			want: "normal",
 		},
 		{
-			name: "case2",
+			name: "error",
 			formatter: &variableHeaderFormatter{
 				isAppend:     false,
-				variableName: "protocol",
+				variableName: "error",
 			},
-			want: "http",
+			want: "",
 		},
 		{
-			name: "case3",
+			name: "non_string",
 			formatter: &variableHeaderFormatter{
 				isAppend:     false,
-				variableName: "test",
+				variableName: "non_string",
 			},
 			want: "",
 		},
@@ -205,8 +212,8 @@ func Test_variableHeaderFormatter_format(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.formatter.format(headers, requestInfo); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("(v *variableHeaderFormatter) format(headers types.HeaderMap, requestInfo api.RequestInfo) = %v, want %v", got, tt.want)
+			if got := tt.formatter.format(variable.NewVariableContext(context.TODO())); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("(v *variableHeaderFormatter) format(ctx context.Context) = %v, want %v", got, tt.want)
 			}
 		})
 	}
