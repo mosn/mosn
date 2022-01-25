@@ -112,6 +112,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 		r.downStream.requestInfo.SetResponseCode(code)
 	}
 
+	r.upstreamRespHeaders = headers
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
 	r.downStream.downstreamRespHeaders = headers
 	r.downStream.downstreamRespDataBuf = data
