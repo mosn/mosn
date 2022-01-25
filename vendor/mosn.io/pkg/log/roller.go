@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
@@ -36,7 +37,8 @@ var (
 
 	// lumberjacks maps log filenames to the logger
 	// that is being used to keep them rolled/maintained.
-	lumberjacks = make(map[string]*lumberjack.Logger)
+	lumberjacks       = make(map[string]*lumberjack.Logger)
+	lumberjacksLocker sync.Mutex
 
 	errInvalidRollerParameter = errors.New("invalid roller parameter")
 )
@@ -76,11 +78,9 @@ type Roller struct {
 type RollerHandler func(l *LoggerInfo)
 
 // GetLogWriter returns an io.Writer that writes to a rolling logger.
-// This should be called only from the main goroutine (like during
-// server setup) because this method is not thread-safe; it is careful
-// to create only one log writer per log file, even if the log file
-// is shared by different sites or middlewares. This ensures that
-// rolling is synchronized, since a process (or multiple processes)
+// it is careful to create only one log writer per log file, even if
+// the log file is shared by different sites or middlewares. This ensures
+// that rolling is synchronized, since a process (or multiple processes)
 // should not create more than one roller on the same file at the
 // same time. See issue #1363.
 func (l Roller) GetLogWriter() io.Writer {
@@ -88,19 +88,22 @@ func (l Roller) GetLogWriter() io.Writer {
 	if err != nil {
 		absPath = l.Filename // oh well, hopefully they're consistent in how they specify the filename
 	}
-	lj, has := lumberjacks[absPath]
-	if !has {
-		lj = &lumberjack.Logger{
-			Filename:   l.Filename,
-			MaxSize:    l.MaxSize,
-			MaxAge:     l.MaxAge,
-			MaxBackups: l.MaxBackups,
-			Compress:   l.Compress,
-			LocalTime:  l.LocalTime,
-		}
-		lumberjacks[absPath] = lj
-	}
 
+	lumberjacksLocker.Lock()
+	defer lumberjacksLocker.Unlock()
+	lj, has := lumberjacks[absPath]
+	if has {
+		return lj
+	}
+	lj = &lumberjack.Logger{
+		Filename:   l.Filename,
+		MaxSize:    l.MaxSize,
+		MaxAge:     l.MaxAge,
+		MaxBackups: l.MaxBackups,
+		Compress:   l.Compress,
+		LocalTime:  l.LocalTime,
+	}
+	lumberjacks[absPath] = lj
 	return lj
 }
 

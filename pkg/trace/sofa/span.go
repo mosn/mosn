@@ -27,7 +27,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
 )
 
@@ -133,7 +132,7 @@ func (s *SofaRPCSpan) StartTime() time.Time {
 }
 
 func (s *SofaRPCSpan) log() error {
-	printData := buffer.GetIoBuffer(512)
+	printData := log.GetLogBuffer(512)
 	printData.WriteString("{")
 	printData.WriteString("\"timestamp\":")
 	date := s.endTime.Format("2006-01-02 15:04:05.000")
