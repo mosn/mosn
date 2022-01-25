@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync/atomic"
@@ -416,5 +417,30 @@ func Test_InitialDelaySeconds(t *testing.T) {
 	hcx = hc.(*healthChecker)
 	if hcx.initialDelay != time.Second*2 {
 		t.Errorf("Test_InitialDelaySeconds Error %+v", hcx)
+	}
+}
+
+func Test_HttpHealthCheck(t *testing.T) {
+	hcString := `{"protocol":"Http1","timeout":"20s","interval":"0s","interval_jitter":"0s","initial_delay_seconds":"0s","service_name":"testCluster","check_config":{"httpCheckConfig":{"port":33333,"timeout":"2s","path":"/test"}}}`
+	cfg := &v2.HealthCheck{}
+	json.Unmarshal([]byte(hcString), cfg)
+	hc := newHealthChecker(*cfg, &HTTPDialSessionFactory{})
+	h := &mockHost{
+		addr: "127.0.0.1:33333",
+	}
+	hs := &mockHostSet{
+		hosts: []types.Host{
+			h,
+		},
+	}
+	hc.SetHealthCheckerHostSet(hs)
+	hcc := hc.(*healthChecker)
+	if hcc.sessionConfig["httpCheckConfig"] == nil {
+		t.Errorf("Test_HttpHealthCheck error")
+	}
+	hcs := hcc.sessionFactory.NewSession(hcc.sessionConfig, h)
+	_, ok := hcs.(*HTTPDialSession)
+	if !ok {
+		t.Errorf("Test_HttpHealthCheck error")
 	}
 }

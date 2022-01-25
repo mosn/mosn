@@ -18,13 +18,15 @@
 package healthcheck
 
 import (
+	"encoding/json"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -34,9 +36,7 @@ const (
 	HTTPCheckConfigKey = "httpCheckConfig"
 )
 
-const (
-	defaultTimeout = 30
-)
+var defaultTimeout = api.DurationConfig{time.Second * 30}
 
 func init() {
 	httpDialSessionFactory := &HTTPDialSessionFactory{}
@@ -44,14 +44,14 @@ func init() {
 }
 
 type HttpCheckConfig struct {
-	Port    int    `json:"port,omitempty"`
-	Timeout int    `json:"timeout,omitempty"`
-	Path    string `json:"path,omitempty"`
+	Port    int                `json:"port,omitempty"`
+	Timeout api.DurationConfig `json:"timeout,omitempty"`
+	Path    string             `json:"path,omitempty"`
 }
 
 type HTTPDialSession struct {
 	client   *http.Client
-	timeout  int
+	timeout  api.DurationConfig
 	checkUrl string
 	*url.URL
 }
@@ -70,8 +70,16 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 
 	httpCheckConfig, ok := v.(*HttpCheckConfig)
 	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig covert error %+v %+v", reflect.TypeOf(v), v)
-		return nil
+		httpCheckConfigBytes, err := json.Marshal(v)
+		if err != nil {
+			log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig covert %+v error %+v %+v", reflect.TypeOf(v), v, err)
+			return nil
+		}
+		httpCheckConfig = &HttpCheckConfig{}
+		if err := json.Unmarshal(httpCheckConfigBytes, httpCheckConfig); err != nil {
+			log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig Unmarshal %+v error %+v %+v", reflect.TypeOf(v), v, err)
+			return nil
+		}
 	}
 	if httpCheckConfig.Port <= 0 || httpCheckConfig.Port > 65535 {
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig port config error %+v", httpCheckConfig)
@@ -80,12 +88,17 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 
 	uri := &url.URL{}
 	uri.Scheme = "http"
-	hostIp := strings.Split(host.AddressString(), ":")
+
+	hostIp, _, err := net.SplitHostPort(host.AddressString())
+	if err != nil {
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] host=%s parse error %+v", host.AddressString(), err)
+		return nil
+	}
 	// re-config http check port
-	uri.Host = hostIp[0] + ":" + strconv.Itoa(httpCheckConfig.Port)
+	uri.Host = hostIp + ":" + strconv.Itoa(httpCheckConfig.Port)
 	uri.Path = httpCheckConfig.Path
 
-	if httpCheckConfig.Timeout > 0 {
+	if httpCheckConfig.Timeout.Duration > 0 {
 		httpDail.timeout = httpCheckConfig.Timeout
 	} else {
 		httpDail.timeout = defaultTimeout
@@ -93,7 +106,7 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 
 	httpDail.URL = uri
 	httpDail.client = &http.Client{
-		Timeout: time.Second * time.Duration(httpDail.timeout),
+		Timeout: httpDail.timeout.Duration,
 	}
 	httpDail.checkUrl = httpDail.String()
 	return httpDail

@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"mosn.io/api"
 )
 
 func Test_NewSession(t *testing.T) {
@@ -66,13 +68,13 @@ func Test_NewSession(t *testing.T) {
 	if hds.Host != "127.0.0.1:33333" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
-	if hds.timeout != 30 {
+	if hds.timeout.Duration != time.Second*30 {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 
 	cfg[HTTPCheckConfigKey] = &HttpCheckConfig{
 		Port:    33333,
-		Timeout: 15,
+		Timeout: api.DurationConfig{time.Second * 15},
 		Path:    "/test",
 	}
 
@@ -85,7 +87,7 @@ func Test_NewSession(t *testing.T) {
 	if hds.Host != "127.0.0.1:33333" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
-	if hds.timeout != 15 {
+	if hds.timeout.Duration != time.Second*15 {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 	if hds.Path != "/test" {
@@ -94,19 +96,8 @@ func Test_NewSession(t *testing.T) {
 
 	h1.addr = "127.0.0.1"
 	hcs = hdsf.NewSession(cfg, h1)
-	hds = hcs.(*HTTPDialSession)
-	if hcs == nil {
+	if hcs != nil {
 		t.Errorf("Test_NewSession %+v", hcs)
-	}
-
-	if hds.Host != "127.0.0.1:33333" {
-		t.Errorf("Test_NewSession %+v", hds)
-	}
-	if hds.timeout != 15 {
-		t.Errorf("Test_NewSession %+v", hds)
-	}
-	if hds.Path != "/test" {
-		t.Errorf("Test_NewSession %+v", hds)
 	}
 }
 
