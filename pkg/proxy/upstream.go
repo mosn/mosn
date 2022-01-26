@@ -40,9 +40,6 @@ type upstreamRequest struct {
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
 
-	// ~~~ upstream response buf
-	upstreamRespHeaders types.HeaderMap
-
 	//~~~ state
 	sendComplete bool
 	dataSent     bool

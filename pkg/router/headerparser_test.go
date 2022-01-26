@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -27,7 +28,7 @@ import (
 
 func Test_headerParser_evaluateHeaders(t *testing.T) {
 	parser := &headerParser{
-		headersToAdd: []*headerPair{&headerPair{
+		headersToAdd: []*headerPair{{
 			headerName: "level",
 			headerFormatter: &plainHeaderFormatter{
 				isAppend:    false,
@@ -38,8 +39,8 @@ func Test_headerParser_evaluateHeaders(t *testing.T) {
 		headersToRemove: []string{"status"},
 	}
 	type args struct {
-		headers     types.HeaderMap
-		requestInfo types.RequestInfo
+		ctx     context.Context
+		headers types.HeaderMap
 	}
 
 	tests := []struct {
@@ -50,8 +51,8 @@ func Test_headerParser_evaluateHeaders(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				headers:     protocol.CommonHeader{"status": "normal"},
-				requestInfo: nil,
+				headers: protocol.CommonHeader{"status": "normal"},
+				ctx:     nil,
 			},
 			want: protocol.CommonHeader{"level": "1"},
 		},
@@ -59,9 +60,9 @@ func Test_headerParser_evaluateHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser.evaluateHeaders(tt.args.headers, tt.args.requestInfo)
+			parser.evaluateHeaders(tt.args.ctx, tt.args.headers)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
-				t.Errorf("(h *headerParser) evaluateHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
+				t.Errorf("(h *headerParser) evaluateHeaders(ctx context.Context, headers types.HeaderMap) = %v, want %v", tt.args.headers, tt.want)
 			}
 		})
 	}
