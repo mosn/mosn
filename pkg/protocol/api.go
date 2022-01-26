@@ -45,7 +45,7 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 		return ErrInvalidParameters
 	}
 	registry.RegisterNewPoolFactory(name, newPool)
-	registry.ResgiterProtocolStreamFactory(name, streamFactory)
+	registry.RegisterProtocolStreamFactory(name, streamFactory)
 	registry.RegisterMapping(name, mapping)
 	protocolsSupported[name] = struct{}{}
 	return nil

@@ -15,7 +15,7 @@
 
 ### xDS 模块
 
-- 需要实现`mosn.io/mosn/pkg/istio.XdsStreamConfig`和`mosn.io/mosn/pkg/istio.XdsStreamClient`，这两个实现包含了绝大部分`xds`适配相关的逻辑，使用`mosn.io/mosn/pkg/istio.ResgiterParseAdsConfig`注册完成扩展。
+- 需要实现`mosn.io/mosn/pkg/istio.XdsStreamConfig`和`mosn.io/mosn/pkg/istio.XdsStreamClient`，这两个实现包含了绝大部分`xds`适配相关的逻辑，使用`mosn.io/mosn/pkg/istio.RegisterParseAdsConfig`注册完成扩展。
 - 需要实现`mosn.io/mosn/pkg/mtls/sds.SdsStreamClient`，包含了sds相关的逻辑，使用`mosn.io/mosn/pkg/mtls/sds.RegisterSdsStreamClientFactory`注册完成扩展。
 
 ### main 模块
