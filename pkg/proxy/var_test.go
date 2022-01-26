@@ -75,3 +75,14 @@ func TestResponseHeaderNotFound(t *testing.T) {
 		t.Fatalf("unexpected variable value, expect not found while got: %v", val)
 	}
 }
+
+func TestRequestHeaderNotFound(t *testing.T) {
+	variable.NewStringVariable(types.VarPrefixReqHeader, nil, requestHeaderMapGetter, nil, 0)
+
+	var ctx context.Context
+	ctx = buffer.NewBufferPoolContext(ctx)
+	val, err := variable.GetString(ctx, "request_header_not_exists")
+	if val != "" || err == nil {
+		t.Fatalf("unexpected variable value, expect not found while got: %v", val)
+	}
+}

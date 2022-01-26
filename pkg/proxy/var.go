@@ -236,6 +236,9 @@ func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, da
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	proxyBuffers := proxyBuffersByContext(ctx)
 	headers := proxyBuffers.stream.downstreamReqHeaders
+	if headers == nil {
+		return variable.ValueNotFound, errors.New("not found request headers")
+	}
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
