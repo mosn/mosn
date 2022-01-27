@@ -224,6 +224,18 @@ func (mr *MockConnectionMockRecorder) OnRead(buffer interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnRead", reflect.TypeOf((*MockConnection)(nil).OnRead), buffer)
 }
 
+// OnShutdown mocks base method.
+func (m *MockConnection) OnShutdown() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnShutdown")
+}
+
+// OnShutdown indicates an expected call of OnShutdown.
+func (mr *MockConnectionMockRecorder) OnShutdown() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnShutdown", reflect.TypeOf((*MockConnection)(nil).OnShutdown))
+}
+
 // RawConn mocks base method.
 func (m *MockConnection) RawConn() net.Conn {
 	m.ctrl.T.Helper()
