@@ -34,6 +34,6 @@ func ParseAdsConfig(dynamic, static json.RawMessage) (XdsStreamConfig, error) {
 	return globalAds.parseConfig(dynamic, static)
 }
 
-func ResgiterParseAdsConfig(f func(dynamic, static json.RawMessage) (XdsStreamConfig, error)) {
+func RegisterParseAdsConfig(f func(dynamic, static json.RawMessage) (XdsStreamConfig, error)) {
 	globalAds.parseConfig = f
 }

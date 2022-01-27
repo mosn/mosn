@@ -114,7 +114,7 @@ func TestXdsClient(t *testing.T) {
 			records[s] = struct{}{}
 		},
 	}
-	ResgiterParseAdsConfig(func(_, _ json.RawMessage) (XdsStreamConfig, error) {
+	RegisterParseAdsConfig(func(_, _ json.RawMessage) (XdsStreamConfig, error) {
 		return cfg, nil
 	})
 	t.Run("start a xds client", func(t *testing.T) {
