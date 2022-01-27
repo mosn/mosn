@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/stagemanager"
 	xstream "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/trace"
@@ -124,7 +125,8 @@ var (
 				Usage: "eporch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
-				Usage: "seconds to drain, align to Istio startup params, currently useless",
+				Usage: "seconds to drain connections, default 600 seconds",
+				Value: 600,
 			}, cli.StringFlag{
 				Name:  "parent-shutdown-time-s",
 				Usage: "parent shutdown time seconds, align to Istio startup params, currently useless",
@@ -195,6 +197,8 @@ func DefaultParamsParsed(c *cli.Context) {
 		log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 		os.Exit(1)
 	}
+	drainTime := c.Int("drain-time-s")
+	server.SetDrainTime(drainTime)
 	// istio parameters
 	serviceCluster := c.String("service-cluster")
 	serviceNode := c.String("service-node")

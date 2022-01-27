@@ -182,7 +182,6 @@ func (sc *streamConn) GoAway() {
 		fr := gs.GoAway(ctx, sc.maxClientStreamID)
 		if fr == nil {
 			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
-			sc.inGoAway = true
 			return
 		}
 

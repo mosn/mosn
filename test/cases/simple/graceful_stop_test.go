@@ -1,4 +1,3 @@
-//go:build MOSNTest
 // +build MOSNTest
 
 package simple

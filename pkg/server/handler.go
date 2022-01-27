@@ -277,20 +277,22 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 // ShutdownListeners stop accept new connections
 // and graceful close all the existing connections.
 func (ch *connHandler) ShutdownListeners() error {
-	var errGlobal error
+	var errGlobal atomic.Value
+	listeners := ch.listeners
 	wg := sync.WaitGroup{}
-	wg.Add(len(ch.listeners))
-	for _, l := range ch.listeners {
+	wg.Add(len(listeners))
+	for _, l := range listeners {
+		al := l
 		// Shutdown listener in parallel
-		go func() {
+		utils.GoWithRecover(func() {
 			defer wg.Done()
-			if err := l.listener.Shutdown(); err != nil {
-				errGlobal = err
+			if err := al.listener.Shutdown(); err != nil {
+				errGlobal.Store(err)
 			}
-		}()
+		}, nil)
 	}
 	wg.Wait()
-	return errGlobal
+	return errGlobal.Load().(error)
 }
 
 // CloseListeners close listeners immediately
@@ -531,18 +533,29 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
+var (
+	// drain time, default 15 seconds
+	drainTime = int64(15000)
+)
+
+func SetDrainTime(seconds int) {
+	drainTime = int64(seconds) * 1000
+}
+
 // OnShutdown graceful stop the existing connection and wait all connections to be closed
 func (al *activeListener) OnShutdown() {
-	al.connsMux.Lock()
-	defer al.connsMux.Unlock()
+	utils.GoWithRecover(func() {
+		al.connsMux.Lock()
+		defer al.connsMux.Unlock()
 
-	for i := al.conns.Front(); i != nil; i = i.Next() {
-		conn := i.Value.(*activeConnection).conn
-		conn.OnShutdown()
-	}
+		// FIXME: conn.OnShutdown may be blocked on connection.Write.
+		for i := al.conns.Front(); i != nil; i = i.Next() {
+			conn := i.Value.(*activeConnection).conn
+			conn.OnShutdown()
+		}
+	}, nil)
 
-	// TODO: introduce a configuration instead of the hardcoded 15 seconds
-	al.waitConnectionsClose(15000)
+	al.waitConnectionsClose(drainTime)
 }
 
 func (al *activeListener) OnClose() {
