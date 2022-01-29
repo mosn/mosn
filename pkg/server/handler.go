@@ -294,7 +294,12 @@ func (ch *connHandler) ShutdownListeners() error {
 		}, nil)
 	}
 	wg.Wait()
-	return errGlobal.Load().(error)
+
+	err := errGlobal.Load()
+	if err == nil {
+		return nil
+	}
+	return err.(error)
 }
 
 // CloseListeners close listeners immediately
