@@ -86,7 +86,7 @@ func ReconfigureHandler() error {
 	// Wait for new mosn start
 	time.Sleep(3 * time.Second)
 
-	// Stop accepting new connections & graceful close the existing connections if it supports graceful close.
+	// Stop accepting new connections & graceful close the existing connections if they supports graceful close.
 	shutdownServers()
 
 	// Wait for all connections to be finished

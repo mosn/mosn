@@ -216,8 +216,8 @@ func (l *listener) Shutdown() error {
 	return nil
 }
 
-// StopAccept just stop accepting new connections
-func (l *listener) StopAccept() error {
+// stopAccept just stop accepting new connections
+func (l *listener) stopAccept() error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	if l.state == ListenerClosed || l.state == ListenerStopped {
