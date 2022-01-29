@@ -354,8 +354,7 @@ type activeListener struct {
 	networkFiltersFactories  []api.NetworkFilterChainFactory
 	listenIP                 string
 	listenPort               int
-	conns                    *list.List
-	connsMux                 sync.RWMutex
+	conns                    *utils.SyncList
 	handler                  *connHandler
 	stopChan                 chan struct{}
 	stats                    *listenerStats
@@ -371,7 +370,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
-		conns:                    list.New(),
+		conns:                    utils.NewSyncList(),
 		handler:                  handler,
 		stopChan:                 stopChan,
 		accessLogs:               accessLoggers,
@@ -507,9 +506,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	}
 	ac := newActiveConnection(al, conn)
 
-	al.connsMux.Lock()
 	e := al.conns.PushBack(ac)
-	al.connsMux.Unlock()
 	ac.element = e
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
@@ -545,14 +542,12 @@ func SetDrainTime(seconds int) {
 // OnShutdown graceful stop the existing connection and wait all connections to be closed
 func (al *activeListener) OnShutdown() {
 	utils.GoWithRecover(func() {
-		al.connsMux.Lock()
-		defer al.connsMux.Unlock()
-
-		// FIXME: conn.OnShutdown may be blocked on connection.Write.
-		for i := al.conns.Front(); i != nil; i = i.Next() {
-			conn := i.Value.(*activeConnection).conn
+		al.conns.VisitSafe(func(v interface{}) {
+			conn := v.(*activeConnection).conn
+			// TODO 1: conn.OnShutdown may be blocked on connection.Write, need a proper way to not block too long.
+			// TODO 2: shutdown connections gradual, it's useful when there are many connections.
 			conn.OnShutdown()
-		}
+		})
 	}, nil)
 
 	al.waitConnectionsClose(drainTime)
@@ -605,9 +600,7 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 func Milliseconds(d time.Duration) int64 { return int64(d) / 1e6 }
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
-	al.connsMux.Lock()
 	al.conns.Remove(ac.element)
-	al.connsMux.Unlock()
 
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
