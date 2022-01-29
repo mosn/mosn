@@ -263,6 +263,7 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 	var errGlobal error
 	for _, l := range ch.listeners {
 		if l.listener.Name() == name {
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
 			if err := l.listener.Shutdown(); err != nil {
 				errGlobal = err
 			}
@@ -283,6 +284,7 @@ func (ch *connHandler) ShutdownListeners() error {
 	wg.Add(len(listeners))
 	for _, l := range listeners {
 		al := l
+		log.DefaultLogger.Infof("graceful shutdown listener %v", al.listener.Name())
 		// Shutdown listener in parallel
 		utils.GoWithRecover(func() {
 			defer wg.Done()
