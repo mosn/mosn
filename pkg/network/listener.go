@@ -39,11 +39,13 @@ type ListenerState int
 // listener state
 // ListenerInited means listener is inited, a inited listener can be started or stopped
 // ListenerRunning means listener is running, start a running listener will be ignored.
-// ListenerStopped means listener is stopped, start a stopped listener without restart flag will be ignored.
+// ListenerStopped means listener is stopped.
+// ListenerClosed  means listener is closed, start a closed listener without restart flag will be ignored.
 const (
 	ListenerInited ListenerState = iota
 	ListenerRunning
 	ListenerStopped
+	ListenerClosed
 )
 
 // listener impl based on golang net package
@@ -124,6 +126,10 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				log.DefaultLogger.Debugf("[network] [listener start] %s is running", l.name)
 				return true
 			case ListenerStopped:
+				if err := l.setDeadline(time.Time{}); err != nil {
+					log.DefaultLogger.Alertf("listener.start", "[network] [listener start] [listen] %s reset deadline failed, %v", l.name, err)
+				}
+			case ListenerClosed:
 				if !restart {
 					return true
 				}
@@ -201,18 +207,28 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	if l.state == ListenerClosed {
+		return nil
+	}
+	l.state = ListenerStopped
+
 	if !l.bindToPort {
 		return nil
 	}
-	l.cb.OnClose()
+	return l.setDeadline(time.Now())
+}
+
+func (l *listener) setDeadline(t time.Time) error {
 	var err error
 	switch l.network {
 	case "udp":
-		err = l.packetConn.SetDeadline(time.Now())
+		err = l.packetConn.SetDeadline(t)
 	case "unix":
-		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
+		err = l.rawl.(*net.UnixListener).SetDeadline(t)
 	case "tcp":
-		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
+		err = l.rawl.(*net.TCPListener).SetDeadline(t)
 	}
 	return err
 }
@@ -268,18 +284,22 @@ func (l *listener) UseOriginalDst() bool {
 func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.state = ListenerStopped
+	l.state = ListenerClosed
 
 	if !l.bindToPort {
 		return nil
 	}
 
 	if l.rawl != nil {
-		l.cb.OnClose()
+		if l.cb != nil {
+			l.cb.OnClose()
+		}
 		return l.rawl.Close()
 	}
 	if l.packetConn != nil {
-		l.cb.OnClose()
+		if l.cb != nil {
+			l.cb.OnClose()
+		}
 		return l.packetConn.Close()
 	}
 	return nil
@@ -325,7 +345,9 @@ func (l *listener) accept(lctx context.Context) error {
 
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
-		l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
+		if l.cb != nil {
+			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
+		}
 	}, nil)
 
 	return nil
