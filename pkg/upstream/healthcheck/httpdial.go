@@ -51,9 +51,8 @@ type HttpCheckConfig struct {
 
 type HTTPDialSession struct {
 	client   *http.Client
-	timeout  api.DurationConfig
+	timeout  time.Duration
 	checkUrl string
-	*url.URL
 }
 
 type HTTPDialSessionFactory struct{}
@@ -81,10 +80,6 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 			return nil
 		}
 	}
-	if httpCheckConfig.Port <= 0 || httpCheckConfig.Port > 65535 {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] httpCheckConfig port config error %+v", httpCheckConfig)
-		return nil
-	}
 
 	uri := &url.URL{}
 	uri.Scheme = "http"
@@ -94,21 +89,28 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] host=%s parse error %+v", host.AddressString(), err)
 		return nil
 	}
-	// re-config http check port
-	uri.Host = hostIp + ":" + strconv.Itoa(httpCheckConfig.Port)
-	uri.Path = httpCheckConfig.Path
+
+	if httpCheckConfig.Port > 0 && httpCheckConfig.Port < 65535 {
+		// re-config http check port
+		uri.Host = hostIp + ":" + strconv.Itoa(httpCheckConfig.Port)
+		uri.Path = httpCheckConfig.Path
+	} else {
+		// use rpc port as http check port
+		log.DefaultLogger.Warnf("[upstream] [health check] [httpdial session] httpCheckConfig port config error %+v", httpCheckConfig)
+		uri.Host = host.AddressString()
+		uri.Path = httpCheckConfig.Path
+	}
 
 	if httpCheckConfig.Timeout.Duration > 0 {
-		httpDail.timeout = httpCheckConfig.Timeout
+		httpDail.timeout = httpCheckConfig.Timeout.Duration
 	} else {
-		httpDail.timeout = defaultTimeout
+		httpDail.timeout = defaultTimeout.Duration
 	}
 
-	httpDail.URL = uri
 	httpDail.client = &http.Client{
-		Timeout: httpDail.timeout.Duration,
+		Timeout: httpDail.timeout,
 	}
-	httpDail.checkUrl = httpDail.String()
+	httpDail.checkUrl = uri.String()
 	return httpDail
 }
 
@@ -116,17 +118,17 @@ func (s *HTTPDialSession) CheckHealth() bool {
 	// default dial timeout, maybe already timeout by checker
 	resp, err := s.client.Get(s.checkUrl)
 	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s error: %v", s.String(), err)
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s error: %v", s.checkUrl, err)
 		return false
 	}
 	defer resp.Body.Close()
 
 	result := resp.StatusCode == http.StatusOK
 	if !result {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.String(), resp.StatusCode)
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.checkUrl, resp.StatusCode)
 	} else {
 		if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.String())
+			log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.checkUrl)
 		}
 	}
 

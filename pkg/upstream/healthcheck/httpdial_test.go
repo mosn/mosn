@@ -52,7 +52,8 @@ func Test_NewSession(t *testing.T) {
 		Port: -1,
 	}
 	hcs = hdsf.NewSession(cfg, h1)
-	if hcs != nil {
+	hds := hcs.(*HTTPDialSession)
+	if hds.checkUrl != "http://127.0.0.1:22222" {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
@@ -60,15 +61,15 @@ func Test_NewSession(t *testing.T) {
 		Port: 33333,
 	}
 	hcs = hdsf.NewSession(cfg, h1)
-	hds := hcs.(*HTTPDialSession)
+	hds = hcs.(*HTTPDialSession)
 	if hcs == nil {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
-	if hds.Host != "127.0.0.1:33333" {
+	if hds.checkUrl != "http://127.0.0.1:33333" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
-	if hds.timeout.Duration != time.Second*30 {
+	if hds.timeout != time.Second*30 {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 
@@ -84,13 +85,10 @@ func Test_NewSession(t *testing.T) {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
-	if hds.Host != "127.0.0.1:33333" {
+	if hds.checkUrl != "http://127.0.0.1:33333/test" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
-	if hds.timeout.Duration != time.Second*15 {
-		t.Errorf("Test_NewSession %+v", hds)
-	}
-	if hds.Path != "/test" {
+	if hds.timeout != time.Second*15 {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 
