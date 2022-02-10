@@ -125,7 +125,12 @@ const defaultTimeout = 5 * time.Second
 
 func (sc *SdsStreamClientImpl) Fetch(name string) (*types.SdsSecret, error) {
 	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
-	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &xdsapi.DiscoveryRequest{})
+	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &xdsapi.DiscoveryRequest{
+		ResourceNames: []string{name},
+		Node: &envoy_api_v2_core.Node{
+			Id: istio.GetGlobalXdsInfo().ServiceNode,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}
