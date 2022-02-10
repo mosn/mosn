@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -119,7 +120,8 @@ func Test_SdsClient(t *testing.T) {
 	})
 
 	t.Run("test fetch secrets", func(t *testing.T) {
-		secret, err := sdsClient.FetchSecret("default")
+		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+		secret, err := sdsClient.FetchSecret(ctx, "default")
 		require.Nil(t, err)
 		require.Equal(t, "default", secret.Name)
 		time.Sleep(time.Second)
@@ -177,7 +179,7 @@ func TestConvertFromJson(t *testing.T) {
 		if err := json.Unmarshal([]byte(sdsJson), scw); err != nil {
 			t.Fatalf("unmarshal error: %v", err)
 		}
-		sdsConfig, err := convertConfig(scw.SdsConfig)
+		sdsConfig, err := ConvertConfig(scw.SdsConfig)
 		require.Nil(t, err)
 		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
 		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)
@@ -193,7 +195,7 @@ func TestConvertFromJson(t *testing.T) {
 			Name:      "default",
 			SdsConfig: InitSdsSecertConfig("@/var/run/test"),
 		}
-		sdsConfig, err := convertConfig(scw.SdsConfig)
+		sdsConfig, err := ConvertConfig(scw.SdsConfig)
 		require.Nil(t, err)
 		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
 		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)

@@ -18,6 +18,7 @@
 package types
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"net"
@@ -132,7 +133,7 @@ type SdsClient interface {
 	RequireSecret(name string)
 	// FetchSecret will send a sds request to get secret and wait the response
 	// the response will not be handled by the callback functions
-	FetchSecret(name string) (*SdsSecret, error)
+	FetchSecret(ctx context.Context, name string) (*SdsSecret, error)
 	SecretProvider
 }
 

@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -98,7 +99,7 @@ func (msc *MockSdsStreamClient) Recv(provider types.SecretProvider, callback fun
 	return nil
 }
 
-func (msc *MockSdsStreamClient) Fetch(name string) (*types.SdsSecret, error) {
+func (msc *MockSdsStreamClient) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
 	return nil, errors.New("not implement yet")
 }
 

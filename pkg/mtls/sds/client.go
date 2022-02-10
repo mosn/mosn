@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -82,8 +83,8 @@ func (client *SdsClientImpl) RequireSecret(name string) {
 	client.sdsSubscriber.SendSdsRequest(name)
 }
 
-func (client *SdsClientImpl) FetchSecret(name string) (*types.SdsSecret, error) {
-	return client.sdsSubscriber.FetchSdsSecret(name)
+func (client *SdsClientImpl) FetchSecret(ctx context.Context, name string) (*types.SdsSecret, error) {
+	return client.sdsSubscriber.FetchSdsSecret(ctx, name)
 }
 
 // DeleteUpdateCallback

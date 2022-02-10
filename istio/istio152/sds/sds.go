@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -52,7 +51,7 @@ func init() {
 }
 
 func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
-	sdsConfig, err := convertConfig(config)
+	sdsConfig, err := ConvertConfig(config)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.subscribe.config", "[xds][sds subscriber] convert sds config fail %v", err)
 		return nil, err
@@ -121,10 +120,8 @@ func (sc *SdsStreamClientImpl) Recv(provider types.SecretProvider, callback func
 	return nil
 }
 
-const defaultTimeout = 5 * time.Second
-
-func (sc *SdsStreamClientImpl) Fetch(name string) (*types.SdsSecret, error) {
-	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
+// Fetch wraps a discovery request construct and will send a grpc request without grpc options.
+func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
 	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &xdsapi.DiscoveryRequest{
 		ResourceNames: []string{name},
 		Node: &envoy_api_v2_core.Node{
@@ -202,7 +199,7 @@ type SdsStreamConfig struct {
 	statPrefix string
 }
 
-func convertConfig(config interface{}) (SdsStreamConfig, error) {
+func ConvertConfig(config interface{}) (SdsStreamConfig, error) {
 	sdsConfig := SdsStreamConfig{}
 	source := &envoy_api_v2_core.ConfigSource{}
 

@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -43,7 +44,7 @@ type SdsStreamClient interface {
 	// Recv receive a secret discovert response, handle it and send a ack response
 	Recv(provider types.SecretProvider, callback func()) error
 	// Fetch creates a secret discovery request with name, and wait the response
-	Fetch(name string) (*types.SdsSecret, error)
+	Fetch(ctx context.Context, name string) (*types.SdsSecret, error)
 	// AckResponse creates an ack request based on the response
 	AckResponse(resp interface{})
 	// Stop stops a stream client
@@ -107,14 +108,14 @@ func (subscribe *SdsSubscriber) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
-func (subscribe *SdsSubscriber) FetchSdsSecret(name string) (*types.SdsSecret, error) {
+func (subscribe *SdsSubscriber) FetchSdsSecret(ctx context.Context, name string) (*types.SdsSecret, error) {
 	subscribe.sdsStreamClientMutex.RLock()
 	clt := subscribe.sdsStreamClient
 	subscribe.sdsStreamClientMutex.RUnlock()
 	if clt == nil {
 		return nil, fmt.Errorf("fetch secret %s failed, because the sds stream client is not ready yet", name)
 	}
-	return clt.Fetch(name)
+	return clt.Fetch(ctx, name)
 }
 
 func (subscribe *SdsSubscriber) SendAck(resp interface{}) {
