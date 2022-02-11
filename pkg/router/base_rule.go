@@ -314,7 +314,7 @@ func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, header
 }
 
 func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.requestHeadersParser.evaluateHeaders(ctx, headers)
 	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		variable.SetString(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
@@ -331,6 +331,6 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 }
 
 func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.responseHeadersParser.evaluateHeaders(ctx, headers)
 	rri.vHost.FinalizeResponseHeaders(ctx, headers, requestInfo)
 }

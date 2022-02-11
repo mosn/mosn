@@ -37,6 +37,30 @@ func (m *MockStream) EXPECT() *MockStreamMockRecorder {
 	return m.recorder
 }
 
+// AddEventListener mocks base method.
+func (m *MockStream) AddEventListener(streamEventListener types.StreamEventListener) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddEventListener", streamEventListener)
+}
+
+// AddEventListener indicates an expected call of AddEventListener.
+func (mr *MockStreamMockRecorder) AddEventListener(streamEventListener interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEventListener", reflect.TypeOf((*MockStream)(nil).AddEventListener), streamEventListener)
+}
+
+// DestroyStream mocks base method.
+func (m *MockStream) DestroyStream() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DestroyStream")
+}
+
+// DestroyStream indicates an expected call of DestroyStream.
+func (mr *MockStreamMockRecorder) DestroyStream() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyStream", reflect.TypeOf((*MockStream)(nil).DestroyStream))
+}
+
 // ID mocks base method.
 func (m *MockStream) ID() uint64 {
 	m.ctrl.T.Helper()
@@ -49,18 +73,6 @@ func (m *MockStream) ID() uint64 {
 func (mr *MockStreamMockRecorder) ID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ID", reflect.TypeOf((*MockStream)(nil).ID))
-}
-
-// AddEventListener mocks base method.
-func (m *MockStream) AddEventListener(streamEventListener types.StreamEventListener) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddEventListener", streamEventListener)
-}
-
-// AddEventListener indicates an expected call of AddEventListener.
-func (mr *MockStreamMockRecorder) AddEventListener(streamEventListener interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEventListener", reflect.TypeOf((*MockStream)(nil).AddEventListener), streamEventListener)
 }
 
 // RemoveEventListener mocks base method.
@@ -87,18 +99,6 @@ func (mr *MockStreamMockRecorder) ResetStream(reason interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetStream", reflect.TypeOf((*MockStream)(nil).ResetStream), reason)
 }
 
-// DestroyStream mocks base method.
-func (m *MockStream) DestroyStream() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "DestroyStream")
-}
-
-// DestroyStream indicates an expected call of DestroyStream.
-func (mr *MockStreamMockRecorder) DestroyStream() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyStream", reflect.TypeOf((*MockStream)(nil).DestroyStream))
-}
-
 // MockStreamEventListener is a mock of StreamEventListener interface.
 type MockStreamEventListener struct {
 	ctrl     *gomock.Controller
@@ -122,18 +122,6 @@ func (m *MockStreamEventListener) EXPECT() *MockStreamEventListenerMockRecorder 
 	return m.recorder
 }
 
-// OnResetStream mocks base method.
-func (m *MockStreamEventListener) OnResetStream(reason types.StreamResetReason) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnResetStream", reason)
-}
-
-// OnResetStream indicates an expected call of OnResetStream.
-func (mr *MockStreamEventListenerMockRecorder) OnResetStream(reason interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnResetStream", reflect.TypeOf((*MockStreamEventListener)(nil).OnResetStream), reason)
-}
-
 // OnDestroyStream mocks base method.
 func (m *MockStreamEventListener) OnDestroyStream() {
 	m.ctrl.T.Helper()
@@ -144,6 +132,18 @@ func (m *MockStreamEventListener) OnDestroyStream() {
 func (mr *MockStreamEventListenerMockRecorder) OnDestroyStream() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnDestroyStream", reflect.TypeOf((*MockStreamEventListener)(nil).OnDestroyStream))
+}
+
+// OnResetStream mocks base method.
+func (m *MockStreamEventListener) OnResetStream(reason types.StreamResetReason) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnResetStream", reason)
+}
+
+// OnResetStream indicates an expected call of OnResetStream.
+func (mr *MockStreamEventListenerMockRecorder) OnResetStream(reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnResetStream", reflect.TypeOf((*MockStreamEventListener)(nil).OnResetStream), reason)
 }
 
 // MockStreamSender is a mock of StreamSender interface.
@@ -169,20 +169,6 @@ func (m *MockStreamSender) EXPECT() *MockStreamSenderMockRecorder {
 	return m.recorder
 }
 
-// AppendHeaders mocks base method.
-func (m *MockStreamSender) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AppendHeaders", ctx, headers, endStream)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AppendHeaders indicates an expected call of AppendHeaders.
-func (mr *MockStreamSenderMockRecorder) AppendHeaders(ctx, headers, endStream interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendHeaders", reflect.TypeOf((*MockStreamSender)(nil).AppendHeaders), ctx, headers, endStream)
-}
-
 // AppendData mocks base method.
 func (m *MockStreamSender) AppendData(ctx context.Context, data buffer.IoBuffer, endStream bool) error {
 	m.ctrl.T.Helper()
@@ -195,6 +181,20 @@ func (m *MockStreamSender) AppendData(ctx context.Context, data buffer.IoBuffer,
 func (mr *MockStreamSenderMockRecorder) AppendData(ctx, data, endStream interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendData", reflect.TypeOf((*MockStreamSender)(nil).AppendData), ctx, data, endStream)
+}
+
+// AppendHeaders mocks base method.
+func (m *MockStreamSender) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AppendHeaders", ctx, headers, endStream)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AppendHeaders indicates an expected call of AppendHeaders.
+func (mr *MockStreamSenderMockRecorder) AppendHeaders(ctx, headers, endStream interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendHeaders", reflect.TypeOf((*MockStreamSender)(nil).AppendHeaders), ctx, headers, endStream)
 }
 
 // AppendTrailers mocks base method.
@@ -248,18 +248,6 @@ func (m *MockStreamReceiveListener) EXPECT() *MockStreamReceiveListenerMockRecor
 	return m.recorder
 }
 
-// OnReceive mocks base method.
-func (m *MockStreamReceiveListener) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnReceive", ctx, headers, data, trailers)
-}
-
-// OnReceive indicates an expected call of OnReceive.
-func (mr *MockStreamReceiveListenerMockRecorder) OnReceive(ctx, headers, data, trailers interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnReceive", reflect.TypeOf((*MockStreamReceiveListener)(nil).OnReceive), ctx, headers, data, trailers)
-}
-
 // OnDecodeError mocks base method.
 func (m *MockStreamReceiveListener) OnDecodeError(ctx context.Context, err error, headers api.HeaderMap) {
 	m.ctrl.T.Helper()
@@ -270,6 +258,18 @@ func (m *MockStreamReceiveListener) OnDecodeError(ctx context.Context, err error
 func (mr *MockStreamReceiveListenerMockRecorder) OnDecodeError(ctx, err, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnDecodeError", reflect.TypeOf((*MockStreamReceiveListener)(nil).OnDecodeError), ctx, err, headers)
+}
+
+// OnReceive mocks base method.
+func (m *MockStreamReceiveListener) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnReceive", ctx, headers, data, trailers)
+}
+
+// OnReceive indicates an expected call of OnReceive.
+func (mr *MockStreamReceiveListenerMockRecorder) OnReceive(ctx, headers, data, trailers interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnReceive", reflect.TypeOf((*MockStreamReceiveListener)(nil).OnReceive), ctx, headers, data, trailers)
 }
 
 // MockStreamConnection is a mock of StreamConnection interface.
@@ -295,6 +295,35 @@ func (m *MockStreamConnection) EXPECT() *MockStreamConnectionMockRecorder {
 	return m.recorder
 }
 
+// ActiveStreamsNum mocks base method.
+func (m *MockStreamConnection) ActiveStreamsNum() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActiveStreamsNum")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// ActiveStreamsNum indicates an expected call of ActiveStreamsNum.
+func (mr *MockStreamConnectionMockRecorder) ActiveStreamsNum() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamsNum", reflect.TypeOf((*MockStreamConnection)(nil).ActiveStreamsNum))
+}
+
+// CheckReasonError mocks base method.
+func (m *MockStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckReasonError", connected, event)
+	ret0, _ := ret[0].(types.StreamResetReason)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// CheckReasonError indicates an expected call of CheckReasonError.
+func (mr *MockStreamConnectionMockRecorder) CheckReasonError(connected, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckReasonError", reflect.TypeOf((*MockStreamConnection)(nil).CheckReasonError), connected, event)
+}
+
 // Dispatch mocks base method.
 func (m *MockStreamConnection) Dispatch(buffer buffer.IoBuffer) {
 	m.ctrl.T.Helper()
@@ -305,20 +334,6 @@ func (m *MockStreamConnection) Dispatch(buffer buffer.IoBuffer) {
 func (mr *MockStreamConnectionMockRecorder) Dispatch(buffer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Dispatch", reflect.TypeOf((*MockStreamConnection)(nil).Dispatch), buffer)
-}
-
-// Protocol mocks base method.
-func (m *MockStreamConnection) Protocol() api.ProtocolName {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.ProtocolName)
-	return ret0
-}
-
-// Protocol indicates an expected call of Protocol.
-func (mr *MockStreamConnectionMockRecorder) Protocol() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockStreamConnection)(nil).Protocol))
 }
 
 // EnableWorkerPool mocks base method.
@@ -335,20 +350,6 @@ func (mr *MockStreamConnectionMockRecorder) EnableWorkerPool() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableWorkerPool", reflect.TypeOf((*MockStreamConnection)(nil).EnableWorkerPool))
 }
 
-// ActiveStreamsNum mocks base method.
-func (m *MockStreamConnection) ActiveStreamsNum() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActiveStreamsNum")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// ActiveStreamsNum indicates an expected call of ActiveStreamsNum.
-func (mr *MockStreamConnectionMockRecorder) ActiveStreamsNum() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamsNum", reflect.TypeOf((*MockStreamConnection)(nil).ActiveStreamsNum))
-}
-
 // GoAway mocks base method.
 func (m *MockStreamConnection) GoAway() {
 	m.ctrl.T.Helper()
@@ -361,6 +362,20 @@ func (mr *MockStreamConnectionMockRecorder) GoAway() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoAway", reflect.TypeOf((*MockStreamConnection)(nil).GoAway))
 }
 
+// Protocol mocks base method.
+func (m *MockStreamConnection) Protocol() api.ProtocolName {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Protocol")
+	ret0, _ := ret[0].(api.ProtocolName)
+	return ret0
+}
+
+// Protocol indicates an expected call of Protocol.
+func (mr *MockStreamConnectionMockRecorder) Protocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockStreamConnection)(nil).Protocol))
+}
+
 // Reset mocks base method.
 func (m *MockStreamConnection) Reset(reason types.StreamResetReason) {
 	m.ctrl.T.Helper()
@@ -371,21 +386,6 @@ func (m *MockStreamConnection) Reset(reason types.StreamResetReason) {
 func (mr *MockStreamConnectionMockRecorder) Reset(reason interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reset", reflect.TypeOf((*MockStreamConnection)(nil).Reset), reason)
-}
-
-// CheckReasonError mocks base method.
-func (m *MockStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckReasonError", connected, event)
-	ret0, _ := ret[0].(types.StreamResetReason)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// CheckReasonError indicates an expected call of CheckReasonError.
-func (mr *MockStreamConnectionMockRecorder) CheckReasonError(connected, event interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckReasonError", reflect.TypeOf((*MockStreamConnection)(nil).CheckReasonError), connected, event)
 }
 
 // MockServerStreamConnection is a mock of ServerStreamConnection interface.
@@ -411,6 +411,35 @@ func (m *MockServerStreamConnection) EXPECT() *MockServerStreamConnectionMockRec
 	return m.recorder
 }
 
+// ActiveStreamsNum mocks base method.
+func (m *MockServerStreamConnection) ActiveStreamsNum() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActiveStreamsNum")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// ActiveStreamsNum indicates an expected call of ActiveStreamsNum.
+func (mr *MockServerStreamConnectionMockRecorder) ActiveStreamsNum() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamsNum", reflect.TypeOf((*MockServerStreamConnection)(nil).ActiveStreamsNum))
+}
+
+// CheckReasonError mocks base method.
+func (m *MockServerStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckReasonError", connected, event)
+	ret0, _ := ret[0].(types.StreamResetReason)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// CheckReasonError indicates an expected call of CheckReasonError.
+func (mr *MockServerStreamConnectionMockRecorder) CheckReasonError(connected, event interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckReasonError", reflect.TypeOf((*MockServerStreamConnection)(nil).CheckReasonError), connected, event)
+}
+
 // Dispatch mocks base method.
 func (m *MockServerStreamConnection) Dispatch(buffer buffer.IoBuffer) {
 	m.ctrl.T.Helper()
@@ -421,20 +450,6 @@ func (m *MockServerStreamConnection) Dispatch(buffer buffer.IoBuffer) {
 func (mr *MockServerStreamConnectionMockRecorder) Dispatch(buffer interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Dispatch", reflect.TypeOf((*MockServerStreamConnection)(nil).Dispatch), buffer)
-}
-
-// Protocol mocks base method.
-func (m *MockServerStreamConnection) Protocol() api.ProtocolName {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.ProtocolName)
-	return ret0
-}
-
-// Protocol indicates an expected call of Protocol.
-func (mr *MockServerStreamConnectionMockRecorder) Protocol() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockServerStreamConnection)(nil).Protocol))
 }
 
 // EnableWorkerPool mocks base method.
@@ -451,20 +466,6 @@ func (mr *MockServerStreamConnectionMockRecorder) EnableWorkerPool() *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableWorkerPool", reflect.TypeOf((*MockServerStreamConnection)(nil).EnableWorkerPool))
 }
 
-// ActiveStreamsNum mocks base method.
-func (m *MockServerStreamConnection) ActiveStreamsNum() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActiveStreamsNum")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// ActiveStreamsNum indicates an expected call of ActiveStreamsNum.
-func (mr *MockServerStreamConnectionMockRecorder) ActiveStreamsNum() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamsNum", reflect.TypeOf((*MockServerStreamConnection)(nil).ActiveStreamsNum))
-}
-
 // GoAway mocks base method.
 func (m *MockServerStreamConnection) GoAway() {
 	m.ctrl.T.Helper()
@@ -477,6 +478,20 @@ func (mr *MockServerStreamConnectionMockRecorder) GoAway() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoAway", reflect.TypeOf((*MockServerStreamConnection)(nil).GoAway))
 }
 
+// Protocol mocks base method.
+func (m *MockServerStreamConnection) Protocol() api.ProtocolName {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Protocol")
+	ret0, _ := ret[0].(api.ProtocolName)
+	return ret0
+}
+
+// Protocol indicates an expected call of Protocol.
+func (mr *MockServerStreamConnectionMockRecorder) Protocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockServerStreamConnection)(nil).Protocol))
+}
+
 // Reset mocks base method.
 func (m *MockServerStreamConnection) Reset(reason types.StreamResetReason) {
 	m.ctrl.T.Helper()
@@ -487,21 +502,6 @@ func (m *MockServerStreamConnection) Reset(reason types.StreamResetReason) {
 func (mr *MockServerStreamConnectionMockRecorder) Reset(reason interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reset", reflect.TypeOf((*MockServerStreamConnection)(nil).Reset), reason)
-}
-
-// CheckReasonError mocks base method.
-func (m *MockServerStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckReasonError", connected, event)
-	ret0, _ := ret[0].(types.StreamResetReason)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
-}
-
-// CheckReasonError indicates an expected call of CheckReasonError.
-func (mr *MockServerStreamConnectionMockRecorder) CheckReasonError(connected, event interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckReasonError", reflect.TypeOf((*MockServerStreamConnection)(nil).CheckReasonError), connected, event)
 }
 
 // MockClientStreamConnection is a mock of ClientStreamConnection interface.
@@ -527,46 +527,6 @@ func (m *MockClientStreamConnection) EXPECT() *MockClientStreamConnectionMockRec
 	return m.recorder
 }
 
-// Dispatch mocks base method.
-func (m *MockClientStreamConnection) Dispatch(buffer buffer.IoBuffer) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Dispatch", buffer)
-}
-
-// Dispatch indicates an expected call of Dispatch.
-func (mr *MockClientStreamConnectionMockRecorder) Dispatch(buffer interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Dispatch", reflect.TypeOf((*MockClientStreamConnection)(nil).Dispatch), buffer)
-}
-
-// Protocol mocks base method.
-func (m *MockClientStreamConnection) Protocol() api.ProtocolName {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.ProtocolName)
-	return ret0
-}
-
-// Protocol indicates an expected call of Protocol.
-func (mr *MockClientStreamConnectionMockRecorder) Protocol() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockClientStreamConnection)(nil).Protocol))
-}
-
-// EnableWorkerPool mocks base method.
-func (m *MockClientStreamConnection) EnableWorkerPool() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableWorkerPool")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// EnableWorkerPool indicates an expected call of EnableWorkerPool.
-func (mr *MockClientStreamConnectionMockRecorder) EnableWorkerPool() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableWorkerPool", reflect.TypeOf((*MockClientStreamConnection)(nil).EnableWorkerPool))
-}
-
 // ActiveStreamsNum mocks base method.
 func (m *MockClientStreamConnection) ActiveStreamsNum() int {
 	m.ctrl.T.Helper()
@@ -579,30 +539,6 @@ func (m *MockClientStreamConnection) ActiveStreamsNum() int {
 func (mr *MockClientStreamConnectionMockRecorder) ActiveStreamsNum() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamsNum", reflect.TypeOf((*MockClientStreamConnection)(nil).ActiveStreamsNum))
-}
-
-// GoAway mocks base method.
-func (m *MockClientStreamConnection) GoAway() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "GoAway")
-}
-
-// GoAway indicates an expected call of GoAway.
-func (mr *MockClientStreamConnectionMockRecorder) GoAway() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoAway", reflect.TypeOf((*MockClientStreamConnection)(nil).GoAway))
-}
-
-// Reset mocks base method.
-func (m *MockClientStreamConnection) Reset(reason types.StreamResetReason) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Reset", reason)
-}
-
-// Reset indicates an expected call of Reset.
-func (mr *MockClientStreamConnectionMockRecorder) Reset(reason interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reset", reflect.TypeOf((*MockClientStreamConnection)(nil).Reset), reason)
 }
 
 // CheckReasonError mocks base method.
@@ -620,6 +556,44 @@ func (mr *MockClientStreamConnectionMockRecorder) CheckReasonError(connected, ev
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckReasonError", reflect.TypeOf((*MockClientStreamConnection)(nil).CheckReasonError), connected, event)
 }
 
+// Dispatch mocks base method.
+func (m *MockClientStreamConnection) Dispatch(buffer buffer.IoBuffer) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Dispatch", buffer)
+}
+
+// Dispatch indicates an expected call of Dispatch.
+func (mr *MockClientStreamConnectionMockRecorder) Dispatch(buffer interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Dispatch", reflect.TypeOf((*MockClientStreamConnection)(nil).Dispatch), buffer)
+}
+
+// EnableWorkerPool mocks base method.
+func (m *MockClientStreamConnection) EnableWorkerPool() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableWorkerPool")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// EnableWorkerPool indicates an expected call of EnableWorkerPool.
+func (mr *MockClientStreamConnectionMockRecorder) EnableWorkerPool() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableWorkerPool", reflect.TypeOf((*MockClientStreamConnection)(nil).EnableWorkerPool))
+}
+
+// GoAway mocks base method.
+func (m *MockClientStreamConnection) GoAway() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "GoAway")
+}
+
+// GoAway indicates an expected call of GoAway.
+func (mr *MockClientStreamConnectionMockRecorder) GoAway() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoAway", reflect.TypeOf((*MockClientStreamConnection)(nil).GoAway))
+}
+
 // NewStream mocks base method.
 func (m *MockClientStreamConnection) NewStream(ctx context.Context, responseReceiveListener types.StreamReceiveListener) types.StreamSender {
 	m.ctrl.T.Helper()
@@ -632,6 +606,32 @@ func (m *MockClientStreamConnection) NewStream(ctx context.Context, responseRece
 func (mr *MockClientStreamConnectionMockRecorder) NewStream(ctx, responseReceiveListener interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStream", reflect.TypeOf((*MockClientStreamConnection)(nil).NewStream), ctx, responseReceiveListener)
+}
+
+// Protocol mocks base method.
+func (m *MockClientStreamConnection) Protocol() api.ProtocolName {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Protocol")
+	ret0, _ := ret[0].(api.ProtocolName)
+	return ret0
+}
+
+// Protocol indicates an expected call of Protocol.
+func (mr *MockClientStreamConnectionMockRecorder) Protocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockClientStreamConnection)(nil).Protocol))
+}
+
+// Reset mocks base method.
+func (m *MockClientStreamConnection) Reset(reason types.StreamResetReason) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Reset", reason)
+}
+
+// Reset indicates an expected call of Reset.
+func (mr *MockClientStreamConnectionMockRecorder) Reset(reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reset", reflect.TypeOf((*MockClientStreamConnection)(nil).Reset), reason)
 }
 
 // MockStreamConnectionEventListener is a mock of StreamConnectionEventListener interface.
@@ -692,18 +692,6 @@ func (m *MockServerStreamConnectionEventListener) EXPECT() *MockServerStreamConn
 	return m.recorder
 }
 
-// OnGoAway mocks base method.
-func (m *MockServerStreamConnectionEventListener) OnGoAway() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnGoAway")
-}
-
-// OnGoAway indicates an expected call of OnGoAway.
-func (mr *MockServerStreamConnectionEventListenerMockRecorder) OnGoAway() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnGoAway", reflect.TypeOf((*MockServerStreamConnectionEventListener)(nil).OnGoAway))
-}
-
 // NewStreamDetect mocks base method.
 func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	m.ctrl.T.Helper()
@@ -716,6 +704,18 @@ func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context contex
 func (mr *MockServerStreamConnectionEventListenerMockRecorder) NewStreamDetect(context, sender, span interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStreamDetect", reflect.TypeOf((*MockServerStreamConnectionEventListener)(nil).NewStreamDetect), context, sender, span)
+}
+
+// OnGoAway mocks base method.
+func (m *MockServerStreamConnectionEventListener) OnGoAway() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnGoAway")
+}
+
+// OnGoAway indicates an expected call of OnGoAway.
+func (mr *MockServerStreamConnectionEventListenerMockRecorder) OnGoAway() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnGoAway", reflect.TypeOf((*MockServerStreamConnectionEventListener)(nil).OnGoAway))
 }
 
 // MockConnectionPool is a mock of ConnectionPool interface.
@@ -741,36 +741,6 @@ func (m *MockConnectionPool) EXPECT() *MockConnectionPoolMockRecorder {
 	return m.recorder
 }
 
-// Protocol mocks base method.
-func (m *MockConnectionPool) Protocol() api.ProtocolName {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.ProtocolName)
-	return ret0
-}
-
-// Protocol indicates an expected call of Protocol.
-func (mr *MockConnectionPoolMockRecorder) Protocol() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockConnectionPool)(nil).Protocol))
-}
-
-// NewStream mocks base method.
-func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewStream", ctx, receiver)
-	ret0, _ := ret[0].(types.Host)
-	ret1, _ := ret[1].(types.StreamSender)
-	ret2, _ := ret[2].(types.PoolFailureReason)
-	return ret0, ret1, ret2
-}
-
-// NewStream indicates an expected call of NewStream.
-func (mr *MockConnectionPoolMockRecorder) NewStream(ctx, receiver interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStream", reflect.TypeOf((*MockConnectionPool)(nil).NewStream), ctx, receiver)
-}
-
 // CheckAndInit mocks base method.
 func (m *MockConnectionPool) CheckAndInit(ctx context.Context) bool {
 	m.ctrl.T.Helper()
@@ -783,32 +753,6 @@ func (m *MockConnectionPool) CheckAndInit(ctx context.Context) bool {
 func (mr *MockConnectionPoolMockRecorder) CheckAndInit(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckAndInit", reflect.TypeOf((*MockConnectionPool)(nil).CheckAndInit), ctx)
-}
-
-// TLSHashValue mocks base method.
-func (m *MockConnectionPool) TLSHashValue() *types.HashValue {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TLSHashValue")
-	ret0, _ := ret[0].(*types.HashValue)
-	return ret0
-}
-
-// TLSHashValue indicates an expected call of TLSHashValue.
-func (mr *MockConnectionPoolMockRecorder) TLSHashValue() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TLSHashValue", reflect.TypeOf((*MockConnectionPool)(nil).TLSHashValue))
-}
-
-// Shutdown mocks base method.
-func (m *MockConnectionPool) Shutdown() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Shutdown")
-}
-
-// Shutdown indicates an expected call of Shutdown.
-func (mr *MockConnectionPoolMockRecorder) Shutdown() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockConnectionPool)(nil).Shutdown))
 }
 
 // Close mocks base method.
@@ -835,4 +779,139 @@ func (m *MockConnectionPool) Host() types.Host {
 func (mr *MockConnectionPoolMockRecorder) Host() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Host", reflect.TypeOf((*MockConnectionPool)(nil).Host))
+}
+
+// NewStream mocks base method.
+func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewStream", ctx, receiver)
+	ret0, _ := ret[0].(types.Host)
+	ret1, _ := ret[1].(types.StreamSender)
+	ret2, _ := ret[2].(types.PoolFailureReason)
+	return ret0, ret1, ret2
+}
+
+// NewStream indicates an expected call of NewStream.
+func (mr *MockConnectionPoolMockRecorder) NewStream(ctx, receiver interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStream", reflect.TypeOf((*MockConnectionPool)(nil).NewStream), ctx, receiver)
+}
+
+// Protocol mocks base method.
+func (m *MockConnectionPool) Protocol() api.ProtocolName {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Protocol")
+	ret0, _ := ret[0].(api.ProtocolName)
+	return ret0
+}
+
+// Protocol indicates an expected call of Protocol.
+func (mr *MockConnectionPoolMockRecorder) Protocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Protocol", reflect.TypeOf((*MockConnectionPool)(nil).Protocol))
+}
+
+// Shutdown mocks base method.
+func (m *MockConnectionPool) Shutdown() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Shutdown")
+}
+
+// Shutdown indicates an expected call of Shutdown.
+func (mr *MockConnectionPoolMockRecorder) Shutdown() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockConnectionPool)(nil).Shutdown))
+}
+
+// TLSHashValue mocks base method.
+func (m *MockConnectionPool) TLSHashValue() *types.HashValue {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TLSHashValue")
+	ret0, _ := ret[0].(*types.HashValue)
+	return ret0
+}
+
+// TLSHashValue indicates an expected call of TLSHashValue.
+func (mr *MockConnectionPoolMockRecorder) TLSHashValue() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TLSHashValue", reflect.TypeOf((*MockConnectionPool)(nil).TLSHashValue))
+}
+
+// MockProtocolStreamFactory is a mock of ProtocolStreamFactory interface.
+type MockProtocolStreamFactory struct {
+	ctrl     *gomock.Controller
+	recorder *MockProtocolStreamFactoryMockRecorder
+}
+
+// MockProtocolStreamFactoryMockRecorder is the mock recorder for MockProtocolStreamFactory.
+type MockProtocolStreamFactoryMockRecorder struct {
+	mock *MockProtocolStreamFactory
+}
+
+// NewMockProtocolStreamFactory creates a new mock instance.
+func NewMockProtocolStreamFactory(ctrl *gomock.Controller) *MockProtocolStreamFactory {
+	mock := &MockProtocolStreamFactory{ctrl: ctrl}
+	mock.recorder = &MockProtocolStreamFactoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockProtocolStreamFactory) EXPECT() *MockProtocolStreamFactoryMockRecorder {
+	return m.recorder
+}
+
+// CreateBiDirectStream mocks base method.
+func (m *MockProtocolStreamFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection, clientCallbacks types.StreamConnectionEventListener, serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBiDirectStream", context, connection, clientCallbacks, serverCallbacks)
+	ret0, _ := ret[0].(types.ClientStreamConnection)
+	return ret0
+}
+
+// CreateBiDirectStream indicates an expected call of CreateBiDirectStream.
+func (mr *MockProtocolStreamFactoryMockRecorder) CreateBiDirectStream(context, connection, clientCallbacks, serverCallbacks interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBiDirectStream", reflect.TypeOf((*MockProtocolStreamFactory)(nil).CreateBiDirectStream), context, connection, clientCallbacks, serverCallbacks)
+}
+
+// CreateClientStream mocks base method.
+func (m *MockProtocolStreamFactory) CreateClientStream(context context.Context, connection types.ClientConnection, streamConnCallbacks types.StreamConnectionEventListener, callbacks api.ConnectionEventListener) types.ClientStreamConnection {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateClientStream", context, connection, streamConnCallbacks, callbacks)
+	ret0, _ := ret[0].(types.ClientStreamConnection)
+	return ret0
+}
+
+// CreateClientStream indicates an expected call of CreateClientStream.
+func (mr *MockProtocolStreamFactoryMockRecorder) CreateClientStream(context, connection, streamConnCallbacks, callbacks interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientStream", reflect.TypeOf((*MockProtocolStreamFactory)(nil).CreateClientStream), context, connection, streamConnCallbacks, callbacks)
+}
+
+// CreateServerStream mocks base method.
+func (m *MockProtocolStreamFactory) CreateServerStream(context context.Context, connection api.Connection, callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateServerStream", context, connection, callbacks)
+	ret0, _ := ret[0].(types.ServerStreamConnection)
+	return ret0
+}
+
+// CreateServerStream indicates an expected call of CreateServerStream.
+func (mr *MockProtocolStreamFactoryMockRecorder) CreateServerStream(context, connection, callbacks interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServerStream", reflect.TypeOf((*MockProtocolStreamFactory)(nil).CreateServerStream), context, connection, callbacks)
+}
+
+// ProtocolMatch mocks base method.
+func (m *MockProtocolStreamFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProtocolMatch", context, prot, magic)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ProtocolMatch indicates an expected call of ProtocolMatch.
+func (mr *MockProtocolStreamFactoryMockRecorder) ProtocolMatch(context, prot, magic interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProtocolMatch", reflect.TypeOf((*MockProtocolStreamFactory)(nil).ProtocolMatch), context, prot, magic)
 }

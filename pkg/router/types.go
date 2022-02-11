@@ -50,7 +50,7 @@ var (
 )
 
 type headerFormatter interface {
-	format(requestInfo api.RequestInfo) string
+	format(ctx context.Context) string
 	append() bool
 }
 

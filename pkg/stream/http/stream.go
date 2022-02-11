@@ -572,6 +572,11 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
+		// Currently Http1 protocol's workPool is enable
+		// ww can't use serverStream object, after handleRequest
+		// because it will be recycle in proxy
+		// refer https://github.com/mosn/mosn/issues/1948
+		responseDoneChan := s.responseDoneChan
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleRequest(s.stream.ctx)
@@ -579,7 +584,7 @@ func (conn *serverStreamConnection) serve() {
 
 		// 5. wait for proxy done
 		select {
-		case <-s.responseDoneChan:
+		case <-responseDoneChan:
 		case <-conn.connClosed:
 			return
 		}
