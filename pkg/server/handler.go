@@ -643,11 +643,24 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	}
 }
 
+func init() {
+	variable.Register(
+		variable.NewStringVariable(types.VarOriginalDstIP, nil, nil, variable.DefaultStringSetter, 0),
+	)
+}
+
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
 
+	// use address from context instead of from raw connection
+	// the original dst filter maybe replace it to local
+	matchip := arc.originalDstIP
+	if v, err := variable.GetString(arc.ctx, types.VarOriginalDstIP); err == nil {
+		matchip = v
+	}
+
 	for _, lst := range arc.activeListener.handler.listeners {
-		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
+		if lst.listenIP == matchip && lst.listenPort == arc.originalDstPort {
 			listener = lst
 			break
 		}

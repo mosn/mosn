@@ -67,6 +67,11 @@ const (
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 )
 
+// [server]: common
+const (
+	VarOriginalDstIP string = "original_dst_ip"
+)
+
 // [Route]: internal
 const (
 	VarRouterMeta string = "x-mosn-router-meta"

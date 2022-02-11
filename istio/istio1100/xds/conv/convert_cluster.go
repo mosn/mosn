@@ -108,7 +108,8 @@ func ConvertEndpointsConfig(xdsEndpoint *envoy_config_endpoint_v3.LocalityLbEndp
 			}
 
 		} else if xdsAddress, ok := xh.Endpoint.GetAddress().Address.(*envoy_config_core_v3.Address_Pipe); ok {
-			address = xdsAddress.Pipe.GetPath()
+			// Unix Domain Socket path.
+			address = "unix:" + xdsAddress.Pipe.GetPath()
 		} else {
 			log.DefaultLogger.Warnf("unsupported address type")
 			continue

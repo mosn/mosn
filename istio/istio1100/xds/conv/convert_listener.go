@@ -43,6 +43,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls/extensions/sni"
 	"mosn.io/mosn/pkg/protocol"
 )
 
@@ -359,18 +360,8 @@ func convertStreamGzipConfig(s *any.Any) (map[string]interface{}, error) {
 		level = fasthttp.CompressDefaultCompression
 	}
 
-	// TODO upgrade go-control-plane
-	// go-control-plane-0.9.5 should use bellow
-	//compressor := gzipConfig.GetCompressor()
-	//if compressor != nil {
-	//      if compressor.GetContentLength() != nil {
-	//              minContentLength = compressor.GetContentLength().GetValue()
-	//      }
-	//      contentType = compressor.GetContentType()
-	//}
-
 	if gzipConfig.GetCompressor() != nil {
-		minContentLength = gzipConfig.GetCompressor().GetContentLength().Value
+		minContentLength = gzipConfig.GetCompressor().GetContentLength().GetValue()
 		contentType = gzipConfig.GetCompressor().GetContentType()
 	}
 	streamGzip := &v2.StreamGzip{
@@ -751,6 +742,13 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		// Get match SANs from CombinedValidationContext, for server URI verify
 		combinedValidationContext := upTLSConext.CommonTlsContext.GetCombinedValidationContext()
 		if combinedValidationContext != nil {
+			sans := combinedValidationContext.DefaultValidationContext.MatchSubjectAltNames
+			if len(sans) == 1 {
+				config.Type = sni.SniVerify
+				config.ExtendVerify = map[string]interface{}{
+					sni.ConfigKey: sans[0].GetExact(),
+				}
+			}
 		}
 		isUpstream = true
 	}
