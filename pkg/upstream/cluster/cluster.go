@@ -95,7 +95,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 
 	// tls mng
 	if !info.clusterManagerTLS {
-		mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
+		mgr, err := mtls.NewTLSClientContextManager(clusterConfig.Name, &clusterConfig.TLS)
 		if err != nil {
 			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 		}
