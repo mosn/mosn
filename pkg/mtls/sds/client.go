@@ -18,6 +18,7 @@
 package sds
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -78,6 +79,14 @@ func (client *SdsClientImpl) AddUpdateCallback(name string, callback types.SdsUp
 	return nil
 }
 
+func (client *SdsClientImpl) RequireSecret(name string) {
+	client.sdsSubscriber.SendSdsRequest(name)
+}
+
+func (client *SdsClientImpl) FetchSecret(ctx context.Context, name string) (*types.SdsSecret, error) {
+	return client.sdsSubscriber.FetchSdsSecret(ctx, name)
+}
+
 // DeleteUpdateCallback
 func (client *SdsClientImpl) DeleteUpdateCallback(name string) error {
 	client.updatedLock.Lock()
@@ -94,6 +103,11 @@ func (client *SdsClientImpl) SetSecret(name string, secret *types.SdsSecret) {
 		log.DefaultLogger.Debugf("[xds] [sds client],set secret = %v", name)
 		fc(name, secret)
 	}
+}
+
+// AckResponse invoked when sds subscriber receive a response
+func (client *SdsClientImpl) AckResponse(resp interface{}) {
+	client.sdsSubscriber.SendAck(resp)
 }
 
 // SetPostCallback
