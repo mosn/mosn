@@ -116,7 +116,7 @@ istio-1.10.0:
 
 # istio test
 unit-test-istio:
-	GO111MODULE=on go test -mod=vendor -gcflags=-l -v `go list ./istio/...`
+	GO111MODULE=on go test -mod=vendor -gcflags="all=-N -l" -v `go list ./istio/...`
 
 	
 
