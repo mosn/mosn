@@ -13,7 +13,7 @@ import (
 )
 
 func TestHttpHealthCheck(t *testing.T) {
-	Scenario(t, "http health checker withoout config", func() {
+	Scenario(t, "http health checker without config", func() {
 		_, _ = lib.InitMosn(ConfigHttpHealthCluster, lib.CreateConfig(MockHttpCheckServerConfig))
 		Case("http health checker fallback to tcp dail", func() {
 			client := lib.CreateClient("Http1", &http.HttpClientConfig{
@@ -123,7 +123,15 @@ const ConfigHttpHealthCluster = `{
                                 "lb_type": "LB_RANDOM",
                                 "hosts":[
                                         {"address":"127.0.0.1:8080"}
-                                ]
+                                ],
+								"health_check": {
+									  "protocol": "Http1",
+									  "service_name": "local_service",
+									  "timeout": "1s",
+									  "interval": "1s",
+									  "healthy_threshold": 1,
+									  "unhealthy_threshold": 1
+									}
                         }
                 ]
         }
