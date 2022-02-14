@@ -61,9 +61,6 @@ func (c *mockSdsClient) SetSecret(name string, secret *types.SdsSecret) {
 func (c *mockSdsClient) AckResponse(resp interface{}) {
 }
 
-func (c *mockSdsClient) AckResponse(resp interface{}) {
-}
-
 func (c *mockSdsClient) DeleteUpdateCallback(name string) error {
 	return nil
 }
