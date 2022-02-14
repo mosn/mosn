@@ -539,11 +539,11 @@ func (al *activeListener) activeStreamSize() int {
 
 var (
 	// drain time, default 15 seconds
-	drainTime = int64(15000)
+	drainTime = time.Second * 15
 )
 
-func SetDrainTime(seconds int) {
-	drainTime = int64(seconds) * 1000
+func SetDrainTime(time time.Duration) {
+	drainTime = time
 }
 
 // OnShutdown graceful stop the existing connection and wait all connections to be closed
@@ -564,24 +564,24 @@ func (al *activeListener) OnClose() {
 }
 
 // waitConnectionsClose wait all connections to be closed, wait maxWaitMilliseconds at most.
-func (al *activeListener) waitConnectionsClose(maxWaitMilliseconds int64) {
+func (al *activeListener) waitConnectionsClose(maxWaitTime time.Duration) {
 	// if there is any stream being processed and without timeout,
 	// we try to wait for processing to complete, or wait for a timeout.
 	current := time.Now()
-	remainStream, waitedMilliseconds := al.activeStreamSize(), Milliseconds(time.Since(current))
-	for ; remainStream > 0 && waitedMilliseconds <= maxWaitMilliseconds; remainStream, waitedMilliseconds =
-		al.activeStreamSize(), Milliseconds(time.Since(current)) {
+	remainStream, waited := al.activeStreamSize(), time.Since(current)
+	for ; remainStream > 0 && waited <= maxWaitTime; remainStream, waited =
+		al.activeStreamSize(), time.Since(current) {
 		// sleep 10ms
 		time.Sleep(10 * time.Millisecond)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms",
-				al.listener.Name(), remainStream, waitedMilliseconds)
+				al.listener.Name(), remainStream, Milliseconds(waited))
 		}
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms",
-			al.listener.Name(), remainStream, waitedMilliseconds)
+			al.listener.Name(), remainStream, Milliseconds(waited))
 	}
 }
 
@@ -595,7 +595,7 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
 				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
-					al.waitConnectionsClose(timeout)
+					al.waitConnectionsClose(time.Millisecond * time.Duration(timeout))
 				}
 			}
 		}

@@ -21,6 +21,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/urfave/cli"
 	"mosn.io/api"
@@ -198,7 +199,7 @@ func DefaultParamsParsed(c *cli.Context) {
 		os.Exit(1)
 	}
 	drainTime := c.Int("drain-time-s")
-	server.SetDrainTime(drainTime)
+	server.SetDrainTime(time.Duration(drainTime) * time.Second)
 	// istio parameters
 	serviceCluster := c.String("service-cluster")
 	serviceNode := c.String("service-node")
