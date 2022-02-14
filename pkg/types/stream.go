@@ -223,6 +223,8 @@ type ServerStreamConnectionEventListener interface {
 
 	// NewStreamDetect returns stream event receiver
 	NewStreamDetect(context context.Context, sender StreamSender, span api.Span) StreamReceiveListener
+
+	ActiveStreamSize() int
 }
 
 // PoolFailureReason type

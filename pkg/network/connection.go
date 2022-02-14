@@ -80,6 +80,7 @@ type connection struct {
 	ioBuffers          []buffer.IoBuffer
 	writeBufferChan    chan *[]buffer.IoBuffer
 	transferChan       chan uint64
+	shutdownTimer      *time.Timer
 
 	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
@@ -857,12 +858,28 @@ func (c *connection) OnShutdown() {
 	}
 }
 
+// Close Connection after 1 second (to avoid RST) after sending GoAway to client.
+// 1 second is borrow from go.
+var delayTime = 1 * time.Second
+
 func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.ConnectionEvent) error {
 	defer func() {
 		if p := recover(); p != nil {
 			log.DefaultLogger.Errorf("[network] [close connection] panic %v\n%s", p, string(debug.Stack()))
 		}
 	}()
+
+	// always stop the previous timer.
+	if t := c.shutdownTimer; t != nil {
+		t.Stop()
+	}
+
+	if ccType == api.DelayClose {
+		c.shutdownTimer = time.AfterFunc(delayTime, func() {
+			c.Close(api.FlushWrite, eventType)
+		})
+		return nil
+	}
 
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())

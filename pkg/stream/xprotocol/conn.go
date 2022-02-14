@@ -49,6 +49,8 @@ type streamConn struct {
 	serverCallbacks   types.ServerStreamConnectionEventListener // server side fields
 	maxClientStreamID uint64
 	inGoAway          bool
+	sentGoAway        bool
+	shutdownTimer     *time.Timer
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
@@ -108,7 +110,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// decode frames
 	for {
 		if buf.Len() == 0 {
-			return
+			break
 		}
 		// 1. get stream-level ctx with bufferCtx
 		streamCtx := sc.ctxManager.Get()
@@ -123,7 +125,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		// 2.1 no enough data, break loop
 		if frame == nil && err == nil {
-			return
+			break
 		}
 
 		// 2.2 handle error
@@ -136,7 +138,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v decode error: %v, buf data: %v", sc.netConn.ID(), sc.netConn.RemoteAddr(), err, buf.Bytes()[:size])
 
 			sc.handleError(streamCtx, frame, err)
-			return
+			break
 		}
 
 		// 2.3 handle frame
@@ -155,6 +157,14 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 2.4 prepare next
 		sc.ctxManager.Next()
 	}
+
+	sc.checkGracefulShutdown()
+}
+
+func (sc *streamConn) checkGracefulShutdown() {
+	if sc.sentGoAway && sc.serverCallbacks.ActiveStreamSize() == 0 {
+		sc.netConn.Close(api.DelayClose, api.LocalClose)
+	}
 }
 
 func (sc *streamConn) Protocol() types.ProtocolName {
@@ -169,7 +179,7 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
-func (sc *streamConn) GoAway() {
+func (sc *streamConn) processGoAway() {
 	if gs, ok := sc.protocol.(api.GracefulShutdown); ok {
 		if sc.inGoAway {
 			return
@@ -190,7 +200,16 @@ func (sc *streamConn) GoAway() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
 		}
+
+		sc.sentGoAway = true
 	}
+}
+
+func (sc *streamConn) GoAway() {
+	sc.processGoAway()
+
+	// checkGracefulShutdown since the connection may already be idle.
+	sc.checkGracefulShutdown()
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
@@ -278,7 +297,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 			log.Proxy.Errorf(ctx, "Got GoAway frame from client, but protocol not support GoAway, ignore it")
 			return
 		}
-		sc.GoAway()
+		sc.processGoAway()
 		return
 	}
 
