@@ -421,7 +421,7 @@ func Test_InitialDelaySeconds(t *testing.T) {
 }
 
 func Test_HttpHealthCheck(t *testing.T) {
-	hcString := `{"protocol":"Http1","timeout":"20s","interval":"0s","interval_jitter":"0s","initial_delay_seconds":"0s","service_name":"testCluster","check_config":{"httpCheckConfig":{"port":33333,"timeout":"2s","path":"/test"}}}`
+	hcString := `{"protocol":"Http1","timeout":"20s","interval":"0s","interval_jitter":"0s","initial_delay_seconds":"0s","service_name":"testCluster","check_config":{"http_check_config":{"port":33333,"timeout":"2s","path":"/test"}}}`
 	cfg := &v2.HealthCheck{}
 	json.Unmarshal([]byte(hcString), cfg)
 	hc := newHealthChecker(*cfg, &HTTPDialSessionFactory{})
@@ -435,7 +435,7 @@ func Test_HttpHealthCheck(t *testing.T) {
 	}
 	hc.SetHealthCheckerHostSet(hs)
 	hcc := hc.(*healthChecker)
-	if hcc.sessionConfig["httpCheckConfig"] == nil {
+	if hcc.sessionConfig[HTTPCheckConfigKey] == nil {
 		t.Errorf("Test_HttpHealthCheck error")
 	}
 	hcs := hcc.sessionFactory.NewSession(hcc.sessionConfig, h)

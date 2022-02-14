@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	HTTPCheckConfigKey = "httpCheckConfig"
+	HTTPCheckConfigKey = "http_check_config"
 )
 
 var defaultTimeout = api.DurationConfig{time.Second * 30}
@@ -111,6 +111,7 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		Timeout: httpDail.timeout,
 	}
 	httpDail.checkUrl = uri.String()
+	log.DefaultLogger.Infof("[upstream] [health check] [httpdial session]  create a health check success for %s", httpDail.checkUrl)
 	return httpDail
 }
 
