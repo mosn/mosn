@@ -30,9 +30,9 @@ import (
 	envoy_extensions_filters_network_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/router"
@@ -85,22 +85,20 @@ func Test_updateListener(t *testing.T) {
 										ClusterSpecifier: &envoy_config_route_v3.RouteAction_Cluster{
 											Cluster: "outbound|80||istio-egressgateway.istio-system.svc.cluster.local",
 										},
-										ClusterNotFoundResponseCode:              envoy_config_route_v3.RouteAction_SERVICE_UNAVAILABLE,
-										MetadataMatch:                            nil,
-										PrefixRewrite:                            "",
-										HostRewriteSpecifier:                     nil,
-										Timeout:                                  zeroSecond,
-										RetryPolicy:                              nil,
-										HiddenEnvoyDeprecatedRequestMirrorPolicy: nil,
-										Priority:       envoy_config_core_v3.RoutingPriority_DEFAULT,
-										MaxGrpcTimeout: new(duration.Duration),
+										ClusterNotFoundResponseCode: envoy_config_route_v3.RouteAction_SERVICE_UNAVAILABLE,
+										MetadataMatch:               nil,
+										PrefixRewrite:               "",
+										HostRewriteSpecifier:        nil,
+										Timeout:                     zeroSecond,
+										RetryPolicy:                 nil,
+										Priority:                    envoy_config_core_v3.RoutingPriority_DEFAULT,
+										MaxGrpcTimeout:              new(duration.Duration),
 									},
 								},
 								Metadata: nil,
 								Decorator: &envoy_config_route_v3.Decorator{
 									Operation: "istio-egressgateway.istio-system.svc.cluster.local:80/*",
 								},
-								HiddenEnvoyDeprecatedPerFilterConfig: nil,
 							},
 						},
 						RequireTls: envoy_config_route_v3.VirtualHost_NONE,
@@ -141,7 +139,6 @@ func Test_updateListener(t *testing.T) {
 								Decorator: &envoy_config_route_v3.Decorator{
 									Operation: "istio-ingressgateway.istio-system.svc.cluster.local:80/*",
 								},
-								HiddenEnvoyDeprecatedPerFilterConfig: nil,
 							},
 						},
 						RequireTls: envoy_config_route_v3.VirtualHost_NONE,
@@ -181,7 +178,6 @@ func Test_updateListener(t *testing.T) {
 								Decorator: &envoy_config_route_v3.Decorator{
 									Operation: "nginx-ingress-lb.kube-system.svc.cluster.local:80/*",
 								},
-								HiddenEnvoyDeprecatedPerFilterConfig: nil,
 							},
 						},
 						RequireTls: envoy_config_route_v3.VirtualHost_NONE,
@@ -260,7 +256,7 @@ func Test_updateListener(t *testing.T) {
 			TypedConfig: messageToAny(t, filterConfig),
 		},
 	}
-	ConvertAddOrUpdateListeners([]*envoy_config_listener_v3.Listener{listenerConfig})
+	cvt.ConvertAddOrUpdateListeners([]*envoy_config_listener_v3.Listener{listenerConfig})
 	ln := adapter.FindListenerByName("test_xds_server", "0.0.0.0_80")
 	if ln == nil {
 		t.Fatal("no listener found")
@@ -327,11 +323,25 @@ func Test_updateCluster(t *testing.T) {
 		EdsClusterConfig: &envoy_config_cluster_v3.Cluster_EdsClusterConfig{
 			EdsConfig: &envoy_config_core_v3.ConfigSource{},
 		},
-		LbPolicy:                   envoy_config_cluster_v3.Cluster_ROUND_ROBIN,
-		HiddenEnvoyDeprecatedHosts: []*envoy_config_core_v3.Address{addrsConfig},
-		ConnectTimeout:             &durationpb.Duration{Seconds: 1},
+		LbPolicy: envoy_config_cluster_v3.Cluster_ROUND_ROBIN,
+		LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+			Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+						{
+							HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_config_endpoint_v3.Endpoint{
+									Address: addrsConfig,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		ConnectTimeout: &durationpb.Duration{Seconds: 1},
 	}
-	if mc := cvt.ConvertClustersConfig([]*envoy_config_cluster_v3.Cluster{ClusterConfig}); mc == nil {
+	if mc := ConvertClustersConfig([]*envoy_config_cluster_v3.Cluster{ClusterConfig}); mc == nil {
 		t.Error("ConvertClustersConfig failed!")
 	}
 
@@ -418,7 +428,7 @@ func Test_ConvertUpdateEndpoints(t *testing.T) {
 		t.Error("ConvertClustersConfig failed!")
 	}
 
-	ConvertUpdateClusters([]*envoy_config_cluster_v3.Cluster{ClusterConfig})
+	cvt.ConvertUpdateClusters([]*envoy_config_cluster_v3.Cluster{ClusterConfig})
 
 	CLAConfig := &envoy_config_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: cluster,

@@ -23,8 +23,8 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/istio/istio1100/filter/stream/rbac/common"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/protocol/http"
 )
 
 // supported protocols

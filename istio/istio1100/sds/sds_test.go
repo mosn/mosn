@@ -18,18 +18,23 @@
 package sds
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/sds"
 	"mosn.io/mosn/pkg/types"
 )
 
-func InitSdsSecertConfigV3(sdsUdsPath string) *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig {
+func InitSdsSecertConfig(sdsUdsPath string) proto.Message {
 	gRPCConfig := &envoy_config_core_v3.GrpcService_GoogleGrpc{
 		TargetUri:  sdsUdsPath,
 		StatPrefix: "sds-prefix",
@@ -38,28 +43,30 @@ func InitSdsSecertConfigV3(sdsUdsPath string) *envoy_extensions_transport_socket
 				LocalCredentials: &envoy_config_core_v3.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
 			},
 		},
+		CallCredentials: []*envoy_config_core_v3.GrpcService_GoogleGrpc_CallCredentials{
+			{
+				CredentialSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_CallCredentials_GoogleComputeEngine{},
+			},
+		},
 	}
-	config := &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
-		Name: "default",
-		SdsConfig: &envoy_config_core_v3.ConfigSource{
-			ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_ApiConfigSource{
-				ApiConfigSource: &envoy_config_core_v3.ApiConfigSource{
-					ApiType: envoy_config_core_v3.ApiConfigSource_GRPC,
-					GrpcServices: []*envoy_config_core_v3.GrpcService{
-						{
-							TargetSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_{
-								GoogleGrpc: gRPCConfig,
-							},
+	source := &envoy_config_core_v3.ConfigSource{
+		ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_ApiConfigSource{
+			ApiConfigSource: &envoy_config_core_v3.ApiConfigSource{
+				ApiType: envoy_config_core_v3.ApiConfigSource_GRPC,
+				GrpcServices: []*envoy_config_core_v3.GrpcService{
+					{
+						TargetSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_{
+							GoogleGrpc: gRPCConfig,
 						},
 					},
 				},
 			},
 		},
 	}
-	return config
+	return source
 }
 
-func Test_AddUpdateCallbackV3(t *testing.T) {
+func Test_SdsClient(t *testing.T) {
 	// init prepare
 	sdsUdsPath := "/tmp/sds2"
 	sds.SubscriberRetryPeriod = 500 * time.Millisecond
@@ -68,17 +75,14 @@ func Test_AddUpdateCallbackV3(t *testing.T) {
 	}()
 	callback := 0
 	sds.SetSdsPostCallback(func() {
-		callback = 1
+		callback++
 	})
 	// mock sds server
-	srv := InitMockSdsServerV3(sdsUdsPath, t)
+	srv := InitMockSdsServer(sdsUdsPath, t)
 	defer srv.Stop()
-	config := InitSdsSecertConfigV3(sdsUdsPath)
+	config := InitSdsSecertConfig(sdsUdsPath)
 	sdsClient := sds.NewSdsClientSingleton(config)
-	if sdsClient == nil {
-		t.Errorf("get sds client fail")
-	}
-	defer sdsClient.CloseSdsClient()
+	defer sds.CloseSdsClient()
 
 	// wait server start and stop makes reconnect
 	time.Sleep(time.Second)
@@ -87,31 +91,75 @@ func Test_AddUpdateCallbackV3(t *testing.T) {
 	time.Sleep(time.Second)
 	// send request
 	updatedChan := make(chan int, 1) // do not block the update channel
-	log.DefaultLogger.Infof(" add update callback")
-	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {
-		if name != "default" {
-			t.Errorf("name should same with config.name")
+	log.DefaultLogger.Infof("add update callback")
+
+	t.Run("test add update callback", func(t *testing.T) {
+		sdsClient.AddUpdateCallback("default", func(name string, secret *types.SdsSecret) {
+			if name != "default" {
+				t.Errorf("name should same with config.name")
+			}
+			log.DefaultLogger.Infof("update callback is called")
+			updatedChan <- 1
+		})
+		time.Sleep(time.Second)
+		go func() {
+			err := srv.Start()
+			if !srv.started {
+				t.Fatalf("%s start error: %v", sdsUdsPath, err)
+			}
+		}()
+		select {
+		case <-updatedChan:
+			if callback != 1 {
+				t.Fatalf("sds post callback unexpected")
+			}
+		case <-time.After(time.Second * 10):
+			t.Errorf("callback reponse timeout")
 		}
-		log.DefaultLogger.Infof("update callback is called")
-		updatedChan <- 1
 	})
-	// sdsClient.SetSecret(config.Name, &envoy_extensions_transport_sockets_tls_v3.Secret{})
-	time.Sleep(time.Second)
-	go func() {
-		err := srv.Start()
-		if !srv.started {
-			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+
+	t.Run("test fetch secrets", func(t *testing.T) {
+		ctx, _ := context.WithTimeout(context.Background(), time.Second)
+		secret, err := sdsClient.FetchSecret(ctx, "default")
+		require.Nil(t, err)
+		require.Equal(t, "default", secret.Name)
+		time.Sleep(time.Second)
+		// FetchSecret should not take effects on callback
+		require.Equal(t, 1, callback)
+	})
+
+	t.Run("test require secret", func(t *testing.T) {
+		sdsClient.RequireSecret("default")
+		select {
+		case <-updatedChan:
+			if callback != 2 {
+				t.Fatalf("sds post callback unexpected")
+			}
+		case <-time.After(time.Second * 10):
+			t.Errorf("callback reponse timeout")
 		}
-	}()
-	select {
-	case <-updatedChan:
-		if callback != 1 {
-			t.Fatalf("sds post callback unexpected")
-		}
-	case <-time.After(time.Second * 10):
-		t.Errorf("callback reponse timeout")
-	}
+	})
 }
+
+const sdsJson = `{
+	"name":"default",
+	"sdsConfig":{
+		"apiConfigSource":{
+			"apiType":"GRPC",
+			"grpcServices":[
+				{
+					"googleGrpc": {
+						"callCredentials": [{"googleComputeEngine": {}}],
+						"channelCredentials": {"localCredentials":{}},
+						"statPrefix":"sds-prefix",
+						"targetUri":"@/var/run/test"
+					},
+
+				}
+			]
+		}
+	}
+}`
 
 func equalJsonStr(s1, s2 string) bool {
 	var o1 interface{}
@@ -126,5 +174,19 @@ func equalJsonStr(s1, s2 string) bool {
 }
 
 func TestConvertFromJson(t *testing.T) {
-	// TODO: add it , need a v3 sds config
+	t.Run("got from xds", func(t *testing.T) {
+		scw := &v2.SecretConfigWrapper{
+			Name:      "default",
+			SdsConfig: InitSdsSecertConfig("@/var/run/test"),
+		}
+		sdsConfig, err := ConvertConfig(scw.SdsConfig)
+		require.Nil(t, err)
+		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
+		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)
+
+		// To Json string
+		b, err := json.Marshal(scw)
+		require.Nil(t, err)
+		fmt.Println(string(b))
+	})
 }

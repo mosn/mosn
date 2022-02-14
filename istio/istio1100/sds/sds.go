@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -38,10 +39,11 @@ import (
 )
 
 type SdsStreamClientImpl struct {
-	conn                *grpc.ClientConn
-	cancel              context.CancelFunc
-	streamSecretsClient envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsClient
-	watchedResources    map[string]struct{}
+	conn                  *grpc.ClientConn
+	cancel                context.CancelFunc
+	secretDiscoveryClient envoy_service_secret_v3.SecretDiscoveryServiceClient
+	streamSecretsClient   envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsClient
+	watchedResources      map[string]struct{}
 }
 
 var _ sds.SdsStreamClient = (*SdsStreamClientImpl)(nil)
@@ -51,7 +53,7 @@ func init() {
 }
 
 func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
-	sdsConfig, err := convertConfig(config)
+	sdsConfig, err := ConvertConfig(config)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.subscribe.config", "[xds][sds subscriber] convert sds config fail %v", err)
 		return nil, err
@@ -68,9 +70,10 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 	sdsServiceClient := envoy_service_secret_v3.NewSecretDiscoveryServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 	sdsStreamClient := &SdsStreamClientImpl{
-		conn:             conn,
-		cancel:           cancel,
-		watchedResources: make(map[string]struct{}),
+		conn:                  conn,
+		cancel:                cancel,
+		secretDiscoveryClient: sdsServiceClient,
+		watchedResources:      make(map[string]struct{}),
 	}
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
@@ -118,15 +121,42 @@ func (sc *SdsStreamClientImpl) Recv(provider types.SecretProvider, callback func
 		callback()
 	}
 	// send ack response
-	if err := sc.AckResponse(resp); err != nil {
-		// ack resposne send failed does not returns an error
-		// becasue we handle the response finished
-		log.DefaultLogger.Errorf("ack response secret fail: %v", err)
-	}
+	sc.AckResponse(resp)
 	return nil
 }
 
-func (sc *SdsStreamClientImpl) AckResponse(resp *envoy_service_discovery_v3.DiscoveryResponse) error {
+// Fetch wraps a discovery request construct and will send a grpc request without grpc options.
+func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
+	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &envoy_service_discovery_v3.DiscoveryRequest{
+		ResourceNames: []string{name},
+		Node: &envoy_config_core_v3.Node{
+			Id: istio.GetGlobalXdsInfo().ServiceNode,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	// TODO: need a ack request ?
+	if len(resp.Resources) > 1 {
+		return nil, fmt.Errorf("too many resources: %d", len(resp.Resources))
+	}
+	res := resp.Resources[0]
+	secret := &envoy_extensions_transport_sockets_tls_v3.Secret{}
+	ptypes.UnmarshalAny(res, secret)
+	return convertSecret(secret), nil
+}
+
+func (sc *SdsStreamClientImpl) AckResponse(resp interface{}) {
+	xdsresp, ok := resp.(*envoy_service_discovery_v3.DiscoveryResponse)
+	if !ok {
+		return
+	}
+	if err := sc.ackResponse(xdsresp); err != nil {
+		log.DefaultLogger.Errorf("ack response secret fail: %v", err)
+	}
+}
+
+func (sc *SdsStreamClientImpl) ackResponse(resp *envoy_service_discovery_v3.DiscoveryResponse) error {
 	resourcesNames := make([]string, 0, len(sc.watchedResources))
 	for k, _ := range sc.watchedResources {
 		resourcesNames = append(resourcesNames, k)
@@ -160,7 +190,7 @@ type SdsStreamConfig struct {
 	statPrefix string
 }
 
-func convertConfig(config interface{}) (SdsStreamConfig, error) {
+func ConvertConfig(config interface{}) (SdsStreamConfig, error) {
 	sdsConfig := SdsStreamConfig{}
 	source := &envoy_config_core_v3.ConfigSource{}
 

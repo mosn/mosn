@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"net/http"
 
-	envoyControlPlaneAPI "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-	"github.com/gogo/protobuf/jsonpb"
+	envoyControlPlaneAPI "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/istio/istio1100/xds/conv"
 	"mosn.io/mosn/pkg/admin/server"
-	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -38,6 +38,26 @@ const (
 	LDS_UPDATE_REJECT    = "listener_manager.lds.update_rejected"
 	SERVER_STATE         = "server.state"
 	STAT_WORKERS_STARTED = "listener_manager.workers_started"
+)
+
+var (
+	mosnState2IstioState = map[stagemanager.State]envoyControlPlaneAPI.ServerInfo_State{
+		stagemanager.Nil: envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING,
+		// 10 main stages
+		stagemanager.ParamsParsed:     envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING,
+		stagemanager.Initing:          envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING,
+		stagemanager.PreStart:         envoyControlPlaneAPI.ServerInfo_INITIALIZING,
+		stagemanager.Starting:         envoyControlPlaneAPI.ServerInfo_INITIALIZING,
+		stagemanager.AfterStart:       envoyControlPlaneAPI.ServerInfo_LIVE,
+		stagemanager.Running:          envoyControlPlaneAPI.ServerInfo_LIVE,
+		stagemanager.GracefulStopping: envoyControlPlaneAPI.ServerInfo_DRAINING,
+		stagemanager.Stopping:         envoyControlPlaneAPI.ServerInfo_DRAINING,
+		stagemanager.AfterStop:        envoyControlPlaneAPI.ServerInfo_DRAINING,
+		stagemanager.Stopped:          envoyControlPlaneAPI.ServerInfo_DRAINING,
+		// 2 additional stages
+		stagemanager.StartingNewServer: envoyControlPlaneAPI.ServerInfo_LIVE,
+		stagemanager.Upgrading:         envoyControlPlaneAPI.ServerInfo_DRAINING,
+	}
 )
 
 func init() {
@@ -87,20 +107,12 @@ func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 }
 
 func getIstioState() (envoyControlPlaneAPI.ServerInfo_State, error) {
-	mosnState := store.GetMosnState()
-
-	switch mosnState {
-	case store.Active_Reconfiguring:
-		return envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING, nil
-	case store.Init:
-		return envoyControlPlaneAPI.ServerInfo_INITIALIZING, nil
-	case store.Running:
-		return envoyControlPlaneAPI.ServerInfo_LIVE, nil
-	case store.Passive_Reconfiguring:
-		return envoyControlPlaneAPI.ServerInfo_DRAINING, nil
+	state := stagemanager.GetState()
+	if s, ok := mosnState2IstioState[state]; ok {
+		return s, nil
 	}
 
-	return 0, fmt.Errorf("parse mosn state %v to istio state failed", mosnState)
+	return 0, fmt.Errorf("parse mosn state %v to istio state failed", state)
 }
 
 func envoyConfigDump(w http.ResponseWriter, r *http.Request) {

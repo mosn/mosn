@@ -35,7 +35,7 @@ import (
 )
 
 func init() {
-	istio.ResgiterParseAdsConfig(UnmarshalResources)
+	istio.RegisterParseAdsConfig(UnmarshalResources)
 }
 
 // UnmarshalResources register  istio.ParseAdsConfig

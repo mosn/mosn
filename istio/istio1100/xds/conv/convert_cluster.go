@@ -128,17 +128,6 @@ func ConvertEndpointsConfig(xdsEndpoint *envoy_config_endpoint_v3.LocalityLbEndp
 			weight = configmanager.MaxHostWeight
 		}
 		host.Weight = weight
-		// enable tls only when transport_socket_match matched
-		// TODO check match
-		if _, ok := host.MetaData["envoy.transport_socket_match"]; !ok {
-			host.TLSDisable = true
-		}
-
-		// enable tls only when transport_socket_match matched
-		// TODO check match
-		if _, ok := host.MetaData["envoy.transport_socket_match"]; !ok {
-			host.TLSDisable = true
-		}
 
 		hosts = append(hosts, host)
 	}

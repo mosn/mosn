@@ -18,11 +18,11 @@
 package sds
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"testing"
-	"time"
 
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -40,7 +40,7 @@ type fakeSdsServerV3 struct {
 	started    bool
 }
 
-func InitMockSdsServerV3(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
+func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
 	s := NewFakeSdsServerV3(sdsUdsPath)
 	go func() {
 		err := s.Start()
@@ -83,12 +83,40 @@ func (s *fakeSdsServerV3) Stop() {
 func (s *fakeSdsServerV3) StreamSecrets(stream envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
-	// for test just ignore
-	_, err := stream.Recv()
-	if err != nil {
-		log.DefaultLogger.Errorf("streamn receive error: %v", err)
-		return err
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			log.DefaultLogger.Errorf("streamn receive error: %v", err)
+			return err
+		}
+		// mock ack
+		if req.VersionInfo != "" {
+			log.DefaultLogger.Infof("server receive a ack request: %v", req)
+			continue
+		}
+		resp := &envoy_service_discovery_v3.DiscoveryResponse{
+			TypeUrl:     resourcev3.SecretType,
+			VersionInfo: "0",
+			Nonce:       "0",
+		}
+		secret := &envoy_extensions_transport_sockets_tls_v3.Secret{
+			Name: "default",
+		}
+		ms, err := ptypes.MarshalAny(secret)
+		if err != nil {
+			log.DefaultLogger.Errorf("marshal secret error: %v", err)
+			return err
+		}
+		resp.Resources = append(resp.Resources, ms)
+		if err := stream.Send(resp); err != nil {
+			log.DefaultLogger.Errorf("send response error: %v", err)
+			return err
+		}
 	}
+	return nil
+}
+
+func (s *fakeSdsServerV3) FetchSecrets(ctx context.Context, discReq *envoy_service_discovery_v3.DiscoveryRequest) (*envoy_service_discovery_v3.DiscoveryResponse, error) {
 	resp := &envoy_service_discovery_v3.DiscoveryResponse{
 		TypeUrl:     resourcev3.SecretType,
 		VersionInfo: "0",
@@ -100,16 +128,10 @@ func (s *fakeSdsServerV3) StreamSecrets(stream envoy_service_secret_v3.SecretDis
 	ms, err := ptypes.MarshalAny(secret)
 	if err != nil {
 		log.DefaultLogger.Errorf("marshal secret error: %v", err)
-		return err
+		return nil, err
 	}
 	resp.Resources = append(resp.Resources, ms)
-	if err := stream.Send(resp); err != nil {
-		log.DefaultLogger.Errorf("send response error: %v", err)
-		return err
-	}
-	// keep alive for 3 second for client connection
-	time.Sleep(3 * time.Second)
-	return nil
+	return resp, nil
 }
 
 func (s *fakeSdsServerV3) register(rpcs *grpc.Server) {
