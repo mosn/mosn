@@ -24,8 +24,8 @@ import (
 
 func NewVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
 	basic := BasicVariable{
-		getter: &getterImpl{getter: getter},
-		setter: &setterImpl{setter: setter},
+		getter: &getterImpl{name: name, getter: getter},
+		setter: &setterImpl{name: name, setter: setter},
 		name:   name,
 		data:   data,
 		flags:  flags,
@@ -47,8 +47,8 @@ func DefaultSetter(ctx context.Context, variableValue *IndexedValue, value inter
 
 func NewStringVariable(name string, data interface{}, getter StringGetterFunc, setter StringSetterFunc, flags uint32) Variable {
 	basic := BasicVariable{
-		getter: &getterImpl{strGetter: getter},
-		setter: &setterImpl{strSetter: setter},
+		getter: &getterImpl{name: name, strGetter: getter},
+		setter: &setterImpl{name: name, strSetter: setter},
 		name:   name,
 		data:   data,
 		flags:  flags,
@@ -113,6 +113,7 @@ func (iv *IndexedVariable) GetIndex() uint32 {
 }
 
 type setterImpl struct {
+	name      string
 	strSetter StringSetterFunc
 	setter    SetterFunc
 }
@@ -129,10 +130,11 @@ func (s *setterImpl) Set(ctx context.Context, variableValue *IndexedValue, value
 		return s.setter(ctx, variableValue, value)
 	}
 
-	return errors.New(errSetterNotFound)
+	return errors.New(errSetterNotFound + s.name)
 }
 
 type getterImpl struct {
+	name      string
 	strGetter StringGetterFunc
 	getter    GetterFunc
 }
@@ -146,5 +148,5 @@ func (g *getterImpl) Get(ctx context.Context, value *IndexedValue, data interfac
 		return g.getter(ctx, value, data)
 	}
 
-	return nil, errors.New(errGetterNotFound)
+	return nil, errors.New(errGetterNotFound + g.name)
 }

@@ -78,7 +78,8 @@ import (
 var _ = &corev3.Pipe{}
 
 // Version mosn version
-var Version = "0.25.0"
+// from go build tags in `VERSION` file
+var Version = ""
 
 func main() {
 	app := newMosnApp(&cmdStart)
@@ -96,14 +97,14 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 
-	//commands
+	// commands
 	app.Commands = []cli.Command{
 		cmdStart,
 		cmdStop,
 		cmdReload,
 	}
 
-	//action
+	// action
 	app.Action = func(c *cli.Context) error {
 		if c.NumFlags() == 0 {
 			return cli.ShowAppHelp(c)

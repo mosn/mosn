@@ -27,7 +27,6 @@ import (
 	"strconv"
 
 	gometrics "github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
@@ -35,6 +34,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink/console"
 	"mosn.io/mosn/pkg/plugin"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -308,7 +308,7 @@ func GetState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pid := os.Getpid()
-	state := store.GetMosnState()
+	state := stagemanager.GetState()
 	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
 	fmt.Fprint(w, msg)
 }

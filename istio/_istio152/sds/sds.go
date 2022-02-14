@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -37,9 +38,10 @@ import (
 )
 
 type SdsStreamClientImpl struct {
-	conn                *grpc.ClientConn
-	cancel              context.CancelFunc
-	streamSecretsClient v2.SecretDiscoveryService_StreamSecretsClient
+	conn                  *grpc.ClientConn
+	cancel                context.CancelFunc
+	secretDiscoveryClient v2.SecretDiscoveryServiceClient
+	streamSecretsClient   v2.SecretDiscoveryService_StreamSecretsClient
 }
 
 var _ sds.SdsStreamClient = (*SdsStreamClientImpl)(nil)
@@ -49,7 +51,7 @@ func init() {
 }
 
 func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
-	sdsConfig, err := convertConfig(config)
+	sdsConfig, err := ConvertConfig(config)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.subscribe.config", "[xds][sds subscriber] convert sds config fail %v", err)
 		return nil, err
@@ -67,8 +69,9 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 	sdsStreamClient := &SdsStreamClientImpl{
-		conn:   conn,
-		cancel: cancel,
+		conn:                  conn,
+		cancel:                cancel,
+		secretDiscoveryClient: sdsServiceClient,
 	}
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
@@ -113,15 +116,43 @@ func (sc *SdsStreamClientImpl) Recv(provider types.SecretProvider, callback func
 		callback()
 	}
 	// send ack response
-	if err := sc.AckResponse(resp); err != nil {
-		// ack resposne send failed does not returns an error
-		// becasue we handle the response finished
-		log.DefaultLogger.Errorf("ack response secret fail: %v", err)
-	}
+	provider.AckResponse(resp)
 	return nil
 }
 
-func (sc *SdsStreamClientImpl) AckResponse(resp *xdsapi.DiscoveryResponse) error {
+// Fetch wraps a discovery request construct and will send a grpc request without grpc options.
+func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
+	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &xdsapi.DiscoveryRequest{
+		ResourceNames: []string{name},
+		Node: &envoy_api_v2_core.Node{
+			Id: istio.GetGlobalXdsInfo().ServiceNode,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	// TODO: need a ack request ?
+	if len(resp.Resources) > 1 {
+		return nil, fmt.Errorf("too many resources: %d", len(resp.Resources))
+	}
+	res := resp.Resources[0]
+	secret := &auth.Secret{}
+	ptypes.UnmarshalAny(res, secret)
+	return convertSecret(secret), nil
+
+}
+
+func (sc *SdsStreamClientImpl) AckResponse(resp interface{}) {
+	xdsresp, ok := resp.(*xdsapi.DiscoveryResponse)
+	if !ok {
+		return
+	}
+	if err := sc.ackResponse(xdsresp); err != nil {
+		log.DefaultLogger.Errorf("ack response secret fail: %v", err)
+	}
+}
+
+func (sc *SdsStreamClientImpl) ackResponse(resp *xdsapi.DiscoveryResponse) error {
 	secretNames := make([]string, 0)
 	for _, resource := range resp.Resources {
 		if resource == nil {
@@ -137,7 +168,7 @@ func (sc *SdsStreamClientImpl) AckResponse(resp *xdsapi.DiscoveryResponse) error
 		secretNames = append(secretNames, secret.GetName())
 	}
 
-	return sc.streamSecretsClient.Send(&xdsapi.DiscoveryRequest{
+	req := &xdsapi.DiscoveryRequest{
 		VersionInfo:   resp.VersionInfo,
 		ResourceNames: secretNames,
 		TypeUrl:       resp.TypeUrl,
@@ -146,7 +177,13 @@ func (sc *SdsStreamClientImpl) AckResponse(resp *xdsapi.DiscoveryResponse) error
 		Node: &envoy_api_v2_core.Node{
 			Id: istio.GetGlobalXdsInfo().ServiceNode,
 		},
-	})
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("send a ack request to server: %v", req)
+	}
+
+	return sc.streamSecretsClient.Send(req)
 }
 
 func (sc *SdsStreamClientImpl) Stop() {
@@ -162,7 +199,7 @@ type SdsStreamConfig struct {
 	statPrefix string
 }
 
-func convertConfig(config interface{}) (SdsStreamConfig, error) {
+func ConvertConfig(config interface{}) (SdsStreamConfig, error) {
 	sdsConfig := SdsStreamConfig{}
 	source := &envoy_api_v2_core.ConfigSource{}
 

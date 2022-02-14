@@ -49,8 +49,10 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"google.golang.org/protobuf/types/known/durationpb"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
+	"mosn.io/api"
 	istio_v2 "mosn.io/mosn/istio/istio152/config/v2"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -1340,4 +1342,33 @@ func Test_convertStreamFilter_Gzip(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestConvertIdleTimeout(t *testing.T) {
+	assert := assert.New(t)
+
+	// Case 1: Idle timeout has been configed.
+	cluster := &xdsapi.Cluster{
+		CommonHttpProtocolOptions: &core.HttpProtocolOptions{
+			IdleTimeout: durationpb.New(3 * time.Second),
+		},
+	}
+	duration := convertIdleTimeout(cluster)
+	expect := &api.DurationConfig{
+		Duration: 3 * time.Second,
+	}
+	assert.NotNil(duration)
+	assert.Equal(expect, duration, "Expect idle timeout: 3s")
+
+	// Case 2: Idle timeout has not configed.
+	cluster = &xdsapi.Cluster{
+		CommonHttpProtocolOptions: &core.HttpProtocolOptions{},
+	}
+	duration = convertIdleTimeout(cluster)
+	assert.Nil(duration, "Expect idle timeout nil")
+
+	// Case 3: Common http protocol options has not been configed.
+	cluster = &xdsapi.Cluster{}
+	duration = convertIdleTimeout(cluster)
+	assert.Nil(duration, "Expect idle timeout nil")
 }

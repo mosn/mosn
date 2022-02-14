@@ -14,10 +14,10 @@ import (
 	"golang.org/x/net/http2"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // Test Redirect

@@ -215,6 +215,11 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
+			// don't need to resetStream when upstream already response
+			// so that the stream can be reused.
+			if ds.upstreamProcessDone.Load() {
+				continue
+			}
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 		return

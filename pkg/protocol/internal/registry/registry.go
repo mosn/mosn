@@ -37,7 +37,7 @@ func RegisterNewPoolFactory(protocol api.ProtocolName, factory types.NewConnPool
 	ConnNewPoolFactories[protocol] = factory
 }
 
-func ResgiterProtocolStreamFactory(name api.ProtocolName, factory types.ProtocolStreamFactory) {
+func RegisterProtocolStreamFactory(name api.ProtocolName, factory types.ProtocolStreamFactory) {
 	StreamFactories[name] = factory
 }
 

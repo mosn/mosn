@@ -33,7 +33,8 @@ import (
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
-	"mosn.io/mosn/pkg/server/keeper"
+	_ "mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
@@ -73,15 +74,13 @@ func initializeTracing(config v2.TracingConfig) {
 	}
 }
 
-func InitializeMetrics(c *v2.MOSNConfig) {
+func InitializeMetrics(m *Mosn) {
 	metrics.FlushMosnMetrics = true
-	initializeMetrics(c.Metrics)
-}
+	config := m.Config.Metrics
 
-func initializeMetrics(config v2.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), store.GetMosnState() != store.Active_Reconfiguring)
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), m.isFromUpgrade)
 	}
 
 	// set metrics package
@@ -108,8 +107,8 @@ func InitializePidFile(c *v2.MOSNConfig) {
 	initializePidFile(c.Pid)
 }
 
-func initializePidFile(pid string) {
-	keeper.SetPid(pid)
+func initializePidFile(id string) {
+	pid.SetPid(id)
 }
 
 func InitializePlugin(c *v2.MOSNConfig) {

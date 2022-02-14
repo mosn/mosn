@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 
 	"mosn.io/mosn/pkg/types"
@@ -28,12 +29,12 @@ type headerParser struct {
 	headersToRemove []string
 }
 
-func (h *headerParser) evaluateHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (h *headerParser) evaluateHeaders(ctx context.Context, headers types.HeaderMap) {
 	if h == nil {
 		return
 	}
 	for _, toAdd := range h.headersToAdd {
-		value := toAdd.headerFormatter.format(requestInfo)
+		value := toAdd.headerFormatter.format(ctx)
 		if v, ok := headers.Get(toAdd.headerName); ok && len(v) > 0 && toAdd.headerFormatter.append() {
 			value = fmt.Sprintf("%s,%s", v, value)
 		}

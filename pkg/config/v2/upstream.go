@@ -99,6 +99,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	IdleTimeout          *api.DurationConfig `json:"idle_timeout,omitempty"`
 	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
 	RespectDnsTTL        bool                `json:"respect_dns_ttl,omitempty"`
