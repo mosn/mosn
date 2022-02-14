@@ -107,36 +107,21 @@ github.com/dubbogo/gost/sync
 github.com/dubbogo/gost/time
 # github.com/envoyproxy/go-control-plane v0.10.0 => github.com/envoyproxy/go-control-plane v0.10.0
 ## explicit
-github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/admin/v3
 github.com/envoyproxy/go-control-plane/envoy/annotations
-github.com/envoyproxy/go-control-plane/envoy/api/v2
-github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
-github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
-github.com/envoyproxy/go-control-plane/envoy/api/v2/core
-github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint
-github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
-github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
-github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3
 github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
 github.com/envoyproxy/go-control-plane/envoy/config/common/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/config/core/v3
 github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3
-github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
-github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
 github.com/envoyproxy/go-control-plane/envoy/config/listener/v3
-github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2
 github.com/envoyproxy/go-control-plane/envoy/config/metrics/v3
-github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/config/overload/v3
 github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3
 github.com/envoyproxy/go-control-plane/envoy/config/route/v3
 github.com/envoyproxy/go-control-plane/envoy/config/tap/v3
-github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v3
-github.com/envoyproxy/go-control-plane/envoy/data/tap/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/fault/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/compressor/v3
@@ -157,14 +142,9 @@ github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
 github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3
 github.com/envoyproxy/go-control-plane/envoy/service/secret/v3
-github.com/envoyproxy/go-control-plane/envoy/service/tap/v2alpha
-github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/http/v3
-github.com/envoyproxy/go-control-plane/envoy/type/matcher
 github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
-github.com/envoyproxy/go-control-plane/envoy/type/metadata/v2
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
-github.com/envoyproxy/go-control-plane/envoy/type/tracing/v2
 github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3
 github.com/envoyproxy/go-control-plane/envoy/type/v3
 github.com/envoyproxy/go-control-plane/pkg/conversion
@@ -569,7 +549,7 @@ gopkg.in/natefinch/lumberjack.v2
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# istio.io/api v0.0.0-20211103171850-665ed2b92d52
+# istio.io/api v0.0.0-20211103171850-665ed2b92d52 => istio.io/api v0.0.0-20211103171850-665ed2b92d52
 ## explicit
 istio.io/api/authentication/v1alpha1
 istio.io/api/envoy/config/filter/http/alpn/v2alpha1
@@ -615,3 +595,4 @@ vimagination.zapto.org/byteio
 # vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d
 ## explicit
 # github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
+# istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52

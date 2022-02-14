@@ -101,6 +101,7 @@ istio-1.5.2:
 	@bash istio_ctrl.sh istio152
 	@cp istio/istio152/main/* ./cmd/mosn/main/
 	@go mod edit -replace github.com/envoyproxy/go-control-plane=github.com/envoyproxy/go-control-plane@v0.9.4
+	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20200227213531-891bf31f3c32
 	@go mod tidy
 	@go mod vendor
 
@@ -108,6 +109,7 @@ istio-1.10.0:
 	@echo 1.10.0 > ISTIO_VERSION
 	@bash istio_ctrl.sh istio1100
 	@cp istio/istio1100/main/* ./cmd/mosn/main/
+	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20211103171850-665ed2b92d52
 	@go mod edit -replace github.com/envoyproxy/go-control-plane=github.com/envoyproxy/go-control-plane@v0.10.0
 	@go mod tidy
 	@go mod vendor
