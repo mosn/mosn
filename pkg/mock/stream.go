@@ -692,6 +692,20 @@ func (m *MockServerStreamConnectionEventListener) EXPECT() *MockServerStreamConn
 	return m.recorder
 }
 
+// ActiveStreamSize mocks base method.
+func (m *MockServerStreamConnectionEventListener) ActiveStreamSize() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActiveStreamSize")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// ActiveStreamSize indicates an expected call of ActiveStreamSize.
+func (mr *MockServerStreamConnectionEventListenerMockRecorder) ActiveStreamSize() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveStreamSize", reflect.TypeOf((*MockServerStreamConnectionEventListener)(nil).ActiveStreamSize))
+}
+
 // NewStreamDetect mocks base method.
 func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	m.ctrl.T.Helper()
