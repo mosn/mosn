@@ -268,11 +268,17 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	}
 
 	// 2. goaway process
-	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() && sc.clientCallbacks != nil {
+	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
-		sc.clientCallbacks.OnGoAway()
+		// TODO: remove it? since only goaway + multiplex meaningful?
+		// sc.clientCallbacks.OnGoAway()
+		if _, ok := sc.protocol.(api.GracefulShutdown); !ok {
+			log.Proxy.Errorf(ctx, "Got GoAway frame from client, but protocol not support GoAway, ignore it")
+			return
+		}
+		sc.GoAway()
 		return
 	}
 
