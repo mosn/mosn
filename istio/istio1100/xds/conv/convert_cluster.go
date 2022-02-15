@@ -121,13 +121,15 @@ func ConvertEndpointsConfig(xdsEndpoint *envoy_config_endpoint_v3.LocalityLbEndp
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
-		weight := xdsHost.GetLoadBalancingWeight().GetValue()
-		if weight < configmanager.MinHostWeight {
-			weight = configmanager.MinHostWeight
-		} else if weight > configmanager.MaxHostWeight {
-			weight = configmanager.MaxHostWeight
+		if lbweight := xdsHost.GetLoadBalancingWeight(); lbweight != nil {
+			weight := lbweight.GetValue()
+			if weight < configmanager.MinHostWeight {
+				weight = configmanager.MinHostWeight
+			} else if weight > configmanager.MaxHostWeight {
+				weight = configmanager.MaxHostWeight
+			}
+			host.Weight = weight
 		}
-		host.Weight = weight
 
 		hosts = append(hosts, host)
 	}
@@ -346,20 +348,4 @@ func convertSpec(xdsCluster *envoy_config_cluster_v3.Cluster) v2.ClusterSpecInfo
 	return v2.ClusterSpecInfo{
 		Subscribes: specs,
 	}
-}
-
-func convertClusterHosts(xdsHosts []*envoy_config_core_v3.Address) []v2.Host {
-	if xdsHosts == nil {
-		return nil
-	}
-	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
-	for _, xdsHost := range xdsHosts {
-		hostWithMetaData := v2.Host{
-			HostConfig: v2.HostConfig{
-				Address: convertAddress(xdsHost).String(),
-			},
-		}
-		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
-	}
-	return hostsWithMetaData
 }

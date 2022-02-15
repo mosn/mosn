@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"crypto/x509"
 	"net/http"
 	"os"
 	"reflect"
@@ -31,6 +32,8 @@ import (
 	envoy_extensions_filters_http_compressor_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/compressor/v3"
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	envoy_extensions_filters_http_gzip_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/gzip/v3"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/proto"
@@ -39,9 +42,11 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/mtls/extensions/sni"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -90,6 +95,35 @@ func Test_convertEndpointsConfig(t *testing.T) {
 		},
 		{
 			name: "case2",
+			args: args{
+				xdsEndpoint: &envoy_config_endpoint_v3.LocalityLbEndpoints{
+					LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+						{
+							HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_config_endpoint_v3.Endpoint{
+									Address: &envoy_config_core_v3.Address{
+										Address: &envoy_config_core_v3.Address_Pipe{
+											Pipe: &envoy_config_core_v3.Pipe{
+												Path: "./etc/proxy",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: []v2.Host{
+				{
+					HostConfig: v2.HostConfig{
+						Address: "unix:./etc/proxy",
+					},
+				},
+			},
+		},
+		{
+			name: "case3",
 			args: args{
 				xdsEndpoint: &envoy_config_endpoint_v3.LocalityLbEndpoints{
 					LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
@@ -181,6 +215,188 @@ func Test_convertEndpointsConfig(t *testing.T) {
 
 func Test_convertListenerConfig(t *testing.T) {
 	// TODO: add it
+}
+
+func generateTransportSocket(t *testing.T, msg proto.Message) *envoy_config_core_v3.TransportSocket {
+	return &envoy_config_core_v3.TransportSocket{
+		ConfigType: &envoy_config_core_v3.TransportSocket_TypedConfig{
+			TypedConfig: messageToAny(t, msg),
+		},
+	}
+}
+
+func Test_convertTLS(t *testing.T) {
+
+	t.Run("test simple tls context convert", func(t *testing.T) {
+		testcases := []struct {
+			description string
+			config      *envoy_config_core_v3.TransportSocket
+			want        v2.TLSConfig
+		}{
+			{
+				description: "simple static tls config in listener",
+				config: generateTransportSocket(t, &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{
+					RequireClientCertificate: NewBoolValue(true),
+					CommonTlsContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext{
+						TlsCertificates: []*envoy_extensions_transport_sockets_tls_v3.TlsCertificate{
+							{
+								CertificateChain: &envoy_config_core_v3.DataSource{
+									Specifier: &envoy_config_core_v3.DataSource_Filename{
+										Filename: "cert.pem",
+									},
+								},
+								PrivateKey: &envoy_config_core_v3.DataSource{
+									Specifier: &envoy_config_core_v3.DataSource_Filename{
+										Filename: "key.pem",
+									},
+								},
+							},
+						},
+						ValidationContextType: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_ValidationContext{
+							ValidationContext: &envoy_extensions_transport_sockets_tls_v3.CertificateValidationContext{
+								TrustedCa: &envoy_config_core_v3.DataSource{
+									Specifier: &envoy_config_core_v3.DataSource_Filename{
+										Filename: "rootca.pem",
+									},
+								},
+							},
+						},
+						TlsParams: &envoy_extensions_transport_sockets_tls_v3.TlsParameters{
+							TlsMinimumProtocolVersion: envoy_extensions_transport_sockets_tls_v3.TlsParameters_TLSv1_2,
+							TlsMaximumProtocolVersion: envoy_extensions_transport_sockets_tls_v3.TlsParameters_TLSv1_3,
+							CipherSuites:              []string{"ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-RSA-AES256-GCM-SHA384"},
+							EcdhCurves:                []string{"X25519", "P-256"},
+						},
+					},
+				}),
+				want: v2.TLSConfig{
+					Status:            true,
+					CACert:            "rootca.pem",
+					CertChain:         "cert.pem",
+					PrivateKey:        "key.pem",
+					VerifyClient:      true,
+					RequireClientCert: true,
+					CipherSuites:      "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384",
+					EcdhCurves:        "X25519,P-256",
+					MinVersion:        "TLSv1_2",
+					MaxVersion:        "TLSv1_3",
+				},
+			},
+			{
+				description: "simple sds tls config in listener",
+				config: generateTransportSocket(t, &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{
+					CommonTlsContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext{
+						TlsCertificateSdsSecretConfigs: []*envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+							{
+								Name:      "default",
+								SdsConfig: &envoy_config_core_v3.ConfigSource{},
+							},
+						},
+						ValidationContextType: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedValidationContext{
+							CombinedValidationContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedCertificateValidationContext{
+								ValidationContextSdsSecretConfig: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+									Name:      "rootca",
+									SdsConfig: &envoy_config_core_v3.ConfigSource{},
+								},
+							},
+						},
+					},
+				}),
+				want: v2.TLSConfig{
+					Status: true,
+					SdsConfig: &v2.SdsConfig{
+						CertificateConfig: &v2.SecretConfigWrapper{
+							Name:      "default",
+							SdsConfig: &envoy_config_core_v3.ConfigSource{},
+						},
+						ValidationConfig: &v2.SecretConfigWrapper{
+							Name:      "rootca",
+							SdsConfig: &envoy_config_core_v3.ConfigSource{},
+						},
+					},
+				},
+			},
+		}
+
+		for _, tc := range testcases {
+			ret := convertTLS(tc.config)
+			require.Equalf(t, tc.want, ret, "case %s failed", tc.description)
+		}
+	})
+
+	t.Run("test downstream tls without validation", func(t *testing.T) {
+		tlsContext := &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{
+			RequireClientCertificate: NewBoolValue(false),
+			CommonTlsContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext{
+				TlsCertificateSdsSecretConfigs: []*envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+					{
+						Name: "kubernetes://httpbin-credential",
+						SdsConfig: &envoy_config_core_v3.ConfigSource{
+							ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_Ads{},
+							ResourceApiVersion:    envoy_config_core_v3.ApiVersion_V3,
+						},
+					},
+				},
+			},
+		}
+		transport := generateTransportSocket(t, tlsContext)
+		cfg := convertTLS(transport)
+		require.True(t, cfg.Status)
+		require.NotNil(t, cfg.SdsConfig)
+		require.True(t, cfg.SdsConfig.Valid())
+	})
+
+	t.Run("test upstream tls with sni", func(t *testing.T) {
+		tlsContext := &envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{
+			Sni: "outbound_.15010_._.istiod.istio-system.svc.cluster.local",
+			CommonTlsContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext{
+				TlsCertificates: []*envoy_extensions_transport_sockets_tls_v3.TlsCertificate{
+					{
+						CertificateChain: &envoy_config_core_v3.DataSource{
+							Specifier: &envoy_config_core_v3.DataSource_Filename{
+								Filename: "cert.pem",
+							},
+						},
+						PrivateKey: &envoy_config_core_v3.DataSource{
+							Specifier: &envoy_config_core_v3.DataSource_Filename{
+								Filename: "key.pem",
+							},
+						},
+					},
+				},
+				ValidationContextType: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedValidationContext{
+					CombinedValidationContext: &envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedCertificateValidationContext{
+						DefaultValidationContext: &envoy_extensions_transport_sockets_tls_v3.CertificateValidationContext{
+							TrustedCa: &envoy_config_core_v3.DataSource{
+								Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+									InlineBytes: []byte("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvRENDQWVTZ0F3SUJBZ0lRZHdHUVltQ1BmUkFMWTk0dFBUZ3VQVEFOQmdrcWhraUc5dzBCQVFzRkFEQVkKTVJZd0ZBWURWUVFLRXcxamJIVnpkR1Z5TG14dlkyRnNNQjRYRFRJeU1ERXhNekExTlRnek1Gb1hEVE15TURFeApNVEExTlRnek1Gb3dHREVXTUJRR0ExVUVDaE1OWTJ4MWMzUmxjaTVzYjJOaGJEQ0NBU0l3RFFZSktvWklodmNOCkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFMenloTFhBREJWcmVNRVRUQ2FTaVdnb3RtNlFuTXNuYUtNeERSdU0KZVBNTmNxR2NVM281bk9aaDJadFlIZHNNOXJkUlppbFRzS0lHWnB1djYwR08zOVVYUEdBWERoOW1hUUhhb0lkUAphejdJazRaSHNTUDlITTV3d2pTemltdGFQZFIweXl3d01kMEp4dWh0NlFJTElXd0hIU0dSVmFLUWJyYjFSRWR3CjhPMWk4VUo1eWVpSnpQMm9wSG9ocmVEUGgxVzJNUlFJdXcyemJ2cUFPbkhsTStZcG5aeXBJTVNZbm1ocm1FTm0KUFBNTXBTenBjVldzeFJjOVhicFNickJDdXFEeHlhSk80NFR0MzdGTC9qYndBbThCOG8rR3FmN0Q5VmZMWWFRcQpsRUNHYzJISUxVaG5mYStuYlYvdElLTkZlV2I4YW1ua1ZHNnRUZU5rV2pvUjMwOENBd0VBQWFOQ01FQXdEZ1lEClZSMFBBUUgvQkFRREFnSUVNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdIUVlEVlIwT0JCWUVGSlhldkl5NlhSTVEKRW1jLzhSQis5WG1XWXFFUk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQVJ5R1BUdXlvNStIOHQ0ZHNrMmVQRwp1QmpmZTFDcGdTaUMwWVNERzVkY0ZxNjROU1JZSko0N1QvdkxrcEw5TWw5alM4VFdpREdEUkRlbHZiYktmNVEvCnJNUkxhNlM5YVFIc3VhRk9jNW1YbG04SDBTMDdUV0NCekFYMStXb1hLQXdyY2NuSGU1OVdmV0oyYXpLb0VMcUkKN0xvOFdCS3J0OTB3VFdvL2VRVUxYT1pjaGp0TEkxR1EzOG01ajk2TDg0QjdNMnhHVTVOUmxCTzJnemFaUG8vagpsWndPNDNzNnhLWFI4Z0hyMHJNaU1tWTJjQTFoUmtNc2NqbGZKWFczbE5VcXUxYkZ0QjV4ZTNIbXZQcjVKWVBvCithTm5ZUVNHZWxHVnpUVWcvcnlmMzhoVko2T2lZYXRSbTdicjRZY25OcHh4eEdXYTZWRTdtNlZtZmxvNzREVjgKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="),
+								},
+							},
+							MatchSubjectAltNames: []*envoy_type_matcher_v3.StringMatcher{
+								{
+									MatchPattern: &envoy_type_matcher_v3.StringMatcher_Exact{
+										Exact: "spiffe://cluster.local/ns/istio-system/sa/istiod-service-account",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		transport := generateTransportSocket(t, tlsContext)
+		cfg := convertTLS(transport)
+		require.True(t, cfg.Status)
+		require.NotNil(t, cfg.ExtendVerify)
+		require.Equal(t, sni.SniVerify, cfg.Type)
+		require.Equal(t, "spiffe://cluster.local/ns/istio-system/sa/istiod-service-account", cfg.ExtendVerify[sni.ConfigKey])
+		require.Equal(t, "cert.pem", cfg.CertChain)
+		require.Equal(t, "key.pem", cfg.PrivateKey)
+		require.Equal(t, "outbound_.15010_._.istiod.istio-system.svc.cluster.local", cfg.ServerName)
+		// verify root ca is a valid string
+		p := x509.NewCertPool()
+		require.True(t, p.AppendCertsFromPEM([]byte(cfg.CACert)))
+	})
 }
 
 func Test_convertHeaders(t *testing.T) {

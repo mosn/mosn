@@ -19,6 +19,7 @@ package conv
 
 import (
 	"bytes"
+	"encoding/base64"
 	"net"
 	"strings"
 	"time"
@@ -724,81 +725,106 @@ func convertCidrRange(cidr []*envoy_config_core_v3.CidrRange) []v2.CidrRange {
 	return cidrRanges
 }
 
-func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
+func convertTLS(transport interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
 	var isUpstream bool
 	var isSdsMode bool
 	var common *envoy_extensions_transport_sockets_tls_v3.CommonTlsContext
 
-	ts, ok := xdsTLSContext.(*envoy_config_core_v3.TransportSocket)
-	if !ok || ts == nil {
+	ts, ok := transport.(*envoy_config_core_v3.TransportSocket)
+	if !ok {
 		return config
 	}
 
-	upTLSConext := &envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{}
-	if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), upTLSConext); err == nil {
-		config.ServerName = upTLSConext.GetSni()
-		common = upTLSConext.GetCommonTlsContext()
-		// Get match SANs from CombinedValidationContext, for server URI verify
-		combinedValidationContext := upTLSConext.CommonTlsContext.GetCombinedValidationContext()
-		if combinedValidationContext != nil {
-			sans := combinedValidationContext.DefaultValidationContext.MatchSubjectAltNames
-			if len(sans) == 1 {
+	// check upstream tls context for client or downstream tls context for server
+	upTLSContext := &envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{}
+	if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), upTLSContext); err == nil {
+		// is upstream tls context, parse some parameters for upstream tls context
+		isUpstream = true
+		config.ServerName = upTLSContext.GetSni()
+		// set common for create tls config
+		common = upTLSContext.GetCommonTlsContext()
+
+	} else {
+		// is not upstream tls context, try downstream tls context
+		dsTLSContext := &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{}
+		if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), dsTLSContext); err != nil {
+			return config
+		}
+		// parse some parameters for downstream tls context
+		if requireClient := dsTLSContext.GetRequireClientCertificate(); requireClient != nil {
+			config.RequireClientCert = requireClient.GetValue()
+			config.VerifyClient = requireClient.GetValue()
+		}
+		// set common for create tls config
+		common = dsTLSContext.GetCommonTlsContext()
+	}
+
+	// Only one of *tls_certificates*, *tls_certificate_sds_secret_configs*, and *tls_certificate_provider_instance* may be used.
+	// MOSN support *tls_certificates* and *tls_certificate_sds_secret_configs*
+	// MOSN support single certificate in xds. TODO: support multiple certificates
+	if tlsCertConfig := common.GetTlsCertificates(); tlsCertConfig != nil {
+		for _, cert := range tlsCertConfig {
+			config.CertChain = parseDataSource(cert.GetCertificateChain())
+			config.PrivateKey = parseDataSource(cert.GetPrivateKey())
+		}
+	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); len(tlsCertSdsConfig) > 0 {
+		isSdsMode = true
+		config.SdsConfig = &v2.SdsConfig{
+			CertificateConfig: &v2.SecretConfigWrapper{
+				Name:      tlsCertSdsConfig[0].GetName(),
+				SdsConfig: tlsCertSdsConfig[0].GetSdsConfig(),
+			},
+		}
+	} else {
+		log.DefaultLogger.Errorf("unsupported tls certificate types")
+	}
+
+	// ValidationContextType, MOSN support *CommonTlsContext_ValidationContext* and *CommonTlsContext_CombinedValidationContext*
+	// ValidationContextType can be empty, which means use system info to verify
+	if validationConfig := common.GetValidationContext(); validationConfig != nil {
+		if isUpstream { // usptream maybe use sni verify type
+			if sans := validationConfig.GetMatchSubjectAltNames(); len(sans) == 1 {
 				config.Type = sni.SniVerify
 				config.ExtendVerify = map[string]interface{}{
 					sni.ConfigKey: sans[0].GetExact(),
 				}
 			}
 		}
-		isUpstream = true
-	}
-	if !isUpstream {
-		dsTLSContext := &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{}
-		if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), dsTLSContext); err == nil {
-			if dsTLSContext.GetRequireClientCertificate() != nil {
-				config.RequireClientCert = dsTLSContext.GetRequireClientCertificate().GetValue()
-				config.VerifyClient = dsTLSContext.GetRequireClientCertificate().GetValue()
-			}
-			common = dsTLSContext.GetCommonTlsContext()
-		}
-	}
-
-	if common == nil {
-		return config
-	}
-	// Currently only a single certificate is supported
-	if common.GetTlsCertificates() != nil {
-		for _, cert := range common.GetTlsCertificates() {
-			if cert.GetCertificateChain() != nil && cert.GetPrivateKey() != nil {
-				// use GetFilename to get the cert's path
-				config.CertChain = cert.GetCertificateChain().GetFilename()
-				config.PrivateKey = cert.GetPrivateKey().GetFilename()
+		config.CACert = parseDataSource(validationConfig.GetTrustedCa())
+	} else if combinedValidationConfig := common.GetCombinedValidationContext(); combinedValidationConfig != nil {
+		// In MOSN, a validation context should be SDS when certificate is SDS too. but we still support
+		// other configs from default validation context when we use SDS config.
+		if isUpstream { // usptream maybe use sni verify type
+			if defaultValidationConfig := combinedValidationConfig.GetDefaultValidationContext(); defaultValidationConfig != nil {
+				if sans := defaultValidationConfig.GetMatchSubjectAltNames(); len(sans) == 1 {
+					config.Type = sni.SniVerify
+					config.ExtendVerify = map[string]interface{}{
+						sni.ConfigKey: sans[0].GetExact(),
+					}
+				}
 			}
 		}
-	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
-		isSdsMode = true
-		if validationContext, ok := common.GetValidationContextType().(*envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig = &v2.SdsConfig{
-				CertificateConfig: &v2.SecretConfigWrapper{
-					Name:      tlsCertSdsConfig[0].GetName(),
-					SdsConfig: tlsCertSdsConfig[0].GetSdsConfig(),
-				},
-				ValidationConfig: &v2.SecretConfigWrapper{
-					Name:      validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetName(),
-					SdsConfig: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetSdsConfig(),
-				},
+		// sds mode, validation is sds too
+		if isSdsMode {
+			if sdsValidationConfig := combinedValidationConfig.GetValidationContextSdsSecretConfig(); sdsValidationConfig != nil {
+				config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{
+					Name:      sdsValidationConfig.GetName(),
+					SdsConfig: sdsValidationConfig.GetSdsConfig(),
+				}
+			}
+		} else {
+			if defaultValidationConfig := combinedValidationConfig.GetDefaultValidationContext(); defaultValidationConfig != nil {
+				config.CACert = parseDataSource(defaultValidationConfig.GetTrustedCa())
 			}
 		}
 	}
 
-	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
-		config.CACert = common.GetValidationContext().GetTrustedCa().String()
-	}
+	// TlsParameters contains TLS protocol versions, cipher suites etc.
 	if common.GetAlpnProtocols() != nil {
 		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
 	}
-	param := common.GetTlsParams()
-	if param != nil {
+	if param := common.GetTlsParams(); param != nil {
 		if param.GetCipherSuites() != nil {
 			config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
 		}
@@ -807,6 +833,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		}
 		config.MinVersion = envoy_extensions_transport_sockets_tls_v3.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
 		config.MaxVersion = envoy_extensions_transport_sockets_tls_v3.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+
 	}
 
 	if !isSdsMode && !isUpstream && (config.CertChain == "" || config.PrivateKey == "") {
@@ -816,6 +843,35 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	}
 	config.Status = true
 	return config
+}
+
+// Types that are assignable to Specifier:
+//      *DataSource_Filename
+//      *DataSource_InlineBytes
+//      *DataSource_InlineString
+//      *DataSource_EnvironmentVariable
+func parseDataSource(ds *envoy_config_core_v3.DataSource) string {
+	spec := ds.GetSpecifier()
+	switch spec.(type) {
+	case *envoy_config_core_v3.DataSource_Filename:
+		return ds.GetFilename()
+	case *envoy_config_core_v3.DataSource_InlineBytes:
+		// try to decode base64 encoded data
+		data := ds.GetInlineBytes()
+		enc := base64.StdEncoding
+		dbuf := make([]byte, enc.DecodedLen(len(data)))
+		n, err := enc.Decode(dbuf, data)
+		if err != nil {
+			return string(data)
+		}
+		return string(dbuf[:n])
+	case *envoy_config_core_v3.DataSource_InlineString:
+		return ds.GetInlineString()
+	case *envoy_config_core_v3.DataSource_EnvironmentVariable:
+		return ds.GetEnvironmentVariable()
+	default: // unsupported typed
+		return ds.String()
+	}
 }
 
 func convertMirrorPolicy(xdsRouteAction *envoy_config_route_v3.RouteAction) *v2.RequestMirrorPolicy {
