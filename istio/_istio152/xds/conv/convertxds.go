@@ -94,7 +94,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -1419,16 +1419,17 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		}
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
+		config.SdsConfig = &v2.SdsConfig{
+			CertificateConfig: &v2.SecretConfigWrapper{
+				Name:      tlsCertSdsConfig[0].GetName(),
+				SdsConfig: tlsCertSdsConfig[0].GetSdsConfig(),
+			},
+		}
+		// validation config maybe nil
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig = &v2.SdsConfig{
-				CertificateConfig: &v2.SecretConfigWrapper{
-					Name:      tlsCertSdsConfig[0].GetName(),
-					SdsConfig: tlsCertSdsConfig[0].GetSdsConfig(),
-				},
-				ValidationConfig: &v2.SecretConfigWrapper{
-					Name:      validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetName(),
-					SdsConfig: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetSdsConfig(),
-				},
+			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{
+				Name:      validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetName(),
+				SdsConfig: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig().GetSdsConfig(),
 			}
 		}
 	}
