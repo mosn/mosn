@@ -29,7 +29,6 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -48,6 +47,7 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/valyala/fasthttp"
 	"google.golang.org/protobuf/types/known/durationpb"
 	v1 "istio.io/api/mixer/v1"
@@ -412,14 +412,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							TypedConfig: accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -680,8 +680,8 @@ func Test_convertListenerConfig(t *testing.T) {
 				FilterChains: []*xdslistener.FilterChain{
 					{
 						FilterChainMatch: nil,
-						TransportSocket: &xdscore.TransportSocket{
-							ConfigType: &xdscore.TransportSocket_TypedConfig{
+						TransportSocket: &core.TransportSocket{
+							ConfigType: &core.TransportSocket_TypedConfig{
 								TypedConfig: tls0,
 							},
 						},
@@ -697,8 +697,8 @@ func Test_convertListenerConfig(t *testing.T) {
 					{
 						FilterChainMatch: nil,
 						Filters:          nil,
-						TransportSocket: &xdscore.TransportSocket{
-							ConfigType: &xdscore.TransportSocket_TypedConfig{
+						TransportSocket: &core.TransportSocket{
+							ConfigType: &core.TransportSocket_TypedConfig{
 								TypedConfig: tls1,
 							},
 						},
@@ -706,8 +706,8 @@ func Test_convertListenerConfig(t *testing.T) {
 					{
 						FilterChainMatch: nil,
 						Filters:          nil,
-						TransportSocket: &xdscore.TransportSocket{
-							ConfigType: &xdscore.TransportSocket_TypedConfig{
+						TransportSocket: &core.TransportSocket{
+							ConfigType: &core.TransportSocket_TypedConfig{
 								TypedConfig: tls2,
 							},
 						},
@@ -766,7 +766,7 @@ func Test_convertListenerConfig(t *testing.T) {
 
 func Test_convertCidrRange(t *testing.T) {
 	type args struct {
-		cidr []*xdscore.CidrRange
+		cidr []*core.CidrRange
 	}
 	tests := []struct {
 		name string
@@ -776,7 +776,7 @@ func Test_convertCidrRange(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				cidr: []*xdscore.CidrRange{
+				cidr: []*core.CidrRange{
 					{
 						AddressPrefix: "192.168.1.1",
 						PrefixLen:     &wrappers.UInt32Value{Value: 32},
@@ -794,7 +794,7 @@ func Test_convertCidrRange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := convertCidrRange(tt.args.cidr); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convertCidrRange(cidr []*xdscore.CidrRange) = %v, want %v", got, tt.want)
+				t.Errorf("convertCidrRange(cidr []*core.CidrRange) = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -816,14 +816,14 @@ func Test_convertTCPRoute(t *testing.T) {
 					Routes: []*xdstcp.TcpProxy_DeprecatedV1_TCPRoute{
 						{
 							Cluster: "tcp",
-							DestinationIpList: []*xdscore.CidrRange{
+							DestinationIpList: []*core.CidrRange{
 								{
 									AddressPrefix: "192.168.1.1",
 									PrefixLen:     &wrappers.UInt32Value{Value: 32},
 								},
 							},
 							DestinationPorts: "50",
-							SourceIpList: []*xdscore.CidrRange{
+							SourceIpList: []*core.CidrRange{
 								{
 									AddressPrefix: "192.168.1.2",
 									PrefixLen:     &wrappers.UInt32Value{Value: 32},
@@ -866,7 +866,7 @@ func Test_convertTCPRoute(t *testing.T) {
 
 func Test_convertHeadersToAdd(t *testing.T) {
 	type args struct {
-		headerValueOption []*xdscore.HeaderValueOption
+		headerValueOption []*core.HeaderValueOption
 	}
 
 	FALSE := false
@@ -879,9 +879,9 @@ func Test_convertHeadersToAdd(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				headerValueOption: []*xdscore.HeaderValueOption{
+				headerValueOption: []*core.HeaderValueOption{
 					{
-						Header: &xdscore.HeaderValue{
+						Header: &core.HeaderValue{
 							Key:   "namespace",
 							Value: "demo",
 						},
@@ -904,7 +904,7 @@ func Test_convertHeadersToAdd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := convertHeadersToAdd(tt.args.headerValueOption); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) = %v, want %v", got, tt.want)
+				t.Errorf("convertHeadersToAdd(headerValueOption []*core.HeaderValueOption) = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1371,4 +1371,27 @@ func TestConvertIdleTimeout(t *testing.T) {
 	cluster = &xdsapi.Cluster{}
 	duration = convertIdleTimeout(cluster)
 	assert.Nil(duration, "Expect idle timeout nil")
+}
+
+func TestConvertTLSWithoutValidation(t *testing.T) {
+	tlsContext := &envoy_api_v2_auth.DownstreamTlsContext{
+		RequireClientCertificate: NewBoolValue(false),
+		CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+			TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
+				{
+					Name: "kubernetes://httpbin-credential",
+					SdsConfig: &core.ConfigSource{
+						ConfigSourceSpecifier: &core.ConfigSource_Ads{},
+						ResourceApiVersion:    core.ApiVersion_V2,
+					},
+				},
+			},
+		},
+	}
+	cfg := convertTLS(tlsContext)
+	require.True(t, cfg.Status)
+	require.NotNil(t, cfg.SdsConfig)
+	require.True(t, cfg.SdsConfig.Valid())
+	// b, _ := json.Marshal(cfg.SdsConfig.CertificateConfig)
+	// fmt.Println(string(b))
 }
