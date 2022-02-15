@@ -78,8 +78,6 @@ func TestPingPong(t *testing.T) {
 
 	assert.Equal(t, len(xsList), len(pInst.idleClients))
 
-	pMultiplex.Shutdown()
-	pMultiplex.Close()
 }
 
 func TestPingPongBoundary(t *testing.T) {
