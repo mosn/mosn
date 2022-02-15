@@ -223,7 +223,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			t.Errorf("#%d create client certificate error %v", i, err)
 			continue
 		}
-		cltMng, err := NewTLSClientContextManager(cfg)
+		cltMng, err := NewTLSClientContextManager("", cfg)
 		if err != nil {
 			t.Errorf("#%d create client context manager failed %v", i, err)
 			continue
@@ -306,7 +306,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	clientConfig.ExtendVerify = extendVerify
 	for i, tc := range testCases {
 		clientConfig.ServerName = tc.Info.DNS
-		cltMng, err := NewTLSClientContextManager(clientConfig)
+		cltMng, err := NewTLSClientContextManager("", clientConfig)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			return
@@ -328,7 +328,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		skipConfig.ServerName = tc.Info.DNS
-		skipMng, err := NewTLSClientContextManager(skipConfig)
+		skipMng, err := NewTLSClientContextManager("", skipConfig)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			return

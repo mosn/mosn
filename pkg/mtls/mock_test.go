@@ -18,36 +18,58 @@
 package mtls
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/types"
 )
 
 type mockSdsClient struct {
+	lock     sync.Mutex
 	callback map[string]types.SdsUpdateCallbackFunc
 }
 
 var mockSdsClientInstance *mockSdsClient
 
 func (c *mockSdsClient) AddUpdateCallback(name string, f types.SdsUpdateCallbackFunc) error {
+	c.lock.Lock()
 	c.callback[name] = f
+	c.lock.Unlock()
 	return nil
 }
 
 func (c *mockSdsClient) SetSecret(name string, secret *types.SdsSecret) {
-	if f, ok := c.callback[name]; ok {
-		f(name, secret)
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	f, ok := c.callback[name]
+	if !ok {
+		log.DefaultLogger.Errorf("[unit test] name %s with no callback", name)
+		return
 	}
+	f(name, secret)
+}
+
+func (c *mockSdsClient) AckResponse(resp interface{}) {
 }
 
 func (c *mockSdsClient) DeleteUpdateCallback(name string) error {
 	return nil
+}
+
+func (c *mockSdsClient) RequireSecret(name string) {
+}
+
+func (c *mockSdsClient) FetchSecret(ctx context.Context, name string) (*types.SdsSecret, error) {
+	return nil, errors.New("not implement yet")
 }
 
 func getMockSdsClient(cfg interface{}) types.SdsClient {
@@ -108,6 +130,7 @@ type MockServer struct {
 	Mng      types.TLSContextManager
 	Addr     string
 	server   *http2.Server
+	mux      http.Handler
 	t        *testing.T
 	listener *MockListener
 }
@@ -124,6 +147,11 @@ func (s *MockServer) GoListenAndServe(t *testing.T) {
 	}
 	s.Addr = ln.Addr().String()
 	s.listener = &MockListener{ln, s.Mng}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.ServeHTTP)
+	server := &http2.Server{}
+	s.server = server
+	s.mux = mux
 	go s.serve(s.listener)
 }
 
@@ -135,10 +163,6 @@ func (s *MockServer) serve(ln *MockListener) {
 		}
 
 		go func() {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/", s.ServeHTTP)
-			server := &http2.Server{}
-			s.server = server
 			if tlsConn, ok := c.(*TLSConn); ok {
 				tlsConn.SetALPN(http2.NextProtoTLS)
 				if err := tlsConn.Handshake(); err != nil {
@@ -146,8 +170,8 @@ func (s *MockServer) serve(ln *MockListener) {
 					return
 				}
 			}
-			server.ServeConn(c, &http2.ServeConnOpts{
-				Handler: mux,
+			s.server.ServeConn(c, &http2.ServeConnOpts{
+				Handler: s.mux,
 			})
 		}()
 	}

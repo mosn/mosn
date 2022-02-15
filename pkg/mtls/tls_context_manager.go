@@ -28,6 +28,11 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+const (
+	serverContextPrefix = "server_"
+	clientContextPrefix = "client_"
+)
+
 type serverContextManager struct {
 	// providers stored the certificates
 	providers []types.TLSProvider
@@ -48,7 +53,7 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 	}
 	for _, c := range cfg.FilterChains {
 		for _, tlsCfg := range c.TLSContexts {
-			provider, err := NewProvider(&tlsCfg)
+			provider, err := NewProvider(serverContextPrefix+cfg.Name, &tlsCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -141,8 +146,8 @@ type clientContextManager struct {
 }
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
-func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
-	provider, err := NewProvider(cfg)
+func NewTLSClientContextManager(name string, cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
+	provider, err := NewProvider(clientContextPrefix+name, cfg)
 	if err != nil {
 		return nil, err
 	}

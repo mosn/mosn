@@ -44,6 +44,7 @@ type TLSConfig struct {
 	Ticket            string                 `json:"ticket,omitempty"`
 	Fallback          bool                   `json:"fall_back,omitempty"`
 	ExtendVerify      map[string]interface{} `json:"extend_verify,omitempty"`
+	Callbacks         []string               `json:"callbacks,omitempty"`
 	SdsConfig         *SdsConfig             `json:"sds_source,omitempty"`
 }
 
@@ -86,7 +87,7 @@ func (scw *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
 
 // Valid checks the whether the SDS Config is valid or not
 func (c *SdsConfig) Valid() bool {
-	return c != nil && c.CertificateConfig != nil && c.ValidationConfig != nil
+	return c != nil && c.CertificateConfig != nil // && c.ValidationConfig != nil // ValidationConfig can be setted to nil
 }
 
 type SecretConfigWrapperConfig struct {

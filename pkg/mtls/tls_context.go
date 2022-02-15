@@ -29,14 +29,15 @@ import (
 )
 
 type secretInfo struct {
-	Certificate string
-	PrivateKey  string
-	Validation  string // root ca
+	Certificate  string
+	PrivateKey   string
+	Validation   string // root ca
+	NoValidation bool
 }
 
 // full returns whether the secret info is full enough for a tls config
 func (info *secretInfo) full() bool {
-	return info.Certificate != "" && info.PrivateKey != "" && info.Validation != ""
+	return info.Certificate != "" && info.PrivateKey != "" && (info.Validation != "" || info.NoValidation)
 }
 
 // tlsContext is an implmentation of basic provider

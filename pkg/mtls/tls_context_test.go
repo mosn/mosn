@@ -177,7 +177,7 @@ func TestTLSContextHashNil(t *testing.T) {
 	cfg := &v2.TLSConfig{
 		Status: false,
 	}
-	cltMng, err := NewTLSClientContextManager(cfg)
+	cltMng, err := NewTLSClientContextManager("", cfg)
 	if err != nil {
 		t.Fatalf("new client manager failed: %v", err)
 	}

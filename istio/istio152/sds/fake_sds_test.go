@@ -23,7 +23,6 @@ import (
 	"net"
 	"os"
 	"testing"
-	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -122,12 +121,40 @@ func (s *fakeSdsServer) Stop() {
 func (s *fakeSdsServer) StreamSecrets(stream envoy_sds.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
-	// for test just ignore
-	_, err := stream.Recv()
-	if err != nil {
-		log.DefaultLogger.Errorf("streamn receive error: %v", err)
-		return err
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			log.DefaultLogger.Errorf("streamn receive error: %v", err)
+			return err
+		}
+		// mock ack
+		if req.VersionInfo != "" {
+			log.DefaultLogger.Infof("server receive a ack request: %v", req)
+			continue
+		}
+		resp := &xdsapi.DiscoveryResponse{
+			TypeUrl:     SecretType,
+			VersionInfo: "0",
+			Nonce:       "0",
+		}
+		secret := &auth.Secret{
+			Name: "default",
+		}
+		ms, err := ptypes.MarshalAny(secret)
+		if err != nil {
+			log.DefaultLogger.Errorf("marshal secret error: %v", err)
+			return err
+		}
+		resp.Resources = append(resp.Resources, ms)
+		if err := stream.Send(resp); err != nil {
+			log.DefaultLogger.Errorf("send response error: %v", err)
+			return err
+		}
 	}
+	return nil
+}
+
+func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
 	resp := &xdsapi.DiscoveryResponse{
 		TypeUrl:     SecretType,
 		VersionInfo: "0",
@@ -139,19 +166,8 @@ func (s *fakeSdsServer) StreamSecrets(stream envoy_sds.SecretDiscoveryService_St
 	ms, err := ptypes.MarshalAny(secret)
 	if err != nil {
 		log.DefaultLogger.Errorf("marshal secret error: %v", err)
-		return err
+		return nil, err
 	}
 	resp.Resources = append(resp.Resources, ms)
-	if err := stream.Send(resp); err != nil {
-		log.DefaultLogger.Errorf("send response error: %v", err)
-		return err
-	}
-	// keep alive for 3 second for client connection
-	time.Sleep(3 * time.Second)
-	return nil
-}
-
-func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
-	// not implement
-	return nil, nil
+	return resp, nil
 }
