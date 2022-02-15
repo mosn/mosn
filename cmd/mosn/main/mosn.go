@@ -77,8 +77,8 @@ import (
 
 var _ = &corev3.Pipe{}
 
-// Version mosn version
-var Version = "0.25.0"
+// Version mosn version is specified by build tag, in VERSION file
+var Version = ""
 
 func main() {
 	app := newMosnApp(&cmdStart)
