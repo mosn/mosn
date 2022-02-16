@@ -33,6 +33,7 @@ var (
 	secretManagerInstance = &secretManager{
 		validations: make(map[string]*validation),
 	}
+	// sdsCallbacks is used to sense that an asynchronous certificate configuration is successfully generated or updated
 	sdsCallbacks = map[string]func(*v2.TLSConfig){}
 )
 

@@ -24,24 +24,36 @@ import (
 	"os"
 	"testing"
 
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls/certtool"
 )
+
+type secret struct {
+	cert string
+	key  string
+	ca   string
+}
 
 type fakeSdsServerV3 struct {
 	envoy_service_secret_v3.SecretDiscoveryServiceServer
 	server     *grpc.Server
 	sdsUdsPath string
 	started    bool
+	secret     secret
 }
 
 func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
-	s := NewFakeSdsServerV3(sdsUdsPath)
+	s := NewFakeSdsServerV3(sdsUdsPath, t)
+	// start server
 	go func() {
 		err := s.Start()
 		if !s.started {
@@ -51,9 +63,21 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
 	return s
 }
 
-func NewFakeSdsServerV3(sdsUdsPath string) *fakeSdsServerV3 {
+func NewFakeSdsServerV3(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
+	// create a certificate for response
+	priv, err := certtool.GeneratePrivateKey("RSA")
+	require.Nil(t, err)
+	tmpl, err := certtool.CreateTemplate("mosn fake sds", false, nil)
+	require.Nil(t, err)
+	cert, err := certtool.SignCertificate(tmpl, priv)
+	require.Nil(t, err)
 	return &fakeSdsServerV3{
 		sdsUdsPath: sdsUdsPath,
+		secret: secret{
+			cert: cert.CertPem,
+			key:  cert.KeyPem,
+			ca:   certtool.GetRootCA().CertPem,
+		},
 	}
 
 }
@@ -80,6 +104,46 @@ func (s *fakeSdsServerV3) Stop() {
 	}
 }
 
+func (s *fakeSdsServerV3) generateSecretResource(name string) (*any.Any, error) {
+	var secret *envoy_extensions_transport_sockets_tls_v3.Secret
+
+	switch name {
+	case "default":
+		secret = &envoy_extensions_transport_sockets_tls_v3.Secret{
+			Name: "default",
+			Type: &envoy_extensions_transport_sockets_tls_v3.Secret_TlsCertificate{
+				TlsCertificate: &envoy_extensions_transport_sockets_tls_v3.TlsCertificate{
+					CertificateChain: &envoy_config_core_v3.DataSource{
+						Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+							InlineBytes: []byte(s.secret.cert),
+						},
+					},
+					PrivateKey: &envoy_config_core_v3.DataSource{
+						Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+							InlineBytes: []byte(s.secret.key),
+						},
+					},
+				},
+			},
+		}
+	case "rootca":
+		secret = &envoy_extensions_transport_sockets_tls_v3.Secret{
+			Name: "rootca",
+			Type: &envoy_extensions_transport_sockets_tls_v3.Secret_ValidationContext{
+				ValidationContext: &envoy_extensions_transport_sockets_tls_v3.CertificateValidationContext{
+					TrustedCa: &envoy_config_core_v3.DataSource{
+						Specifier: &envoy_config_core_v3.DataSource_InlineBytes{
+							InlineBytes: []byte(s.secret.ca),
+						},
+					},
+				},
+			},
+		}
+
+	}
+	return ptypes.MarshalAny(secret)
+}
+
 func (s *fakeSdsServerV3) StreamSecrets(stream envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
@@ -94,43 +158,38 @@ func (s *fakeSdsServerV3) StreamSecrets(stream envoy_service_secret_v3.SecretDis
 			log.DefaultLogger.Infof("server receive a ack request: %v", req)
 			continue
 		}
+		resource, err := s.generateSecretResource(req.ResourceNames[0])
+		if err != nil {
+			log.DefaultLogger.Errorf("create secret error: %v", err)
+			return err
+		}
 		resp := &envoy_service_discovery_v3.DiscoveryResponse{
 			TypeUrl:     resourcev3.SecretType,
 			VersionInfo: "0",
 			Nonce:       "0",
+			Resources:   []*any.Any{resource},
 		}
-		secret := &envoy_extensions_transport_sockets_tls_v3.Secret{
-			Name: "default",
-		}
-		ms, err := ptypes.MarshalAny(secret)
-		if err != nil {
-			log.DefaultLogger.Errorf("marshal secret error: %v", err)
-			return err
-		}
-		resp.Resources = append(resp.Resources, ms)
 		if err := stream.Send(resp); err != nil {
 			log.DefaultLogger.Errorf("send response error: %v", err)
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (s *fakeSdsServerV3) FetchSecrets(ctx context.Context, discReq *envoy_service_discovery_v3.DiscoveryRequest) (*envoy_service_discovery_v3.DiscoveryResponse, error) {
+	resource, err := s.generateSecretResource(discReq.ResourceNames[0])
+	if err != nil {
+		log.DefaultLogger.Errorf("create secret error: %v", err)
+		return nil, err
+	}
 	resp := &envoy_service_discovery_v3.DiscoveryResponse{
 		TypeUrl:     resourcev3.SecretType,
 		VersionInfo: "0",
 		Nonce:       "0",
+		Resources:   []*any.Any{resource},
 	}
-	secret := &envoy_extensions_transport_sockets_tls_v3.Secret{
-		Name: "default",
-	}
-	ms, err := ptypes.MarshalAny(secret)
-	if err != nil {
-		log.DefaultLogger.Errorf("marshal secret error: %v", err)
-		return nil, err
-	}
-	resp.Resources = append(resp.Resources, ms)
 	return resp, nil
 }
 

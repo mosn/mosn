@@ -21,6 +21,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -30,6 +32,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/sds"
 	"mosn.io/mosn/pkg/types"
 )
@@ -139,6 +142,99 @@ func Test_SdsClient(t *testing.T) {
 			t.Errorf("callback reponse timeout")
 		}
 	})
+}
+
+func TestSdsWithDifferentConfig(t *testing.T) {
+	// init prepare
+	sdsUdsPath := "/tmp/sds3"
+	sds.SubscriberRetryPeriod = 500 * time.Millisecond
+	defer func() {
+		sds.SubscriberRetryPeriod = 3 * time.Second
+	}()
+	// mock sds server
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
+	config := InitSdsSecertConfig(sdsUdsPath)
+	defer sds.CloseSdsClient()
+	// wait server start
+	time.Sleep(time.Second)
+	// register callback
+	finish := make(chan struct{}, 1)
+	mtls.RegisterSdsCallback("finish", func(c *v2.TLSConfig) {
+		select {
+		case finish <- struct{}{}:
+			log.DefaultLogger.Infof("receive a callback, send finish: %+v", c)
+		default:
+			log.DefaultLogger.Errorf("receive a callback, but channel is full, %+v", c)
+		}
+	})
+	// listener from sds
+	sdsConfig := &v2.SdsConfig{
+		CertificateConfig: &v2.SecretConfigWrapper{
+			Name:      "default",
+			SdsConfig: config,
+		},
+		ValidationConfig: &v2.SecretConfigWrapper{
+			Name:      "rootca",
+			SdsConfig: config,
+		},
+	}
+
+	serverConfig := v2.TLSConfig{
+		Status:    true,
+		SdsConfig: sdsConfig,
+		Callbacks: []string{"finish"}, // Add a callback for certificate update success
+	}
+	lc := &v2.Listener{}
+	lc.Name = "server_sds"
+	lc.FilterChains = []v2.FilterChain{
+		{
+			TLSContexts: []v2.TLSConfig{
+				serverConfig,
+			},
+		},
+	}
+	ctxMng, err := mtls.NewTLSServerContextManager(lc)
+	require.Nil(t, err)
+	tls_server := mtls.MockServer{
+		Mng: ctxMng,
+	}
+	tls_server.GoListenAndServe()
+	defer tls_server.Close()
+	time.Sleep(time.Second) //wait server start
+	// make sure certificate is received
+	select {
+	case <-finish:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no certificate callback received")
+	}
+	// a same sds config's certificate with different tls config
+	t.Run("call server, verify success", func(t *testing.T) {
+		cltMng, err := mtls.NewTLSClientContextManager("verify_succes", &v2.TLSConfig{
+			Status:     true,
+			SdsConfig:  sdsConfig,
+			ServerName: "127.0.0.1",
+		})
+		require.Nil(t, err)
+		resp, err := mtls.MockClient(tls_server.Addr, cltMng)
+		require.Nil(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		// release sources
+		ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+	})
+
+	t.Run("call server, verify failed", func(t *testing.T) {
+		cltMng, err := mtls.NewTLSClientContextManager("verify_failed", &v2.TLSConfig{
+			Status:     true,
+			SdsConfig:  sdsConfig,
+			ServerName: "192.168.1.1",
+		})
+		require.Nil(t, err)
+		_, err = mtls.MockClient(tls_server.Addr, cltMng)
+		require.NotNil(t, err)
+	})
+
 }
 
 const sdsJson = `{
