@@ -56,6 +56,7 @@ type streamConn struct {
 	clientStreamIDBase uint64
 	clientStreams      map[uint64]*xStream
 	clientCallbacks    types.StreamConnectionEventListener
+	lastStream         uint64
 }
 
 func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -158,7 +159,14 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		sc.ctxManager.Next()
 	}
 
-	sc.checkGracefulShutdown()
+	// do not need to check graceful shutdown since the server will close the connection.
+	if sc.isServerStream() {
+		sc.checkGracefulShutdown()
+	}
+}
+
+func (sc *streamConn) isServerStream() bool {
+	return sc.clientCallbacks != nil && sc.serverCallbacks == nil
 }
 
 func (sc *streamConn) checkGracefulShutdown() {
@@ -179,7 +187,14 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
-func (sc *streamConn) processGoAway() {
+// process GoAway frame on client side.
+func (sc *streamConn) processClientGoAway(f api.GoAwayPredicate) {
+	sc.lastStream = f.LastStreamID()
+	sc.clientCallbacks.OnGoAway()
+}
+
+// process GoAway frame on server side.
+func (sc *streamConn) processServerGoAway() {
 	if gs, ok := sc.protocol.(api.GracefulShutdown); ok {
 		if sc.inGoAway {
 			return
@@ -205,10 +220,11 @@ func (sc *streamConn) processGoAway() {
 	}
 }
 
+// GoAway tell the client to goaway and will close the connection when there is no active stream left, on serve side.
 func (sc *streamConn) GoAway() {
-	sc.processGoAway()
+	sc.processServerGoAway()
 
-	// checkGracefulShutdown since the connection may already be idle.
+	// checkGracefulShutdown immediately since the connection may already be idle.
 	sc.checkGracefulShutdown()
 }
 
@@ -294,10 +310,14 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		// TODO: remove it? since only goaway + multiplex meaningful?
 		// sc.clientCallbacks.OnGoAway()
 		if _, ok := sc.protocol.(api.GracefulShutdown); !ok {
-			log.Proxy.Errorf(ctx, "Got GoAway frame from client, but protocol not support GoAway, ignore it")
+			log.Proxy.Errorf(ctx, "Got GoAway frame from remote, but protocol not support GoAway, ignore it")
 			return
 		}
-		sc.processGoAway()
+		if sc.isServerStream() {
+			sc.processServerGoAway()
+		} else {
+			sc.processClientGoAway(predicate)
+		}
 		return
 	}
 

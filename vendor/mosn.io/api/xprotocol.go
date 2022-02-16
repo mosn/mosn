@@ -122,6 +122,7 @@ type ServiceAware interface {
 // should be no longer used and turn into the draining state.
 type GoAwayPredicate interface {
 	IsGoAwayFrame() bool
+	LastStreamID()  uint64 // the remote will ignore the stream that larger than the ID
 }
 
 // XProtocol provides extra ability(Heartbeater, Hijacker) to interacts with the proxy framework based on the Protocol interface.
