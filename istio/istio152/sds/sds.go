@@ -31,6 +31,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/sds"
@@ -38,6 +39,7 @@ import (
 )
 
 type SdsStreamClientImpl struct {
+	config                SdsStreamConfig
 	conn                  *grpc.ClientConn
 	cancel                context.CancelFunc
 	secretDiscoveryClient v2.SecretDiscoveryServiceClient
@@ -66,12 +68,14 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 		log.DefaultLogger.Alertf("sds.subscribe.stream", "[sds][subscribe] dial grpc server failed %v", err)
 		return nil, err
 	}
+
 	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
+
 	ctx, cancel := context.WithCancel(context.Background())
-	sdsStreamClient := &SdsStreamClientImpl{
-		conn:                  conn,
-		cancel:                cancel,
-		secretDiscoveryClient: sdsServiceClient,
+	if len(sdsConfig.initialMetadata) > 0 {
+		for k, v := range sdsConfig.initialMetadata {
+			ctx = metadata.AppendToOutgoingContext(ctx, k, v)
+		}
 	}
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
@@ -79,7 +83,14 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 		conn.Close()
 		return nil, err
 	}
-	sdsStreamClient.streamSecretsClient = streamSecretsClient
+
+	sdsStreamClient := &SdsStreamClientImpl{
+		config:                sdsConfig,
+		conn:                  conn,
+		cancel:                cancel,
+		secretDiscoveryClient: sdsServiceClient,
+		streamSecretsClient:   streamSecretsClient,
+	}
 
 	return sdsStreamClient, nil
 }
@@ -122,6 +133,12 @@ func (sc *SdsStreamClientImpl) Recv(provider types.SecretProvider, callback func
 
 // Fetch wraps a discovery request construct and will send a grpc request without grpc options.
 func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
+	if ctx != nil && len(sc.config.initialMetadata) > 0 {
+		for k, v := range sc.config.initialMetadata {
+			ctx = metadata.AppendToOutgoingContext(ctx, k, v)
+		}
+	}
+
 	resp, err := sc.secretDiscoveryClient.FetchSecrets(ctx, &xdsapi.DiscoveryRequest{
 		ResourceNames: []string{name},
 		Node: &envoy_api_v2_core.Node{
@@ -195,8 +212,9 @@ func (sc *SdsStreamClientImpl) Stop() {
 }
 
 type SdsStreamConfig struct {
-	sdsUdsPath string
-	statPrefix string
+	sdsUdsPath      string
+	statPrefix      string
+	initialMetadata map[string]string
 }
 
 func ConvertConfig(config interface{}) (SdsStreamConfig, error) {
@@ -233,6 +251,17 @@ func ConvertConfig(config interface{}) (SdsStreamConfig, error) {
 			}
 			sdsConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
 			sdsConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
+
+			if metaData := grpcService[0].GetInitialMetadata(); len(metaData) > 0 {
+				sdsConfig.initialMetadata = make(map[string]string, len(metaData))
+				for _, kv := range metaData {
+					k, v := kv.GetKey(), kv.GetValue()
+					if k == "" || v == "" {
+						continue
+					}
+					sdsConfig.initialMetadata[k] = v
+				}
+			}
 		}
 	}
 	return sdsConfig, nil

@@ -33,7 +33,17 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func InitSdsSecertConfig(sdsUdsPath string) proto.Message {
+func convertInitialMetadata(metadata map[string]string) []*envoy_api_v2_core.HeaderValue {
+	var meta []*envoy_api_v2_core.HeaderValue
+	if len(metadata) > 0 {
+		for k, v := range metadata {
+			meta = append(meta, &envoy_api_v2_core.HeaderValue{Key: k, Value: v})
+		}
+	}
+	return meta
+}
+
+func InitSdsSecertConfig(sdsUdsPath string, initialMetadata map[string]string) proto.Message {
 	gRPCConfig := &envoy_api_v2_core.GrpcService_GoogleGrpc{
 		TargetUri:  sdsUdsPath,
 		StatPrefix: "sds-prefix",
@@ -57,6 +67,7 @@ func InitSdsSecertConfig(sdsUdsPath string) proto.Message {
 						TargetSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_{
 							GoogleGrpc: gRPCConfig,
 						},
+						InitialMetadata: convertInitialMetadata(initialMetadata),
 					},
 				},
 			},
@@ -78,10 +89,11 @@ func Test_SdsClient(t *testing.T) {
 	sds.SetSdsPostCallback(func() {
 		callback++
 	})
+	metadata := map[string]string{"key1": "value1", "key2": "value2"}
 	// mock sds server
-	srv := InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServer(t, sdsUdsPath, metadata)
 	defer srv.Stop()
-	config := InitSdsSecertConfig(sdsUdsPath)
+	config := InitSdsSecertConfig(sdsUdsPath, metadata)
 	sdsClient := sds.NewSdsClientSingleton(config)
 	defer sds.CloseSdsClient()
 
@@ -154,7 +166,17 @@ const sdsJson = `{
 						"channelCredentials": {"localCredentials": {}},
 						"callCredentials": [{"googleComputeEngine": {}}],
 						"statPrefix": "sds-prefix"
-					}
+					},
+					"initialMetadata": [
+						{
+							"key": "key1",
+							"value": "value1"
+						},
+						{
+							"key": "key2",
+							"value": "value2"
+						}
+					]
 				}
 			]
 		}
@@ -183,6 +205,8 @@ func TestConvertFromJson(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, "@/var/run/test", sdsConfig.sdsUdsPath)
 		require.Equal(t, "sds-prefix", sdsConfig.statPrefix)
+		require.Equal(t, "value1", sdsConfig.initialMetadata["key1"])
+		require.Equal(t, "value2", sdsConfig.initialMetadata["key2"])
 
 		// To Json string
 		b, err := json.Marshal(scw)
@@ -192,8 +216,11 @@ func TestConvertFromJson(t *testing.T) {
 
 	t.Run("got from xds", func(t *testing.T) {
 		scw := &v2.SecretConfigWrapper{
-			Name:      "default",
-			SdsConfig: InitSdsSecertConfig("@/var/run/test"),
+			Name: "default",
+			SdsConfig: InitSdsSecertConfig("@/var/run/test", map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			}),
 		}
 		sdsConfig, err := ConvertConfig(scw.SdsConfig)
 		require.Nil(t, err)
@@ -203,6 +230,7 @@ func TestConvertFromJson(t *testing.T) {
 		// To Json string
 		b, err := json.Marshal(scw)
 		require.Nil(t, err)
+		t.Log(string(b))
 		require.True(t, equalJsonStr(sdsJson, string(b)))
 	})
 }
