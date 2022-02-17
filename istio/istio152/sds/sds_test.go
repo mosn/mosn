@@ -35,10 +35,8 @@ import (
 
 func convertInitialMetadata(metadata map[string]string) []*envoy_api_v2_core.HeaderValue {
 	var meta []*envoy_api_v2_core.HeaderValue
-	if len(metadata) > 0 {
-		for k, v := range metadata {
-			meta = append(meta, &envoy_api_v2_core.HeaderValue{Key: k, Value: v})
-		}
+	for k, v := range metadata {
+		meta = append(meta, &envoy_api_v2_core.HeaderValue{Key: k, Value: v})
 	}
 	return meta
 }

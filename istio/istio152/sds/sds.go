@@ -72,10 +72,8 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if len(sdsConfig.initialMetadata) > 0 {
-		for k, v := range sdsConfig.initialMetadata {
-			ctx = metadata.AppendToOutgoingContext(ctx, k, v)
-		}
+	for k, v := range sdsConfig.initialMetadata {
+		ctx = metadata.AppendToOutgoingContext(ctx, k, v)
 	}
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
@@ -133,7 +131,7 @@ func (sc *SdsStreamClientImpl) Recv(provider types.SecretProvider, callback func
 
 // Fetch wraps a discovery request construct and will send a grpc request without grpc options.
 func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.SdsSecret, error) {
-	if ctx != nil && len(sc.config.initialMetadata) > 0 {
+	if ctx != nil {
 		for k, v := range sc.config.initialMetadata {
 			ctx = metadata.AppendToOutgoingContext(ctx, k, v)
 		}
