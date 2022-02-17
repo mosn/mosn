@@ -159,14 +159,15 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		sc.ctxManager.Next()
 	}
 
-	// do not need to check graceful shutdown since the server will close the connection.
+	// do not need to check graceful shutdown since the remote server will close the connection.
 	if sc.isServerStream() {
 		sc.checkGracefulShutdown()
 	}
 }
 
+// return true means MOSN work on the server side for this stream
 func (sc *streamConn) isServerStream() bool {
-	return sc.clientCallbacks != nil && sc.serverCallbacks == nil
+	return sc.clientCallbacks == nil && sc.serverCallbacks != nil
 }
 
 func (sc *streamConn) checkGracefulShutdown() {
