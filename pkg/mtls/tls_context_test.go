@@ -72,7 +72,7 @@ func TestTLSContextNoCert(t *testing.T) {
 		Status:     true,
 		ServerName: "127.0.0.1",
 	}
-	ctx, err := newTLSContext(cfg, &SecretInfo{})
+	ctx, err := newTLSContext(cfg, &secretInfo{})
 	if err != nil {
 		t.Fatalf("create tls context failed, %v", err)
 	}
