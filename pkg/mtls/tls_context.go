@@ -28,7 +28,9 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-type TlsContextCallback func(cfg *v2.TLSConfig, client *types.TLSConfigContext, server *types.TLSConfigContext)
+// TlsContextCallback will be called before 'newTlsContext' returns, which allows the retrieval of TLSConfigContext
+// of both client and server sides.
+type TlsContextCallback func(cfg *v2.TLSConfig, secret *SecretInfo, client *types.TLSConfigContext, server *types.TLSConfigContext)
 
 var (
 	tlsContextCallback []TlsContextCallback
@@ -40,7 +42,7 @@ func RegisterTlsContextCallback(cb TlsContextCallback) {
 	}
 }
 
-type secretInfo struct {
+type SecretInfo struct {
 	Certificate  string
 	PrivateKey   string
 	Validation   string // root ca
@@ -48,7 +50,7 @@ type secretInfo struct {
 }
 
 // full returns whether the secret info is full enough for a tls config
-func (info *secretInfo) full() bool {
+func (info *SecretInfo) full() bool {
 	return info.Certificate != "" && info.PrivateKey != "" && (info.Validation != "" || info.NoValidation)
 }
 
@@ -157,7 +159,7 @@ func (ctx *tlsContext) GetTLSConfigContext(client bool) *types.TLSConfigContext 
 	}
 }
 
-func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
+func newTLSContext(cfg *v2.TLSConfig, secret *SecretInfo) (*tlsContext, error) {
 	// basic template
 	tmpl, err := tlsConfigTemplate(cfg)
 	if err != nil {
@@ -200,7 +202,7 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 	ctx.setClientConfig(tmpl, cfg, hooks)
 
 	for _, cb := range tlsContextCallback {
-		cb(cfg, ctx.client, ctx.server)
+		cb(cfg, secret, ctx.client, ctx.server)
 	}
 
 	return ctx, nil

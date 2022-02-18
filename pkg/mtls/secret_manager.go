@@ -160,7 +160,7 @@ func (pp *pemProvider) addOrUpdateSdsProvider(index string, cfg *v2.TLSConfig) *
 	p, ok := pp.sdsProviders[index]
 	if !ok {
 		p = &sdsProvider{
-			info: &secretInfo{
+			info: &SecretInfo{
 				Certificate:  pp.cert,
 				PrivateKey:   pp.key,
 				Validation:   pp.rootca,
@@ -211,7 +211,7 @@ func (pp *pemProvider) setValidation(rootca string) {
 type sdsProvider struct {
 	value  atomic.Value // store tlsContext
 	config atomic.Value // store *v2.TLSConfig
-	info   *secretInfo
+	info   *SecretInfo
 }
 
 func (p *sdsProvider) updateConfig(cfg *v2.TLSConfig) {

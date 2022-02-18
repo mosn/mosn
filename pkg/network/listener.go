@@ -48,6 +48,7 @@ const (
 	ListenerClosed
 )
 
+// Factory function for creating mosn listener.
 type ListenerFactory func(lc *v2.Listener) types.Listener
 
 var listenerFactory ListenerFactory = NewListener

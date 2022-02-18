@@ -51,9 +51,12 @@ const (
 	DefaultConnectTimeout = 10 * time.Second
 )
 
-
+// Factory function for creating server side connection.
 type ServerConnFactory func(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection
-type ClientConnFactory func(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection
+
+// Factory function for creating client side connection.
+type ClientConnFactory func(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr,
+	stopChan chan struct{}) types.ClientConnection
 
 var (
 	defaultServerConnFactory ServerConnFactory = newServerConnection
