@@ -33,7 +33,6 @@ import (
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
-	_ "mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
