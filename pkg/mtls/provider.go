@@ -58,12 +58,8 @@ func NewProvider(index string, cfg *v2.TLSConfig) (types.TLSProvider, error) {
 		if err != nil {
 			return nil, err
 		}
-		p := &staticProvider{
+		return &staticProvider{
 			tlsContext: ctx,
-		}
-		for _, cb := range providerUpdateCallbacks {
-			cb(p, cfg, secret)
-		}
-		return p, nil
+		}, nil
 	}
 }

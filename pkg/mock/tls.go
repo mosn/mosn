@@ -5,6 +5,7 @@
 package mock
 
 import (
+	context "context"
 	net "net"
 	reflect "reflect"
 
@@ -260,6 +261,18 @@ func (m *MockSdsClient) EXPECT() *MockSdsClientMockRecorder {
 	return m.recorder
 }
 
+// AckResponse mocks base method.
+func (m *MockSdsClient) AckResponse(resp interface{}) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AckResponse", resp)
+}
+
+// AckResponse indicates an expected call of AckResponse.
+func (mr *MockSdsClientMockRecorder) AckResponse(resp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AckResponse", reflect.TypeOf((*MockSdsClient)(nil).AckResponse), resp)
+}
+
 // AddUpdateCallback mocks base method.
 func (m *MockSdsClient) AddUpdateCallback(name string, callback types.SdsUpdateCallbackFunc) error {
 	m.ctrl.T.Helper()
@@ -286,6 +299,33 @@ func (m *MockSdsClient) DeleteUpdateCallback(name string) error {
 func (mr *MockSdsClientMockRecorder) DeleteUpdateCallback(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUpdateCallback", reflect.TypeOf((*MockSdsClient)(nil).DeleteUpdateCallback), name)
+}
+
+// FetchSecret mocks base method.
+func (m *MockSdsClient) FetchSecret(ctx context.Context, name string) (*types.SdsSecret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchSecret", ctx, name)
+	ret0, _ := ret[0].(*types.SdsSecret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchSecret indicates an expected call of FetchSecret.
+func (mr *MockSdsClientMockRecorder) FetchSecret(ctx, name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchSecret", reflect.TypeOf((*MockSdsClient)(nil).FetchSecret), ctx, name)
+}
+
+// RequireSecret mocks base method.
+func (m *MockSdsClient) RequireSecret(name string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RequireSecret", name)
+}
+
+// RequireSecret indicates an expected call of RequireSecret.
+func (mr *MockSdsClientMockRecorder) RequireSecret(name interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequireSecret", reflect.TypeOf((*MockSdsClient)(nil).RequireSecret), name)
 }
 
 // SetSecret mocks base method.
@@ -321,6 +361,18 @@ func NewMockSecretProvider(ctrl *gomock.Controller) *MockSecretProvider {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSecretProvider) EXPECT() *MockSecretProviderMockRecorder {
 	return m.recorder
+}
+
+// AckResponse mocks base method.
+func (m *MockSecretProvider) AckResponse(resp interface{}) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AckResponse", resp)
+}
+
+// AckResponse indicates an expected call of AckResponse.
+func (mr *MockSecretProviderMockRecorder) AckResponse(resp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AckResponse", reflect.TypeOf((*MockSecretProvider)(nil).AckResponse), resp)
 }
 
 // SetSecret mocks base method.

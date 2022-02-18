@@ -28,6 +28,18 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+type TlsContextCallback func(cfg *v2.TLSConfig, client *types.TLSConfigContext, server *types.TLSConfigContext)
+
+var (
+	tlsContextCallback []TlsContextCallback
+)
+
+func RegisterTlsContextCallback(cb TlsContextCallback) {
+	if cb != nil {
+		tlsContextCallback = append(tlsContextCallback, cb)
+	}
+}
+
 type secretInfo struct {
 	Certificate  string
 	PrivateKey   string
@@ -186,6 +198,11 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 		ctx.setServerConfig(tmpl, cfg, hooks)
 	}
 	ctx.setClientConfig(tmpl, cfg, hooks)
+
+	for _, cb := range tlsContextCallback {
+		cb(cfg, ctx.client, ctx.server)
+	}
+
 	return ctx, nil
 
 }
