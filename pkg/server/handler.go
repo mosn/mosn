@@ -265,9 +265,11 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 		if l.listener.Name() == name {
 			log.DefaultLogger.Infof("graceful closing listener %v", name)
 			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
 				errGlobal = err
 			}
 			if err := l.listener.Close(lctx); err != nil {
+				log.DefaultLogger.Errorf("failed to close listener %v: %v", l.listener.Name(), err)
 				errGlobal = err
 			}
 		}
@@ -289,6 +291,7 @@ func (ch *connHandler) ShutdownListeners() error {
 		utils.GoWithRecover(func() {
 			defer wg.Done()
 			if err := al.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", al.listener.Name(), err)
 				errGlobal.Store(err)
 			}
 		}, nil)

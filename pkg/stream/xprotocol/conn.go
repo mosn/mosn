@@ -50,7 +50,6 @@ type streamConn struct {
 	maxClientStreamID uint64
 	inGoAway          bool
 	sentGoAway        bool
-	shutdownTimer     *time.Timer
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
