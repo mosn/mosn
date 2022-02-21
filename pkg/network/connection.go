@@ -851,13 +851,6 @@ func (c *connection) writeBufLen() (bufLen int) {
 	return
 }
 
-// OnShutdown called on graceful close listener
-func (c *connection) OnShutdown() {
-	for _, cb := range c.connCallbacks {
-		cb.OnEvent(api.OnShutdown)
-	}
-}
-
 // Close Connection after 1 second (to avoid RST) after sending GoAway to client.
 // 1 second is borrow from go.
 var delayTime = 1 * time.Second

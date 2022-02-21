@@ -551,9 +551,9 @@ func (al *activeListener) OnShutdown() {
 	utils.GoWithRecover(func() {
 		al.conns.VisitSafe(func(v interface{}) {
 			conn := v.(*activeConnection).conn
-			// TODO 1: conn.OnShutdown may be blocked on connection.Write, need a proper way to not block too long.
+			// TODO 1: conn.OnConnectionEvent may be blocked on connection.Write, need a proper way to not block too long.
 			// TODO 2: shutdown connections gradual, it's useful when there are many connections.
-			conn.OnShutdown()
+			conn.OnConnectionEvent(api.OnShutdown)
 		})
 	}, nil)
 

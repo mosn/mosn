@@ -77,9 +77,6 @@ type Connection interface {
 	//      - ConnectFailed
 	Close(ccType ConnectionCloseType, eventType ConnectionEvent) error
 
-	// OnShutdown called on graceful close listener
-	OnShutdown()
-
 	// LocalAddr returns the local address of the connection.
 	// For client connection, this is the origin address
 	// For server connection, this is the proxy's address
