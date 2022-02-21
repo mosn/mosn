@@ -195,7 +195,7 @@ func (sc *streamConn) processClientGoAway(f api.GoAwayPredicate) {
 
 // process GoAway frame on server side.
 func (sc *streamConn) processServerGoAway() {
-	if gs, ok := sc.protocol.(api.GracefulShutdown); ok {
+	if gs, ok := sc.protocol.(api.GoAwayer); ok {
 		if sc.inGoAway {
 			return
 		}
@@ -222,8 +222,12 @@ func (sc *streamConn) processServerGoAway() {
 
 // GoAway tell the client to goaway and will close the connection when there is no active stream left, on serve side.
 func (sc *streamConn) GoAway() {
-	sc.processServerGoAway()
+	if !sc.isServerStream() {
+		log.DefaultLogger.Errorf("[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
+		return
+	}
 
+	sc.processServerGoAway()
 	// checkGracefulShutdown immediately since the connection may already be idle.
 	sc.checkGracefulShutdown()
 }
@@ -309,7 +313,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		}
 		// TODO: remove it? since only goaway + multiplex meaningful?
 		// sc.clientCallbacks.OnGoAway()
-		if _, ok := sc.protocol.(api.GracefulShutdown); !ok {
+		if _, ok := sc.protocol.(api.GoAwayer); !ok {
 			log.Proxy.Errorf(ctx, "Got GoAway frame from remote, but protocol not support GoAway, ignore it")
 			return
 		}
