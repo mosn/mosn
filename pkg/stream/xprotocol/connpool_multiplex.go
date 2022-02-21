@@ -81,26 +81,28 @@ func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 }
 
 func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
-	}
+	utils.GoWithRecover(func() {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
+		}
 
-	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
+		p.clientMux.Lock()
+		defer p.clientMux.Unlock()
 
-	// if the pool is already shut down, do nothing directly return
-	if p.shutdown {
-		return
-	}
-	ctx := context.Background() // TODO: a new context ?
-	client, _ := p.newActiveClient(ctx, sub)
-	if client != nil {
-		client.state = Connected
-		client.indexInPool = index
-		p.activeClients[index].Store(sub, client)
-	} else {
-		p.activeClients[index].Delete(sub)
-	}
+		// if the pool is already shut down, do nothing directly return
+		if p.shutdown {
+			return
+		}
+		ctx := context.Background() // TODO: a new context ?
+		client, _ := p.newActiveClient(ctx, sub)
+		if client != nil {
+			client.state = Connected
+			client.indexInPool = index
+			p.activeClients[index].Store(sub, client)
+		} else {
+			p.activeClients[index].Delete(sub)
+		}
+	}, nil)
 }
 
 // CheckAndInit init the connection pool
@@ -131,10 +133,10 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		return true
 	}
 
-	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
-		utils.GoWithRecover(func() {
-			p.init(subProtocol, int(clientIdx))
-		}, nil)
+	// init connection when client is Init or GoAway.
+	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) ||
+		atomic.CompareAndSwapUint32(&client.state, GoAway, Connecting) {
+		p.init(subProtocol, int(clientIdx))
 	}
 
 	return false
@@ -158,23 +160,18 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	subProtocol := p.connpool.codec.ProtocolName()
 
 	activeClient := func() *activeClientMultiplex {
-		var ac *activeClientMultiplex
-
-		// max loop twice
-		for i := 0; i < 2; i++ {
-			client, _ := p.activeClients[clientIdx].Load(subProtocol)
-			if client == nil {
-				break
-			}
-			ac = client.(*activeClientMultiplex)
-
-			// init a new connection when got goaway from server.
-			if atomic.LoadUint32(&ac.goaway) == 1 {
-				p.init(subProtocol, int(clientIdx))
-				ac = nil
-				continue
-			}
+		client, _ := p.activeClients[clientIdx].Load(subProtocol)
+		if client == nil {
+			return nil
 		}
+		ac := client.(*activeClientMultiplex)
+
+		// init a new connection when got goaway from server,
+		// and, will retry after returning types.ConnectionFailure since the state is not Connected
+		if atomic.CompareAndSwapUint32(&ac.state, GoAway, Connecting) {
+			p.init(subProtocol, int(clientIdx))
+		}
+
 		return ac
 	}()
 
@@ -399,7 +396,7 @@ func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamConnectionEventListener
 func (ac *activeClientMultiplex) OnGoAway() {
-	atomic.StoreUint32(&ac.goaway, 1)
+	atomic.StoreUint32(&ac.state, GoAway)
 }
 
 const invalidClientID = -1
