@@ -231,7 +231,7 @@ func (p *sdsProvider) setCertificate(cert, key string) {
 }
 
 func (p *sdsProvider) update() {
-	if !p.info.full() {
+	if !p.info.Full() {
 		return
 	}
 	v := p.config.Load()
