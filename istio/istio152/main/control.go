@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	_ "mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/stagemanager"
 	xstream "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/trace"
