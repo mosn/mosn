@@ -985,6 +985,7 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 	sc.Framer.writeUint32(buf, uint32(code))
 	sc.Framer.writeBytes(buf, debugData)
 	sc.Framer.endWrite(buf)
+	sc.SentGoAway = true
 }
 
 type MClientConn struct {

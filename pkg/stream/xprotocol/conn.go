@@ -60,7 +60,7 @@ type streamConn struct {
 }
 
 func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
-	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
+	serverCallbacks types.ServerStreamConnectionEventListener) types.StreamConnection {
 
 	sc := &streamConn{
 		ctx:        ctx,
@@ -158,7 +158,10 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 2.4 prepare next
 		sc.ctxManager.Next()
 	}
+}
 
+// OnActiveStreamComplete is called when all active streams had been complete
+func (sc *streamConn) OnActiveStreamComplete() {
 	// do not need to check graceful shutdown since the remote server will close the connection.
 	if sc.isServerStream() {
 		sc.checkGracefulShutdown()

@@ -199,6 +199,9 @@ type StreamConnection interface {
 // ServerStreamConnection is a server side stream connection.
 type ServerStreamConnection interface {
 	StreamConnection
+
+	// OnActiveStreamComplete is called when all active streams had been complete
+	OnActiveStreamComplete()
 }
 
 // ClientStreamConnection is a client side stream connection.

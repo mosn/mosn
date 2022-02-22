@@ -498,6 +498,7 @@ type serverConn struct {
 	writingFrameAsync           bool              // started a frame on its own goroutine but haven't heard back on wroteFrameCh
 	needsFrameFlush             bool              // last frame write wasn't a flush
 	inGoAway                    bool              // we've started to or sent GOAWAY
+	SentGoAway                  bool              // we've sent GOAWAY
 	inFrameScheduleLoop         bool              // whether we're in the scheduleFrameWrite loop
 	needToSendGoAway            bool              // we need to schedule a GOAWAY frame write
 	goAwayCode                  ErrCode

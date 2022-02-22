@@ -332,6 +332,10 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 		p.activeStreams.Remove(s.element)
 		p.asMux.Unlock()
 		s.element = nil
+
+		if p.serverStreamConn != nil {
+			p.serverStreamConn.OnActiveStreamComplete()
+		}
 	}
 }
 
