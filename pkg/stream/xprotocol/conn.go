@@ -326,7 +326,10 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 			return
 		}
 		if sc.isServerStream() {
-			sc.processServerGoAway()
+			// Notice: client do not need to send GoAway frame usually.
+			// in HTTP/2: server will send GoAway frame, but we are not sure if this the only choice, so mark it TODO.
+			log.Proxy.Errorf(ctx, "Got GoAway frame from client while not support yet, ignore it")
+
 		} else {
 			sc.processClientGoAway(predicate)
 		}
