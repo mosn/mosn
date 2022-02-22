@@ -46,6 +46,7 @@ type streamConn struct {
 	protocol     api.XProtocol
 	protocolName api.ProtocolName
 
+	serverMutex       sync.Mutex
 	serverCallbacks   types.ServerStreamConnectionEventListener // server side fields
 	maxClientStreamID uint64
 	inGoAway          bool
@@ -199,12 +200,19 @@ func (sc *streamConn) processServerGoAway() {
 		if sc.inGoAway {
 			return
 		}
-		sc.inGoAway = true
+
+		getMaxClientStreamID := func() uint64 {
+			// there might be a little race with setMaxClientStreamID, so we need a small lock
+			sc.serverMutex.Lock()
+			defer sc.serverMutex.Unlock()
+			sc.inGoAway = true
+			return sc.maxClientStreamID
+		}
 
 		// Notice: may not a good idea to newClientStream here,
 		// since goaway frame usually not have a stream ID.
 		ctx := context.Background()
-		fr := gs.GoAway(ctx, sc.maxClientStreamID)
+		fr := gs.GoAway(ctx, getMaxClientStreamID())
 		if fr == nil {
 			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
 			return
@@ -325,10 +333,21 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		return
 	}
 
-	if sc.inGoAway {
+	setMaxClientStreamID := func(id uint64) bool {
+		// there might be a little race with getMaxClientStreamID, so we need a small lock
+		sc.serverMutex.Lock()
+		defer sc.serverMutex.Unlock()
+
+		if sc.inGoAway {
+			return false
+		}
+		sc.maxClientStreamID = id
+		return true
+	}
+
+	if ok := setMaxClientStreamID(frame.GetRequestId()); !ok {
 		return
 	}
-	sc.maxClientStreamID = frame.GetRequestId()
 
 	// inject timeout
 	// if Timeout is zero, do not set the variable, which makes route timeout config can be activated
