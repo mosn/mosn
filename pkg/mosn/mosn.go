@@ -359,14 +359,17 @@ func (m *Mosn) Start() {
 
 // Shutdown means graceful stop servers
 func (m *Mosn) Shutdown() error {
-	var errGlobal error
+	var failed bool
 	for _, srv := range m.servers {
 		if err := srv.Shutdown(); err != nil {
 			log.StartLogger.Errorf("[mosn shutdown] server shutdown failed: %v", err)
-			errGlobal = err
+			failed = true
 		}
 	}
-	return errGlobal
+	if failed {
+		return errors.New("failed to shutdown MOSN")
+	}
+	return nil
 }
 
 func (m *Mosn) Close() {

@@ -280,7 +280,7 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 // ShutdownListeners stop accept new connections
 // and graceful close all the existing connections.
 func (ch *connHandler) ShutdownListeners() error {
-	var errGlobal atomic.Value
+	var failed bool
 	listeners := ch.listeners
 	wg := sync.WaitGroup{}
 	wg.Add(len(listeners))
@@ -292,17 +292,16 @@ func (ch *connHandler) ShutdownListeners() error {
 			defer wg.Done()
 			if err := al.listener.Shutdown(); err != nil {
 				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", al.listener.Name(), err)
-				errGlobal.Store(err)
+				failed = true
 			}
 		}, nil)
 	}
 	wg.Wait()
 
-	err := errGlobal.Load()
-	if err == nil {
-		return nil
+	if failed {
+		return errors.New("failed to shutdown listeners")
 	}
-	return err.(error)
+	return nil
 }
 
 // CloseListeners close listeners immediately
