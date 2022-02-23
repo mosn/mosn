@@ -18,19 +18,21 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"strings"
-
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 func getHeaderFormatter(value string, append bool) headerFormatter {
-	// TODO: variable headers would be support very soon
-	if strings.Index(value, "%") != -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("variable headers not support yet, skip, value: %s", value)
+	if len(value) > 2 && strings.HasPrefix(value, "%") && strings.HasSuffix(value, "%") {
+		variableName := strings.Trim(value, "%")
+		// todo cache the variable so we don't need to find it in format method
+		if _, err := variable.Check(variableName); err == nil {
+			return &variableHeaderFormatter{
+				isAppend:     append,
+				variableName: variableName,
+			}
 		}
-		return nil
 	}
 	return &plainHeaderFormatter{
 		isAppend:    append,
@@ -47,6 +49,23 @@ func (f *plainHeaderFormatter) append() bool {
 	return f.isAppend
 }
 
-func (f *plainHeaderFormatter) format(requestInfo types.RequestInfo) string {
+func (f *plainHeaderFormatter) format(_ context.Context) string {
 	return f.staticValue
+}
+
+type variableHeaderFormatter struct {
+	isAppend     bool
+	variableName string
+}
+
+func (v *variableHeaderFormatter) format(ctx context.Context) string {
+	value, err := variable.GetString(ctx, v.variableName)
+	if err != nil {
+		return ""
+	}
+	return value
+}
+
+func (v *variableHeaderFormatter) append() bool {
+	return v.isAppend
 }

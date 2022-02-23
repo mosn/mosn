@@ -123,13 +123,13 @@ func (vh *VirtualHostImpl) PerFilterConfig() map[string]interface{} {
 }
 
 func (vh *VirtualHostImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	vh.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	vh.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.requestHeadersParser.evaluateHeaders(ctx, headers)
+	vh.globalRouteConfig.requestHeadersParser.evaluateHeaders(ctx, headers)
 }
 
 func (vh *VirtualHostImpl) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	vh.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	vh.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.responseHeadersParser.evaluateHeaders(ctx, headers)
+	vh.globalRouteConfig.responseHeadersParser.evaluateHeaders(ctx, headers)
 }
 
 // NewVirtualHostImpl convert mosn VirtualHost config to actual virtual host object

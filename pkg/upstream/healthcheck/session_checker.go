@@ -72,7 +72,7 @@ func (c *sessionChecker) Start() {
 		c.checkTimer.Stop()
 		c.checkTimeout.Stop()
 	}()
-	c.checkTimer = utils.NewTimer(firstInterval, c.OnCheck)
+	c.checkTimer = utils.NewTimer(c.HealthChecker.initialDelay, c.OnCheck)
 	for {
 		select {
 		case <-c.stop:

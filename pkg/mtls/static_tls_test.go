@@ -81,7 +81,7 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 			ServerName:   tc.Addr,
 			InsecureSkip: true,
 		}
-		cltMng, err := NewTLSClientContextManager(cfg)
+		cltMng, err := NewTLSClientContextManager("", cfg)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			continue
@@ -107,7 +107,7 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 		ServerName:   "www.example.net",
 		InsecureSkip: true,
 	}
-	cltMng, err := NewTLSClientContextManager(cfg)
+	cltMng, err := NewTLSClientContextManager("", cfg)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
 		return
@@ -180,7 +180,7 @@ func TestVerifyClient(t *testing.T) {
 		},
 	}
 	for i, cfg := range clientConfigs {
-		cltMng, err := NewTLSClientContextManager(cfg)
+		cltMng, err := NewTLSClientContextManager("", cfg)
 		if err != nil {
 			t.Errorf("#%d create client context manager failed %v", i, err)
 			continue
@@ -200,7 +200,7 @@ func TestVerifyClient(t *testing.T) {
 		ServerName:   "127.0.0.1",
 		InsecureSkip: true,
 	}
-	cltMng, err := NewTLSClientContextManager(cfg)
+	cltMng, err := NewTLSClientContextManager("", cfg)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
 		return
@@ -254,7 +254,7 @@ func TestInspector(t *testing.T) {
 	server.GoListenAndServe(t)
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
-	cltMng, err := NewTLSClientContextManager(&v2.TLSConfig{
+	cltMng, err := NewTLSClientContextManager("", &v2.TLSConfig{
 		Status:     true,
 		CACert:     cfg.CACert,
 		CertChain:  cfg.CertChain,
@@ -334,7 +334,7 @@ func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
 			ServerName:   tc.Addr,
 			InsecureSkip: true,
 		}
-		cltMng, err := NewTLSClientContextManager(cfg)
+		cltMng, err := NewTLSClientContextManager("", cfg)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			continue
@@ -359,7 +359,7 @@ func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
 		ServerName:   "www.example.net",
 		InsecureSkip: true,
 	}
-	cltMng, err := NewTLSClientContextManager(cfg)
+	cltMng, err := NewTLSClientContextManager("", cfg)
 	if err != nil {
 		t.Errorf("create client context manager failed %v", err)
 		return
@@ -405,7 +405,7 @@ func TestFallback(t *testing.T) {
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
-		clientMgr, err := NewTLSClientContextManager(&cfg)
+		clientMgr, err := NewTLSClientContextManager("", &cfg)
 		if err != nil {
 			t.Fatalf("create tls client context manager failed: %v", err)
 		}
@@ -439,7 +439,7 @@ func TestFallback(t *testing.T) {
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
-		clientMgr, err := NewTLSClientContextManager(&cfg)
+		clientMgr, err := NewTLSClientContextManager("", &cfg)
 		if err != nil {
 			t.Fatalf("create tls client context manager failed: %v", err)
 		}
@@ -466,7 +466,7 @@ func TestFallback(t *testing.T) {
 		if err == nil {
 			t.Fatal("create tls server context without certificate success, expected failed")
 		}
-		clientMgr, err := NewTLSClientContextManager(&cfg)
+		clientMgr, err := NewTLSClientContextManager("", &cfg)
 		if err != nil {
 			t.Fatalf("create tls client context manager failed: %v", err)
 		}
@@ -494,7 +494,7 @@ func TestFallback(t *testing.T) {
 		if _, err := NewTLSServerContextManager(lc); err == nil {
 			t.Fatal("create tls server context without certificate success, expected failed")
 		}
-		if _, err := NewTLSClientContextManager(&cfg); err == nil {
+		if _, err := NewTLSClientContextManager("", &cfg); err == nil {
 			t.Fatal("create tls client context without certificate success, expected failed")
 		}
 	})
@@ -520,7 +520,7 @@ func TestClientFallBack(t *testing.T) {
 		InsecureSkip: true,
 		Fallback:     true,
 	}
-	fallbackMng, err := NewTLSClientContextManager(fallbackConfig)
+	fallbackMng, err := NewTLSClientContextManager("", fallbackConfig)
 	if err != nil {
 		t.Fatalf("tls context manager error: %v", err)
 	}
@@ -540,7 +540,7 @@ func TestHandshaketTimeout(t *testing.T) {
 		Status:       true,
 		InsecureSkip: true,
 	}
-	cltMng, err := NewTLSClientContextManager(tlsConfig)
+	cltMng, err := NewTLSClientContextManager("", tlsConfig)
 	if err != nil {
 		t.Fatalf("tls context manager error: %v", err)
 	}

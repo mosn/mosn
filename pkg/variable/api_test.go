@@ -178,6 +178,17 @@ func TestInterfaceVariableSetter(t *testing.T) {
 	assert.Equal(t, s.(string), "someString")
 }
 
+func TestVarNotGetterHint(t *testing.T) {
+	name := "testVarNotGetterHint"
+	Register(NewVariable(name, nil, nil, DefaultSetter, 0))
+
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	_, err := Get(ctx, name)
+	assert.Equal(t, err.Error(), errGetterNotFound+name)
+}
+
 func BenchmarkGetVariableValue2(b *testing.B) {
 	name := "benchmarkGet"
 	value := "someValue"
