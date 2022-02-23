@@ -70,6 +70,10 @@ func NewFakeSdsServer(sdsUdsPath string, requiredMeta map[string]string) *fakeSd
 
 }
 
+func (s *fakeSdsServer) setRequiredMetadata(requiredMeta map[string]string) {
+	s.requiredMetadata = requiredMeta
+}
+
 func (s *fakeSdsServer) register(rpcs *grpc.Server) {
 	envoy_sds.RegisterSecretDiscoveryServiceServer(rpcs, s)
 }

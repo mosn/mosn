@@ -26,6 +26,7 @@ import (
 
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -92,8 +93,8 @@ func Test_SdsClient(t *testing.T) {
 	srv := InitMockSdsServer(t, sdsUdsPath, metadata)
 	defer srv.Stop()
 	config := InitSdsSecertConfig(sdsUdsPath, metadata)
-	sdsClient := sds.NewSdsClientSingleton(config)
-	defer sds.CloseSdsClient()
+	sdsClient := sds.NewSdsClient("testIndex", config)
+	defer sds.CloseAllSdsClient()
 
 	// wait server start and stop makes reconnect
 	time.Sleep(time.Second)
@@ -150,6 +151,85 @@ func Test_SdsClient(t *testing.T) {
 			t.Errorf("callback reponse timeout")
 		}
 	})
+}
+
+func TestSdsClientMultiplex(t *testing.T) {
+	sdsUdsPath := "/tmp/sds3"
+	assert.Nil(t, udsConnMap[sdsUdsPath])
+
+	srv := InitMockSdsServer(t, sdsUdsPath, nil)
+	defer srv.Stop()
+	go func() {
+		err := srv.Start()
+		if !srv.started {
+			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+		}
+	}()
+	time.Sleep(time.Second)
+	assert.Nil(t, udsConnMap[sdsUdsPath])
+
+	config1 := InitSdsSecertConfig(sdsUdsPath, nil)
+	client1, err := CreateSdsStreamClient(config1)
+	assert.Nil(t, err)
+
+	config2 := InitSdsSecertConfig(sdsUdsPath, map[string]string{"key1": "value1"})
+	client2, err := CreateSdsStreamClient(config2)
+	assert.Nil(t, err)
+
+	// same uds connection
+	assert.Equal(t, client1.(*SdsStreamClientImpl).conn, client2.(*SdsStreamClientImpl).conn)
+
+	// multiplex, two streams
+	assert.Equal(t, client1.(*SdsStreamClientImpl).conn.refCount, 2)
+
+	client1.Stop()
+	assert.Equal(t, client2.(*SdsStreamClientImpl).conn.refCount, 1)
+	assert.NotNil(t, udsConnMap[sdsUdsPath])
+
+	client2.Stop()
+	assert.Nil(t, udsConnMap[sdsUdsPath])
+}
+
+func TestSdsServerShouldActDiffByMeta(t *testing.T) {
+	sdsUdsPath := "/tmp/sds4"
+
+	srv := InitMockSdsServer(t, sdsUdsPath, nil)
+	defer srv.Stop()
+	go func() {
+		err := srv.Start()
+		if !srv.started {
+			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+		}
+	}()
+
+	updateChan := make(chan struct{}, 1)
+	defer sds.CloseAllSdsClient()
+
+	config1 := InitSdsSecertConfig(sdsUdsPath, nil)
+	client1 := sds.NewSdsClient("testIndex1", config1)
+	client1.AddUpdateCallback("default", func(name string, secret *types.SdsSecret) {
+		updateChan <- struct{}{}
+	})
+	select {
+	case <-updateChan:
+	case <-time.After(time.Second * 10):
+		t.Errorf("client1 timeout")
+	}
+
+	meta := map[string]string{"key1": "value1", "key2": "value2"}
+	srv.setRequiredMetadata(meta)
+	config2 := InitSdsSecertConfig(sdsUdsPath, meta)
+	client2 := sds.NewSdsClient("testIndex2", config2)
+	client2.AddUpdateCallback("default", func(name string, secret *types.SdsSecret) {
+		updateChan <- struct{}{}
+	})
+	select {
+	case <-updateChan:
+	case <-time.After(time.Second * 10):
+		t.Errorf("client2 timeout")
+	}
+
+	assert.Equal(t, udsConnMap[sdsUdsPath].refCount, 2)
 }
 
 const sdsJson = `{

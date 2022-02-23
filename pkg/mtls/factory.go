@@ -57,8 +57,10 @@ func (f *defaultFactory) CreateConfigHooks(config map[string]interface{}) Config
 }
 
 // for test
-var getSdsClientFunc func(cfg interface{}) types.SdsClient = sds.NewSdsClientSingleton
+var getSdsClientFunc func(index string, cfg interface{}) types.SdsClient = sds.NewSdsClient
 
-func GetSdsClient(cfg interface{}) types.SdsClient {
-	return getSdsClientFunc(cfg)
+// By design, cfg should be of type v2.TlsConfig.SdsConfig.CertificateConfig.SdsConfig, and
+// index should be the hash value of v2.TlsConfig.SdsConfig.CertificateConfig
+func GetSdsClient(index string, cfg interface{}) types.SdsClient {
+	return getSdsClientFunc(index, cfg)
 }

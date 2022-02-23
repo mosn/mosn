@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -40,7 +41,7 @@ import (
 
 type SdsStreamClientImpl struct {
 	config                SdsStreamConfig
-	conn                  *grpc.ClientConn
+	conn                  *UdsConnection
 	cancel                context.CancelFunc
 	secretDiscoveryClient v2.SecretDiscoveryServiceClient
 	streamSecretsClient   v2.SecretDiscoveryService_StreamSecretsClient
@@ -59,18 +60,13 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 		return nil, err
 	}
 
-	udsPath := "unix:" + sdsConfig.sdsUdsPath
-	conn, err := grpc.Dial(
-		udsPath,
-		grpc.WithInsecure(),
-	)
+	udsConnection, err := getOrCreateUdsConnection(sdsConfig.sdsUdsPath)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.subscribe.stream", "[sds][subscribe] dial grpc server failed %v", err)
 		return nil, err
 	}
 
-	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
-
+	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(udsConnection.conn)
 	ctx, cancel := context.WithCancel(context.Background())
 	for k, v := range sdsConfig.initialMetadata {
 		ctx = metadata.AppendToOutgoingContext(ctx, k, v)
@@ -78,19 +74,80 @@ func CreateSdsStreamClient(config interface{}) (sds.SdsStreamClient, error) {
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.subscribe.stream", "[sds][subscribe] get sds stream secret fail %v", err)
-		conn.Close()
+		udsConnection.DecRef()
 		return nil, err
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[istio152][sds] create sds stream client, config: %v", sdsConfig)
 	}
 
 	sdsStreamClient := &SdsStreamClientImpl{
 		config:                sdsConfig,
-		conn:                  conn,
+		conn:                  udsConnection,
 		cancel:                cancel,
 		secretDiscoveryClient: sdsServiceClient,
 		streamSecretsClient:   streamSecretsClient,
 	}
 
 	return sdsStreamClient, nil
+}
+
+type UdsConnection struct {
+	path     string
+	refCount int // must be protected by udsConnLock
+	conn     *grpc.ClientConn
+}
+
+// must be protected by udsConnLock
+func (u *UdsConnection) IncRef() {
+	u.refCount++
+}
+
+func (u *UdsConnection) DecRef() {
+	udsConnLock.Lock()
+	defer udsConnLock.Unlock()
+
+	u.refCount--
+	if u.refCount <= 0 {
+		delete(udsConnMap, u.path)
+		err := u.conn.Close()
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[istio152][sds] decrease refCount and close uds connection, path: %v, err: %v",
+				&u.path, err)
+		}
+	}
+}
+
+var (
+	udsConnMap  = map[string]*UdsConnection{}
+	udsConnLock = sync.Mutex{}
+)
+
+func getOrCreateUdsConnection(path string) (*UdsConnection, error) {
+	udsConnLock.Lock()
+	defer udsConnLock.Unlock()
+
+	if conn, ok := udsConnMap[path]; ok {
+		conn.IncRef()
+		return conn, nil
+	}
+
+	udsPath := "unix:" + path
+	conn, err := grpc.Dial(udsPath, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[istio152][sds] create uds connection, path: %v", udsPath)
+	}
+
+	udsConn := &UdsConnection{path: path, conn: conn}
+	udsConnMap[path] = udsConn
+	udsConn.IncRef()
+
+	return udsConn, nil
 }
 
 func (sc *SdsStreamClientImpl) Send(name string) error {
@@ -154,7 +211,6 @@ func (sc *SdsStreamClientImpl) Fetch(ctx context.Context, name string) (*types.S
 	secret := &auth.Secret{}
 	ptypes.UnmarshalAny(res, secret)
 	return convertSecret(secret), nil
-
 }
 
 func (sc *SdsStreamClientImpl) AckResponse(resp interface{}) {
@@ -204,7 +260,7 @@ func (sc *SdsStreamClientImpl) ackResponse(resp *xdsapi.DiscoveryResponse) error
 func (sc *SdsStreamClientImpl) Stop() {
 	sc.cancel()
 	if sc.conn != nil {
-		sc.conn.Close()
+		sc.conn.DecRef()
 		sc.conn = nil
 	}
 }

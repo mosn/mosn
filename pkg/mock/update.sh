@@ -11,6 +11,7 @@ files=(
 ../types/route.go mosn_route.go
 ../stagemanager/stage_manager.go stm_app.go
 ../types/stream.go stream.go
+../types/tls.go tls.go
 ../types/upstream.go upstream.go
 )
 

@@ -18,7 +18,8 @@
 package mtls
 
 import (
-	"reflect"
+	"crypto/sha256"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 
@@ -75,9 +76,14 @@ func (mng *secretManager) addOrUpdatePemProvider(sdsConfig *v2.SdsConfig) *pemPr
 		}
 		mng.validations[validationName] = v
 	}
-	// found pem provider by sds config
-	certName := sdsConfig.CertificateConfig.Name
-	p, ok := v.certificates[certName]
+
+	// find pem provider by sds config hash value
+	certConfigHash := certificateConfigHash(sdsConfig.CertificateConfig)
+	if certConfigHash == "" {
+		return nil
+	}
+
+	p, ok := v.certificates[certConfigHash]
 	if !ok {
 		// add a new pem provider
 		p = &pemProvider{
@@ -86,22 +92,29 @@ func (mng *secretManager) addOrUpdatePemProvider(sdsConfig *v2.SdsConfig) *pemPr
 			expectedEmpty: v.expectedEmpty,
 			rootca:        v.rootca,
 		}
-		v.certificates[certName] = p
+		v.certificates[certConfigHash] = p
 		// set a certificate callback
-		client := GetSdsClient(p.sdsConfig.CertificateConfig.SdsConfig)
+		client := GetSdsClient(certConfigHash, p.sdsConfig.CertificateConfig.SdsConfig)
 		client.AddUpdateCallback(p.sdsConfig.CertificateConfig.Name, p.setCertificate)
 		if !p.expectedEmpty {
 			client.AddUpdateCallback(p.sdsConfig.ValidationConfig.Name, mng.setValidation)
 		}
-		log.DefaultLogger.Infof("[mtls] [sds provider] add a new pem provider: %s.%s", validationName, certName)
-	} else {
-		// update sds config
-		if !reflect.DeepEqual(p.sdsConfig, sdsConfig) {
-			p.sdsConfig = sdsConfig
-			_ = GetSdsClient(p.sdsConfig.CertificateConfig.SdsConfig)
-		}
+		log.DefaultLogger.Infof("[mtls] [sds provider] add a new pem provider: %s.%s hash: %v", validationName,
+			sdsConfig.CertificateConfig.Name, certConfigHash)
 	}
+
 	return p
+}
+
+func certificateConfigHash(certConfig *v2.SecretConfigWrapper) string {
+	certConfigBytes, err := json.Marshal(certConfig)
+	if err != nil {
+		log.DefaultLogger.Errorf("[mtls][sds provider] fail to marshal CertificateConfig, certConfig: %v", certConfig)
+		return ""
+	}
+
+	h := sha256.Sum256(certConfigBytes)
+	return string(h[:])
 }
 
 // AddOrUpdateProvider will create a new sds provider or update an exists sds provider by the index string.
