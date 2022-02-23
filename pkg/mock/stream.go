@@ -478,6 +478,18 @@ func (mr *MockServerStreamConnectionMockRecorder) GoAway() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoAway", reflect.TypeOf((*MockServerStreamConnection)(nil).GoAway))
 }
 
+// OnActiveStreamComplete mocks base method.
+func (m *MockServerStreamConnection) OnActiveStreamComplete() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnActiveStreamComplete")
+}
+
+// OnActiveStreamComplete indicates an expected call of OnActiveStreamComplete.
+func (mr *MockServerStreamConnectionMockRecorder) OnActiveStreamComplete() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnActiveStreamComplete", reflect.TypeOf((*MockServerStreamConnection)(nil).OnActiveStreamComplete))
+}
+
 // Protocol mocks base method.
 func (m *MockServerStreamConnection) Protocol() api.ProtocolName {
 	m.ctrl.T.Helper()
