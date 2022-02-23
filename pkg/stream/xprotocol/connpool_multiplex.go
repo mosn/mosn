@@ -361,7 +361,6 @@ type activeClientMultiplex struct {
 	indexInPool        int
 	codecClient        stream.Client
 	host               types.CreateConnectionData
-	goaway             uint32 // 1 means already got GoAway from server
 }
 
 // types.ConnectionEventListener

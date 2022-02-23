@@ -237,6 +237,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	}
 	if event == api.OnShutdown && p.serverStreamConn != nil {
 		p.serverStreamConn.GoAway()
+		return
 	}
 }
 
@@ -330,10 +331,11 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 	if s.element != nil {
 		p.asMux.Lock()
 		p.activeStreams.Remove(s.element)
+		len := p.activeStreams.Len()
 		p.asMux.Unlock()
 		s.element = nil
 
-		if p.serverStreamConn != nil {
+		if len == 0 && p.serverStreamConn != nil {
 			p.serverStreamConn.OnActiveStreamComplete()
 		}
 	}
