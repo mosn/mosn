@@ -335,7 +335,16 @@ func (p *poolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.C
 			// do nothing
 		}
 		p.clientMux.Lock()
-		p.activeClients[ac.indexInPool].Delete(ac.subProtocol)
+		if old, _ := p.activeClients[ac.indexInPool].Load(ac.subProtocol); old != nil {
+			oac := old.(*activeClientMultiplex)
+			// only delete the active client when the state matched
+			// in order to prevent deleting the new client when the goaway state client is closing,
+			// since the goaway state client has already been overwritten.
+			// it's safer to introduce a new unique id field for each client, but state seems good enough now.
+			if atomic.LoadUint32(&ac.state) == atomic.LoadUint32(&oac.state) {
+				p.activeClients[ac.indexInPool].Delete(ac.subProtocol)
+			}
+		}
 		p.clientMux.Unlock()
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
