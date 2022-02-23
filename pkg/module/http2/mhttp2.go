@@ -264,6 +264,10 @@ func NewServerConn(conn api.Connection) *MServerConn {
 	return sc
 }
 
+func (sc *MServerConn) InGoAway() bool {
+	return sc.inGoAway
+}
+
 // Init send settings frame and window update
 func (sc *MServerConn) Init() error {
 	settings := writeSettings{
@@ -985,7 +989,6 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 	sc.Framer.writeUint32(buf, uint32(code))
 	sc.Framer.writeBytes(buf, debugData)
 	sc.Framer.endWrite(buf)
-	sc.SentGoAway = true
 }
 
 type MClientConn struct {

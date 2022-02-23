@@ -200,7 +200,7 @@ func (conn *serverStreamConnection) GoAway() {
 }
 
 func (conn *serverStreamConnection) OnActiveStreamComplete() {
-	if conn.sc.SentGoAway && conn.serverCallbacks.ActiveStreamSize() == 0 {
+	if conn.sc.InGoAway() && conn.serverCallbacks.ActiveStreamSize() == 0 {
 		conn.conn.Close(api.DelayClose, api.LocalClose)
 	}
 }

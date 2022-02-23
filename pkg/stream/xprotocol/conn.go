@@ -50,7 +50,6 @@ type streamConn struct {
 	serverCallbacks   types.ServerStreamConnectionEventListener // server side fields
 	maxClientStreamID uint64
 	inGoAway          bool
-	sentGoAway        bool
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
@@ -174,7 +173,7 @@ func (sc *streamConn) isServerStream() bool {
 }
 
 func (sc *streamConn) checkGracefulShutdown() {
-	if sc.sentGoAway && sc.serverCallbacks.ActiveStreamSize() == 0 {
+	if sc.inGoAway && sc.serverCallbacks.ActiveStreamSize() == 0 {
 		sc.netConn.Close(api.DelayClose, api.LocalClose)
 	}
 }
@@ -226,8 +225,6 @@ func (sc *streamConn) processServerGoAway() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
 		}
-
-		sc.sentGoAway = true
 	}
 }
 
