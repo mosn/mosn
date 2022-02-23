@@ -370,7 +370,7 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 // In maglevLoadBalancer, there is a maglev table for consistence hash host choosing.
 // If the chosen host is unhealthy, maglevLoadBalancer will traverse host list to find a healthy host.
 func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.LoadBalancer {
-	names := []string{}
+	names := make([]string, 0, len(set.Hosts()))
 	for _, host := range set.Hosts() {
 		names = append(names, host.AddressString())
 	}
