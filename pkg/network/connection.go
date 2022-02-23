@@ -869,7 +869,8 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 
 	if ccType == api.DelayClose {
 		c.shutdownTimer = time.AfterFunc(delayTime, func() {
-			c.Close(api.FlushWrite, eventType)
+			// same as c.Close(api.FlushWrite)
+			c.Write(buffer.NewIoBufferEOF())
 		})
 		return nil
 	}
