@@ -13,6 +13,8 @@ files=(
 ../types/stream.go stream.go
 ../types/tls.go tls.go
 ../types/upstream.go upstream.go
+../mtls/tls_context.go tls_context.go
+../mtls/types.go mtls_types.go
 )
 
 i=0
