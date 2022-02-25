@@ -48,6 +48,21 @@ const (
 	ListenerClosed
 )
 
+// Factory function for creating mosn listener.
+type ListenerFactory func(lc *v2.Listener) types.Listener
+
+var listenerFactory ListenerFactory = NewListener
+
+func GetListenerFactory() ListenerFactory {
+	return listenerFactory
+}
+
+func RegisterListenerFactory(factory ListenerFactory) {
+	if factory != nil {
+		listenerFactory = factory
+	}
+}
+
 // listener impl based on golang net package
 type listener struct {
 	name                    string

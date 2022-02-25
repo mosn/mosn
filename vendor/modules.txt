@@ -175,7 +175,7 @@ github.com/gogo/protobuf/types
 # github.com/golang-jwt/jwt v3.2.1+incompatible
 ## explicit
 github.com/golang-jwt/jwt
-# github.com/golang/mock v1.4.4
+# github.com/golang/mock v1.6.0
 ## explicit
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.4.3

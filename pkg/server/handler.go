@@ -195,7 +195,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 			}
 		}
 
-		l := network.NewListener(lc)
+		l := network.GetListenerFactory()(lc)
 
 		var err error
 		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, ch, listenerStopChan)

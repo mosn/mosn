@@ -67,7 +67,7 @@ func testBase(t *testing.T, addr net.Addr) {
 		PerConnBufferLimitBytes: 1024,
 		Addr:                    addr,
 	}
-	ln := NewListener(cfg)
+	ln := GetListenerFactory()(cfg)
 
 	el := &mockEventListener{}
 	ln.SetListenerCallbacks(el)
