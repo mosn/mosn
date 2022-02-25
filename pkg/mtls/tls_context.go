@@ -55,12 +55,12 @@ func (info *SecretInfo) Full() bool {
 
 type TlsContext interface {
 	// set the server side tls config
-	SetServerConfig(template *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks, secret *SecretInfo)
+	SetServerConfig(template *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks)
 	// return the server side TLSConfigContext
 	GetServerTLSConfigContext() *types.TLSConfigContext
 
 	// set the client side tls config
-	SetClientConfig(template *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks, secret *SecretInfo)
+	SetClientConfig(template *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks)
 	// return the client side TLSConfigContext
 	GetClientTLSConfigContext() *types.TLSConfigContext
 
@@ -114,7 +114,7 @@ func (ctx *tlsContext) buildMatch(tlsConfig *tls.Config) {
 	ctx.matches = matches
 }
 
-func (ctx *tlsContext) SetServerConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks, secret *SecretInfo) {
+func (ctx *tlsContext) SetServerConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
 	tlsConfig := tmpl.Clone()
 	// no certificate should be set no server tls config
 	if len(tlsConfig.Certificates) == 0 {
@@ -123,8 +123,6 @@ func (ctx *tlsContext) SetServerConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hook
 	tlsConfig.ClientAuth = hooks.GetClientAuth(cfg)
 	tlsConfig.VerifyPeerCertificate = hooks.ServerHandshakeVerify(tlsConfig)
 
-	ctx.config = cfg
-	ctx.secret = secret
 	ctx.server = types.NewTLSConfigContext(tlsConfig, hooks.GenerateHashValue)
 	// build matches
 	ctx.buildMatch(tlsConfig)
@@ -134,7 +132,7 @@ func (ctx *tlsContext) GetServerTLSConfigContext() *types.TLSConfigContext {
 	return ctx.server
 }
 
-func (ctx *tlsContext) SetClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks, secret *SecretInfo) {
+func (ctx *tlsContext) SetClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
 	tlsConfig := tmpl.Clone()
 	tlsConfig.ServerName = cfg.ServerName
 	tlsConfig.VerifyPeerCertificate = hooks.ClientHandshakeVerify(tlsConfig)
@@ -146,8 +144,6 @@ func (ctx *tlsContext) SetClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hook
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyPeerCertificate = nil
 	}
-	ctx.config = cfg
-	ctx.secret = secret
 	ctx.client = types.NewTLSConfigContext(tlsConfig, hooks.GenerateHashValue)
 }
 
@@ -240,11 +236,14 @@ func newTLSContext(cfg *v2.TLSConfig, secret *SecretInfo) (*tlsContext, error) {
 		}
 	}
 
+	ctx.config = cfg
+	ctx.secret = secret
+
 	// needs copy template config
 	if len(tmpl.Certificates) > 0 {
-		ctx.SetServerConfig(tmpl, cfg, hooks, secret)
+		ctx.SetServerConfig(tmpl, cfg, hooks)
 	}
-	ctx.SetClientConfig(tmpl, cfg, hooks, secret)
+	ctx.SetClientConfig(tmpl, cfg, hooks)
 
 	for _, cb := range tlsContextCallback {
 		cb(ctx)
