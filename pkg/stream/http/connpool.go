@@ -223,11 +223,13 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
+	if client.closed {
+		return
+	}
+
 	// return to pool
 	p.clientMux.Lock()
-	if !client.closed {
-		p.availableClients = append(p.availableClients, client)
-	}
+	p.availableClients = append(p.availableClients, client)
 	p.clientMux.Unlock()
 }
 
