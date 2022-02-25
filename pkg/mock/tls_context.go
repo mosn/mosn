@@ -122,25 +122,25 @@ func (mr *MockTlsContextMockRecorder) MatchedServerName(sn interface{}) *gomock.
 }
 
 // SetClientConfig mocks base method.
-func (m *MockTlsContext) SetClientConfig(template *tls.Config, cfg *v2.TLSConfig, hooks mtls.ConfigHooks, secret *mtls.SecretInfo) {
+func (m *MockTlsContext) SetClientConfig(template *tls.Config, cfg *v2.TLSConfig, hooks mtls.ConfigHooks) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetClientConfig", template, cfg, hooks, secret)
+	m.ctrl.Call(m, "SetClientConfig", template, cfg, hooks)
 }
 
 // SetClientConfig indicates an expected call of SetClientConfig.
-func (mr *MockTlsContextMockRecorder) SetClientConfig(template, cfg, hooks, secret interface{}) *gomock.Call {
+func (mr *MockTlsContextMockRecorder) SetClientConfig(template, cfg, hooks interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientConfig", reflect.TypeOf((*MockTlsContext)(nil).SetClientConfig), template, cfg, hooks, secret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClientConfig", reflect.TypeOf((*MockTlsContext)(nil).SetClientConfig), template, cfg, hooks)
 }
 
 // SetServerConfig mocks base method.
-func (m *MockTlsContext) SetServerConfig(template *tls.Config, cfg *v2.TLSConfig, hooks mtls.ConfigHooks, secret *mtls.SecretInfo) {
+func (m *MockTlsContext) SetServerConfig(template *tls.Config, cfg *v2.TLSConfig, hooks mtls.ConfigHooks) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetServerConfig", template, cfg, hooks, secret)
+	m.ctrl.Call(m, "SetServerConfig", template, cfg, hooks)
 }
 
 // SetServerConfig indicates an expected call of SetServerConfig.
-func (mr *MockTlsContextMockRecorder) SetServerConfig(template, cfg, hooks, secret interface{}) *gomock.Call {
+func (mr *MockTlsContextMockRecorder) SetServerConfig(template, cfg, hooks interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetServerConfig", reflect.TypeOf((*MockTlsContext)(nil).SetServerConfig), template, cfg, hooks, secret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetServerConfig", reflect.TypeOf((*MockTlsContext)(nil).SetServerConfig), template, cfg, hooks)
 }
