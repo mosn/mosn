@@ -215,6 +215,9 @@ func (p *poolMultiplex) Shutdown() {
 				if ac.keepAlive != nil {
 					ac.keepAlive.keepAlive.Stop()
 				}
+				if ac.codecClient.ActiveRequestsNum() == 0 {
+					ac.codecClient.Close()
+				}
 				return true
 			}
 			p.activeClients[i].Range(f)
@@ -367,7 +370,8 @@ func (ac *activeClientMultiplex) OnDestroyStream() {
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
-	if atomic.LoadUint32(&ac.state) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+	if (ac.pool.shutdown || atomic.LoadUint32(&ac.state) == GoAway) &&
+		ac.codecClient.ActiveRequestsNum() == 0 {
 		ac.codecClient.Close()
 	}
 }
