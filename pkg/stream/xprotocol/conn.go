@@ -182,15 +182,14 @@ func (sc *streamConn) GoAway() {
 	if gs, ok := sc.protocol.(api.GoAwayer); ok {
 		// Notice: may not a good idea to newClientStream here,
 		// since goaway frame usually not have a stream ID.
-		ctx := context.Background()
-		fr := gs.GoAway(ctx)
+		fr := gs.GoAway(sc.ctx)
 		if fr == nil {
 			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
 			return
 		}
 
-		sender := sc.newClientStream(ctx)
-		sender.AppendHeaders(ctx, fr.GetHeader(), true)
+		sender := sc.newClientStream(sc.ctx)
+		sender.AppendHeaders(sc.ctx, fr.GetHeader(), true)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
 		}
