@@ -46,16 +46,12 @@ type streamConn struct {
 	protocol     api.XProtocol
 	protocolName api.ProtocolName
 
-	serverMutex       sync.Mutex
-	serverCallbacks   types.ServerStreamConnectionEventListener // server side fields
-	maxClientStreamID uint64
-	inGoAway          bool
+	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
 	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
 	clientStreams      map[uint64]*xStream
 	clientCallbacks    types.StreamConnectionEventListener
-	lastStream         uint64
 }
 
 func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -159,23 +155,9 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	}
 }
 
-// OnActiveStreamComplete is called when all active streams had been complete
-func (sc *streamConn) OnActiveStreamComplete() {
-	// do not need to check graceful shutdown since the remote server will close the connection.
-	if sc.isServerStream() {
-		sc.checkGracefulShutdown()
-	}
-}
-
 // return true means MOSN work on the server side for this stream
 func (sc *streamConn) isServerStream() bool {
 	return sc.clientCallbacks == nil && sc.serverCallbacks != nil
-}
-
-func (sc *streamConn) checkGracefulShutdown() {
-	if sc.inGoAway && sc.serverCallbacks.ActiveStreamSize() == 0 {
-		sc.netConn.Close(api.DelayClose, api.LocalClose)
-	}
 }
 
 func (sc *streamConn) Protocol() types.ProtocolName {
@@ -190,31 +172,18 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
-// process GoAway frame on client side.
-func (sc *streamConn) processClientGoAway(f api.GoAwayPredicate) {
-	sc.lastStream = f.LastStreamID()
-	sc.clientCallbacks.OnGoAway()
-}
+// GoAway tell the client to goaway and will close the connection when there is no active stream left, on serve side.
+func (sc *streamConn) GoAway() {
+	if !sc.isServerStream() {
+		log.DefaultLogger.Alertf("xprotocol.goaway", "[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
+		return
+	}
 
-// process GoAway frame on server side.
-func (sc *streamConn) processServerGoAway() {
 	if gs, ok := sc.protocol.(api.GoAwayer); ok {
-		if sc.inGoAway {
-			return
-		}
-
-		getMaxClientStreamID := func() uint64 {
-			// there might be a little race with setMaxClientStreamID, so we need a small lock
-			sc.serverMutex.Lock()
-			defer sc.serverMutex.Unlock()
-			sc.inGoAway = true
-			return sc.maxClientStreamID
-		}
-
 		// Notice: may not a good idea to newClientStream here,
 		// since goaway frame usually not have a stream ID.
 		ctx := context.Background()
-		fr := gs.GoAway(ctx, getMaxClientStreamID())
+		fr := gs.GoAway(ctx)
 		if fr == nil {
 			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
 			return
@@ -226,18 +195,6 @@ func (sc *streamConn) processServerGoAway() {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
 		}
 	}
-}
-
-// GoAway tell the client to goaway and will close the connection when there is no active stream left, on serve side.
-func (sc *streamConn) GoAway() {
-	if !sc.isServerStream() {
-		log.DefaultLogger.Errorf("[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
-		return
-	}
-
-	sc.processServerGoAway()
-	// checkGracefulShutdown immediately since the connection may already be idle.
-	sc.checkGracefulShutdown()
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
@@ -319,37 +276,12 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
-		// TODO: remove it? since only goaway + multiplex meaningful?
-		// sc.clientCallbacks.OnGoAway()
-		if _, ok := sc.protocol.(api.GoAwayer); !ok {
-			log.Proxy.Errorf(ctx, "Got GoAway frame from remote, but protocol not support GoAway, ignore it")
-			return
-		}
 		if sc.isServerStream() {
-			// in HTTP/2: server will send GoAway frame, but we are not sure if this is the only choice in real world,
-			// so, mark it TODO.
-			// also, client do not need to send GoAway frame usually, it's acceptable.
+			// client do not need to send GoAway frame usually, it's acceptable.
 			log.Proxy.Errorf(ctx, "Got GoAway frame from client while not support yet, ignore it")
-
 		} else {
-			sc.processClientGoAway(predicate)
+			sc.clientCallbacks.OnGoAway()
 		}
-		return
-	}
-
-	setMaxClientStreamID := func(id uint64) bool {
-		// there might be a little race with getMaxClientStreamID, so we need a small lock
-		sc.serverMutex.Lock()
-		defer sc.serverMutex.Unlock()
-
-		if sc.inGoAway {
-			return false
-		}
-		sc.maxClientStreamID = id
-		return true
-	}
-
-	if ok := setMaxClientStreamID(frame.GetRequestId()); !ok {
 		return
 	}
 

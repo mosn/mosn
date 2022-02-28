@@ -44,8 +44,6 @@ const (
 	FlushWrite ConnectionCloseType = "FlushWrite"
 	// NoFlush means close connection without flushing buffer
 	NoFlush ConnectionCloseType = "NoFlush"
-	// DelayClose means wait for 1 second first, then do FlushWrite
-	DelayClose ConnectionCloseType = "DelayClose"
 )
 
 // Connection interface

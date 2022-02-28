@@ -199,12 +199,6 @@ func (conn *serverStreamConnection) GoAway() {
 	conn.sc.GracefulShutdown()
 }
 
-func (conn *serverStreamConnection) OnActiveStreamComplete() {
-	if conn.sc.InGoAway() && conn.serverCallbacks.ActiveStreamSize() == 0 {
-		conn.conn.Close(api.DelayClose, api.LocalClose)
-	}
-}
-
 func newServerStreamConnection(ctx context.Context, connection api.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	h2sc := http2.NewServerConn(connection)

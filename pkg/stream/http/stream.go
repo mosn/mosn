@@ -479,10 +479,6 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 	return ssc
 }
 
-func (conn *serverStreamConnection) OnActiveStreamComplete() {
-	// do nothing for http protocol
-}
-
 func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		var reason types.StreamResetReason

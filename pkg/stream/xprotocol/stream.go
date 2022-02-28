@@ -165,14 +165,6 @@ func (s *xStream) GetStream() types.Stream {
 }
 
 func (s *xStream) ResetStream(reason types.StreamResetReason) {
-	// reset by goaway, support retry.
-	if s.sc.lastStream > 0 && s.id > s.sc.lastStream {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("xprotocol client reset by goaway, retry it, lastStream = %d, streamId = %d", s.sc.lastStream, s.id)
-		}
-		reason = types.StreamConnectionFailed
-	}
-
 	if s.direction == stream.ClientStream && !s.connReset {
 		s.sc.clientMutex.Lock()
 		delete(s.sc.clientStreams, s.id)

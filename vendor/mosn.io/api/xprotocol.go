@@ -147,8 +147,8 @@ type XProtocol interface {
 // GoAwayer provides the ability to construct proper GoAway command for xprotocol,
 // it's not required, please NOT implement this interface if the protocol doesn't has goaway.
 type GoAwayer interface {
-	// GoAway builds an active GoAway command, requestId is the maxClientStreamID
-	GoAway(context context.Context, requestId uint64) XFrame
+	// GoAway builds an active GoAway command
+	GoAway(context context.Context) XFrame
 }
 
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols

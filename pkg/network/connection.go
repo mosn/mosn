@@ -851,10 +851,6 @@ func (c *connection) writeBufLen() (bufLen int) {
 	return
 }
 
-// Close Connection after 1 second (to avoid RST) after sending GoAway to client.
-// 1 second is borrow from go.
-var delayTime = 1 * time.Second
-
 func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.ConnectionEvent) error {
 	defer func() {
 		if p := recover(); p != nil {
@@ -865,14 +861,6 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	// always stop the previous timer.
 	if t := c.shutdownTimer; t != nil {
 		t.Stop()
-	}
-
-	if ccType == api.DelayClose {
-		c.shutdownTimer = time.AfterFunc(delayTime, func() {
-			// same as c.Close(api.FlushWrite)
-			c.Write(buffer.NewIoBufferEOF())
-		})
-		return nil
 	}
 
 	if ccType == api.FlushWrite {
