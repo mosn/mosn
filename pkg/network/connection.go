@@ -80,7 +80,6 @@ type connection struct {
 	ioBuffers          []buffer.IoBuffer
 	writeBufferChan    chan *[]buffer.IoBuffer
 	transferChan       chan uint64
-	shutdownTimer      *time.Timer
 
 	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
@@ -857,11 +856,6 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 			log.DefaultLogger.Errorf("[network] [close connection] panic %v\n%s", p, string(debug.Stack()))
 		}
 	}()
-
-	// always stop the previous timer.
-	if t := c.shutdownTimer; t != nil {
-		t.Stop()
-	}
 
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())

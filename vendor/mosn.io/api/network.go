@@ -63,7 +63,6 @@ type Connection interface {
 	// ConnectionCloseType - how to close to connection
 	//      - FlushWrite: connection will be closed after buffer flushed to underlying io
 	//      - NoFlush: close connection asap
-	//      - DelayClose: do FlushWrite after 1 second.
 	// ConnectionEvent - why to close the connection
 	//      - RemoteClose
 	//  - LocalClose

@@ -209,7 +209,6 @@ func TestProxyWithFilters(t *testing.T) {
 			sconn := mock.NewMockServerStreamConnection(ctrl)
 			sconn.EXPECT().Protocol().Return(types.ProtocolName("Http1")).AnyTimes()
 			sconn.EXPECT().EnableWorkerPool().Return(true).AnyTimes()
-			sconn.EXPECT().OnActiveStreamComplete().Return().AnyTimes()
 			return sconn
 		})
 	// mock a span

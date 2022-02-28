@@ -264,10 +264,6 @@ func NewServerConn(conn api.Connection) *MServerConn {
 	return sc
 }
 
-func (sc *MServerConn) InGoAway() bool {
-	return sc.inGoAway
-}
-
 // Init send settings frame and window update
 func (sc *MServerConn) Init() error {
 	settings := writeSettings{

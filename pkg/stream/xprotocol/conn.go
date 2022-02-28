@@ -55,7 +55,7 @@ type streamConn struct {
 }
 
 func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
-	serverCallbacks types.ServerStreamConnectionEventListener) types.StreamConnection {
+	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConn{
 		ctx:        ctx,
@@ -106,7 +106,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// decode frames
 	for {
 		if buf.Len() == 0 {
-			break
+			return
 		}
 		// 1. get stream-level ctx with bufferCtx
 		streamCtx := sc.ctxManager.Get()
@@ -121,7 +121,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		// 2.1 no enough data, break loop
 		if frame == nil && err == nil {
-			break
+			return
 		}
 
 		// 2.2 handle error
@@ -134,7 +134,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v decode error: %v, buf data: %v", sc.netConn.ID(), sc.netConn.RemoteAddr(), err, buf.Bytes()[:size])
 
 			sc.handleError(streamCtx, frame, err)
-			break
+			return
 		}
 
 		// 2.3 handle frame
@@ -293,7 +293,6 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
-	// record the max stream id
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, "[stream] [xprotocol] new stream detect, requestId = %v", serverStream.id)
