@@ -159,27 +159,14 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 
 	subProtocol := p.connpool.codec.ProtocolName()
 
-	activeClient := func() *activeClientMultiplex {
-		client, _ := p.activeClients[clientIdx].Load(subProtocol)
-		if client == nil {
-			return nil
-		}
-		ac := client.(*activeClientMultiplex)
-
-		// init a new connection when got goaway from server,
-		// and, will retry after returning types.ConnectionFailure since the state is not Connected
-		if atomic.CompareAndSwapUint32(&ac.state, GoAway, Connecting) {
-			p.init(subProtocol, int(clientIdx))
-		}
-
-		return ac
-	}()
+	client, _ := p.activeClients[clientIdx].Load(subProtocol)
 
 	host := p.Host()
-	if activeClient == nil {
+	if client == nil {
 		return host, nil, types.ConnectionFailure
 	}
 
+	activeClient := client.(*activeClientMultiplex)
 	if atomic.LoadUint32(&activeClient.state) != Connected {
 		return host, nil, types.ConnectionFailure
 	}
