@@ -172,7 +172,7 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
-// GoAway tell the client to goaway and will close the connection when there is no active stream left, on serve side.
+// GoAway send goaway frame to client.
 func (sc *streamConn) GoAway() {
 	if !sc.isServerStream() {
 		log.DefaultLogger.Alertf("xprotocol.goaway", "[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
