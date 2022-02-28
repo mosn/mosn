@@ -216,8 +216,12 @@ type ConnectionHandler interface {
 	// RemoveListeners find and removes a listener by listener name.
 	RemoveListeners(name string)
 
+	// GracefulStopListener graceful stop a listener by listener name
+	// stop accept connections + graceful stop existing connections
+	GracefulStopListener(lctx context.Context, name string) error
+
 	// GracefulCloseListener graceful close a listener by listener name
-	// stop accept connections + graceful stop existing connections + close listener
+	// similar to GracefulStopListener, but this will close listener
 	GracefulCloseListener(lctx context.Context, name string) error
 
 	// ShutdownListeners stop accept connections from all listeners the ConnectionHandler has.

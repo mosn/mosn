@@ -259,6 +259,20 @@ func (ch *connHandler) RemoveListeners(name string) {
 	}
 }
 
+func (ch *connHandler) GracefulStopListener(lctx context.Context, name string) error {
+	var errGlobal error
+	for _, l := range ch.listeners {
+		if l.listener.Name() == name {
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
+			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
+			}
+		}
+	}
+	return errGlobal
+}
+
 func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) error {
 	var errGlobal error
 	for _, l := range ch.listeners {
