@@ -379,6 +379,10 @@ func (ac *activeClientMultiplex) OnDestroyStream() {
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
+
+	if atomic.LoadUint32(&ac.state) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.codecClient.Close()
+	}
 }
 
 func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
