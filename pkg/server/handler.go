@@ -524,6 +524,9 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+		}
 		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}

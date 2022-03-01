@@ -104,9 +104,10 @@ func (proto proto) Reply(ctx context.Context, request api.XFrame) api.XRespFrame
 	return nil
 }
 
-func (proto proto) GoAway(ctx context.Context, requestId uint64) api.XFrame {
-	// it's not a good idea to implement GoAway and return nil
-	return &Request{}
+func (proto proto) GoAway(ctx context.Context) api.XFrame {
+	return &Request{
+		Type: TypeGoAway,
+	}
 }
 
 // Hijacker

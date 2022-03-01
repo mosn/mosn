@@ -6,8 +6,10 @@ function makebuild {
 	cp -R $OPWD/extends/* $OPWD/tmpmain
 	# copy mosn main code
 	cp ../../cmd/mosn/main/* $OPWD/tmpmain
-	# GO BUILD
 	cd $OPWD/tmpmain
+	# enable x_example protocol by patching
+	patch <../xprotocol-example.diff
+	# GO BUILD
 	go build -tags=mosn_debug -o main
 	mv ./main "$OPWD/test_mosn"
 	# compile so file

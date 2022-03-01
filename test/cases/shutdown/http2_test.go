@@ -1,6 +1,6 @@
 // +build MOSNTest
 
-package simple
+package shutdown
 
 import (
 	"bytes"
@@ -71,7 +71,7 @@ func TestHTTP2GracefulStop(t *testing.T) {
 				var start time.Time
 				start = time.Now()
 				resp, err := client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
-				log.DefaultLogger.Errorf("client.Post cost %v", time.Since(start))
+				log.DefaultLogger.Infof("client.Post cost %v", time.Since(start))
 				Verify(err, Equal, nil)
 				respBody, err := ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)
@@ -84,7 +84,7 @@ func TestHTTP2GracefulStop(t *testing.T) {
 				}()
 				start = time.Now()
 				resp, err = client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
-				log.DefaultLogger.Errorf("client.Post cost %v", time.Since(start))
+				log.DefaultLogger.Infof("client.Post cost %v", time.Since(start))
 				Verify(err, Equal, nil)
 				respBody, err = ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)

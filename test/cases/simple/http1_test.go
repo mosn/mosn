@@ -357,3 +357,57 @@ const ConfigSimpleHTTP1 = `{
                 ]
         }
 }`
+
+const ConfigSimpleHTTP2 = `{
+        "servers":[
+                {
+                        "default_log_path":"stdout",
+                        "default_log_level": "ERROR",
+                        "routers": [
+                                {
+                                        "router_config_name":"router_to_server",
+                                        "virtual_hosts":[{
+                                                "name":"server_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
+                                                        {
+                                                                "match":{"prefix":"/"},
+                                                                "route":{"cluster_name":"server_cluster"}
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
+                        "listeners":[
+                                {
+                                        "address":"127.0.0.1:2046",
+                                        "bind_port": true,
+                                        "filter_chains": [{
+                                                "filters": [
+                                                        {
+                                                                "type": "proxy",
+                                                                "config": {
+                                                                        "downstream_protocol": "Http2",
+                                                                        "upstream_protocol": "Http2",
+                                                                        "router_config_name":"router_to_server"
+                                                                }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ]
+                }
+        ],
+        "cluster_manager":{
+                "clusters":[
+                        {
+                                "name": "server_cluster",
+                                "type": "SIMPLE",
+                                "lb_type": "LB_RANDOM",
+                                "hosts":[
+                                        {"address":"127.0.0.1:8080"}
+                                ]
+                        }
+                ]
+        }
+}`
