@@ -260,7 +260,7 @@ func TestXProtocolExampleGracefulStop(t *testing.T) {
 				resp, err := request(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
 				Verify(err, Equal, nil)
-				Verify(len(resp), Equal, len(tc.reqBody))
+				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, false)
 
 				// 2. graceful stop after send request and before received the response
@@ -272,7 +272,7 @@ func TestXProtocolExampleGracefulStop(t *testing.T) {
 				resp, err = request(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
 				Verify(err, Equal, nil)
-				Verify(len(resp), Equal, len(tc.reqBody))
+				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, true)
 			}
 		})
@@ -331,5 +331,15 @@ const ConfigSimpleXProtocolExample = `{
                                 ]
                         }
                 ]
-        }
+        },
+        "third_part_codec": {
+                "codecs": [
+                        {
+                                "enable": true,
+                                "type": "go-plugin",
+                                "path": "../codec.so",
+                                "loader_func_name": "LoadCodec"
+                        }
+               ]
+       }
 }`

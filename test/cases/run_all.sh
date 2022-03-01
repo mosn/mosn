@@ -4,12 +4,12 @@ function makebuild {
 	mkdir -p $OPWD/tmpmain
 	# copy test code for extend
 	cp -R $OPWD/extends/* $OPWD/tmpmain
+	# copy x_example protocol codec
+    cp -R ../../examples/codes/xprotocol_with_goplugin_example/codec* tmpmain/pluginsource
 	# copy mosn main code
 	cp ../../cmd/mosn/main/* $OPWD/tmpmain
-	cd $OPWD/tmpmain
-	# enable x_example protocol by patching
-	patch <../xprotocol-example.diff
 	# GO BUILD
+	cd $OPWD/tmpmain
 	go build -tags=mosn_debug -o main
 	mv ./main "$OPWD/test_mosn"
 	# compile so file
