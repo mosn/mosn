@@ -14,7 +14,7 @@ function makebuild {
 	mv ./main "$OPWD/test_mosn"
 	# compile so file
 	cd $OPWD
-	go build -buildmode=plugin tmpmain/pluginsource/*.go
+	ls tmpmain/pluginsource/*.go | xargs -I % sh -c 'go build -buildmode=plugin %'
 	rm -rf $OPWD/tmpmain
 	echo $OPWD/test_mosn
 }
