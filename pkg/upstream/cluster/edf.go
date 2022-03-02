@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"mosn.io/mosn/pkg/configmanager"
 	"sync"
 	"time"
 )
@@ -52,7 +53,7 @@ func (edf *edfSchduler) Add(item WeightItem, weight float64) {
 	defer edf.lock.Unlock()
 	entry := edfEntry{
 		deadline:   edf.currentTime + 1.0/weight,
-		weight:     weight,
+		weight:     edfFixedWeight(weight),
 		item:       item,
 		queuedTime: time.Now(),
 	}
@@ -70,10 +71,21 @@ func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) in
 	entry := edf.items.Peek()
 	edf.currentTime = entry.deadline
 	weight := weightFunc(entry.item)
+	weight = edfFixedWeight(weight)
 	// update the index、deadline and put into priorityQueue again
 	entry.deadline = entry.deadline + 1.0/weight
 	entry.weight = weight
 	entry.queuedTime = time.Now()
 	edf.items.Fix(0)
 	return entry.item
+}
+
+func edfFixedWeight(weight float64) float64 {
+	if weight <= float64(configmanager.MinHostWeight) {
+		return float64(configmanager.MinHostWeight)
+	}
+	if weight >= float64(configmanager.MaxHostWeight) {
+		return float64(configmanager.MaxHostWeight)
+	}
+	return weight
 }

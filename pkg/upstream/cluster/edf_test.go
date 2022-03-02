@@ -18,6 +18,8 @@
 package cluster
 
 import (
+	"math"
+	"mosn.io/mosn/pkg/configmanager"
 	"strconv"
 	"testing"
 
@@ -48,6 +50,18 @@ func Test(t *testing.T) {
 	ele = edfScheduler.NextAndPush(weightFunc)
 	assert.Equal(t, A, ele)
 
+}
+
+func TestEdfFixedWeight(t *testing.T) {
+	if edfFixedWeight(0) != float64(configmanager.MinHostWeight) {
+		t.Fatalf("Except %f but %f", float64(configmanager.MinHostWeight), edfFixedWeight(0))
+	}
+	if edfFixedWeight(math.MaxFloat64) != float64(configmanager.MaxHostWeight) {
+		t.Fatalf("Except %f but %f", float64(configmanager.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
+	}
+	if edfFixedWeight(10.0) != 10.0 {
+		t.Fatalf("Except %f but %f", 10.0, edfFixedWeight(10.0))
+	}
 }
 
 func mockHostList(count int, name string) []types.Host {
