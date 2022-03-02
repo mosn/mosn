@@ -188,8 +188,9 @@ func (sc *streamConn) GoAway() {
 			return
 		}
 
-		sender := sc.newClientStream(sc.ctx)
-		sender.AppendHeaders(sc.ctx, fr.GetHeader(), true)
+		ctx := context.Background()
+		sender := sc.newClientStream(ctx)
+		sender.AppendHeaders(ctx, fr.GetHeader(), true)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
 		}
