@@ -18,9 +18,10 @@
 package cluster
 
 import (
-	"mosn.io/mosn/pkg/configmanager"
 	"sync"
 	"time"
+
+	"mosn.io/mosn/pkg/configmanager"
 )
 
 type edfSchduler struct {
