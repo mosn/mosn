@@ -90,14 +90,10 @@ func (l *SyncList) VisitSafe(f func(v interface{})) {
 	}
 }
 
-// Len returns the length of the list l.
+// Len returns the number of elements of list l.
 func (l *SyncList) Len() int {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 
-	n := 0
-	for e := l.list.Front(); e != nil; e = e.Next() {
-		n++
-	}
-	return n
+	return l.list.Len()
 }
