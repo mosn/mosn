@@ -5,7 +5,7 @@ function makebuild {
 	# copy test code for extend
 	cp -R $OPWD/extends/* $OPWD/tmpmain
 	# copy x_example protocol codec
-    cp -R ../../examples/codes/xprotocol_with_goplugin_example/codec* tmpmain/pluginsource
+	cp -R ../../examples/codes/xprotocol_with_goplugin_example/codec* tmpmain/pluginsource
 	# copy mosn main code
 	cp ../../cmd/mosn/main/* $OPWD/tmpmain
 	# GO BUILD
