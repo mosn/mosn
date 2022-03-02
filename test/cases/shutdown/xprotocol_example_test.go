@@ -1,5 +1,3 @@
-// +build MOSNTest
-
 package shutdown
 
 import (
@@ -51,11 +49,36 @@ func decodeRequest(ctx context.Context, data []byte) (cmd interface{}, err error
 	return request, err
 }
 
-func serve(c net.Conn) error {
+func sendGoAway(c net.Conn) error {
+	buf := make([]byte, 0)
+	buf = append(buf, codec.Magic)
+	buf = append(buf, codec.TypeGoAway)
+	buf = append(buf, codec.DirRequest)
+
+	tempBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytesThr := make([]byte, 4)
+	binary.BigEndian.PutUint32(tempBytesThr, 0)
+	buf = append(buf, tempBytesThr...)
+
+	if _, err := c.Write(buf); err != nil {
+		return err
+	}
+	return nil
+}
+
+func serve(c net.Conn, mode int) error {
 	reqBuff := make([]byte, 64)
 
 	readLength, err := c.Read(reqBuff)
 	if err == nil {
+		if mode == GoAwayBeforeResponse {
+			if err := sendGoAway(c); err != nil {
+				return err
+			}
+		}
 		req := reqBuff[:readLength]
 
 		request, err := decodeRequest(nil, req)
@@ -86,7 +109,18 @@ func serve(c net.Conn) error {
 		// sleep 500 ms
 		time.Sleep(time.Millisecond * 500)
 
-		c.Write(buf)
+		if _, err := c.Write(buf); err != nil {
+			return err
+		}
+
+		if mode == GoAwayAfterResponse {
+			// sleep a while to wait the previous request finished in the mosn side.
+			time.Sleep(time.Millisecond * 10)
+
+			if err := sendGoAway(c); err != nil {
+				return err
+			}
+		}
 
 		return err
 	}
@@ -94,29 +128,51 @@ func serve(c net.Conn) error {
 	return err
 }
 
-func startExampleServer() {
+const (
+	NoGoAway = iota
+	GoAwayBeforeResponse
+	GoAwayAfterResponse
+)
+
+type Server struct {
+	mode      int
+	connected int
+	closed    int
+	conn      net.Listener
+}
+
+func startExampleServer(server *Server) {
 	//1.create server
 	conn, err := net.Listen("tcp", "127.0.0.1:8080")
 	if err != nil {
-		log.DefaultLogger.Errorf("failed to start xprotocol example server")
+		log.DefaultLogger.Errorf("failed to start xprotocol example server: %v", err)
 		return
 	}
+	server.conn = conn
 	for {
 		accept := conn.Accept
 		c, err := accept()
 		if err != nil {
 			fmt.Println("accept closed")
+			break
 		}
+		server.connected++
 		//let serve do accept
 		go func() {
+			defer c.Close()
 			for {
-				if err := serve(c); err != nil {
+				if err := serve(c, server.mode); err != nil {
 					fmt.Printf("serve xprotocol example request failed: %v\n", err)
 					break
 				}
 			}
+			server.closed++
 		}()
 	}
+}
+
+func stopExampleServer(server *Server) {
+	server.conn.Close()
 }
 
 // client
@@ -224,19 +280,21 @@ func request(client *Client, msg string) (string, error) {
 	return string(resp.Payload[:]), nil
 }
 
+// server(mosn) send goaway frame when start graceful stop
 func TestXProtocolExampleGracefulStop(t *testing.T) {
 	Scenario(t, "xprotocol example graceful stop", func() {
 		var m *mosn.MosnOperator
+		server := &Server{
+			mode: NoGoAway,
+		}
 		Setup(func() {
+			go startExampleServer(server)
+
 			m = mosn.StartMosn(ConfigSimpleXProtocolExample)
 			Verify(m, NotNil)
 			time.Sleep(2 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
-			go startExampleServer()
-
-			time.Sleep(time.Second)
-
 			testcases := []struct {
 				reqBody string
 			}{
@@ -262,6 +320,7 @@ func TestXProtocolExampleGracefulStop(t *testing.T) {
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, false)
+				Verify(server.connected, Equal, 1)
 
 				// 2. graceful stop after send request and before received the response
 				go func() {
@@ -274,9 +333,145 @@ func TestXProtocolExampleGracefulStop(t *testing.T) {
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, true)
+				Verify(server.connected, Equal, 1)
 			}
 		})
 		TearDown(func() {
+			stopExampleServer(server)
+			m.Stop()
+		})
+	})
+}
+
+// client(mosn) got away frame before get response
+func TestXProtocolExampleServerGoAwayBeforeResponse(t *testing.T) {
+	Scenario(t, "xprotocol example server goaway", func() {
+		var m *mosn.MosnOperator
+		server := &Server{
+			mode: GoAwayBeforeResponse,
+		}
+		Setup(func() {
+			go startExampleServer(server)
+
+			m = mosn.StartMosn(ConfigSimpleXProtocolExample)
+			Verify(m, NotNil)
+			time.Sleep(2 * time.Second) // wait mosn start
+		})
+		Case("client-mosn-server", func() {
+			testcases := []struct {
+				reqBody string
+			}{
+				{
+					reqBody: "test-req-body",
+				},
+			}
+
+			for _, tc := range testcases {
+				conn, err := net.Dial("tcp", "127.0.0.1:2046")
+				if err != nil {
+					log.DefaultLogger.Errorf("connect to mosn failed: %v", err)
+				}
+				defer conn.Close()
+				client := &Client{
+					conn: conn,
+				}
+				// 1. simple
+				var start time.Time
+				start = time.Now()
+				resp, err := request(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(client.goaway, Equal, false)
+				Verify(server.connected, Equal, 1)
+
+				// sleep a while
+				time.Sleep(time.Millisecond * 10)
+				Verify(server.closed, Equal, 1)
+
+				// 2. try again
+				start = time.Now()
+				resp, err = request(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(client.goaway, Equal, false)
+				Verify(server.connected, Equal, 2)
+
+				// sleep a while
+				time.Sleep(time.Millisecond * 10)
+				Verify(server.closed, Equal, 2)
+			}
+		})
+		TearDown(func() {
+			stopExampleServer(server)
+			m.Stop()
+		})
+	})
+}
+
+// client(mosn) got away frame after get response
+func TestXProtocolExampleServerGoAwayAfterResponse(t *testing.T) {
+	Scenario(t, "xprotocol example server goaway", func() {
+		var m *mosn.MosnOperator
+		server := &Server{
+			mode: GoAwayAfterResponse,
+		}
+		Setup(func() {
+			go startExampleServer(server)
+
+			m = mosn.StartMosn(ConfigSimpleXProtocolExample)
+			Verify(m, NotNil)
+			time.Sleep(2 * time.Second) // wait mosn start
+		})
+		Case("client-mosn-server", func() {
+			testcases := []struct {
+				reqBody string
+			}{
+				{
+					reqBody: "test-req-body",
+				},
+			}
+
+			for _, tc := range testcases {
+				conn, err := net.Dial("tcp", "127.0.0.1:2046")
+				if err != nil {
+					log.DefaultLogger.Errorf("connect to mosn failed: %v", err)
+				}
+				defer conn.Close()
+				client := &Client{
+					conn: conn,
+				}
+				// 1. simple
+				var start time.Time
+				start = time.Now()
+				resp, err := request(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(client.goaway, Equal, false)
+				Verify(server.connected, Equal, 1)
+
+				// sleep a while
+				time.Sleep(time.Millisecond * 100)
+				Verify(server.closed, Equal, 1)
+
+				// 2. try again
+				start = time.Now()
+				resp, err = request(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(client.goaway, Equal, false)
+				Verify(server.connected, Equal, 2)
+
+				// sleep a while
+				time.Sleep(time.Millisecond * 100)
+				Verify(server.closed, Equal, 2)
+			}
+		})
+		TearDown(func() {
+			stopExampleServer(server)
 			m.Stop()
 		})
 	})

@@ -391,6 +391,10 @@ func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
 // types.StreamConnectionEventListener
 func (ac *activeClientMultiplex) OnGoAway() {
 	atomic.StoreUint32(&ac.state, GoAway)
+
+	if ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.codecClient.Close()
+	}
 }
 
 const invalidClientID = -1
