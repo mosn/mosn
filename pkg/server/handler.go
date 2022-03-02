@@ -291,9 +291,9 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 	return errGlobal
 }
 
-// ShutdownListeners stop accept new connections
+// GracefulStopListeners stop accept new connections
 // and graceful close all the existing connections.
-func (ch *connHandler) ShutdownListeners() error {
+func (ch *connHandler) GracefulStopListeners() error {
 	var failed bool
 	listeners := ch.listeners
 	wg := sync.WaitGroup{}

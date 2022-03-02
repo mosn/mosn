@@ -224,9 +224,9 @@ type ConnectionHandler interface {
 	// stop accept connections + graceful stop existing connections + close listener
 	GracefulCloseListener(lctx context.Context, name string) error
 
-	// ShutdownListeners stop accept connections from all listeners the ConnectionHandler has.
+	// GracefulStopListeners stop accept connections from all listeners the ConnectionHandler has.
 	// and graceful stop all the existing connections.
-	ShutdownListeners() error
+	GracefulStopListeners() error
 
 	// CloseListeners close listeners immediately
 	CloseListeners()
