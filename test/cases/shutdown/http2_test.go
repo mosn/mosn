@@ -89,6 +89,12 @@ func TestHTTP2GracefulStop(t *testing.T) {
 				respBody, err = ioutil.ReadAll(resp.Body)
 				Verify(err, Equal, nil)
 				Verify(len(respBody), Equal, len(tc.reqBody))
+
+				// 3. after graceful stop, make sure the server is closed
+				start = time.Now()
+				resp, err = client.Post("http://localhost:2046", "text/plain", bytes.NewReader(tc.reqBody))
+				log.DefaultLogger.Infof("client.Post cost %v", time.Since(start))
+				Verify(err, NotEqual, nil)
 			}
 		})
 		TearDown(func() {
