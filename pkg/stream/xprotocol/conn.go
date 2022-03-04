@@ -184,7 +184,7 @@ func (sc *streamConn) GoAway() {
 		// since goaway frame usually not have a stream ID.
 		fr := gs.GoAway(sc.ctx)
 		if fr == nil {
-			log.DefaultLogger.Errorf("[stream] [xprotocol] goaway return a nil frame")
+			log.DefaultLogger.Debugf("[stream] [xprotocol] goaway return a nil frame")
 			return
 		}
 
