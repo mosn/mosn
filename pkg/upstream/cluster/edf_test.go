@@ -19,11 +19,11 @@ package cluster
 
 import (
 	"math"
-	"mosn.io/mosn/pkg/config/v2"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
