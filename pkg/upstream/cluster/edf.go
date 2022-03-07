@@ -18,9 +18,10 @@
 package cluster
 
 import (
-	"mosn.io/mosn/pkg/config/v2"
 	"sync"
 	"time"
+
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 type edfSchduler struct {
@@ -49,11 +50,12 @@ type WeightItem interface {
 
 // Add new item into the edfSchduler
 func (edf *edfSchduler) Add(item WeightItem, weight float64) {
+	weight = edfFixedWeight(weight)
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	entry := edfEntry{
 		deadline:   edf.currentTime + 1.0/weight,
-		weight:     edfFixedWeight(weight),
+		weight:     weight,
 		item:       item,
 		queuedTime: time.Now(),
 	}
