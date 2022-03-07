@@ -18,10 +18,9 @@
 package cluster
 
 import (
+	"mosn.io/mosn/pkg/config/v2"
 	"sync"
 	"time"
-
-	"mosn.io/mosn/pkg/configmanager"
 )
 
 type edfSchduler struct {
@@ -82,11 +81,11 @@ func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) in
 }
 
 func edfFixedWeight(weight float64) float64 {
-	if weight <= float64(configmanager.MinHostWeight) {
-		return float64(configmanager.MinHostWeight)
+	if weight <= float64(v2.MinHostWeight) {
+		return float64(v2.MinHostWeight)
 	}
-	if weight >= float64(configmanager.MaxHostWeight) {
-		return float64(configmanager.MaxHostWeight)
+	if weight >= float64(v2.MaxHostWeight) {
+		return float64(v2.MaxHostWeight)
 	}
 	return weight
 }

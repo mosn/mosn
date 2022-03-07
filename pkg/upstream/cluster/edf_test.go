@@ -19,11 +19,11 @@ package cluster
 
 import (
 	"math"
+	"mosn.io/mosn/pkg/config/v2"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -53,11 +53,11 @@ func Test(t *testing.T) {
 }
 
 func TestEdfFixedWeight(t *testing.T) {
-	if edfFixedWeight(0) != float64(configmanager.MinHostWeight) {
-		t.Fatalf("Except %f but %f", float64(configmanager.MinHostWeight), edfFixedWeight(0))
+	if edfFixedWeight(0) != float64(v2.MinHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), edfFixedWeight(0))
 	}
-	if edfFixedWeight(math.MaxFloat64) != float64(configmanager.MaxHostWeight) {
-		t.Fatalf("Except %f but %f", float64(configmanager.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
+	if edfFixedWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
 	}
 	if edfFixedWeight(10.0) != 10.0 {
 		t.Fatalf("Except %f but %f", 10.0, edfFixedWeight(10.0))
