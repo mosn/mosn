@@ -42,7 +42,7 @@ import (
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/proto"
-	ptypes "github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -55,7 +55,6 @@ import (
 	"mosn.io/api"
 	istio_v2 "mosn.io/mosn/istio/istio152/config/v2"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
@@ -173,13 +172,13 @@ func Test_convertEndpointsConfig(t *testing.T) {
 				{
 					HostConfig: v2.HostConfig{
 						Address: "192.168.0.2:8080",
-						Weight:  configmanager.MinHostWeight,
+						Weight:  v2.MinHostWeight,
 					},
 				},
 				{
 					HostConfig: v2.HostConfig{
 						Address: "192.168.0.3:8080",
-						Weight:  configmanager.MaxHostWeight,
+						Weight:  v2.MaxHostWeight,
 					},
 				},
 			},
@@ -412,14 +411,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							TypedConfig: accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:                           NewBoolValue(false),
-					XffNumTrustedHops:                          0,
-					SkipXffAppend:                              false,
-					Via:                                        "",
-					GenerateRequestId:                          NewBoolValue(true),
-					ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
-					SetCurrentClientCertDetails:                nil,
-					Proxy_100Continue:                          false,
+					UseRemoteAddress:            NewBoolValue(false),
+					XffNumTrustedHops:           0,
+					SkipXffAppend:               false,
+					Via:                         "",
+					GenerateRequestId:           NewBoolValue(true),
+					ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
+					SetCurrentClientCertDetails: nil,
+					Proxy_100Continue:           false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -1123,10 +1122,10 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 
 func Test_convertPerRouteConfig(t *testing.T) {
 	mixerFilterConfig := &client.HttpClientConfig{
-		ServiceConfigs: map[string]*client.ServiceConfig{istio_v2.MIXER: &client.ServiceConfig{
+		ServiceConfigs: map[string]*client.ServiceConfig{istio_v2.MIXER: {
 			MixerAttributes: &v1.Attributes{
 				Attributes: map[string]*v1.Attributes_AttributeValue{
-					"test": &v1.Attributes_AttributeValue{
+					"test": {
 						Value: &v1.Attributes_AttributeValue_StringValue{
 							StringValue: "test_value",
 						},
@@ -1336,7 +1335,7 @@ func Test_convertStreamFilter_Gzip(t *testing.T) {
 		if tc.expected.ContentLength != rawGzip.ContentLength {
 			t.Errorf("#%d ContentLength check unexpected", i)
 		}
-		for k, _ := range tc.expected.ContentType {
+		for k := range tc.expected.ContentType {
 			if tc.expected.ContentType[k] != rawGzip.ContentType[k] {
 				t.Errorf("#%d ContentType check unexpected", i)
 			}

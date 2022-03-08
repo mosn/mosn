@@ -47,7 +47,6 @@ import (
 	"mosn.io/api"
 	iv2 "mosn.io/mosn/istio/istio152/config/v2"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -94,7 +93,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(xdsListener.Address),
+		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -262,10 +261,10 @@ func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 		}
 
 		weight := xdsHost.GetLoadBalancingWeight().GetValue()
-		if weight < configmanager.MinHostWeight {
-			weight = configmanager.MinHostWeight
-		} else if weight > configmanager.MaxHostWeight {
-			weight = configmanager.MaxHostWeight
+		if weight < v2.MinHostWeight {
+			weight = v2.MinHostWeight
+		} else if weight > v2.MaxHostWeight {
+			weight = v2.MaxHostWeight
 		}
 		host.Weight = weight
 

@@ -123,7 +123,7 @@ func testWRRLBCase(t *testing.T, hostNum int, weightFunc func(int) int) {
 		for i := 0; i < hostNum; i++ {
 			addr := hosts[i].AddressString()
 			rate := float64(results[addr]) / float64(subTotal)
-			expected := float64(weightFunc(i)) / allWeight
+			expected := edfFixedWeight(float64(weightFunc(i))) / allWeight
 			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
