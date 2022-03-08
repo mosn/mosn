@@ -23,11 +23,6 @@ type ContextKey int
 // Context key types(built-in), only used in mosn context package
 const (
 	ContextKeyStreamID ContextKey = iota
-	// currently only support XProtocol request raw data, except H2 and Wasm protocol
-	// h2 supports stream transfer, and the wasm protocol do the actual decode in .wasm file
-	ContextKeyRequestRawData
-	// currently only support XProtocol request raw data
-	ContextKeyResponseRawData
 	ContextKeyConnection
 	ContextKeyConnectionID
 	ContextKeyConnectionPoolIndex

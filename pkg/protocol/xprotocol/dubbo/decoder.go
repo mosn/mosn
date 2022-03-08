@@ -25,9 +25,9 @@ import (
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	mosnCtx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -105,9 +105,9 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
 	switch frame.Direction {
 	case EventRequest:
-		ctx = mosnCtx.WithValue(ctx, types.ContextKeyRequestRawData, frame.rawData)
+		variable.Set(ctx, types.VarRequestRawData, frame.rawData)
 	case EventResponse:
-		ctx = mosnCtx.WithValue(ctx, types.ContextKeyResponseRawData, frame.rawData)
+		variable.Set(ctx, types.VarResponseRawData, frame.rawData)
 	}
 
 	data.Drain(int(frameLen))

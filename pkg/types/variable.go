@@ -65,6 +65,8 @@ const (
 	VarHeaderStatus          string = "x-mosn-status"
 	VarHeaderRPCService      string = "x-mosn-rpc-service"
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
+	VarRequestRawData        string = "x-mosn-req-raw-data"
+	VarResponseRawData       string = "x-mosn-resp-raw-data"
 )
 
 // [Route]: internal

@@ -50,6 +50,8 @@ func init() {
 	variable.Register(variable.NewStringVariable(types.VarQueryString, nil, nil, variable.DefaultStringSetter, 0))
 	variable.Register(variable.NewStringVariable(types.VarMethod, nil, nil, variable.DefaultStringSetter, 0))
 	variable.Register(variable.NewStringVariable(types.VarIstioHeaderHost, nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewVariable(types.VarRequestRawData, nil, nil, variable.DefaultSetter, 0))
+	variable.Register(variable.NewVariable(types.VarResponseRawData, nil, nil, variable.DefaultSetter, 0))
 }
 
 // TODO: use pkg.CommonHeader, why not?
