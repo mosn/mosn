@@ -25,6 +25,7 @@ import (
 	"strconv"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	mosnCtx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -88,7 +89,14 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	}
 
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
+	switch frame.Direction {
+	case EventRequest:
+		ctx = mosnCtx.WithValue(ctx, types.ContextKeyRequestRawData, frame.rawData)
+	case EventResponse:
+		ctx = mosnCtx.WithValue(ctx, types.ContextKeyResponseRawData, frame.rawData)
+	}
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
+
 	data.Drain(int(frame.FrameLength))
 	return frame, nil
 }

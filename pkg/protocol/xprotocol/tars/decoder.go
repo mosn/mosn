@@ -24,6 +24,7 @@ import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/juju/errors"
+	mosnCtx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -41,6 +42,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	copy(rawData, data.Bytes()[:frameLen])
 	req.rawData = rawData
 	req.data = buffer.NewIoBufferBytes(req.rawData)
+	ctx = mosnCtx.WithValue(ctx, types.ContextKeyRequestRawData, req.rawData)
 	reqPacket := &requestf.RequestPacket{}
 	is := codec.NewReader(data.Bytes())
 	err = reqPacket.ReadFrom(is)
@@ -67,6 +69,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	copy(rawData, data.Bytes()[:frameLen])
 	resp.rawData = rawData
 	resp.data = buffer.NewIoBufferBytes(resp.rawData)
+	ctx = mosnCtx.WithValue(ctx, types.ContextKeyResponseRawData, resp.rawData)
 	respPacket := &requestf.ResponsePacket{}
 	is := codec.NewReader(data.Bytes())
 	err = respPacket.ReadFrom(is)

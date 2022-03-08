@@ -23,6 +23,8 @@ type ContextKey int
 // Context key types(built-in), only used in mosn context package
 const (
 	ContextKeyStreamID ContextKey = iota
+	ContextKeyRequestRawData
+	ContextKeyResponseRawData
 	ContextKeyConnection
 	ContextKeyConnectionID
 	ContextKeyConnectionPoolIndex
