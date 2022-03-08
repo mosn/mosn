@@ -41,18 +41,18 @@ func NewStreamFactory(codec api.XProtocolCodec) types.ProtocolStreamFactory {
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
-	return f.newStreamConnection(context, connection, clientCallbacks, nil)
+	return f.newStreamConnection(context, connection, clientCallbacks, nil).(types.ClientStreamConnection)
 }
 
 func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-	return f.newStreamConnection(context, connection, nil, serverCallbacks)
+	return f.newStreamConnection(context, connection, nil, serverCallbacks).(types.ServerStreamConnection)
 }
 
 func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
-	return f.newStreamConnection(context, connection, clientCallbacks, serverCallbacks)
+	return f.newStreamConnection(context, connection, clientCallbacks, serverCallbacks).(types.ClientStreamConnection)
 }
 
 func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {

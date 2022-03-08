@@ -155,6 +155,11 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	}
 }
 
+// return true means MOSN work on the server side for this stream
+func (sc *streamConn) isServerStream() bool {
+	return sc.clientCallbacks == nil && sc.serverCallbacks != nil
+}
+
 func (sc *streamConn) Protocol() types.ProtocolName {
 	return sc.protocolName
 }
@@ -167,9 +172,29 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
+// GoAway send goaway frame to client.
 func (sc *streamConn) GoAway() {
-	// unsupported
-	// TODO: client-side conn pool go away
+	if !sc.isServerStream() {
+		log.DefaultLogger.Alertf("xprotocol.goaway", "[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
+		return
+	}
+
+	if gs, ok := sc.protocol.(api.GoAwayer); ok {
+		// Notice: may not a good idea to newClientStream here,
+		// since goaway frame usually not have a stream ID.
+		fr := gs.GoAway(sc.ctx)
+		if fr == nil {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] goaway return a nil frame")
+			return
+		}
+
+		ctx := context.Background()
+		sender := sc.newClientStream(ctx)
+		sender.AppendHeaders(ctx, fr.GetHeader(), true)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
+		}
+	}
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
@@ -247,11 +272,16 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	}
 
 	// 2. goaway process
-	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() && sc.clientCallbacks != nil {
+	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
-		sc.clientCallbacks.OnGoAway()
+		if sc.isServerStream() {
+			// client do not need to send GoAway frame usually, it's acceptable.
+			log.Proxy.Errorf(ctx, "Got GoAway frame from client while not support yet, ignore it")
+		} else {
+			sc.clientCallbacks.OnGoAway()
+		}
 		return
 	}
 

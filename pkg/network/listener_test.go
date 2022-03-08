@@ -51,6 +51,8 @@ func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemo
 func (e *mockEventListener) OnNewConnection(ctx context.Context, conn api.Connection) {
 }
 
+func (e *mockEventListener) OnShutdown() {}
+
 func (e *mockEventListener) OnClose() {}
 
 func (e *mockEventListener) PreStopHook(ctx context.Context) func() error {

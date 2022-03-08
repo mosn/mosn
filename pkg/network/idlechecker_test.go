@@ -46,6 +46,9 @@ func (h *mockHandler) OnNewConnection(ctx context.Context, conn api.Connection) 
 	conn.Start(ctx)
 }
 
+func (h *mockHandler) OnShutdown() {
+}
+
 func (h *mockHandler) OnClose() {
 }
 

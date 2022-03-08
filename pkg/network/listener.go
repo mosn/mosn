@@ -221,18 +221,30 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 	})
 }
 
-func (l *listener) Stop() error {
+// Shutdown stop accepting new connections and graceful close the existing connections
+func (l *listener) Shutdown() error {
+	changed, err := l.stopAccept()
+	if changed {
+		l.cb.OnShutdown()
+	}
+	return err
+}
+
+// stopAccept just stop accepting new connections
+func (l *listener) stopAccept() (changed bool, err error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.state == ListenerClosed {
-		return nil
+	if l.state == ListenerClosed || l.state == ListenerStopped {
+		return
 	}
 	l.state = ListenerStopped
+	changed = true
 
 	if !l.bindToPort {
-		return nil
+		return
 	}
-	return l.setDeadline(time.Now())
+	err = l.setDeadline(time.Now())
+	return
 }
 
 func (l *listener) setDeadline(t time.Time) error {

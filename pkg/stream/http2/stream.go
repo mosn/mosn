@@ -112,10 +112,6 @@ func (conn *streamConnection) EnableWorkerPool() bool {
 	return true
 }
 
-func (conn *streamConnection) GoAway() {
-	// todo
-}
-
 // types.Stream
 // types.StreamSender
 type stream struct {
@@ -197,6 +193,10 @@ type serverStreamConnection struct {
 	config  StreamConfig
 
 	serverCallbacks types.ServerStreamConnectionEventListener
+}
+
+func (conn *serverStreamConnection) GoAway() {
+	conn.sc.GracefulShutdown()
 }
 
 func newServerStreamConnection(ctx context.Context, connection api.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
@@ -632,6 +632,10 @@ type clientStreamConnection struct {
 	streams                       map[uint32]*clientStream
 	mClientConn                   *http2.MClientConn
 	streamConnectionEventListener types.StreamConnectionEventListener
+}
+
+func (conn *clientStreamConnection) GoAway() {
+	// todo
 }
 
 func newClientStreamConnection(ctx context.Context, connection api.Connection,

@@ -74,6 +74,20 @@ func (mr *MockApplicationMockRecorder) Init(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockApplication)(nil).Init), arg0)
 }
 
+// Shutdown mocks base method.
+func (m *MockApplication) Shutdown() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Shutdown")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Shutdown indicates an expected call of Shutdown.
+func (mr *MockApplicationMockRecorder) Shutdown() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockApplication)(nil).Shutdown))
+}
+
 // Start mocks base method.
 func (m *MockApplication) Start() {
 	m.ctrl.T.Helper()
