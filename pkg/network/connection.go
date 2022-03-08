@@ -614,7 +614,7 @@ func (c *connection) onRead(bytesRead int64) {
 		return
 	}
 
-	c.filterManager.OnRead()
+	c.filterManager.OnRead(c.readBuffer)
 	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
 }
 

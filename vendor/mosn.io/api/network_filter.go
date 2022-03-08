@@ -48,7 +48,7 @@ type FilterManager interface {
 	InitializeReadFilters() bool
 
 	// OnRead is called on data read
-	OnRead()
+	OnRead(buf IoBuffer)
 
 	// OnWrite is called before data write
 	OnWrite(buffer []IoBuffer) FilterStatus
