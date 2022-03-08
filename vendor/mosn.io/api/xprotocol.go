@@ -144,7 +144,7 @@ type XProtocol interface {
 }
 
 // GoAwayer provides the ability to construct proper GoAway command for xprotocol,
-// it's not required, please NOT implement this interface if the protocol doesn't has goaway.
+// It's better to NOT implement this interface instead of return nil when the protocol doesn't have goaway.
 type GoAwayer interface {
 	// GoAway builds an active GoAway command
 	GoAway(context context.Context) XFrame
