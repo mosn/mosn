@@ -83,6 +83,8 @@ github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
 ## explicit
 github.com/dchest/siphash
+# github.com/docker/go-units v0.4.0
+github.com/docker/go-units
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.3
@@ -155,7 +157,7 @@ github.com/go-playground/locales
 github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.17.0
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.2.0
+# github.com/go-playground/validator/v10 v10.4.1
 github.com/go-playground/validator/v10
 # github.com/go-resty/resty/v2 v2.6.0
 ## explicit
@@ -552,6 +554,9 @@ k8s.io/klog
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
+# mosn.io/holmes v0.0.0-20220309083335-495c81a52d47
+## explicit
+mosn.io/holmes
 # mosn.io/pkg v0.0.0-20211217101631-d914102d1baf
 ## explicit
 mosn.io/pkg/binding
