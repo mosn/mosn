@@ -19,9 +19,9 @@ package holmes
 
 import (
 	"encoding/json"
-	"github.com/mosn/holmes"
+	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/mosn"
 	"time"
 )
 
@@ -69,7 +69,7 @@ func Init(_ *v2.MOSNConfig) {
 }
 
 // Stop should register to stagemanager afterStop stage
-func Stop(_ stagemanager.Application) {
+func Stop(_ *mosn.Mosn) {
 	if h != nil {
 		h.Stop()
 	}
