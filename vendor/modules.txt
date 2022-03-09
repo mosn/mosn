@@ -182,7 +182,7 @@ github.com/gogo/protobuf/types
 # github.com/golang-jwt/jwt v3.2.1+incompatible
 ## explicit
 github.com/golang-jwt/jwt
-# github.com/golang/mock v1.4.4
+# github.com/golang/mock v1.6.0
 ## explicit
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.5.0
@@ -561,11 +561,11 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20211217011300-b851d129be01
+# mosn.io/api v0.0.0-20220308091133-b233c56e98c7
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
-# mosn.io/pkg v0.0.0-20220117095139-80f4d1fed3a8
+# mosn.io/pkg v0.0.0-20220308091858-ea728aacbe63
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv

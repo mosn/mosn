@@ -80,7 +80,7 @@ func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	}
 }
 
-func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolName, index int) {
+func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
@@ -102,7 +102,6 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		} else {
 			p.activeClients[index].Delete(sub)
 		}
-
 	}, nil)
 }
 
@@ -134,8 +133,10 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		return true
 	}
 
-	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
-		p.init(client, subProtocol, int(clientIdx))
+	// init connection when client is Init or GoAway.
+	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) ||
+		atomic.CompareAndSwapUint32(&client.state, GoAway, Connecting) {
+		p.init(subProtocol, int(clientIdx))
 	}
 
 	return false
@@ -320,9 +321,13 @@ func (p *poolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.C
 		default:
 			// do nothing
 		}
-		p.clientMux.Lock()
-		p.activeClients[ac.indexInPool].Delete(ac.subProtocol)
-		p.clientMux.Unlock()
+		// only delete the active client when the state is not GoAway
+		// since the goaway state client has already been overwritten.
+		if atomic.LoadUint32(&ac.state) != GoAway {
+			p.clientMux.Lock()
+			p.activeClients[ac.indexInPool].Delete(ac.subProtocol)
+			p.clientMux.Unlock()
+		}
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
@@ -361,6 +366,10 @@ func (ac *activeClientMultiplex) OnDestroyStream() {
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
+
+	if atomic.LoadUint32(&ac.state) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.codecClient.Close()
+	}
 }
 
 func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
@@ -380,7 +389,13 @@ func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamConnectionEventListener
-func (ac *activeClientMultiplex) OnGoAway() {}
+func (ac *activeClientMultiplex) OnGoAway() {
+	atomic.StoreUint32(&ac.state, GoAway)
+
+	if ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.codecClient.Close()
+	}
+}
 
 const invalidClientID = -1
 

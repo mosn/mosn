@@ -174,6 +174,7 @@ const (
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
 	OnWriteTimeout  ConnectionEvent = "OnWriteTimeout"
+	OnShutdown      ConnectionEvent = "OnShutdown"
 )
 
 // IsClose represents whether the event is triggered by connection close

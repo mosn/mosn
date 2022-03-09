@@ -18,7 +18,6 @@
 package server
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -45,7 +44,7 @@ func setup() {
 
 func tearDown() {
 	for _, handler := range listenerAdapterInstance.connHandlerMap {
-		handler.StopListeners(context.Background(), true)
+		handler.CloseListeners()
 	}
 	listenerAdapterInstance = nil
 }

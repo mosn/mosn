@@ -15,36 +15,11 @@
  * limitations under the License.
  */
 
-package server
+package v2
 
-import (
-	"time"
-
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+const (
+	MinHostWeight               = uint32(1)
+	MaxHostWeight               = uint32(128)
+	DefaultMaxRequestPerConn    = uint32(1024)
+	DefaultConnBufferLimitBytes = uint32(16 * 1024)
 )
-
-type Config struct {
-	ServerName      string
-	LogPath         string
-	LogLevel        log.Level
-	LogRoller       string
-	GracefulTimeout time.Duration
-	UseNetpollMode  bool
-}
-
-type Server interface {
-	AddListener(lc *v2.Listener) (types.ListenerEventListener, error)
-
-	Start()
-
-	Restart()
-
-	// Shutdown means graceful stop
-	Shutdown() error
-
-	Close()
-
-	Handler() types.ConnectionHandler
-}

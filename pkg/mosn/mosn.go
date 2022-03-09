@@ -355,11 +355,25 @@ func (m *Mosn) Start() {
 			srv.Start()
 		}, nil)
 	}
+}
 
+// Shutdown means graceful stop servers
+func (m *Mosn) Shutdown() error {
+	var failed bool
+	for _, srv := range m.servers {
+		if err := srv.Shutdown(); err != nil {
+			log.StartLogger.Errorf("[mosn shutdown] server shutdown failed: %v", err)
+			failed = true
+		}
+	}
+	if failed {
+		return errors.New("failed to shutdown MOSN")
+	}
+	return nil
 }
 
 func (m *Mosn) Close() {
-	log.StartLogger.Infof("[mosn start] mosn stop server")
+	log.StartLogger.Infof("[mosn close] mosn stop server")
 
 	// close service
 	store.CloseService()

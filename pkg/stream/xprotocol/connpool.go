@@ -32,6 +32,7 @@ const (
 	Init = iota
 	Connecting
 	Connected
+	GoAway // received GoAway frame
 )
 
 // types.ConnectionPool

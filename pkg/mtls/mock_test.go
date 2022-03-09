@@ -83,7 +83,7 @@ type certInfo struct {
 	DNS        string
 }
 
-func (c *certInfo) CreateSecret() (*secretInfo, error) {
+func (c *certInfo) CreateSecret() (*SecretInfo, error) {
 	priv, err := certtool.GeneratePrivateKey(c.Curve)
 	if err != nil {
 		return nil, fmt.Errorf("generate key failed %v", err)
@@ -100,7 +100,7 @@ func (c *certInfo) CreateSecret() (*secretInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sign certificate failed %v", err)
 	}
-	return &secretInfo{
+	return &SecretInfo{
 		Certificate: cert.CertPem,
 		PrivateKey:  cert.KeyPem,
 		Validation:  certtool.GetRootCA().CertPem,

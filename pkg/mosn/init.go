@@ -20,6 +20,7 @@ package mosn
 import (
 	"fmt"
 	"net/http"
+	"os"
 	goplugin "plugin"
 
 	"mosn.io/api"
@@ -33,7 +34,6 @@ import (
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
-	_ "mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
@@ -147,7 +147,8 @@ func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
 		switch codec.Type {
 		case v2.GoPlugin:
 			if err := readProtocolPlugin(codec.Path, codec.LoaderFuncName); err != nil {
-				log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v", err)
+				cwd, _ := os.Getwd()
+				log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v, cwd: %v)", err, cwd)
 				continue
 			}
 			log.StartLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", codec.Path)
