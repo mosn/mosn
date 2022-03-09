@@ -251,7 +251,7 @@ func (ads *AdsConfig) loadStaticResources(staticResources *envoy_config_bootstra
 	if cs := staticResources.Clusters; cs != nil && len(cs) > 0 {
 		clusters = make([]*envoy_config_cluster_v3.Cluster, 0, len(cs))
 		for _, c := range cs {
-			if name := c.Name; name == "zipkin" {
+			if name := c.Name; name == "zipkin" { // why ignore zipkin ?
 				continue
 			}
 			clusters = append(clusters, c)

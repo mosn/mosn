@@ -106,7 +106,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 	var listenerName string
 	if lc.Name == "" {
-		listenerName = utils.GenerateUUID()
+		listenerName = lc.Addr.String() //utils.GenerateUUID()
 		lc.Name = listenerName
 	} else {
 		listenerName = lc.Name

@@ -99,7 +99,15 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	if xdsListener == nil {
 		return nil
 	}
+	addr := convertAddress(xdsListener.Address)
+	if addr == nil {
+		log.DefaultLogger.Errorf("[xds] convert listener without address %+v", xdsListener.Address)
+		return nil
+	}
 	listenerName := xdsListener.GetName()
+	if listenerName == "" {
+		listenerName = addr.String()
+	}
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:       listenerName,
@@ -108,7 +116,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			AccessLogs: convertAccessLogs(xdsListener),
 			Type:       convertTrafficDirection(xdsListener),
 		},
-		Addr: convertAddress(xdsListener.Address),
+		Addr: addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 

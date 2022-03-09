@@ -26,7 +26,7 @@ import (
 
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	"mosn.io/mosn/istio/istio1100/xds/conv"
 	"mosn.io/mosn/pkg/admin/server"
@@ -65,6 +65,7 @@ func unmarshalResources(dynamic, static json.RawMessage) (*AdsConfig, error) {
 		converter:    conv.NewConverter(),
 		previousInfo: newApiState(),
 	}
+	// update static config to mosn config
 	if err := cfg.loadClusters(staticResources); err != nil {
 		return nil, err
 	}

@@ -48,10 +48,16 @@ var _ = http_connection_manager_v3.HttpFilter{}
 
 var (
 	configLock     sync.Mutex
-	envoyClusters  []*envoy_config_cluster_v3.Cluster
-	envoyListeners []*envoy_config_listener_v3.Listener
-	envoyRoutes    []*envoy_config_route_v3.RouteConfiguration
+	envoyClusters  map[string]*envoy_config_cluster_v3.Cluster
+	envoyListeners map[string]*envoy_config_listener_v3.Listener
+	envoyRoutes    map[string]*envoy_config_route_v3.RouteConfiguration
 )
+
+func init() {
+	envoyClusters = map[string]*envoy_config_cluster_v3.Cluster{}
+	envoyListeners = map[string]*envoy_config_listener_v3.Listener{}
+	envoyRoutes = map[string]*envoy_config_route_v3.RouteConfiguration{}
+}
 
 // EnvoyConfigDump dump all envoy config
 func EnvoyConfigDump() []byte {
@@ -175,7 +181,15 @@ func EnvoyConfigUpdateClusters(clusters []*envoy_config_cluster_v3.Cluster) {
 	configLock.Lock()
 	defer configLock.Unlock()
 	log.DefaultLogger.Infof("[config] [envoy config cluster] update")
-	envoyClusters = clusters
+	for _, c := range clusters {
+		envoyClusters[c.GetName()] = c
+	}
+}
+
+func EnvoyConfigDeleteClusterByName(name string) {
+	configLock.Lock()
+	defer configLock.Unlock()
+	delete(envoyClusters, name)
 }
 
 // EnvoyConfigUpdateListeners update envoy listener config
@@ -184,13 +198,19 @@ func EnvoyConfigUpdateListeners(listeners []*envoy_config_listener_v3.Listener) 
 	defer configLock.Unlock()
 	log.DefaultLogger.Infof("[config] [envoy config listener] update")
 	for _, l := range listeners {
-		f := l.FilterChains[0].Filters[0]
-		if f.Name == "envoy.filters.network.http_connection_manager" {
-			c := f.ConfigType.(*envoy_config_listener_v3.Filter_TypedConfig)
-			log.DefaultLogger.Infof("[config] [envoy config listener] %+q", c.TypedConfig.Value)
+		// listener maybe contains no name, so we use address instead of it.
+		name := l.GetName()
+		if name == "" {
+			name = convertAddress(l.GetAddress()).String()
 		}
+		envoyListeners[name] = l
 	}
-	envoyListeners = listeners
+}
+
+func EnvoyConfigDeleteListenerByName(name string) {
+	configLock.Lock()
+	defer configLock.Unlock()
+	delete(envoyListeners, name)
 }
 
 // EnvoyConfigUpdateRoutes update envoy route config
@@ -198,5 +218,7 @@ func EnvoyConfigUpdateRoutes(routes []*envoy_config_route_v3.RouteConfiguration)
 	configLock.Lock()
 	defer configLock.Unlock()
 	log.DefaultLogger.Infof("[config] [envoy config route] update")
-	envoyRoutes = routes
+	for _, r := range routes {
+		envoyRoutes[r.GetName()] = r
+	}
 }
