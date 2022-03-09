@@ -166,7 +166,7 @@ github.com/go-playground/locales
 github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.17.0
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.2.0
+# github.com/go-playground/validator/v10 v10.4.1
 github.com/go-playground/validator/v10
 # github.com/go-resty/resty/v2 v2.6.0
 ## explicit
@@ -411,6 +411,7 @@ golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
+golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 ## explicit
@@ -565,6 +566,9 @@ k8s.io/klog
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
+# mosn.io/holmes v0.0.0-20220311092229-17ac08a8b2b0
+## explicit
+mosn.io/holmes
 # mosn.io/pkg v0.0.0-20220308091858-ea728aacbe63
 ## explicit
 mosn.io/pkg/binding
