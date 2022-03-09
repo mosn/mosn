@@ -19,6 +19,7 @@ package holmes
 
 import (
 	"encoding/json"
+	"errors"
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
@@ -29,8 +30,13 @@ var (
 	h *holmes.Holmes
 )
 
+/*
+ * We intergrate Holmes to MOSN builtin extension.
+ * See Holmes: https://github.com/mosn/holmes
+ */
+
 type holmesConfig struct {
-	Enable           bool
+	Enable           bool // default: false
 	BinaryDump       bool
 	FullStackDump    bool
 	CollectInterval  string
@@ -135,6 +141,9 @@ func genHolmesOptions(cfg *holmesConfig) []holmes.Option {
 }
 
 // SetOptions change holmes options on fly
-func SetOptions(opts []holmes.Option) {
-	h.Set(opts...)
+func SetOptions(opts []holmes.Option) error {
+	if h == nil {
+		return errors.New("Holmes is not inited yet")
+	}
+	return h.Set(opts...)
 }
