@@ -18,7 +18,6 @@
 package holmes
 
 import (
-	"encoding/json"
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"testing"
@@ -41,17 +40,58 @@ func TestSetOptions(t *testing.T) {
 
 	Init(&v2.MOSNConfig{})
 
-	cfg := &holmesConfig{
-		Enable: true,
+	buf := []byte(cfg)
+	if err := OnHolmesPluginParsed(buf); err != nil {
+		t.Fatalf("OnHolmesPluginParsed failed: %v", err)
 	}
-	buf, err := json.Marshal(cfg)
-	if err != nil {
-		t.Fatalf("failed to Marshal holmes config: %v", err)
-	}
-
-	OnHolmesPluginParsed(buf)
 
 	if err := SetOptions(options); err != nil {
 		t.Fatalf("set options failed: %v", err)
 	}
 }
+
+const cfg = `
+{
+	"enable": true,
+	"binarydump": true,
+	"fullstackdump": true,
+	"collectinterval": "10s",
+	"cpumax": 50,
+	"cpuprofile": {
+		"enable": true,
+		"triggermin": 10,
+		"triggerabs": 90,
+		"triggerdiff": 10
+	},
+	"memoryprofile": {
+		"enable": true,
+		"triggermin": 10,
+		"triggerabs": 90,
+		"triggerdiff": 10
+	},
+	"gcheapprofile": {
+		"enable": true,
+		"triggermin": 10,
+		"triggerabs": 90,
+		"triggerdiff": 10
+	},
+	"goroutineprofile": {
+		"enable": true,
+		"triggermin": 1000,
+		"triggerabs": 9000,
+		"triggerdiff": 10,
+		"goroutinetriggernummax": 10000
+	},
+	"threadprofile": {
+		"enable": true,
+		"triggermin": 1000,
+		"triggerabs": 9000,
+		"triggerdiff": 10
+	},
+	"shrinkthread": {
+		"enable": true,
+		"threshold": 100,
+		"delay": "10m"
+	}
+}
+`

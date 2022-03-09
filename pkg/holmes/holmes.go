@@ -20,6 +20,7 @@ package holmes
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
@@ -53,7 +54,7 @@ type holmesConfig struct {
 type ShrinkThreadOptions struct {
 	Enable    bool
 	Threshold int
-	Delay     time.Duration
+	Delay     string
 }
 
 type GoroutineProfileOptions struct {
@@ -84,23 +85,25 @@ func Stop(_ *mosn.Mosn) {
 func OnHolmesPluginParsed(data json.RawMessage) error {
 	cfg := &holmesConfig{}
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return err
+		return fmt.Errorf("Unmarshal holmes config failed: %v", err)
 	}
 
-	var err error
-	options := genHolmesOptions(cfg)
+	options, err := genHolmesOptions(cfg)
+	if err != nil {
+		return fmt.Errorf("genHolmesOptions failed: %v", err)
+	}
 
 	if h, err = holmes.New(options...); err != nil {
-		return err
+		return fmt.Errorf("new holmes failed: %v", err)
 	}
 	h.Start()
 	return nil
 }
 
-func genHolmesOptions(cfg *holmesConfig) []holmes.Option {
+func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 	var options []holmes.Option
-	if cfg.Enable {
-		return options
+	if !cfg.Enable {
+		return options, nil
 	}
 	if cfg.BinaryDump {
 		options = append(options, holmes.WithBinaryDump())
@@ -108,8 +111,12 @@ func genHolmesOptions(cfg *holmesConfig) []holmes.Option {
 		options = append(options, holmes.WithTextDump())
 	}
 	options = append(options, holmes.WithFullStack(cfg.FullStackDump))
-	options = append(options, holmes.WithCollectInterval(cfg.CollectInterval))
-	options = append(options, holmes.WithCoolDown(cfg.CoolDown))
+	if cfg.CollectInterval != "" {
+		options = append(options, holmes.WithCollectInterval(cfg.CollectInterval))
+	}
+	if cfg.CoolDown != "" {
+		options = append(options, holmes.WithCoolDown(cfg.CoolDown))
+	}
 	if cfg.CPUMax > 0 {
 		options = append(options, holmes.WithCPUMax(cfg.CPUMax))
 	}
@@ -133,17 +140,23 @@ func genHolmesOptions(cfg *holmesConfig) []holmes.Option {
 		opt := holmes.WithThreadDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs)
 		options = append(options, opt)
 	}
+
 	if c := cfg.ShrinkThread; c.Enable {
-		opt := holmes.WithShrinkThread(c.Enable, c.Threshold, c.Delay)
+		t, err := time.ParseDuration(c.Delay)
+		if err != nil {
+			return nil, fmt.Errorf("parse ShrinkThread Delay (%v) failed: %v", c.Delay, err)
+		}
+
+		opt := holmes.WithShrinkThread(c.Enable, c.Threshold, t)
 		options = append(options, opt)
 	}
-	return options
+	return options, nil
 }
 
 // SetOptions change holmes options on fly
 func SetOptions(opts []holmes.Option) error {
 	if h == nil {
-		return errors.New("Holmes is not inited yet")
+		return errors.New("holmes has not been inited yet")
 	}
 	return h.Set(opts...)
 }
