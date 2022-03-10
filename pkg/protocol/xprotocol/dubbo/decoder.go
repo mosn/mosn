@@ -105,8 +105,10 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
 	switch frame.Direction {
 	case EventRequest:
+		// notice: read-only!!! do not modify the raw data!!!
 		variable.Set(ctx, types.VarRequestRawData, frame.rawData)
 	case EventResponse:
+		// notice: read-only!!! do not modify the raw data!!!
 		variable.Set(ctx, types.VarResponseRawData, frame.rawData)
 	}
 

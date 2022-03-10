@@ -23,6 +23,8 @@ import (
 )
 
 func init() {
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Register(variable.NewVariable(types.VarRequestRawData, nil, nil, variable.DefaultSetter, 0))
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Register(variable.NewVariable(types.VarResponseRawData, nil, nil, variable.DefaultSetter, 0))
 }

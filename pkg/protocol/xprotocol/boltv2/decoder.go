@@ -78,6 +78,8 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	//4. copy data for io multiplexing
 	request.Data.Write(bytes[:frameLen])
 	request.rawData = request.Data.Bytes()
+
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Set(ctx, types.VarRequestRawData, request.rawData)
 
 	//5. process wrappers: Class, Header, Content, Data
@@ -146,6 +148,8 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	//4. copy data for io multiplexing
 	response.Data.Write(bytes[:frameLen])
 	response.rawData = response.Data.Bytes()
+
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Set(ctx, types.VarResponseRawData, response.rawData)
 
 	//5. process wrappers: Class, Header, Content, Data

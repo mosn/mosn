@@ -42,7 +42,10 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	copy(rawData, data.Bytes()[:frameLen])
 	req.rawData = rawData
 	req.data = buffer.NewIoBufferBytes(req.rawData)
+
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Set(ctx, types.VarRequestRawData, req.rawData)
+
 	reqPacket := &requestf.RequestPacket{}
 	is := codec.NewReader(data.Bytes())
 	err = reqPacket.ReadFrom(is)
@@ -69,7 +72,10 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	copy(rawData, data.Bytes()[:frameLen])
 	resp.rawData = rawData
 	resp.data = buffer.NewIoBufferBytes(resp.rawData)
+
+	// notice: read-only!!! do not modify the raw data!!!
 	variable.Set(ctx, types.VarResponseRawData, resp.rawData)
+
 	respPacket := &requestf.ResponsePacket{}
 	is := codec.NewReader(data.Bytes())
 	err = respPacket.ReadFrom(is)
