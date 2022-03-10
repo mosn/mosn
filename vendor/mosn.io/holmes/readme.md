@@ -34,8 +34,7 @@ h.Stop()
 * WithCollectInterval("5s") means the system metrics are collected once 5 seconds
 * WithCoolDown("1m") means once a dump happened, the next dump will not happen before cooldown 
   finish-1 minute.
-* WithDumpPath("/tmp") means the dump binary file(binary mode) or the dump log file(text mode) 
-  will write content to /tmp dir
+* WithDumpPath("/tmp") means the dump binary file(binary mode)  will write content to `/tmp` dir.
 * WithTextDump() means not in binary mode, so it's text mode profiles
 * WithGoroutineDump(10, 25, 2000, 100*1000) means dump will happen when current_goroutine_num > 10 && 
   current_goroutine_num < 100*1000 && current_goroutine_num > 125% * previous_average_goroutine_num or current_goroutine_num > 2000,
@@ -65,8 +64,7 @@ h.Stop()
 * WithCollectInterval("5s") means the system metrics are collected once 5 seconds
 * WithCoolDown("1m") means once a dump happened, the next dump will not happen before 
   cooldown finish-1 minute.
-* WithDumpPath("/tmp") means the dump binary file(binary mode), or the dump log file(text mode) 
-  will write content to `/tmp` dir.
+* WithDumpPath("/tmp") means the dump binary file(binary mode)  will write content to `/tmp` dir.
 * WithBinaryDump() or WithTextDump() doesn't affect the CPU profile dump, because the pprof 
   standard library doesn't support text mode dump.
 * WithCPUDump(10, 25, 80) means dump will happen when cpu usage > 10% && 
@@ -97,8 +95,7 @@ h.Stop()
 * WithCollectInterval("5s") means the system metrics are collected once 5 seconds
 * WithCoolDown("1m") means once a dump happened, the next dump will not happen before 
   cooldown finish-1 minute.
-* WithDumpPath("/tmp") means the dump binary file(binary mode), or the dump log file(text mode) 
-  will write content to `/tmp` dir.
+* WithDumpPath("/tmp") means the dump binary file(binary mode)  will write content to `/tmp` dir.
 * WithTextDump() means not in binary mode, so it's text mode profiles
 * WithMemDump(30, 25, 80) means dump will happen when memory usage > 10% && 
   memory usage > 125% * previous memory usage or memory usage > 80%.

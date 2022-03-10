@@ -70,10 +70,34 @@ const (
 
 const minCollectCyclesBeforeDumpStart = 10
 
+type Lever int8
+
 const (
-	LogLevelInfo = iota
-	LogLevelDebug
+	LogLevelDebug Lever = iota
+	LogLevelInfo
+	LogLevelWarn
+	LogLevelError
 )
+
+var m = map[Lever]string{
+	LogLevelDebug: "[Debug]",
+	LogLevelInfo:  "[Info]",
+	LogLevelWarn:  "[Warn]",
+	LogLevelError: "[Error]",
+}
+
+// Allow 允许是否可以打印
+func (l Lever) Allow(lv Lever) bool {
+	return lv >= l
+}
+
+// String 语义转义
+func (l Lever) String() string {
+	if v, ok := m[l]; ok {
+		return v
+	}
+	return "UNKNOWN"
+}
 
 const (
 	// TrimResultTopN trimResult return only reserve the top n.

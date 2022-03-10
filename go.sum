@@ -972,6 +972,8 @@ mosn.io/api v0.0.0-20211217011300-b851d129be01 h1:65nAZDE6BidyDprKL8OAY4O9BIzWSg
 mosn.io/api v0.0.0-20211217011300-b851d129be01/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/holmes v0.0.0-20220309083335-495c81a52d47 h1:00CbU8wmB+YrCN39xKklw6lMzhOFJ6AWXN5yJPcWeIU=
 mosn.io/holmes v0.0.0-20220309083335-495c81a52d47/go.mod h1:wSytYTYWyKVc/ChFO0Jz5Eaz493cxrjoE6boXOjoPIk=
+mosn.io/holmes v0.0.0-20220310011006-47dd0294f308 h1:NoM3ELBJFVh+U/ndnmkK7EG4uWiIJBX37Gi5PQbnZWU=
+mosn.io/holmes v0.0.0-20220310011006-47dd0294f308/go.mod h1:wSytYTYWyKVc/ChFO0Jz5Eaz493cxrjoE6boXOjoPIk=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf h1:PaYMeKbmtMnhnzzQyKQifxAtkKrCv5uti8Tr00WvX+Y=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6 h1:6aWdJ5db4OHFhSnSDvZcrAfsJSglbuZNW3DdBPt6PGg=
