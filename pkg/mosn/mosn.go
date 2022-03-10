@@ -63,6 +63,7 @@ func NewMosn() *Mosn {
 	return m
 }
 
+// whether Mosn is hot upgraded from an old MOSN
 func (m *Mosn) IsFromUpgrade() bool {
 	return m.isFromUpgrade
 }
