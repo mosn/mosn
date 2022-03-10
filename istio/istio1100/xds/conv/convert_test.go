@@ -45,7 +45,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/mtls/extensions/sni"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
@@ -191,13 +190,13 @@ func Test_convertEndpointsConfig(t *testing.T) {
 				{
 					HostConfig: v2.HostConfig{
 						Address: "192.168.0.2:80",
-						Weight:  configmanager.MinHostWeight,
+						Weight:  v2.MinHostWeight,
 					},
 				},
 				{
 					HostConfig: v2.HostConfig{
 						Address: "192.168.0.3:80",
-						Weight:  configmanager.MaxHostWeight,
+						Weight:  v2.MaxHostWeight,
 					},
 				},
 			},

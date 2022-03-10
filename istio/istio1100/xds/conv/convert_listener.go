@@ -110,26 +110,18 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	}
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       listenerName,
-			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:  false,
-			AccessLogs: convertAccessLogs(xdsListener),
-			Type:       convertTrafficDirection(xdsListener),
+			Name:           listenerName,
+			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:      false,
+			AccessLogs:     convertAccessLogs(xdsListener),
+			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
+			Type:           convertTrafficDirection(xdsListener),
 		},
 		Addr: addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
-	// FIXME: hardcode?
-	if listenerName == "virtualOutbound" {
-		listenerConfig.UseOriginalDst = true
-	}
-	for _, xl := range xdsListener.GetListenerFilters() {
-		if xl.Name == wellknown.OriginalDestination {
-			listenerConfig.UseOriginalDst = true
-		}
-	}
-	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
+	listenerConfig.ListenerFilters = convertListenerFilters(listenerName, xdsListener.GetListenerFilters())
 
 	// use virtual listeners instead of multi filter chain.
 	// TODO: support multi filter chain
@@ -140,7 +132,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	return mosnListeners
 }
 
-func convertListenerFilters(listenerFilter []*envoy_config_listener_v3.ListenerFilter) []v2.Filter {
+func convertListenerFilters(listenerName string, listenerFilter []*envoy_config_listener_v3.ListenerFilter) []v2.Filter {
 	if listenerFilter == nil {
 		return nil
 	}
@@ -150,6 +142,13 @@ func convertListenerFilters(listenerFilter []*envoy_config_listener_v3.ListenerF
 		listenerfilter := convertListenerFilter(filter.GetName(), filter.GetTypedConfig())
 		if listenerfilter.Type != "" {
 			log.DefaultLogger.Debugf("add a new listener filter, %v", listenerfilter.Type)
+			// TODO: find a better way to handle it
+			// virtualInbound should use local to match
+			if listenerName == "virtualInbound" && listenerfilter.Type == v2.ORIGINALDST_LISTENER_FILTER {
+				listenerfilter.Config = map[string]interface{}{
+					"replace_to_local": true,
+				}
+			}
 			filters = append(filters, listenerfilter)
 		}
 	}
@@ -162,7 +161,6 @@ func convertListenerFilter(name string, s *any.Any) v2.Filter {
 
 	switch name {
 	case wellknown.OriginalDestination:
-		// originaldst filter don't need filter.Config
 		filter.Type = v2.ORIGINALDST_LISTENER_FILTER
 
 	default:
@@ -221,7 +219,7 @@ func convertAccessLogs(xdsListener *envoy_config_listener_v3.Listener) []v2.Acce
 					}
 				}
 			} else {
-				log.DefaultLogger.Errorf("unsupported filter config type, filter name: %s", xdsFilter.GetName())
+				log.DefaultLogger.Infof("[xds] unsupported filter config type, filter name: %s", xdsFilter.GetName())
 			}
 		}
 	}
@@ -311,7 +309,7 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 			}
 		}
 	default:
-		log.DefaultLogger.Warnf("convertStreamFilter, unsupported filter config, name: %s", name)
+		log.DefaultLogger.Infof("[xds] convertStreamFilter, unsupported filter config, name: %s", name)
 	}
 	return filter
 }
@@ -478,7 +476,7 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 	}
 
 	if xdsListener.GetName() == "virtualInbound" {
-		log.DefaultLogger.Debugf("[convertxds] convertFilterChains for virtualInbound")
+		log.DefaultLogger.Warnf("[convertxds] convertFilterChains for virtualInbound: %+v", xdsListener)
 	}
 	// TODO: Only one chain is supported now
 	for _, xdsFilterChain := range xdsFilterChains {
@@ -700,8 +698,8 @@ func convertNetworkFilters(filters []*envoy_config_listener_v3.Filter, port uint
 			// TODO
 			fallthrough
 		default:
-			log.DefaultLogger.Warnf(
-				"convertNetworkFilters, unsupported filter config, filter name: %s", filter.Name)
+			log.DefaultLogger.Infof(
+				"[xds] convertNetworkFilters, unsupported filter config, filter name: %s", filter.Name)
 		}
 	}
 	connectionManager = converter.filter

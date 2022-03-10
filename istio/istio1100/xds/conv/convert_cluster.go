@@ -30,7 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -123,10 +122,10 @@ func ConvertEndpointsConfig(xdsEndpoint *envoy_config_endpoint_v3.LocalityLbEndp
 
 		if lbweight := xdsHost.GetLoadBalancingWeight(); lbweight != nil {
 			weight := lbweight.GetValue()
-			if weight < configmanager.MinHostWeight {
-				weight = configmanager.MinHostWeight
-			} else if weight > configmanager.MaxHostWeight {
-				weight = configmanager.MaxHostWeight
+			if weight < v2.MinHostWeight {
+				weight = v2.MinHostWeight
+			} else if weight > v2.MaxHostWeight {
+				weight = v2.MaxHostWeight
 			}
 			host.Weight = weight
 		}
