@@ -63,6 +63,11 @@ func NewMosn() *Mosn {
 	return m
 }
 
+// whether Mosn is hot upgraded from an old MOSN
+func (m *Mosn) IsFromUpgrade() bool {
+	return m.isFromUpgrade
+}
+
 // generate mosn structure members
 func (m *Mosn) Init(c *v2.MOSNConfig) error {
 	if c.CloseGraceful {
