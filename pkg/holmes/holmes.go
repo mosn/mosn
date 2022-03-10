@@ -24,6 +24,9 @@ import (
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
+	"os"
 	"time"
 )
 
@@ -38,6 +41,7 @@ var (
 
 type holmesConfig struct {
 	Enable           bool // default: false
+	DumpPath         string
 	BinaryDump       bool
 	FullStackDump    bool
 	CollectInterval  string
@@ -100,42 +104,84 @@ func OnHolmesPluginParsed(data json.RawMessage) error {
 	return nil
 }
 
+type holmesLogger struct {
+	logger *log.Logger
+}
+
+// Print just align to Holmes Logger interface
+func (hl *holmesLogger) Print(context string) {
+	hl.logger.Printf(context)
+}
+
+func createLogger(path string) (holmes.Logger, error) {
+	logger, err := log.GetOrCreateLogger(path+string(os.PathSeparator)+"holmes.log", nil)
+	if err != nil {
+		return nil, fmt.Errorf("get or create logger failed: %v", err)
+	}
+	lg := &holmesLogger{
+		logger: logger,
+	}
+	return lg, nil
+}
+
 func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 	var options []holmes.Option
 	if !cfg.Enable {
 		return options, nil
 	}
+
+	dumpPath := cfg.DumpPath
+	if dumpPath != "" {
+		dumpPath = types.MosnBasePath + string(os.PathSeparator) + "holmes"
+	}
+	options = append(options, holmes.WithDumpPath(dumpPath))
+
+	logger, err := createLogger(dumpPath)
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, holmes.WithLogger(logger))
+
 	if cfg.BinaryDump {
 		options = append(options, holmes.WithBinaryDump())
 	} else {
 		options = append(options, holmes.WithTextDump())
 	}
+
 	options = append(options, holmes.WithFullStack(cfg.FullStackDump))
+
 	if cfg.CollectInterval != "" {
 		options = append(options, holmes.WithCollectInterval(cfg.CollectInterval))
 	}
+
 	if cfg.CoolDown != "" {
 		options = append(options, holmes.WithCoolDown(cfg.CoolDown))
 	}
+
 	if cfg.CPUMax > 0 {
 		options = append(options, holmes.WithCPUMax(cfg.CPUMax))
 	}
+
 	if c := cfg.CPUProfile; c.Enable {
 		opt := holmes.WithCPUDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs)
 		options = append(options, opt)
 	}
+
 	if c := cfg.MemProfile; c.Enable {
 		opt := holmes.WithMemDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs)
 		options = append(options, opt)
 	}
+
 	if c := cfg.GCHeapProfile; c.Enable {
 		opt := holmes.WithGCHeapDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs)
 		options = append(options, opt)
 	}
+
 	if c := cfg.GoroutineProfile; c.Enable {
 		opt := holmes.WithGoroutineDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.GoroutineTriggerNumMax)
 		options = append(options, opt)
 	}
+
 	if c := cfg.ThreadProfile; c.Enable {
 		opt := holmes.WithThreadDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs)
 		options = append(options, opt)
@@ -150,6 +196,7 @@ func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 		opt := holmes.WithShrinkThread(c.Enable, c.Threshold, t)
 		options = append(options, opt)
 	}
+
 	return options, nil
 }
 
