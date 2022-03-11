@@ -81,6 +81,10 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return r.RequestHeader.CmdCode == CmdCodeHeartbeat
 }
 
+func (r *Request) IsGoAwayFrame() bool {
+	return r.RequestHeader.CmdCode == CmdCodeGoAway
+}
+
 func (r *Request) GetTimeout() int32 {
 	return r.RequestHeader.Timeout
 }

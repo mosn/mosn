@@ -121,6 +121,21 @@ func (proto boltProtocol) Decode(ctx context.Context, data api.IoBuffer) (interf
 	return nil, nil
 }
 
+// GoAwayer
+func (proto boltProtocol) GoAway(ctx context.Context) api.XFrame {
+	return &Request{
+		RequestHeader: RequestHeader{
+			Protocol:  ProtocolCode,
+			CmdType:   CmdTypeRequest,
+			CmdCode:   CmdCodeGoAway,
+			Version:   ProtocolVersion,
+			RequestId: 0, // this would be overwrite by stream layer
+			Codec:     Hessian2Serialize,
+			Timeout:   0,
+		},
+	}
+}
+
 // Heartbeater
 func (proto boltProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return &Request{
