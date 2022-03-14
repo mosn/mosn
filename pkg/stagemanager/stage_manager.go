@@ -482,6 +482,12 @@ func GetState() State {
 
 // expose this method just make UT easier,
 // should not use it directly.
+func SetState(s State) {
+	stm.SetState(s)
+}
+
+// expose this method just make UT easier,
+// should not use it directly.
 func (stm *StageManager) SetState(s State) {
 	stm.state = s
 	log.DefaultLogger.Infof("[stagemanager] state changed to %d", s)
