@@ -27,6 +27,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -88,7 +89,16 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	}
 
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
+	switch frame.Direction {
+	case EventRequest:
+		// notice: read-only!!! do not modify the raw data!!!
+		variable.Set(ctx, types.VarRequestRawData, frame.rawData)
+	case EventResponse:
+		// notice: read-only!!! do not modify the raw data!!!
+		variable.Set(ctx, types.VarResponseRawData, frame.rawData)
+	}
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
+
 	data.Drain(int(frame.FrameLength))
 	return frame, nil
 }
