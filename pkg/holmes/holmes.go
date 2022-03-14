@@ -78,7 +78,7 @@ type ProfileOptions struct {
 
 // Init should register to stagemanager Init stage,
 // since it must run before the preStart stage (HandleExtendConfig in it)
-func Init(_ *v2.MOSNConfig) {
+func Register(_ *v2.MOSNConfig) {
 	v2.RegisterParseExtendConfig("holmes", OnHolmesPluginParsed)
 }
 

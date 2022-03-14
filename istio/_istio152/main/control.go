@@ -18,6 +18,7 @@
 package main
 
 import (
+	"mosn.io/mosn/pkg/holmes"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -154,10 +155,12 @@ var (
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
 			})
+			stm.AppendInitStage(holmes.Register)
 			// pre-startup
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
+			stm.AppendAfterStopStage(holmes.Stop)
 			// execute all runs
 			stm.RunAll()
 			return nil

@@ -194,7 +194,7 @@ var (
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
 			})
-			stm.AppendInitStage(holmes.Init)
+			stm.AppendInitStage(holmes.Register)
 			// pre-startup
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
