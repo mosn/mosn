@@ -38,7 +38,7 @@ func TestSetOptions(t *testing.T) {
 		t.Fatal("set options before init not failed")
 	}
 
-	Init(&v2.MOSNConfig{})
+	Register(&v2.MOSNConfig{})
 
 	buf := []byte(cfg)
 	if err := OnHolmesPluginParsed(buf); err != nil {
