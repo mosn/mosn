@@ -26,7 +26,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
-	rlog "mosn.io/pkg/log"
 	"os"
 	"time"
 )
@@ -96,6 +95,8 @@ func OnHolmesPluginParsed(data json.RawMessage) error {
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return fmt.Errorf("Unmarshal holmes config failed: %v", err)
 	}
+
+	// only start holmes when Enable = true
 	if !cfg.Enable {
 		return nil
 	}
@@ -111,24 +112,22 @@ func OnHolmesPluginParsed(data json.RawMessage) error {
 	return nil
 }
 
-func createLogger(path string) (rlog.ErrorLogger, error) {
-	logPath := path + string(os.PathSeparator) + logFileName
-	return log.GetOrCreateDefaultErrorLogger(logPath, log.INFO)
-}
-
 func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 	var options []holmes.Option
 	if !cfg.Enable {
 		return options, nil
 	}
 
+	// use MosnBasePath/holmes as default dump path
 	dumpPath := cfg.DumpPath
 	if dumpPath != "" {
 		dumpPath = types.MosnBasePath + string(os.PathSeparator) + "holmes"
 	}
 	options = append(options, holmes.WithDumpPath(dumpPath))
 
-	logger, err := createLogger(dumpPath)
+	// use dump path / holmes.log as logfile
+	logFile := dumpPath + string(os.PathSeparator) + logFileName
+	logger, err := log.GetOrCreateDefaultErrorLogger(logFile, log.INFO)
 	if err != nil {
 		return nil, err
 	}
