@@ -251,11 +251,17 @@ func (l *listener) setDeadline(t time.Time) error {
 	var err error
 	switch l.network {
 	case "udp":
-		err = l.packetConn.SetDeadline(t)
+		if l.packetConn != nil {
+			err = l.packetConn.SetDeadline(t)
+		}
 	case "unix":
-		err = l.rawl.(*net.UnixListener).SetDeadline(t)
+		if l.rawl != nil {
+			err = l.rawl.(*net.UnixListener).SetDeadline(t)
+		}
 	case "tcp":
-		err = l.rawl.(*net.TCPListener).SetDeadline(t)
+		if l.rawl != nil {
+			err = l.rawl.(*net.TCPListener).SetDeadline(t)
+		}
 	}
 	return err
 }
