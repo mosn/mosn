@@ -251,18 +251,22 @@ func (l *listener) setDeadline(t time.Time) error {
 	var err error
 	switch l.network {
 	case "udp":
-		if l.packetConn != nil {
-			err = l.packetConn.SetDeadline(t)
+		if l.packetConn == nil {
+			return errors.New("setDeadline: packetConn is nil")
 		}
+		err = l.packetConn.SetDeadline(t)
 	case "unix":
-		if l.rawl != nil {
-			err = l.rawl.(*net.UnixListener).SetDeadline(t)
+		if l.rawl == nil {
+			return errors.New("setDeadline: raw listener is nil")
 		}
+		err = l.rawl.(*net.UnixListener).SetDeadline(t)
 	case "tcp":
-		if l.rawl != nil {
-			err = l.rawl.(*net.TCPListener).SetDeadline(t)
+		if l.rawl == nil {
+			return errors.New("setDeadline: raw listener is nil")
 		}
+		err = l.rawl.(*net.TCPListener).SetDeadline(t)
 	}
+
 	return err
 }
 
@@ -281,12 +285,22 @@ func (l *listener) ListenerFile() (*os.File, error) {
 
 	switch l.network {
 	case "udp":
+		if l.packetConn == nil {
+			return nil, errors.New("ListenerFile: packetConn is nil")
+		}
 		return l.packetConn.(*net.UDPConn).File()
 	case "unix":
+		if l.rawl == nil {
+			return nil, errors.New("ListenerFile: raw listener is nil")
+		}
 		return l.rawl.(*net.UnixListener).File()
 	case "tcp":
+		if l.rawl == nil {
+			return nil, errors.New("ListenerFile: raw listener is nil")
+		}
 		return l.rawl.(*net.TCPListener).File()
 	}
+
 	return nil, errors.New("not support this network " + l.network)
 }
 
