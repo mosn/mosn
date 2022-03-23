@@ -114,11 +114,7 @@ func TestEnvoyConfigUpdate(t *testing.T) {
 	}
 	require.Len(t, envoyClusters, 1)
 
-	for _, ln := range listeners1 {
-		mosnListeners := ConvertListenerConfig(ln, nil)
-		require.Len(t, mosnListeners, 1)
-		EnvoyConfigDeleteListenerByName(mosnListeners[0].Name)
-	}
+	EnvoyConfigDeleteListeners(listeners1)
 
 	require.Len(t, envoyListeners, 1)
 

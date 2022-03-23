@@ -207,10 +207,16 @@ func EnvoyConfigUpdateListeners(listeners []*envoy_config_listener_v3.Listener) 
 	}
 }
 
-func EnvoyConfigDeleteListenerByName(name string) {
+func EnvoyConfigDeleteListeners(listeners []*envoy_config_listener_v3.Listener) {
 	configLock.Lock()
 	defer configLock.Unlock()
-	delete(envoyListeners, name)
+	for _, l := range listeners {
+		name := l.GetName()
+		if name == "" {
+			name = convertAddress(l.GetAddress()).String()
+		}
+		delete(envoyListeners, name)
+	}
 }
 
 // EnvoyConfigUpdateRoutes update envoy route config

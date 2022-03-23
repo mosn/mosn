@@ -121,7 +121,27 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
-	listenerConfig.ListenerFilters = convertListenerFilters(listenerName, xdsListener.GetListenerFilters())
+	// convert listener filters.
+	listenerFilters := make([]v2.Filter, 0, len(xdsListener.GetListenerFilters()))
+	for _, lf := range xdsListener.GetListenerFilters() {
+		lnf := convertListenerFilter(lf.GetName(), lf.GetTypedConfig())
+		// convert success
+		if lnf.Type != "" {
+			// TODO: find a better way to handle it
+			// virtualInbound should use local to match
+			if listenerName == "virtualInbound" && lnf.Type == v2.ORIGINALDST_LISTENER_FILTER {
+				lnf.Config = map[string]interface{}{
+					"replace_to_local": true,
+				}
+			}
+			listenerFilters = append(listenerFilters, lnf)
+		}
+		// set use original dst flag if original dst filter is exists
+		if lnf.Type == v2.ORIGINALDST_LISTENER_FILTER {
+			listenerConfig.UseOriginalDst = true
+		}
+	}
+	listenerConfig.ListenerFilters = listenerFilters
 
 	// use virtual listeners instead of multi filter chain.
 	// TODO: support multi filter chain
@@ -130,30 +150,6 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	mosnListeners := []*v2.Listener{listenerConfig}
 	mosnListeners = append(mosnListeners, virtualListeners...)
 	return mosnListeners
-}
-
-func convertListenerFilters(listenerName string, listenerFilter []*envoy_config_listener_v3.ListenerFilter) []v2.Filter {
-	if listenerFilter == nil {
-		return nil
-	}
-
-	filters := make([]v2.Filter, 0)
-	for _, filter := range listenerFilter {
-		listenerfilter := convertListenerFilter(filter.GetName(), filter.GetTypedConfig())
-		if listenerfilter.Type != "" {
-			log.DefaultLogger.Debugf("add a new listener filter, %v", listenerfilter.Type)
-			// TODO: find a better way to handle it
-			// virtualInbound should use local to match
-			if listenerName == "virtualInbound" && listenerfilter.Type == v2.ORIGINALDST_LISTENER_FILTER {
-				listenerfilter.Config = map[string]interface{}{
-					"replace_to_local": true,
-				}
-			}
-			filters = append(filters, listenerfilter)
-		}
-	}
-
-	return filters
 }
 
 func convertListenerFilter(name string, s *any.Any) v2.Filter {
@@ -475,9 +471,6 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 		}
 	}
 
-	if xdsListener.GetName() == "virtualInbound" {
-		log.DefaultLogger.Warnf("[convertxds] convertFilterChains for virtualInbound: %+v", xdsListener)
-	}
 	// TODO: Only one chain is supported now
 	for _, xdsFilterChain := range xdsFilterChains {
 		xdsFilters := xdsFilterChain.GetFilters()
@@ -600,7 +593,7 @@ func convertFilters(xdsFilters []*envoy_config_listener_v3.Filter, port uint32, 
 		name = proxy.RouterConfigName
 	}
 	if mainFilter == nil {
-		log.DefaultLogger.Warnf("[convertxds] convertFilters get mainFilter empty")
+		log.DefaultLogger.Warnf("[convertxds] convertFilters get mainFilter empty: %+v", xdsFilters)
 		return
 	}
 	filters = []v2.Filter{*mainFilter}

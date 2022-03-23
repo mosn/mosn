@@ -65,6 +65,18 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
+		// TODO: We have not implemented the upstream_bind_config yet
+		// so we need another hack way to solve the infinite loop problem that may be caused by
+		// istio transparent hijacking
+		bindConfig := xdsCluster.GetUpstreamBindConfig()
+		// the addres 127.0.0.6 and port value 0 is used in istio inbound
+		if bindConfig.GetSourceAddress().GetAddress() == "127.0.0.6" &&
+			bindConfig.GetSourceAddress().GetPortValue() == 0 {
+			cluster.LBOriDstConfig = v2.LBOriDstConfig{
+				ReplaceLocal: true,
+			}
+		}
+
 		if ass := xdsCluster.GetLoadAssignment(); ass != nil {
 			for _, endpoints := range ass.Endpoints {
 				hosts := ConvertEndpointsConfig(endpoints)

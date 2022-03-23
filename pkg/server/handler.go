@@ -735,7 +735,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	if listener != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
@@ -743,7 +743,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	if localListener != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
@@ -751,7 +751,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	// If it can’t find any matching listeners and should using the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
+		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
 	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 }

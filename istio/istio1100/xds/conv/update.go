@@ -120,13 +120,18 @@ func (cvt *xdsConverter) ConvertDeleteListeners(listeners []*envoy_config_listen
 		for _, mosnListener := range mosnListeners {
 			if err := listenerAdapter.DeleteListener("", mosnListener.Name); err == nil {
 				log.DefaultLogger.Debugf("xds OnDeleteListeners success,listener address = %s", mosnListener.Addr.String())
-				EnvoyConfigDeleteListenerByName(mosnListener.Name)
 			} else {
 				log.DefaultLogger.Errorf("xds OnDeleteListeners failure,listener address = %s, mag = %s ",
 					mosnListener.Addr.String(), err.Error())
 			}
 		}
 	}
+
+	// cannot delete by mosn listener name
+	// because a envoy_config_listener_v3.Listener maybe convert to multiple mosn listeners
+	// and we record the envoy_config_listener_v3.Listener
+	EnvoyConfigDeleteListeners(listeners)
+
 }
 
 // ConvertUpdateClusters converts cluster configuration, used to udpate cluster
