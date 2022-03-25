@@ -29,6 +29,7 @@ import (
 	envoy_sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -44,13 +45,14 @@ const (
 //}
 type fakeSdsServer struct {
 	envoy_sds.SecretDiscoveryServiceServer
-	server     *grpc.Server
-	sdsUdsPath string
-	started    bool
+	server           *grpc.Server
+	sdsUdsPath       string
+	started          bool
+	requiredMetadata map[string]string
 }
 
-func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServer {
-	s := NewFakeSdsServer(sdsUdsPath)
+func InitMockSdsServer(t *testing.T, sdsUdsPath string, requiredMeta map[string]string) *fakeSdsServer {
+	s := NewFakeSdsServer(sdsUdsPath, requiredMeta)
 	go func() {
 		err := s.Start()
 		if !s.started {
@@ -60,11 +62,16 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServer {
 	return s
 }
 
-func NewFakeSdsServer(sdsUdsPath string) *fakeSdsServer {
+func NewFakeSdsServer(sdsUdsPath string, requiredMeta map[string]string) *fakeSdsServer {
 	return &fakeSdsServer{
-		sdsUdsPath: sdsUdsPath,
+		sdsUdsPath:       sdsUdsPath,
+		requiredMetadata: requiredMeta,
 	}
 
+}
+
+func (s *fakeSdsServer) setRequiredMetadata(requiredMeta map[string]string) {
+	s.requiredMetadata = requiredMeta
 }
 
 func (s *fakeSdsServer) register(rpcs *grpc.Server) {
@@ -118,6 +125,15 @@ func (s *fakeSdsServer) Stop() {
 	}
 }
 
+func (s *fakeSdsServer) matchMetadata(md metadata.MD) bool {
+	for k, v := range s.requiredMetadata {
+		if md.Get(k)[0] != v {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *fakeSdsServer) StreamSecrets(stream envoy_sds.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
@@ -131,6 +147,11 @@ func (s *fakeSdsServer) StreamSecrets(stream envoy_sds.SecretDiscoveryService_St
 		if req.VersionInfo != "" {
 			log.DefaultLogger.Infof("server receive a ack request: %v", req)
 			continue
+		}
+		if len(s.requiredMetadata) > 0 {
+			if md, ok := metadata.FromIncomingContext(stream.Context()); !ok || !s.matchMetadata(md) {
+				return fmt.Errorf("metadata not found, md: %v, require: %v", md, s.requiredMetadata)
+			}
 		}
 		resp := &xdsapi.DiscoveryResponse{
 			TypeUrl:     SecretType,
@@ -155,6 +176,11 @@ func (s *fakeSdsServer) StreamSecrets(stream envoy_sds.SecretDiscoveryService_St
 }
 
 func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
+	if len(s.requiredMetadata) > 0 {
+		if md, ok := metadata.FromIncomingContext(ctx); !ok || !s.matchMetadata(md) {
+			return nil, fmt.Errorf("metadata not found, md: %v, require: %v", md, s.requiredMetadata)
+		}
+	}
 	resp := &xdsapi.DiscoveryResponse{
 		TypeUrl:     SecretType,
 		VersionInfo: "0",

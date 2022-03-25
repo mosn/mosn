@@ -33,41 +33,50 @@ type SdsClientImpl struct {
 	sdsSubscriber  *SdsSubscriber
 }
 
-var sdsClient *SdsClientImpl
-var sdsClientLock sync.Mutex
-var sdsPostCallback func() = nil
+var (
+	sdsClientMap           = map[string]*SdsClientImpl{}
+	sdsClientLock          = sync.Mutex{}
+	sdsPostCallback func() = nil
+)
 
 var ErrSdsClientNotInit = errors.New("sds client not init")
 
-// TODO: support sds client index instead of singleton
-func NewSdsClientSingleton(cfg interface{}) types.SdsClient {
+func NewSdsClient(index string, cfg interface{}) types.SdsClient {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
 
-	if sdsClient != nil {
-		// update sds config
-		sdsClient.sdsSubscriber.sdsConfig = cfg
-		return sdsClient
-	} else {
-		sdsClient = &SdsClientImpl{
-			SdsCallbackMap: make(map[string]types.SdsUpdateCallbackFunc),
-		}
-		// For Istio , sds config should be the same
-		// So we use first sds config to init sds subscriber
-		sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, cfg)
-		utils.GoWithRecover(sdsClient.sdsSubscriber.Start, nil)
-		return sdsClient
+	if c, ok := sdsClientMap[index]; ok {
+		return c
 	}
+
+	client := &SdsClientImpl{
+		SdsCallbackMap: make(map[string]types.SdsUpdateCallbackFunc),
+	}
+	sdsClientMap[index] = client
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[mtls][sds] NewSdsClient create sdsClient index: %v, cfg: %v, client: %v",
+			index, cfg, client)
+	}
+
+	// For Istio , sds config should be the same
+	// So we use first sds config to init sds subscriber
+	client.sdsSubscriber = NewSdsSubscriber(client, cfg)
+	utils.GoWithRecover(client.sdsSubscriber.Start, nil)
+
+	return client
 }
 
-func CloseSdsClient() {
+func CloseAllSdsClient() {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
-	if sdsClient != nil && sdsClient.sdsSubscriber != nil {
-		log.DefaultLogger.Warnf("[mtls] sds client stopped")
-		sdsClient.sdsSubscriber.Stop()
-		sdsClient.sdsSubscriber = nil
-		sdsClient = nil
+	for index, client := range sdsClientMap {
+		if client.sdsSubscriber != nil {
+			log.DefaultLogger.Warnf("[mtls] sds client stopped")
+			client.sdsSubscriber.Stop()
+			client.sdsSubscriber = nil
+		}
+		delete(sdsClientMap, index)
 	}
 }
 

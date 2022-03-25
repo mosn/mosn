@@ -24,9 +24,14 @@ import (
 	"testing"
 	"time"
 
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/mtls/sds"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -169,7 +174,6 @@ func TestSimpleSdsTLS(t *testing.T) {
 		ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 	}
-
 }
 
 // Test sds tls config with extension, after certificate is setted
@@ -325,12 +329,14 @@ func TestSecretManager(t *testing.T) {
 	vd, ok := secretManagerInstance.validations["rootCA"]
 	require.True(t, ok)
 	require.Len(t, vd.certificates, 1)
-	pem, ok := vd.certificates["default"]
-	require.True(t, ok)
-	require.True(t, pem.rootca != "")
-	require.True(t, pem.cert != "")
-	require.True(t, pem.key != "")
-	require.Len(t, pem.sdsProviders, 1)
+	for index, pem := range vd.certificates {
+		assert.Equal(t, index, certificateConfigHash(cfg.SdsConfig.CertificateConfig))
+		require.True(t, ok)
+		require.True(t, pem.rootca != "")
+		require.True(t, pem.cert != "")
+		require.True(t, pem.key != "")
+		require.Len(t, pem.sdsProviders, 1)
+	}
 }
 
 // a sds config support to different tls config, different callbacks
@@ -362,7 +368,6 @@ func TestSdsCertForDifferentConfig(t *testing.T) {
 	require.Equal(t, "test1", tlsConfig.ServerName)
 	require.Equal(t, "test2", tlsConfig2.ServerName)
 	require.Equal(t, 1, count)
-
 }
 
 func TestSdsWithoutValidation(t *testing.T) {
@@ -441,15 +446,64 @@ func TestSdsCallbackConcur(t *testing.T) {
 		vd, ok := secretManagerInstance.validations["rootCA"]
 		require.True(t, ok)
 		require.Len(t, vd.certificates, 1)
-		pem, ok := vd.certificates["default"]
-		require.True(t, ok)
-		require.True(t, pem.rootca != "")
-		require.True(t, pem.cert != "")
-		require.True(t, pem.key != "")
-		require.Len(t, pem.sdsProviders, 101)
-		for _, sp := range pem.sdsProviders {
-			require.True(t, sp.Ready())
+		for index, pem := range vd.certificates {
+			assert.Equal(t, index, certificateConfigHash(cfg.SdsConfig.CertificateConfig))
+			require.True(t, ok)
+			require.True(t, pem.rootca != "")
+			require.True(t, pem.cert != "")
+			require.True(t, pem.key != "")
+			require.Len(t, pem.sdsProviders, 101)
+			for _, sp := range pem.sdsProviders {
+				require.True(t, sp.Ready())
+			}
 		}
 	}
+}
 
+func TestSdsConfigHashToProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	config1 := &v2.SdsConfig{
+		CertificateConfig: &v2.SecretConfigWrapper{Name: "default"},
+		ValidationConfig:  &v2.SecretConfigWrapper{Name: "rootCA"},
+	}
+	config2 := &v2.SdsConfig{
+		CertificateConfig: &v2.SecretConfigWrapper{
+			Name: "default",
+			SdsConfig: &envoy_api_v2_core.ConfigSource{
+				ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_ApiConfigSource{
+					ApiConfigSource: &envoy_api_v2_core.ApiConfigSource{
+						ApiType: envoy_api_v2_core.ApiConfigSource_GRPC,
+					},
+				},
+			}},
+		ValidationConfig: &v2.SecretConfigWrapper{Name: "rootCA"},
+	}
+
+	getSdsClientCount := 0
+	client := mock.NewMockSdsClient(ctrl)
+	client.EXPECT().AddUpdateCallback(gomock.Any(), gomock.Any()).AnyTimes()
+	getSdsClientFunc = func(index string, cfg interface{}) types.SdsClient {
+		getSdsClientCount++
+		return client
+	}
+	defer func() {
+		getSdsClientFunc = sds.NewSdsClient
+	}()
+	defer sds.CloseAllSdsClient()
+
+	mng := &secretManager{validations: make(map[string]*validation)}
+
+	provider1 := mng.addOrUpdatePemProvider(config1)
+	assert.NotNil(t, provider1)
+	assert.Equal(t, getSdsClientCount, 1)
+
+	provider2 := mng.addOrUpdatePemProvider(config2)
+	assert.NotNil(t, provider2)
+	assert.Equal(t, getSdsClientCount, 2)
+
+	provider3 := mng.addOrUpdatePemProvider(config1)
+	assert.Equal(t, provider1, provider3)
+	assert.Equal(t, getSdsClientCount, 2)
 }

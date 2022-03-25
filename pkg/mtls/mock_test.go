@@ -72,7 +72,7 @@ func (c *mockSdsClient) FetchSecret(ctx context.Context, name string) (*types.Sd
 	return nil, errors.New("not implement yet")
 }
 
-func getMockSdsClient(cfg interface{}) types.SdsClient {
+func getMockSdsClient(index string, cfg interface{}) types.SdsClient {
 	if mockSdsClientInstance == nil {
 		mockSdsClientInstance = &mockSdsClient{
 			callback: make(map[string]types.SdsUpdateCallbackFunc),

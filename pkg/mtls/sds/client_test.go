@@ -21,12 +21,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"mosn.io/mosn/pkg/types"
 )
 
 func testClean() {
-	CloseSdsClient()
+	CloseAllSdsClient()
 	sdsPostCallback = nil
 }
 
@@ -46,7 +47,7 @@ func TestSdsClient(t *testing.T) {
 			require.True(t, callbacks["test"])
 			close(finish)
 		})
-		client := NewSdsClientSingleton(cfg)
+		client := NewSdsClient("testIndex", cfg)
 		client.AddUpdateCallback("test", func(name string, secret *types.SdsSecret) {
 			if name == secret.Name {
 				callbacks[name] = true
@@ -60,36 +61,9 @@ func TestSdsClient(t *testing.T) {
 		}
 	})
 
-	t.Run("create an error sds stream client, uprage to success", func(t *testing.T) {
-		testClean()
-		retryInterval = 100 * time.Millisecond
-		SubscriberRetryPeriod = 3 * retryInterval
-		client := NewSdsClientSingleton(nil)
-		finish := make(chan struct{})
-		client.AddUpdateCallback("test", func(name string, secret *types.SdsSecret) {
-			close(finish)
-		})
-		time.Sleep(2 * retryInterval)
-		// upragde to connect succes, but send/recv error
-		_ = NewSdsClientSingleton(&MockSdsConfig{
-			ErrorStr: "test error",
-		})
-		time.Sleep(2 * retryInterval)
-		// upragde to success
-		_ = NewSdsClientSingleton(&MockSdsConfig{
-			Timeout: 2 * retryInterval, // timeout should greater than retry interval
-		})
-		select {
-		case <-finish:
-			testClean()
-		case <-time.After(10 * time.Second):
-			t.Fatal("sds timeout")
-		}
-	})
-
 	t.Run("test delete update callback", func(t *testing.T) {
 		testClean()
-		client := NewSdsClientSingleton(&MockSdsConfig{
+		client := NewSdsClient("testIndex", &MockSdsConfig{
 			Timeout: time.Second,
 		})
 		client.AddUpdateCallback("test", func(name string, secret *types.SdsSecret) {
@@ -98,5 +72,13 @@ func TestSdsClient(t *testing.T) {
 		require.Len(t, c.SdsCallbackMap, 1)
 		require.Nil(t, client.DeleteUpdateCallback("test"))
 		require.Len(t, c.SdsCallbackMap, 0)
+	})
+
+	t.Run("return same client on same index", func(t *testing.T) {
+		client1 := NewSdsClient("index1", nil)
+		client2 := NewSdsClient("index2", nil)
+		assert.NotEqual(t, client1, client2)
+		client3 := NewSdsClient("index1", &MockSdsConfig{Timeout: time.Second})
+		assert.Equal(t, client1, client3)
 	})
 }
