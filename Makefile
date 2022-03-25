@@ -105,8 +105,8 @@ istio-1.5.2:
 	@go mod tidy
 	@go mod vendor
 
-istio-1.10.0:
-	@echo 1.10.0 > ISTIO_VERSION
+istio-1.10.6:
+	@echo 1.10.6 > ISTIO_VERSION
 	@bash istio_ctrl.sh istio1100
 	@cp istio/istio1100/main/* ./cmd/mosn/main/
 	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20211103171850-665ed2b92d52
