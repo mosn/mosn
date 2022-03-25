@@ -131,7 +131,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			// virtualInbound should use local to match
 			if listenerName == "virtualInbound" && lnf.Type == v2.ORIGINALDST_LISTENER_FILTER {
 				lnf.Config = map[string]interface{}{
-					"replace_to_local": true,
+					"fallback_to_local": true,
 				}
 			}
 			listenerFilters = append(listenerFilters, lnf)

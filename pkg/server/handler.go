@@ -698,27 +698,29 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 
 func init() {
 	variable.Register(
-		variable.NewStringVariable(types.VarOriginalDstIP, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewStringVariable(types.VarListenerMatchFallbackIP, nil, nil, variable.DefaultStringSetter, 0),
 	)
 }
+
+const fallback_any = "0.0.0.0"
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
 
-	// use address from context instead of from raw connection
-	// the original dst filter maybe replace it to local
-	matchip := arc.originalDstIP
-	if v, err := variable.GetString(arc.ctx, types.VarOriginalDstIP); err == nil {
-		matchip = v
+	// if listener match ip address, we will use a fallback listener.
+	// default action is fallback to a listener which listen ip 0.0.0.0
+	fallbackip := fallback_any
+	if v, err := variable.GetString(arc.ctx, types.VarListenerMatchFallbackIP); err == nil {
+		fallbackip = v
 	}
 
 	for _, lst := range arc.activeListener.handler.listeners {
-		if lst.listenIP == matchip && lst.listenPort == arc.originalDstPort {
+		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
 			listener = lst
 			break
 		}
 
-		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
 

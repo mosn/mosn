@@ -69,7 +69,7 @@ const (
 
 // [server]: common
 const (
-	VarOriginalDstIP string = "original_dst_ip"
+	VarListenerMatchFallbackIP string = "listener_match_fallback_ip"
 )
 
 // [Route]: internal

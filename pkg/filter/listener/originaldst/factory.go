@@ -34,13 +34,13 @@ func init() {
 }
 
 type OriginalDstConfig struct {
-	// If ReplaceToLocal is setted to true, the filter will replace the original address to local.
-	// usually used in ingress listener.
-	ReplaceToLocal bool `json:"replace_to_local"`
+	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
+	// any (0.0.0.0). usually used in ingress listener.
+	FallbackToLocal bool `json:"fallback_to_local"`
 }
 
 type originalDst struct {
-	replaceToLocal bool
+	fallbackToLocal bool
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
@@ -56,7 +56,7 @@ func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterCh
 		return nil, err
 	}
 	return &originalDst{
-		replaceToLocal: cfg.ReplaceToLocal,
+		fallbackToLocal: cfg.FallbackToLocal,
 	}, nil
 }
 
@@ -79,9 +79,9 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("originalDst remote addr: %s:%d", ips, port)
 	}
-	if filter.replaceToLocal {
+	if filter.fallbackToLocal {
 		ctx := cb.GetOriContext()
-		variable.SetString(ctx, types.VarOriginalDstIP, localHost)
+		variable.SetString(ctx, types.VarListenerMatchFallbackIP, localHost)
 	}
 
 	cb.SetOriginalAddr(ips, port)
