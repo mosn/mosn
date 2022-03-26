@@ -365,7 +365,7 @@ var (
 func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, proto types.ProtocolName) (types.ConnectionPool, types.Host, error) {
 	factory, ok := protocol.GetNewPoolFactory(proto)
 	if !ok {
-		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", proto)
+		return nil, nil, fmt.Errorf("protocol %v is not registered in pool factory", proto)
 	}
 
 	// for pool to know, whether this is a multiplex or pingpong pool
