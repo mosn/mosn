@@ -65,7 +65,7 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "config, c",
-				Usage:  "Load configuration from `FILE`",
+				Usage:  "load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
 				Value:  "configs/mosn_config.json",
 			}, cli.StringFlag{
