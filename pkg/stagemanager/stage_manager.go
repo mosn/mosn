@@ -93,7 +93,7 @@ const (
 )
 
 // the current Application is Mosn,
-// we may implement more applications in the feature
+// we may implement more applications in the future.
 type Application interface {
 	// inherit config from old server when it exists, otherwise, use the local config
 	// init its object members
@@ -126,7 +126,7 @@ type Data struct {
 	// ctx contains the start parameters
 	ctx *cli.Context
 	// config path represents the config file path,
-	// will create basic config from it and if auto config dump is setted,
+	// will create basic config from it and if auto config dump is set,
 	// new config data will write into this path
 	configPath string
 	// basic config, created after parameters parsed stage
@@ -500,7 +500,7 @@ func RegisterOnStateChanged(f func(State)) {
 	stm.onStateChangedCallbacks = append(stm.onStateChangedCallbacks, f)
 }
 
-func RegsiterUpgradeHandler(f func() error) {
+func RegisterUpgradeHandler(f func() error) {
 	stm.upgradeHandler = f
 }
 
@@ -536,7 +536,7 @@ func (stm *StageManager) runUpgrade() {
 	stm.wg.Done()
 }
 
-// notice the stop action to stage manager
+// NoticeStop notices the stop action to stage manager
 func NoticeStop(action StopAction) {
 	stm.stopAction = action
 	stm.runBeforeStopStages()

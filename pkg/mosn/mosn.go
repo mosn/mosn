@@ -344,7 +344,7 @@ func (m *Mosn) Start() {
 	}, nil)
 
 	if !m.Config.DisableUpgrade {
-		stagemanager.RegsiterUpgradeHandler(server.ReconfigureHandler)
+		stagemanager.RegisterUpgradeHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {
 			server.ReconfigureListener()
