@@ -18,10 +18,12 @@
 package pid
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
@@ -57,4 +59,29 @@ func RemovePidFile() {
 	if pidFile != "" {
 		os.Remove(pidFile)
 	}
+}
+
+// GetPidFrom gets pid from specified file_path
+func GetPidFrom(pidFilePath string) (pid int, err error) {
+
+	if pidFilePath == "" {
+		pidFilePath = types.MosnPidDefaultFileName
+	}
+
+	var pf io.Reader
+	if pf, err = os.Open(pidFilePath); err != nil {
+		log.DefaultLogger.Errorf("read pid file from %v error: %v", pidFilePath, err)
+		return
+	}
+
+	var bs []byte
+	if bs, err = ioutil.ReadAll(pf); err != nil {
+		log.DefaultLogger.Errorf("read pid from pid file error: %v", err)
+		return
+	}
+
+	pid, _ = strconv.Atoi(strings.TrimRight(string(bs), "\n"))
+	// need to check whether pid is a number string?
+
+	return
 }
