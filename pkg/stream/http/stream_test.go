@@ -440,10 +440,12 @@ func TestHeaderSize(t *testing.T) {
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
 
-	proxyGeneralExtendConfig := map[string]interface{}{
+	httpConfig := map[string]interface{}{
 		"max_header_size": len(requestSmall),
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, streamConfigHandler(proxyGeneralExtendConfig))
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP1] = streamConfigHandler(httpConfig)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {

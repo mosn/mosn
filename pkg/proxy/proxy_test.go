@@ -20,6 +20,7 @@ package proxy
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	monkey "github.com/cch123/supermonkey"
@@ -112,20 +113,66 @@ func TestNewProxy(t *testing.T) {
 			},
 		}
 		// mock create proxy factory
-		extConfig := protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
+		extConfig := make(map[api.ProtocolName]interface{})
+		extConfig[api.ProtocolName(cfg.DownstreamProtocol)] = protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
-		v := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig)
-		if v == nil {
-			t.Fatal("no proxy extend config")
+		var v http.StreamConfig
+		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						v = cfg
+					}
+				}
+			}
 		}
-		//
 		check := func(t *testing.T, v interface{}) {
 			cfg, ok := v.(http.StreamConfig)
 			assert.True(t, ok)
-			assert.Equal(t, cfg.MaxRequestBodySize, 100)
+			assert.Equal(t, 100, cfg.MaxRequestBodySize)
+		}
+		check(t, v)
+	})
+	t.Run("config with proxy general http1 and bolt", func(t *testing.T) {
+		subs := []api.ProtocolName{api.ProtocolName("Http1"), api.ProtocolName("bolt")}
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, subs)
+		cfg := &v2.Proxy{
+			Name:               "test",
+			DownstreamProtocol: "Http1,bolt",
+			ExtendConfig: map[string]interface{}{
+				"http2_use_stream":      true,
+				"max_request_body_size": 100,
+			},
+		}
+		// mock create proxy factory
+		protos := strings.Split(cfg.DownstreamProtocol, ",")
+		extConfig := make(map[api.ProtocolName]interface{})
+		for _, protoStr := range protos {
+			proto := api.ProtocolName(protoStr)
+			extConfig[proto] = protocol.HandleConfig(proto, cfg.ExtendConfig)
+		}
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		pv := NewProxy(ctx, cfg)
+		// verify
+		p := pv.(*proxy)
+		var v http.StreamConfig
+		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						v = cfg
+					}
+				}
+			}
+		}
+		check := func(t *testing.T, v interface{}) {
+			cfg, ok := v.(http.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, 100, cfg.MaxRequestBodySize)
 		}
 		check(t, v)
 	})

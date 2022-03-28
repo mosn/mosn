@@ -179,8 +179,12 @@ func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
 	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if cfg, ok := pgc.(StreamConfig); ok {
-		streamConfig = cfg
+	if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+		if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+			if cfg, ok := http2Config.(StreamConfig); ok {
+				streamConfig = cfg
+			}
+		}
 	}
 	return streamConfig
 }
@@ -218,8 +222,12 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 	}
 
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(StreamConfig); ok {
-			sc.useStream = extendConfig.Http2UseStream
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+				if cfg, ok := http2Config.(StreamConfig); ok {
+					sc.useStream = cfg.Http2UseStream
+				}
+			}
 		}
 	}
 
@@ -656,8 +664,12 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	}
 
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(StreamConfig); ok {
-			sc.useStream = extendConfig.Http2UseStream
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+				if cfg, ok := http2Config.(StreamConfig); ok {
+					sc.useStream = cfg.Http2UseStream
+				}
+			}
 		}
 	}
 

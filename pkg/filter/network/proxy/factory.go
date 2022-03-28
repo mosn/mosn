@@ -41,7 +41,7 @@ func init() {
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 	//
-	extendConfig interface{}
+	extendConfig map[api.ProtocolName]interface{}
 	protocols    []api.ProtocolName
 }
 
@@ -79,7 +79,14 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	}
 
 	if len(p.ExtendConfig) != 0 {
-		gfcf.extendConfig = protocol.HandleConfig(api.ProtocolName(p.DownstreamProtocol), p.ExtendConfig)
+		gfcf.extendConfig = make(map[api.ProtocolName]interface{})
+		for _, protoStr := range protos {
+			proto := api.ProtocolName(protoStr)
+			if ok := protocolCheck(proto); !ok {
+				return nil, fmt.Errorf("invalid downstream protocol %s", protoStr)
+			}
+			gfcf.extendConfig[proto] = protocol.HandleConfig(proto, p.ExtendConfig)
+		}
 	}
 	return gfcf, nil
 }
