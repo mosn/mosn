@@ -36,6 +36,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/server/pid"
+	pf "mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/types"
 	logger "mosn.io/pkg/log"
 )
@@ -566,4 +567,30 @@ func (stm *StageManager) RunAll() {
 	stm.WaitFinish()
 	// stop working
 	stm.Stop()
+}
+
+// StopMosnProcess stops Mosn process via command line,
+// and it not support stop on windows.
+func StopMosnProcess(mosnConfig *v2.MOSNConfig) (err error) {
+
+	// reads mosn process pid from `mosn.pid` file.
+	var pid int
+	if pid, err = pf.GetPidFrom(mosnConfig.Pid); err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, error: [%v] \n", err)
+		time.Sleep(time.Second) // waiting logs output
+		return
+	}
+
+	// sends SIGTERM to mosn process, makes it graceful exit.
+	proc, err := os.FindProcess(pid)
+	// check if process is existing.
+	err = proc.Signal(syscall.Signal(0))
+	if err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, process is not existing, err [%v] \n", err)
+		time.Sleep(time.Second) // waiting logs output
+		return
+	}
+
+	proc.Signal(syscall.SIGINT)
+	return
 }

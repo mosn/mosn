@@ -80,8 +80,6 @@ func GetPidFrom(pidFilePath string) (pid int, err error) {
 		return
 	}
 
-	pid, _ = strconv.Atoi(strings.TrimRight(string(bs), "\n"))
-	// need to check whether pid is a number string?
-
+	pid, err = strconv.Atoi(strings.TrimRight(string(bs), "\n"))
 	return
 }

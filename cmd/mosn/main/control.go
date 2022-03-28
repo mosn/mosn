@@ -18,12 +18,9 @@
 package main
 
 import (
-	"fmt"
 	_ "net/http/pprof"
 	"os"
-	"os/exec"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/urfave/cli"
@@ -43,7 +40,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"mosn.io/mosn/pkg/server"
-	pf "mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/stagemanager"
 	xstream "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/trace"
@@ -181,23 +177,9 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-
 			mosnConfig := configmanager.Load(c.String("config"))
 			mosn.InitDefaultPath(mosnConfig)
-
-			// reads mosn process pid from `mosn.pid` file.
-			var pid int
-			if pid, err = pf.GetPidFrom(mosnConfig.Pid); err != nil {
-				log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, error: [%v] \n", err)
-				return err
-			}
-
-			// sends SIGTERM to mosn process, makes it graceful exit.
-			_, err = exec.Command("/bin/sh", "-c", fmt.Sprintf("kill -%d %d", syscall.SIGTERM, pid)).Output()
-			if err != nil {
-				log.StartLogger.Errorf("[mosn stop] fail to stop MOSN while kill pid %v, error: [%v] \n", pid, err)
-			}
-			return nil
+			return stagemanager.StopMosnProcess(mosnConfig)
 		},
 	}
 
