@@ -13,7 +13,7 @@ for d in $(go list ./pkg/...  | grep -v pkg/networkextention); do
     fi
 done
 
-for d in $(go list ./istio/istio152/...); do
+for d in $(go list ./istio/...); do
     echo "--------Run test package: $d"
     GO111MODULE=on go test -mod=vendor -gcflags="all=-N -l" -v -coverprofile=profile.out -covermode=atomic $d
     echo "--------Finish test package: $d"

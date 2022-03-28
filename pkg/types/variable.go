@@ -72,6 +72,11 @@ const (
 	VarResponseRawData       string = "x-mosn-resp-raw-data"
 )
 
+// [server]: common
+const (
+	VarListenerMatchFallbackIP string = "listener_match_fallback_ip"
+)
+
 // [Route]: internal
 const (
 	VarRouterMeta string = "x-mosn-router-meta"

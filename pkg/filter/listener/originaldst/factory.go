@@ -18,20 +18,29 @@
 package originaldst
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
-
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
 }
 
+type OriginalDstConfig struct {
+	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
+	// any (0.0.0.0). usually used in ingress listener.
+	FallbackToLocal bool `json:"fallback_to_local"`
+}
+
 type originalDst struct {
+	fallbackToLocal bool
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
@@ -41,8 +50,17 @@ func NewOriginalDst() api.ListenerFilterChainFactory {
 }
 
 func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
-	return &originalDst{}, nil
+	b, _ := json.Marshal(conf)
+	cfg := OriginalDstConfig{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil, err
+	}
+	return &originalDst{
+		fallbackToLocal: cfg.FallbackToLocal,
+	}, nil
 }
+
+const localHost = "127.0.0.1"
 
 // OnAccept called when connection accept
 func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) api.FilterStatus {
@@ -60,6 +78,10 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("originalDst remote addr: %s:%d", ips, port)
+	}
+	if filter.fallbackToLocal {
+		ctx := cb.GetOriContext()
+		variable.SetString(ctx, types.VarListenerMatchFallbackIP, localHost)
 	}
 
 	cb.SetOriginalAddr(ips, port)

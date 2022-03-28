@@ -67,9 +67,8 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	// request with different "servername"
@@ -86,7 +85,7 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 			t.Errorf("create client context manager failed %v", err)
 			continue
 		}
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("#%d request server error %v", i, err)
 			continue
@@ -112,7 +111,7 @@ func TestServerContextManagerWithMultipleCert(t *testing.T) {
 		t.Errorf("create client context manager failed %v", err)
 		return
 	}
-	resp, err := MockClient(t, server.Addr, cltMng)
+	resp, err := MockClient(server.Addr, cltMng)
 	if err != nil {
 		t.Errorf("request server error %v", err)
 		return
@@ -157,9 +156,8 @@ func TestVerifyClient(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	clientConfigs := []*v2.TLSConfig{
@@ -186,7 +184,7 @@ func TestVerifyClient(t *testing.T) {
 			continue
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("request server error %v", err)
 			continue
@@ -206,7 +204,7 @@ func TestVerifyClient(t *testing.T) {
 		return
 	}
 
-	resp, err := MockClient(t, server.Addr, cltMng)
+	resp, err := MockClient(server.Addr, cltMng)
 	// expected bad certificate
 	if err == nil {
 		ioutil.ReadAll(resp.Body)
@@ -249,9 +247,8 @@ func TestInspector(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	cltMng, err := NewTLSClientContextManager("", &v2.TLSConfig{
@@ -266,7 +263,7 @@ func TestInspector(t *testing.T) {
 		return
 	}
 	// non-tls
-	resp, err := MockClient(t, server.Addr, nil)
+	resp, err := MockClient(server.Addr, nil)
 	if err != nil {
 		t.Errorf("request server error %v", err)
 		return
@@ -274,7 +271,7 @@ func TestInspector(t *testing.T) {
 	ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	// tls
-	resp, err = MockClient(t, server.Addr, cltMng)
+	resp, err = MockClient(server.Addr, cltMng)
 	if err != nil {
 		t.Errorf("request server error %v", err)
 		return
@@ -320,9 +317,8 @@ func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	// request with different "servername"
@@ -339,7 +335,7 @@ func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
 			t.Errorf("create client context manager failed %v", err)
 			continue
 		}
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("#%d request server error %v", i, err)
 			continue
@@ -364,7 +360,7 @@ func TestServerContextManagerWithMultipleCertInOneFilterChain(t *testing.T) {
 		t.Errorf("create client context manager failed %v", err)
 		return
 	}
-	resp, err := MockClient(t, server.Addr, cltMng)
+	resp, err := MockClient(server.Addr, cltMng)
 	if err != nil {
 		t.Errorf("request server error %v", err)
 		return
@@ -509,9 +505,8 @@ func TestClientFallBack(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	// A Client with fallback
@@ -524,7 +519,7 @@ func TestClientFallBack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tls context manager error: %v", err)
 	}
-	resp, err := MockClient(t, server.Addr, fallbackMng)
+	resp, err := MockClient(server.Addr, fallbackMng)
 	if !pass(resp, err) {
 		t.Fatalf("fallback request failed")
 	}

@@ -208,6 +208,9 @@ type LBSubsetConfig struct {
 type LBOriDstConfig struct {
 	UseHeader  bool   `json:"use_header,omitempty"`
 	HeaderName string `json:"header_name,omitempty"`
+	// ReplaceLocal is true means the load balance will always choose
+	// a host with local address
+	ReplaceLocal bool `json:"replace_local,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager

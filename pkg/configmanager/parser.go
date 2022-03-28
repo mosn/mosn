@@ -431,7 +431,7 @@ func AddOrUpdateNetworkFilterFactories(listenerName string, ln *v2.Listener) []a
 	}
 
 	if len(factories) == 0 {
-		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", listenerName)
+		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener: %+v", ln)
 		return nil
 	}
 

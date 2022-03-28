@@ -192,9 +192,8 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	testCases := []struct {
@@ -229,7 +228,7 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			continue
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -292,9 +291,8 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	clientConfig, err := clientInfo.CreateCertConfig()
@@ -312,7 +310,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 			return
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -333,7 +331,7 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 			t.Errorf("create client context manager failed %v", err)
 			return
 		}
-		resp, err := MockClient(t, server.Addr, skipMng)
+		resp, err := MockClient(server.Addr, skipMng)
 		// ignore the case, must be pass
 		if !pass(resp, err) {
 			t.Errorf("#%d skip verify failed", i)
