@@ -21,11 +21,12 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/urfave/cli"
 	"mosn.io/api"
-	"mosn.io/mosn/istio/istio152"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/istio/istio1106"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
@@ -38,6 +39,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/stagemanager"
 	xstream "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/trace"
@@ -63,7 +65,7 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "config, c",
-				Usage:  "Load configuration from `FILE`",
+				Usage:  "load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
 				Value:  "configs/mosn_config.json",
 			}, cli.StringFlag{
@@ -124,7 +126,8 @@ var (
 				Usage: "eporch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
-				Usage: "seconds to drain, align to Istio startup params, currently useless",
+				Usage: "seconds to drain connections, default 600 seconds",
+				Value: 600,
 			}, cli.StringFlag{
 				Name:  "parent-shutdown-time-s",
 				Usage: "parent shutdown time seconds, align to Istio startup params, currently useless",
@@ -134,6 +137,18 @@ var (
 			}, cli.IntFlag{
 				Name:  "concurrency",
 				Usage: "concurrency, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "log-format-prefix-with-location",
+				Usage: "log-format-prefix-with-location, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "bootstrap-version",
+				Usage: "API version to parse the bootstrap config as (e.g. 3). If unset, all known versions will be attempted",
+			}, cli.StringFlag{
+				Name:  "drain-strategy",
+				Usage: "immediate",
+			}, cli.BoolTFlag{
+				Name:  "disable-hot-restart",
+				Usage: "disable-hot-restart",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -145,6 +160,33 @@ var (
 			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
 			// initial registerd
+			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
+				drainTime := c.Int("drain-time-s")
+				server.SetDrainTime(time.Duration(drainTime) * time.Second)
+				// istio parameters
+				serviceCluster := c.String("service-cluster")
+				serviceNode := c.String("service-node")
+				serviceType := c.String("service-type")
+				serviceMeta := c.StringSlice("service-meta")
+				metaLabels := c.StringSlice("service-lables")
+				clusterDomain := c.String("cluster-domain")
+				podName := c.String("pod-name")
+				podNamespace := c.String("pod-namespace")
+				podIp := c.String("pod-ip")
+
+				if serviceNode != "" {
+					istio1106.InitXdsInfo(cfg, serviceCluster, serviceNode, serviceMeta, metaLabels)
+				} else {
+					if istio1106.IsApplicationNodeType(serviceType) {
+						sn := podName + "." + podNamespace
+						serviceNode = serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
+						istio1106.InitXdsInfo(cfg, serviceCluster, serviceNode, serviceMeta, metaLabels)
+					} else {
+						log.StartLogger.Infof("[mosn] [start] xds service type is not router/sidecar, use config only")
+						istio1106.InitXdsInfo(cfg, "", "", nil, nil)
+					}
+				}
+			})
 			stm.AppendInitStage(mosn.DefaultInitStage)
 			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
 				// set version and go version
@@ -194,27 +236,6 @@ func DefaultParamsParsed(c *cli.Context) {
 	if err != nil {
 		log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 		os.Exit(1)
-	}
-	// istio parameters
-	serviceCluster := c.String("service-cluster")
-	serviceNode := c.String("service-node")
-	serviceType := c.String("service-type")
-	serviceMeta := c.StringSlice("service-meta")
-	metaLabels := c.StringSlice("service-lables")
-	clusterDomain := c.String("cluster-domain")
-	podName := c.String("pod-name")
-	podNamespace := c.String("pod-namespace")
-	podIp := c.String("pod-ip")
-	if serviceNode != "" {
-		istio152.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-	} else {
-		if istio152.IsApplicationNodeType(serviceType) {
-			sn := podName + "." + podNamespace
-			serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
-			istio152.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-		} else {
-			log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
-		}
 	}
 }
 

@@ -62,7 +62,6 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 
 	proto := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol)
 	if proto == nil || dubbo.ProtocolName != proto {
-
 		return api.StreamFilterContinue
 	}
 

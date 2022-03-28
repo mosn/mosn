@@ -34,6 +34,10 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return false
 }
 
+func (r *Request) IsGoAwayFrame() bool {
+	return r.Type == TypeGoAway
+}
+
 func (r *Request) GetTimeout() int32 {
 	return -1
 }

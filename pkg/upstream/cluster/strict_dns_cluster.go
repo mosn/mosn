@@ -250,14 +250,14 @@ func (rt *ResolveTarget) StartResolve() {
 		select {
 		case <-rt.stop:
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
+				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
 			}
 			return
 		default:
 			select {
 			case <-rt.stop:
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
+					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
 				}
 				return
 			case <-rt.timeout:

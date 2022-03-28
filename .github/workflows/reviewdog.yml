@@ -35,6 +35,23 @@ jobs:
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)
           
+  test-compatible:
+    name: Test-compatible
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Set to compatible version
+        run: make istio-1.5.2
+
+      - name: Run Unit compatible tests.
+        run: make unit-test-istio
+
   integrate:
     name: integrate
     runs-on: ubuntu-latest

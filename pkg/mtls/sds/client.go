@@ -35,6 +35,8 @@ type SdsClientImpl struct {
 
 var sdsClient *SdsClientImpl
 var sdsClientLock sync.Mutex
+
+// sdsPostCallback usually used in test scenarios to sense that the asynchronous certificate response has completed the push
 var sdsPostCallback func() = nil
 
 var ErrSdsClientNotInit = errors.New("sds client not init")

@@ -94,10 +94,6 @@ type Listener interface {
 	// Start starts listener with context
 	Start(lctx context.Context, restart bool)
 
-	// Stop stops listener
-	// Accepted connections and listening sockets will not be closed
-	Stop() error
-
 	// ListenerTag returns the listener's tag, whichi the listener should use for connection handler tracking.
 	ListenerTag() uint64
 
@@ -125,6 +121,9 @@ type Listener interface {
 	// GetListenerCallbacks set a listener event listener
 	GetListenerCallbacks() ListenerEventListener
 
+	// Shutdown stop accepting new connections and graceful stop the existing connections
+	Shutdown() error
+
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
 
@@ -142,6 +141,9 @@ type ListenerEventListener interface {
 
 	// OnClose is called on listener close
 	OnClose()
+
+	// OnShutdown is called for graceful stop existing connections
+	OnShutdown()
 
 	// PreStopHook is called on listener quit(but before closed)
 	PreStopHook(ctx context.Context) func() error
@@ -214,12 +216,20 @@ type ConnectionHandler interface {
 	// RemoveListeners find and removes a listener by listener name.
 	RemoveListeners(name string)
 
-	// StopListener stops a listener  by listener name
-	StopListener(lctx context.Context, name string, stop bool) error
+	// GracefulStopListener graceful stop a listener by listener name
+	// stop accept connections + graceful stop existing connections
+	GracefulStopListener(lctx context.Context, name string) error
 
-	// StopListeners stops all listeners the ConnectionHandler has.
-	// The close indicates whether the listening sockets will be closed.
-	StopListeners(lctx context.Context, close bool) error
+	// GracefulCloseListener graceful close a listener by listener name
+	// stop accept connections + graceful stop existing connections + close listener
+	GracefulCloseListener(lctx context.Context, name string) error
+
+	// GracefulStopListeners stop accept connections from all listeners the ConnectionHandler has.
+	// and graceful stop all the existing connections.
+	GracefulStopListeners() error
+
+	// CloseListeners close listeners immediately
+	CloseListeners()
 
 	// ListListenersFD reports all listeners' fd
 	ListListenersFile(lctx context.Context) []*os.File

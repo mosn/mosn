@@ -65,6 +65,16 @@ const (
 	VarHeaderStatus          string = "x-mosn-status"
 	VarHeaderRPCService      string = "x-mosn-rpc-service"
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
+
+	// notice: read-only!!! do not modify the raw data!!!
+	VarRequestRawData        string = "x-mosn-req-raw-data"
+	// notice: read-only!!! do not modify the raw data!!!
+	VarResponseRawData       string = "x-mosn-resp-raw-data"
+)
+
+// [server]: common
+const (
+	VarListenerMatchFallbackIP string = "listener_match_fallback_ip"
 )
 
 // [Route]: internal

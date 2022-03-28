@@ -4,6 +4,8 @@ function makebuild {
 	mkdir -p $OPWD/tmpmain
 	# copy test code for extend
 	cp -R $OPWD/extends/* $OPWD/tmpmain
+	# copy x_example protocol codec
+	cp -R ../../examples/codes/xprotocol_with_goplugin_example/codec* tmpmain/pluginsource
 	# copy mosn main code
 	cp ../../cmd/mosn/main/* $OPWD/tmpmain
 	# GO BUILD
@@ -12,7 +14,7 @@ function makebuild {
 	mv ./main "$OPWD/test_mosn"
 	# compile so file
 	cd $OPWD
-	go build -buildmode=plugin tmpmain/pluginsource/*.go
+	ls tmpmain/pluginsource/*.go | xargs -I % sh -c 'go build -buildmode=plugin %'
 	rm -rf $OPWD/tmpmain
 	echo $OPWD/test_mosn
 }

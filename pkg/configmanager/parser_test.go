@@ -105,7 +105,7 @@ func TestParseClusterConfig(t *testing.T) {
 	clusters, clMap := ParseClusterConfig([]v2.Cluster{cluster})
 	c := clusters[0]
 	for _, h := range c.Hosts {
-		if h.Weight < MinHostWeight || h.Weight > MaxHostWeight {
+		if h.Weight < v2.MinHostWeight || h.Weight > v2.MaxHostWeight {
 			t.Error("unexpected host weight")
 		}
 	}
@@ -120,14 +120,14 @@ func TestParseClusterConfig(t *testing.T) {
 		t.Error("no callback")
 	}
 
-	if c.MaxRequestPerConn != DefaultMaxRequestPerConn {
+	if c.MaxRequestPerConn != v2.DefaultMaxRequestPerConn {
 		t.Errorf("Expect cluster.MaxRequestPerConn default value %d but got %d",
-			DefaultMaxRequestPerConn, c.MaxRequestPerConn)
+			v2.DefaultMaxRequestPerConn, c.MaxRequestPerConn)
 	}
 
-	if c.ConnBufferLimitBytes != DefaultConnBufferLimitBytes {
+	if c.ConnBufferLimitBytes != v2.DefaultConnBufferLimitBytes {
 		t.Errorf("Expect cluster.ConnBufferLimitBytes default value%d, but got %d",
-			DefaultConnBufferLimitBytes, c.ConnBufferLimitBytes)
+			v2.DefaultConnBufferLimitBytes, c.ConnBufferLimitBytes)
 	}
 }
 func TestParseListenerConfig(t *testing.T) {
@@ -314,7 +314,7 @@ func TestNetworkFilterFactories(t *testing.T) {
 		ListenerConfig: v2.ListenerConfig{
 			Name: "test_listener",
 			FilterChains: []v2.FilterChain{
-				v2.FilterChain{
+				{
 					FilterChainConfig: v2.FilterChainConfig{
 						Filters: []v2.Filter{
 							{Type: "test1"},

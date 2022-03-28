@@ -106,7 +106,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 	var listenerName string
 	if lc.Name == "" {
-		listenerName = utils.GenerateUUID()
+		listenerName = lc.Addr.String() //utils.GenerateUUID()
 		lc.Name = listenerName
 	} else {
 		listenerName = lc.Name
@@ -195,7 +195,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 			}
 		}
 
-		l := network.NewListener(lc)
+		l := network.GetListenerFactory()(lc)
 
 		var err error
 		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, ch, listenerStopChan)
@@ -259,37 +259,70 @@ func (ch *connHandler) RemoveListeners(name string) {
 	}
 }
 
-func (ch *connHandler) StopListener(lctx context.Context, name string, close bool) error {
+func (ch *connHandler) GracefulStopListener(lctx context.Context, name string) error {
+	var errGlobal error
 	for _, l := range ch.listeners {
 		if l.listener.Name() == name {
-			// stop goroutine
-			if close {
-				return l.listener.Close(lctx)
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
+			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
 			}
-
-			return l.listener.Stop()
 		}
 	}
+	return errGlobal
+}
 
+func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) error {
+	var errGlobal error
+	for _, l := range ch.listeners {
+		if l.listener.Name() == name {
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
+			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
+			}
+			if err := l.listener.Close(lctx); err != nil {
+				log.DefaultLogger.Errorf("failed to close listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
+			}
+		}
+	}
+	return errGlobal
+}
+
+// GracefulStopListeners stop accept new connections
+// and graceful close all the existing connections.
+func (ch *connHandler) GracefulStopListeners() error {
+	var failed bool
+	listeners := ch.listeners
+	wg := sync.WaitGroup{}
+	wg.Add(len(listeners))
+	for _, l := range listeners {
+		al := l
+		log.DefaultLogger.Infof("graceful shutdown listener %v", al.listener.Name())
+		// Shutdown listener in parallel
+		utils.GoWithRecover(func() {
+			defer wg.Done()
+			if err := al.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", al.listener.Name(), err)
+				failed = true
+			}
+		}, nil)
+	}
+	wg.Wait()
+
+	if failed {
+		return errors.New("failed to shutdown listeners")
+	}
 	return nil
 }
 
-func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
-	var errGlobal error
+// CloseListeners close listeners immediately
+func (ch *connHandler) CloseListeners() {
 	for _, l := range ch.listeners {
-		// stop goroutine
-		if close {
-			if err := l.listener.Close(lctx); err != nil {
-				errGlobal = err
-			}
-		} else {
-			if err := l.listener.Stop(); err != nil {
-				errGlobal = err
-			}
-		}
+		l.listener.Close(nil)
 	}
-
-	return errGlobal
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
@@ -323,10 +356,8 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 func (ch *connHandler) findActiveListenerByName(name string) *activeListener {
 	for _, l := range ch.listeners {
-		if l.listener != nil {
-			if l.listener.Name() == name {
-				return l
-			}
+		if l.listener != nil && l.listener.Name() == name {
+			return l
 		}
 	}
 
@@ -346,8 +377,7 @@ type activeListener struct {
 	networkFiltersFactories  []api.NetworkFilterChainFactory
 	listenIP                 string
 	listenPort               int
-	conns                    *list.List
-	connsMux                 sync.RWMutex
+	conns                    *utils.SyncList
 	handler                  *connHandler
 	stopChan                 chan struct{}
 	stats                    *listenerStats
@@ -363,7 +393,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
-		conns:                    list.New(),
+		conns:                    utils.NewSyncList(),
 		handler:                  handler,
 		stopChan:                 stopChan,
 		accessLogs:               accessLoggers,
@@ -494,14 +524,15 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+		}
 		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}
 	ac := newActiveConnection(al, conn)
 
-	al.connsMux.Lock()
 	e := al.conns.PushBack(ac)
-	al.connsMux.Unlock()
 	ac.element = e
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
@@ -525,7 +556,52 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
+var (
+	// drain time, default 15 seconds
+	drainTime = time.Second * 15
+)
+
+func SetDrainTime(time time.Duration) {
+	drainTime = time
+}
+
+// OnShutdown graceful stop the existing connection and wait all connections to be closed
+func (al *activeListener) OnShutdown() {
+	utils.GoWithRecover(func() {
+		al.conns.VisitSafe(func(v interface{}) {
+			conn := v.(*activeConnection).conn
+			// TODO 1: conn.OnConnectionEvent may be blocked on connection.Write, need a proper way to not block too long.
+			// TODO 2: shutdown connections gradual, it's useful when there are many connections.
+			conn.OnConnectionEvent(api.OnShutdown)
+		})
+	}, nil)
+
+	al.waitConnectionsClose(drainTime)
+}
+
 func (al *activeListener) OnClose() {
+}
+
+// waitConnectionsClose wait all connections to be closed, wait maxWaitMilliseconds at most.
+func (al *activeListener) waitConnectionsClose(maxWaitTime time.Duration) {
+	// if there is any stream being processed and without timeout,
+	// we try to wait for processing to complete, or wait for a timeout.
+	current := time.Now()
+	remainStream, waited := al.activeStreamSize(), time.Since(current)
+	for ; remainStream > 0 && waited <= maxWaitTime; remainStream, waited =
+		al.activeStreamSize(), time.Since(current) {
+		// sleep 10ms
+		time.Sleep(10 * time.Millisecond)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms",
+				al.listener.Name(), remainStream, Milliseconds(waited))
+		}
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms",
+			al.listener.Name(), remainStream, Milliseconds(waited))
+	}
 }
 
 // PreStopHook used for graceful stop
@@ -534,35 +610,14 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 	// check that the preconditions are met.
 	// for example: whether all request queues are processed ?
 	return func() error {
-		var remainStream int
-		var waitedMilliseconds int64
 		if ctx != nil {
 			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
 				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
-					current := time.Now()
-					// if there any stream being processed and without timeout,
-					// we try to wait for processing to complete, or wait for a timeout.
-					remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current))
-					for ; remainStream > 0 && waitedMilliseconds <= timeout; remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current)) {
-						// waiting for 10ms
-						time.Sleep(10 * time.Millisecond)
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[activeListener] listener %s invoking stop hook, remaining stream count %d, waited time %dms",
-								al.listener.Name(), remainStream, waitedMilliseconds)
-						}
-					}
+					al.waitConnectionsClose(time.Millisecond * time.Duration(timeout))
 				}
 			}
 		}
-
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete, remaining stream count %d, waited time %dms",
-				al.listener.Name(), remainStream, waitedMilliseconds)
-		}
-
 		return nil
 	}
 }
@@ -571,9 +626,7 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 func Milliseconds(d time.Duration) int64 { return int64(d) / 1e6 }
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
-	al.connsMux.Lock()
 	al.conns.Remove(ac.element)
-	al.connsMux.Unlock()
 
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
@@ -643,8 +696,23 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	}
 }
 
+func init() {
+	variable.Register(
+		variable.NewStringVariable(types.VarListenerMatchFallbackIP, nil, nil, variable.DefaultStringSetter, 0),
+	)
+}
+
+const fallback_any = "0.0.0.0"
+
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
+
+	// if listener match ip address, we will use a fallback listener.
+	// default action is fallback to a listener which listen ip 0.0.0.0
+	fallbackip := fallback_any
+	if v, err := variable.GetString(arc.ctx, types.VarListenerMatchFallbackIP); err == nil {
+		fallbackip = v
+	}
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -652,7 +720,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			break
 		}
 
-		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
 
@@ -669,7 +737,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	if listener != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
@@ -677,7 +745,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	if localListener != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 		return
@@ -685,7 +753,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	// If it can’t find any matching listeners and should using the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
+		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
 	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 }

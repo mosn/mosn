@@ -21,14 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"net/http"
 	"sync"
-	"testing"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/types"
 )
@@ -81,113 +77,13 @@ func getMockSdsClient(cfg interface{}) types.SdsClient {
 	return mockSdsClientInstance
 }
 
-// network io mock
-type MockListener struct {
-	net.Listener
-	Mng types.TLSContextManager
-}
-
-func MockClient(t *testing.T, addr string, cltMng types.TLSClientContextManager) (*http.Response, error) {
-	c, err := net.Dial("tcp", addr)
-	if err != nil {
-		return nil, fmt.Errorf("request server error %v", err)
-	}
-	var conn net.Conn
-	var req *http.Request
-	conn = c
-	if cltMng != nil {
-		req, _ = http.NewRequest("GET", "https://"+addr, nil)
-		conn, err = cltMng.Conn(c)
-		if err != nil && cltMng.Fallback() {
-			conn, err = net.Dial("tcp", addr)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("request tls handshake error %v", err)
-		}
-	} else {
-		req, _ = http.NewRequest("GET", "http://"+addr, nil)
-	}
-
-	transport := &http2.Transport{}
-	h2Conn, err := transport.NewClientConn(conn)
-	return h2Conn.RoundTrip(req)
-}
-
-func (ln MockListener) Accept() (net.Conn, error) {
-	conn, err := ln.Listener.Accept()
-	if err != nil {
-		return conn, err
-	}
-	conn, err = ln.Mng.Conn(conn)
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	return conn, nil
-}
-
-type MockServer struct {
-	Mng      types.TLSContextManager
-	Addr     string
-	server   *http2.Server
-	mux      http.Handler
-	t        *testing.T
-	listener *MockListener
-}
-
-func (s *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "mock server")
-}
-
-func (s *MockServer) GoListenAndServe(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Errorf("listen failed %v", err)
-		return
-	}
-	s.Addr = ln.Addr().String()
-	s.listener = &MockListener{ln, s.Mng}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.ServeHTTP)
-	server := &http2.Server{}
-	s.server = server
-	s.mux = mux
-	go s.serve(s.listener)
-}
-
-func (s *MockServer) serve(ln *MockListener) {
-	for {
-		c, e := ln.Accept()
-		if e != nil {
-			return
-		}
-
-		go func() {
-			if tlsConn, ok := c.(*TLSConn); ok {
-				tlsConn.SetALPN(http2.NextProtoTLS)
-				if err := tlsConn.Handshake(); err != nil {
-					s.t.Logf("Hanshake failed, %v", err)
-					return
-				}
-			}
-			s.server.ServeConn(c, &http2.ServeConnOpts{
-				Handler: s.mux,
-			})
-		}()
-	}
-}
-
-func (s *MockServer) Close() {
-	s.listener.Close()
-}
-
 type certInfo struct {
 	CommonName string
 	Curve      string
 	DNS        string
 }
 
-func (c *certInfo) CreateSecret() (*secretInfo, error) {
+func (c *certInfo) CreateSecret() (*SecretInfo, error) {
 	priv, err := certtool.GeneratePrivateKey(c.Curve)
 	if err != nil {
 		return nil, fmt.Errorf("generate key failed %v", err)
@@ -204,7 +100,7 @@ func (c *certInfo) CreateSecret() (*secretInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sign certificate failed %v", err)
 	}
-	return &secretInfo{
+	return &SecretInfo{
 		Certificate: cert.CertPem,
 		PrivateKey:  cert.KeyPem,
 		Validation:  certtool.GetRootCA().CertPem,
