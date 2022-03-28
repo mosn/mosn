@@ -505,7 +505,7 @@ func TestServerH2RespUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx = mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().SetTransferEventListener(gomock.Any()).AnyTimes()
