@@ -123,6 +123,12 @@ func (proto boltProtocol) Decode(ctx context.Context, data api.IoBuffer) (interf
 
 // GoAwayer
 func (proto boltProtocol) GoAway(ctx context.Context) api.XFrame {
+	// GoAway is disabled
+	config := parseConfig(ctx)
+	if !config.EnableBoltGoAway {
+		return nil
+	}
+
 	return &Request{
 		RequestHeader: RequestHeader{
 			Protocol:  ProtocolCode,
