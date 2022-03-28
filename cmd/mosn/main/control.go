@@ -199,6 +199,7 @@ var (
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
+			// after-stop
 			stm.AppendAfterStopStage(holmes.Stop)
 			// execute all stages
 			stm.RunAll()
