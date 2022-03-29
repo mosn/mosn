@@ -26,6 +26,7 @@ package stagemanager
 
 import (
 	"os"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -581,7 +582,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	// reads mosn process pid from `mosn.pid` file.
 	var pid int
 	if pid, err = pf.GetPidFrom(mosnConfig.Pid); err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, get pid: %v \n", err)
+		log.StartLogger.Errorf("[mosn stop] fail to get pid: %v", err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
@@ -591,13 +592,19 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	// check if process is existing.
 	err = proc.Signal(syscall.Signal(0))
 	if err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, process is not existing, err [%v] \n", err)
+		log.StartLogger.Errorf("[mosn stop] process is not existing, pid: %v, err: %v", pid, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	if runtime.GOOS == "windows" {
+		log.StartLogger.Errorf("[mosn stop] stop command is NOT support on windows", pid, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
 
 	proc.Signal(syscall.SIGINT)
-	log.StartLogger.Infof("[mosn stop] has sent an INT signal to %v pid. \n", pid)
+	log.StartLogger.Infof("[mosn stop] has sent an INT signal to %v pid", pid)
 	time.Sleep(100 * time.Millisecond) // waiting logs output
 	return
 }
