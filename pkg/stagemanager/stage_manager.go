@@ -598,7 +598,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	}
 
 	if runtime.GOOS == "windows" {
-		log.StartLogger.Errorf("[mosn stop] stop command is NOT support on windows", pid, err)
+		log.StartLogger.Errorf("[mosn stop] stop command is NOT support on windows")
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
