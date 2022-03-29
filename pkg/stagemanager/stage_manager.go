@@ -602,8 +602,32 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
+
 	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", pid)
 	proc.Signal(syscall.SIGINT)
-	time.Sleep(100 * time.Millisecond) // waiting logs output
-	return
+
+	// check the process status
+	t := time.Now().Add(10*time.Second)
+	cnt := 0
+	for {
+
+		if time.Now().After(t){
+			log.StartLogger.Errorf("[mosn stop] fail to stop mosn process(%v)",pid)
+			return
+		}
+
+		cnt++
+		if cnt%10 == 0{ //log it per second.
+			log.StartLogger.Infof("[mosn stop] checking process(%v) status" )
+		}
+
+		if err = proc.Signal(syscall.Signal(0));err==nil{
+			// process alive still, kill it again.
+			time.Sleep(100*time.Millisecond)
+			continue
+		}
+
+		return
+
+	}
 }
