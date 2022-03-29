@@ -592,7 +592,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	// check if process is existing.
 	err = proc.Signal(syscall.Signal(0))
 	if err != nil {
-		log.StartLogger.Errorf("[mosn stop] process is not existing, pid: %v, err: %v", pid, err)
+		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", pid, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
@@ -602,9 +602,8 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
-
+	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", pid)
 	proc.Signal(syscall.SIGINT)
-	log.StartLogger.Infof("[mosn stop] has sent an INT signal to %v pid", pid)
 	time.Sleep(100 * time.Millisecond) // waiting logs output
 	return
 }
