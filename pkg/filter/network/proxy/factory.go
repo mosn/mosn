@@ -80,11 +80,7 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 
 	if len(p.ExtendConfig) != 0 {
 		gfcf.extendConfig = make(map[api.ProtocolName]interface{})
-		for _, protoStr := range protos {
-			proto := api.ProtocolName(protoStr)
-			if ok := protocolCheck(proto); !ok {
-				return nil, fmt.Errorf("invalid downstream protocol %s", protoStr)
-			}
+		for _, proto := range gfcf.protocols {
 			gfcf.extendConfig[proto] = protocol.HandleConfig(proto, p.ExtendConfig)
 		}
 	}
