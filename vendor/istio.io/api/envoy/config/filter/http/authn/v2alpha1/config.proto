@@ -1,0 +1,60 @@
+// Copyright 2018 Istio Authors
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+syntax = "proto3";
+
+import "authentication/v1alpha1/policy.proto";
+
+// $title: Internal API for authentication implementation on Envoy.
+
+package istio.envoy.config.filter.http.authn.v2alpha1;
+
+option go_package = "istio.io/api/envoy/config/filter/http/authn/v2alpha1";
+
+// FilterConfig is the config for Istio-specific filter that is used to enforce
+// authentication policy on Envoy.
+message FilterConfig {
+  // Policy is the original copy of the policy.
+  istio.authentication.v1alpha1.Policy policy = 1;
+
+  // Map from issuer to location of the payload that is emitted by Jwt filter.
+  // This information is added by pilot when construct and add Jwt and
+  // authN filters.
+  map<string, string> jwt_output_payload_locations = 2;
+
+  // Skips validating the peer's trust domain.
+  // By default, the istio authn filter will reject the request if the peer and
+  // the local service is not in the same trust domain.
+  // Set this field to true to skip the validation and allows peers from any
+  // trust domains.
+  // Note, the istio authn filter only validates the trust domain when mTLS is
+  // used, In other words, this field has no effect for plaintext traffic.
+  // TODO(incfly): deprecate this after allowed_trust_domains is shipped.
+  bool skip_validate_trust_domain = 3;
+
+  // allowed_trust_domains contains a list of trust domains the authn
+  // filter should validate against. When configured, only requests with a
+  // peer from one of the allowed trust domain will be admitted.
+  // An empty list means all trust domains are allowed.
+  // When this field is set, the skip_validate_trust_domain field is ignored.
+  // This field has no effect for plaintext traffic.
+  repeated string allowed_trust_domains = 4;
+
+  // By default the authn filter will clear the route cache so that the validated
+  // JWT token claims can be used in routing.
+  // Advanced users can set this to true to disable the behavior if they do not
+  // want the authn filter to clear the route cache for any reasons.
+  // Warning: setting this to true will break the JWT claim based routing.
+  bool disable_clear_route_cache = 5;
+}

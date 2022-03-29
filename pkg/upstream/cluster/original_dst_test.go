@@ -22,6 +22,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -144,4 +145,39 @@ func TestChooseHost(t *testing.T) {
 	if host.AddressString() != orihost {
 		t.Fatalf("expected choose failed, expect host: %s, but got: %s", orihost, host.AddressString())
 	}
+
+	// check default port 80, use header
+	lbCtx = &LbCtx{
+		ctx:     ctx,
+		cluster: cluster,
+		headers: &Header{
+			v: map[string]string{
+				"host": "127.0.0.1", // without port
+			},
+		},
+	}
+	host = orilb.ChooseHost(lbCtx)
+	require.Equal(t, "127.0.0.1:80", host.AddressString())
+
+	// check replace by local
+	oriDstCfg = &v2.LBOriDstConfig{
+		UseHeader:    true,
+		ReplaceLocal: true,
+	}
+	cluster = &clusterInfo{
+		name:         "testOriDs_replace",
+		lbType:       types.ORIGINAL_DST,
+		lbOriDstInfo: NewLBOriDstInfo(oriDstCfg),
+	}
+	lbCtx = &LbCtx{
+		ctx:     ctx,
+		cluster: cluster,
+		headers: &Header{
+			v: map[string]string{
+				"host": "192.168.1.1:9080",
+			},
+		},
+	}
+	host = orilb.ChooseHost(lbCtx)
+	require.Equal(t, "127.0.0.1:9080", host.AddressString())
 }

@@ -107,14 +107,13 @@ func TestSimpleSdsTLS(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	// before certificet set, server support non-tls
 	inspectorCall := func() {
-		resp, err := MockClient(t, server.Addr, nil)
+		resp, err := MockClient(server.Addr, nil)
 		if err != nil {
 			t.Errorf("inspector call sds listener failed: %v", err)
 			return
@@ -132,7 +131,7 @@ func TestSimpleSdsTLS(t *testing.T) {
 		if err != nil {
 			t.Fatalf("create tls context manager failed: %v", err)
 		}
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err == nil {
 			t.Error("expected request server failed, but success")
 			ioutil.ReadAll(resp.Body)
@@ -161,7 +160,7 @@ func TestSimpleSdsTLS(t *testing.T) {
 			continue
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("#%d request server error %v", i, err)
 			continue
@@ -204,15 +203,14 @@ func TestSdsWithExtension(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	mockSetSecret()
 	// 1. client request non-tls
 	inspectorCall := func() {
-		resp, err := MockClient(t, server.Addr, nil)
+		resp, err := MockClient(server.Addr, nil)
 		if err != nil {
 			t.Errorf("inspector call sds listener failed: %v", err)
 			return
@@ -228,7 +226,7 @@ func TestSdsWithExtension(t *testing.T) {
 			InsecureSkip: true,
 		}
 		cltMng, _ := NewTLSClientContextManager("", cfg)
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("client request server without certificate failed: %v", err)
 			return
@@ -251,7 +249,7 @@ func TestSdsWithExtension(t *testing.T) {
 			t.Errorf("create tls context manager failed: %v", err)
 			return
 		}
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err != nil {
 			t.Errorf("client request server with valid certificate failed: %v", err)
 			return
@@ -273,7 +271,7 @@ func TestSdsWithExtension(t *testing.T) {
 			t.Errorf("create tls context manager failed: %v", err)
 			return
 		}
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if err == nil {
 			t.Errorf("client request server with invalid certificate passed")
 			defer resp.Body.Close()
