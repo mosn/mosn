@@ -571,13 +571,18 @@ func (stm *StageManager) RunAll() {
 
 // StopMosnProcess stops Mosn process via command line,
 // and it not support stop on windows.
-func StopMosnProcess(mosnConfig *v2.MOSNConfig) (err error) {
+func (stm *StageManager) StopMosnProcess() (err error) {
+	// init
+	stm.runParamsParsedStage()
+	stm.runInitStage()
+
+	mosnConfig := stm.data.config
 
 	// reads mosn process pid from `mosn.pid` file.
 	var pid int
 	if pid, err = pf.GetPidFrom(mosnConfig.Pid); err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, error: [%v] \n", err)
-		time.Sleep(time.Second) // waiting logs output
+		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, get pid: %v \n", err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
 
@@ -587,10 +592,12 @@ func StopMosnProcess(mosnConfig *v2.MOSNConfig) (err error) {
 	err = proc.Signal(syscall.Signal(0))
 	if err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to stop MOSN, process is not existing, err [%v] \n", err)
-		time.Sleep(time.Second) // waiting logs output
+		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
 
 	proc.Signal(syscall.SIGINT)
+	log.StartLogger.Infof("[mosn stop] has sent an INT signal to %v pid. \n", pid)
+	time.Sleep(100 * time.Millisecond) // waiting logs output
 	return
 }

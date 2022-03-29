@@ -70,13 +70,11 @@ func GetPidFrom(pidFilePath string) (pid int, err error) {
 
 	var pf io.Reader
 	if pf, err = os.Open(pidFilePath); err != nil {
-		log.DefaultLogger.Errorf("read pid file from %v error: %v", pidFilePath, err)
 		return
 	}
 
 	var bs []byte
 	if bs, err = ioutil.ReadAll(pf); err != nil {
-		log.DefaultLogger.Errorf("read pid from pid file error: %v", err)
 		return
 	}
 

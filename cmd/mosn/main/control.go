@@ -177,9 +177,10 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			mosnConfig := configmanager.Load(c.String("config"))
-			mosn.InitDefaultPath(mosnConfig)
-			return stagemanager.StopMosnProcess(mosnConfig)
+			app := mosn.NewMosn()
+			stm := stagemanager.InitStageManager(c, c.String("config"), app)
+			stm.AppendInitStage(mosn.InitDefaultPath)
+			return stm.StopMosnProcess()
 		},
 	}
 
