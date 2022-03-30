@@ -18,18 +18,19 @@
 package main
 
 import (
-	"mosn.io/mosn/pkg/holmes"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"time"
 
 	"github.com/urfave/cli"
+
 	"mosn.io/api"
 	"mosn.io/mosn/istio/istio152"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/holmes"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
