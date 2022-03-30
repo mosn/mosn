@@ -609,6 +609,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", p)
 	if err = proc.Signal(syscall.SIGINT); err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", p, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
 
@@ -618,7 +619,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	for {
 
 		if time.Now().After(t) {
-			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v second, ignore it and quiting ...", p, cnt/10)
+			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v, ignore it and quiting ...", p, 10*time.Second)
 			return
 		}
 
@@ -633,7 +634,8 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 			continue
 		}
 
+		log.StartLogger.Infof("[mosn stop] stop mosn success.")
+		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
-
 	}
 }
