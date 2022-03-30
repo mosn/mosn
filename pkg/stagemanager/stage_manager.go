@@ -37,7 +37,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/server/pid"
-	pf "mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/types"
 	logger "mosn.io/pkg/log"
 )
@@ -580,19 +579,23 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	mosnConfig := stm.data.config
 
 	// reads mosn process pid from `mosn.pid` file.
-	var pid int
-	if pid, err = pf.GetPidFrom(mosnConfig.Pid); err != nil {
+	var p int
+	if p, err = pid.GetPidFrom(mosnConfig.Pid); err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to get pid: %v", err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
 
-	// sends SIGTERM to mosn process, makes it graceful exit.
-	proc, err := os.FindProcess(pid)
+	// finds process and sends SIGTERM to mosn process, makes it graceful exit.
+	proc, err := os.FindProcess(p)
+	if err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", p, err)
+		return
+	}
 	// check if process is existing.
 	err = proc.Signal(syscall.Signal(0))
 	if err != nil {
-		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", pid, err)
+		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", p, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
@@ -603,27 +606,30 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 		return
 	}
 
-	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", pid)
-	proc.Signal(syscall.SIGINT)
+	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", p)
+	if err = proc.Signal(syscall.SIGINT); err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", p, err)
+		return
+	}
 
 	// check the process status
-	t := time.Now().Add(10*time.Second)
+	t := time.Now().Add(10 * time.Second)
 	cnt := 0
 	for {
 
-		if time.Now().After(t){
-			log.StartLogger.Errorf("[mosn stop] fail to stop mosn process(%v)",pid)
+		if time.Now().After(t) {
+			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v second, ignore it and quiting ...", p, cnt/10)
 			return
 		}
 
 		cnt++
-		if cnt%10 == 0{ //log it per second.
-			log.StartLogger.Infof("[mosn stop] checking process(%v) status" )
+		if cnt%10 == 0 { //log it per second.
+			log.StartLogger.Infof("[mosn stop] mosn process(%v)  is still existing, waiting for it quiting", p)
 		}
 
-		if err = proc.Signal(syscall.Signal(0));err==nil{
-			// process alive still, kill it again.
-			time.Sleep(100*time.Millisecond)
+		if err = proc.Signal(syscall.Signal(0)); err == nil {
+			// process alive still.
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
