@@ -21,13 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mosn.io/api"
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"os"
-	"time"
 )
 
 const logFileName = "holmes.log"
@@ -59,7 +59,7 @@ type holmesConfig struct {
 type ShrinkThreadOptions struct {
 	Enable    bool
 	Threshold int
-	Delay     string
+	Delay     api.DurationConfig
 }
 
 type GoroutineProfileOptions struct {
@@ -69,10 +69,10 @@ type GoroutineProfileOptions struct {
 
 type ProfileOptions struct {
 	Enable      bool
-	TriggerMin  int    // not trigger profile when less than min, CPU,memory: percent
-	TriggerAbs  int    // always trigger profile when larger than abs, CPU,memory: percent
-	TriggerDiff int    // trigger profile when grow than diff, percent
-	CoolDown    string // skip for some time after finished a profile
+	TriggerMin  int                // not trigger profile when less than min, CPU,memory: percent
+	TriggerAbs  int                // always trigger profile when larger than abs, CPU,memory: percent
+	TriggerDiff int                // trigger profile when grow than diff, percent
+	CoolDown    api.DurationConfig // skip for some time after finished a profile
 }
 
 // Init should register to stagemanager Init stage,
@@ -150,56 +150,32 @@ func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 	}
 
 	if c := cfg.CPUProfile; c.Enable {
-		t, err := time.ParseDuration(c.CoolDown)
-		if err != nil {
-			return nil, fmt.Errorf("parse CPU profile Cooldown time (%v) failed: %v", c.CoolDown, err)
-		}
-		opt := holmes.WithCPUDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, t)
+		opt := holmes.WithCPUDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.CoolDown.Duration)
 		options = append(options, opt)
 	}
 
 	if c := cfg.MemProfile; c.Enable {
-		t, err := time.ParseDuration(c.CoolDown)
-		if err != nil {
-			return nil, fmt.Errorf("parse Memory profile Cooldown time (%v) failed: %v", c.CoolDown, err)
-		}
-		opt := holmes.WithMemDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, t)
+		opt := holmes.WithMemDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.CoolDown.Duration)
 		options = append(options, opt)
 	}
 
 	if c := cfg.GCHeapProfile; c.Enable {
-		t, err := time.ParseDuration(c.CoolDown)
-		if err != nil {
-			return nil, fmt.Errorf("parse GCHeap profile Cooldown time (%v) failed: %v", c.CoolDown, err)
-		}
-		opt := holmes.WithGCHeapDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, t)
+		opt := holmes.WithGCHeapDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.CoolDown.Duration)
 		options = append(options, opt)
 	}
 
 	if c := cfg.GoroutineProfile; c.Enable {
-		t, err := time.ParseDuration(c.CoolDown)
-		if err != nil {
-			return nil, fmt.Errorf("parse Goroutine profile Cooldown time (%v) failed: %v", c.CoolDown, err)
-		}
-		opt := holmes.WithGoroutineDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.GoroutineTriggerNumMax, t)
+		opt := holmes.WithGoroutineDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.GoroutineTriggerNumMax, c.CoolDown.Duration)
 		options = append(options, opt)
 	}
 
 	if c := cfg.ThreadProfile; c.Enable {
-		t, err := time.ParseDuration(c.CoolDown)
-		if err != nil {
-			return nil, fmt.Errorf("parse Thread profile Cooldown time (%v) failed: %v", c.CoolDown, err)
-		}
-		opt := holmes.WithThreadDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, t)
+		opt := holmes.WithThreadDump(c.TriggerMin, c.TriggerDiff, c.TriggerAbs, c.CoolDown.Duration)
 		options = append(options, opt)
 	}
 
 	if c := cfg.ShrinkThread; c.Enable {
-		t, err := time.ParseDuration(c.Delay)
-		if err != nil {
-			return nil, fmt.Errorf("parse ShrinkThread Delay (%v) failed: %v", c.Delay, err)
-		}
-		opt := holmes.WithShrinkThread(c.Threshold, t)
+		opt := holmes.WithShrinkThread(c.Threshold, c.Delay.Duration)
 		options = append(options, opt)
 	}
 
