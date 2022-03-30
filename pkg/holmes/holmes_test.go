@@ -18,9 +18,10 @@
 package holmes
 
 import (
+	"testing"
+
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"testing"
 )
 
 func TestNotInit(t *testing.T) {
