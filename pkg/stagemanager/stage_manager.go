@@ -634,7 +634,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 			continue
 		}
 
-		log.StartLogger.Infof("[mosn stop] stop mosn success.")
+		log.StartLogger.Infof("[mosn stop] stopped mosn process(%v) successfully.", p)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
