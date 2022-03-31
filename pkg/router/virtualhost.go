@@ -144,9 +144,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := vhImpl.addRouteBase(rb); err != nil {
-			return nil, err
-		}
+		vhImpl.addRouteBase(rb)
 	}
 	return vhImpl, nil
 }
