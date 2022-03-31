@@ -193,6 +193,14 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		host.ClusterInfo().ResourceManager().Requests().Increase()
 	}
 
+	// this is for avoiding race:
+	// check if pool is shutdown or active client state is GoAway again, after created new stream,
+	// to avoid continue sending request to upstream, since the connection may be closing in another goroutine.
+	if p.shutdown || atomic.LoadUint32(&activeClient.state) == GoAway {
+		streamEncoder.GetStream().ResetStream(types.StreamLocalReset)
+		return host, nil, types.ConnectionFailure
+	}
+
 	return host, streamEncoder, ""
 }
 
