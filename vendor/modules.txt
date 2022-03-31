@@ -565,7 +565,7 @@ k8s.io/klog
 ## explicit
 mosn.io/api
 mosn.io/api/extensions/transcoder
-# mosn.io/pkg v0.0.0-20220308091858-ea728aacbe63
+# mosn.io/pkg v0.0.0-20220331064139-949046a47fa2
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv

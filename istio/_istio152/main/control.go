@@ -47,6 +47,7 @@ import (
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
 	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
+	"mosn.io/pkg/buffer"
 )
 
 var (
@@ -243,4 +244,8 @@ func ExtensionsRegister(c *cli.Context) {
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
 
+	// register buffer logger
+	buffer.SetLogFunc(func(msg string) {
+		log.DefaultLogger.Errorf("[iobuffer] iobuffer error log info: %s", msg)
+	})
 }
