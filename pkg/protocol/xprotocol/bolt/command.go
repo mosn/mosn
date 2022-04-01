@@ -116,7 +116,7 @@ func (r *Request) SetData(data api.IoBuffer) {
 	}
 }
 
-// RequestHeader is the header part of bolt v1 response
+// ResponseHeader is the header part of bolt v1 response
 type ResponseHeader struct {
 	Protocol       byte // meta fields
 	CmdType        byte
