@@ -26,7 +26,6 @@ package stagemanager
 
 import (
 	"os"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -596,12 +595,6 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	err = proc.Signal(syscall.Signal(0))
 	if err != nil {
 		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", p, err)
-		time.Sleep(100 * time.Millisecond) // waiting logs output
-		return
-	}
-
-	if runtime.GOOS == "windows" {
-		log.StartLogger.Errorf("[mosn stop] stop command is NOT support on windows")
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
