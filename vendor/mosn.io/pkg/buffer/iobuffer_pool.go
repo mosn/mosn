@@ -81,5 +81,9 @@ func NewIoBuffer(size int) IoBuffer {
 
 // PutIoBuffer is a a wrapper for ibPool
 func PutIoBuffer(buf IoBuffer) error {
-	return ibPool.PutIoBuffer(buf)
+	err := ibPool.PutIoBuffer(buf)
+	if err != nil {
+		logFunc(err.Error())
+	}
+	return err
 }

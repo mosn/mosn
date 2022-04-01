@@ -230,7 +230,7 @@ func (l *Logger) handler() {
 			if err == nil {
 				return
 			}
-			fmt.Printf("%s reopen failed : %v\n", l.output, err)
+			fmt.Fprintf(os.Stderr, "%s reopen failed : %v\n", l.output, err)
 		case <-l.closeChan:
 			// flush all buffers before close
 			// make sure all logs are outputed
@@ -271,9 +271,10 @@ func (l *Logger) reopen() error {
 		return ErrReopenUnsupported
 	}
 	if closer, ok := l.writer.(io.WriteCloser); ok {
-		err := closer.Close()
-		if err != nil {
-			return err
+		// ignore the close error, always try to start a new file
+		// record the error info
+		if err := closer.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "logger %s close error when restart, error: %v", l.output, err)
 		}
 		return l.start()
 	}

@@ -569,7 +569,7 @@ mosn.io/api/extensions/transcoder
 # mosn.io/holmes v0.0.0-20220314072258-139da3429e04
 ## explicit
 mosn.io/holmes
-# mosn.io/pkg v0.0.0-20220308091858-ea728aacbe63
+# mosn.io/pkg v0.0.0-20220331064139-949046a47fa2
 ## explicit
 mosn.io/pkg/binding
 mosn.io/pkg/binding/internal/bytesconv
