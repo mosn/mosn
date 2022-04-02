@@ -36,7 +36,7 @@ TAGS_OPT 		= -tags ${TAGS}
 endif
 
 ut-local:
-	GO111MODULE=on go test -mod=vendor -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
+	GO111MODULE=on go test -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
 	make unit-test-istio-${ISTIO_VERSION}
 
 unit-test:
@@ -49,10 +49,10 @@ coverage:
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
 
 integrate-local:
-	GO111MODULE=on go test -mod=vendor -p 1 -v ./test/integrate/...
+	GO111MODULE=on go test -p 1 -v ./test/integrate/...
 
 integrate-local-netpoll:
-	GO111MODULE=on NETPOLL=on go test -mod=vendor -p 1 -v ./test/integrate/...
+	GO111MODULE=on NETPOLL=on go test -p 1 -v ./test/integrate/...
 
 integrate:
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local
@@ -78,7 +78,6 @@ binary: build
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	GO111MODULE=on CGO_ENABLED=1 go build ${TAGS_OPT} \
-		-mod vendor \
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -103,7 +102,6 @@ istio-1.5.2:
 	@go mod edit -replace github.com/envoyproxy/go-control-plane=github.com/envoyproxy/go-control-plane@v0.9.4
 	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20200227213531-891bf31f3c32
 	@go mod tidy
-	@go mod vendor
 
 istio-1.10.6:
 	@echo 1.10.6 > ISTIO_VERSION
@@ -112,11 +110,10 @@ istio-1.10.6:
 	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20211103171850-665ed2b92d52
 	@go mod edit -replace github.com/envoyproxy/go-control-plane=github.com/envoyproxy/go-control-plane@v0.10.0
 	@go mod tidy
-	@go mod vendor
 
 # istio test
 unit-test-istio:
-	GO111MODULE=on go test -mod=vendor -gcflags="all=-N -l" -v `go list ./istio/...`
+	GO111MODULE=on go test -gcflags="all=-N -l" -v `go list ./istio/...`
 
 	
 
