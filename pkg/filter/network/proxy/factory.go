@@ -80,8 +80,13 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 
 	if len(p.ExtendConfig) != 0 {
 		gfcf.extendConfig = make(map[api.ProtocolName]interface{})
-		for _, proto := range gfcf.protocols {
+		if len(gfcf.protocols) == 1 && gfcf.protocols[0] != protocol.Auto {
+			proto := gfcf.protocols[0]
 			gfcf.extendConfig[proto] = protocol.HandleConfig(proto, p.ExtendConfig)
+		} else {
+			for proto, _ := range p.ExtendConfig {
+				gfcf.extendConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), p.ExtendConfig[proto])
+			}
 		}
 	}
 	return gfcf, nil
