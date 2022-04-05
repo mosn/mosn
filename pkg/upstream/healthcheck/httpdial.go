@@ -43,22 +43,32 @@ func init() {
 	RegisterSessionFactory(protocol.HTTP1, httpDialSessionFactory)
 }
 
+type CodeRange struct {
+	Start int
+	End   int
+}
+
 type HttpCheckConfig struct {
 	Port    int                `json:"port,omitempty"`
 	Timeout api.DurationConfig `json:"timeout,omitempty"`
 	Path    string             `json:"path,omitempty"`
+	Method  string             `json:"methos,omitempty"`
+	Scheme  string             `json:"scheme,omitempty"`
+	Domain  string             `json:"domain,omitempty"`
+	Codes   []CodeRange        `json:"codes,omitempty"`
 }
 
 type HTTPDialSession struct {
-	client   *http.Client
-	timeout  time.Duration
-	checkUrl string
+	client  *http.Client
+	timeout time.Duration
+	request *http.Request
+	Codes   []CodeRange
 }
 
 type HTTPDialSessionFactory struct{}
 
 func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host types.Host) types.HealthCheckSession {
-	httpDail := &HTTPDialSession{}
+	httpDial := &HTTPDialSession{}
 
 	v, ok := cfg[HTTPCheckConfigKey]
 	if !ok {
@@ -82,7 +92,11 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 	}
 
 	uri := &url.URL{}
-	uri.Scheme = "http"
+	if httpCheckConfig.Scheme == "" {
+		uri.Scheme = "http"
+	} else {
+		uri.Scheme = httpCheckConfig.Scheme
+	}
 
 	hostIp, _, err := net.SplitHostPort(host.AddressString())
 	if err != nil {
@@ -101,35 +115,64 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		uri.Path = httpCheckConfig.Path
 	}
 
-	if httpCheckConfig.Timeout.Duration > 0 {
-		httpDail.timeout = httpCheckConfig.Timeout.Duration
-	} else {
-		httpDail.timeout = defaultTimeout.Duration
+	if httpCheckConfig.Scheme != "" {
+		uri.Scheme = httpCheckConfig.Scheme
 	}
 
-	httpDail.client = &http.Client{
-		Timeout: httpDail.timeout,
+	if httpCheckConfig.Timeout.Duration > 0 {
+		httpDial.timeout = httpCheckConfig.Timeout.Duration
+	} else {
+		httpDial.timeout = defaultTimeout.Duration
 	}
-	httpDail.checkUrl = uri.String()
-	log.DefaultLogger.Infof("[upstream] [health check] [httpdial session]  create a health check success for %s", httpDail.checkUrl)
-	return httpDail
+
+	httpDial.client = &http.Client{
+		Timeout: httpDial.timeout,
+	}
+
+	httpDial.request, err = http.NewRequest(httpCheckConfig.Method, uri.String(), nil)
+	if err != nil {
+		return nil
+	}
+
+	if httpCheckConfig.Domain != "" {
+		httpDial.request.Host = httpCheckConfig.Domain
+	}
+
+	httpDial.Codes = httpCheckConfig.Codes
+
+	log.DefaultLogger.Infof("[upstream] [health check] [httpdial session]  create a health check success for %s", uri.String())
+	return httpDial
+}
+
+func (s *HTTPDialSession) verifyCode(code int) bool {
+	log.DefaultLogger.Infof("get code:%d", code)
+	// default: [200, 400)
+	if len(s.Codes) == 0 {
+		return code >= 200 && code < 400
+	}
+	for _, codeRange := range s.Codes {
+		if code >= codeRange.Start && code <= codeRange.End {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *HTTPDialSession) CheckHealth() bool {
 	// default dial timeout, maybe already timeout by checker
-	resp, err := s.client.Get(s.checkUrl)
+	resp, err := s.client.Do(s.request)
 	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s error: %v", s.checkUrl, err)
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s error: %v", s.request.URL.String(), err)
 		return false
 	}
 	defer resp.Body.Close()
 
-	result := resp.StatusCode == http.StatusOK
+	result := s.verifyCode(resp.StatusCode)
 	if !result {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.checkUrl, resp.StatusCode)
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.request.URL.String(), resp.StatusCode)
 	} else {
 		if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.checkUrl)
+			log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.request.URL.String())
 		}
 	}
 
@@ -137,5 +180,5 @@ func (s *HTTPDialSession) CheckHealth() bool {
 }
 
 func (s *HTTPDialSession) OnTimeout() {
-	log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s timeout", s.checkUrl)
+	log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s timeout", s.request.URL.String())
 }
