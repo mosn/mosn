@@ -112,10 +112,8 @@ func Test_CheckHealth(t *testing.T) {
 	httpAddr := "127.0.0.1:22222"
 	testCases := []struct {
 		name         string
-		serverAddr   string
 		serverCode   int
 		serverPath   string
-		serverScheme string
 		hostAddr     string
 		config       HttpCheckConfig
 		expect       bool
@@ -178,15 +176,15 @@ func Test_CheckHealth(t *testing.T) {
 		},
 	}
 
-	addPath := func(addr, path, scheme string, code int) {
+	addPath := func(path string, code int) {
 		http.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(code)
 		})
 	}
 
 	// start httpserver
-	server1 := &http.Server{Addr: "127.0.0.1:22222"}
-	go server1.ListenAndServe()
+	server := &http.Server{Addr: "127.0.0.1:22222"}
+	go server.ListenAndServe()
 	time.Sleep(time.Second)
 
 	for _, tc := range testCases {
@@ -199,7 +197,7 @@ func Test_CheckHealth(t *testing.T) {
 		hds := hcs.(*HTTPDialSession)
 
 		if tc.serverPath != "" {
-			addPath(tc.serverAddr, tc.serverPath, tc.serverScheme, tc.serverCode)
+			addPath(tc.serverPath, tc.serverCode)
 		}
 
 		h := hds.CheckHealth()

@@ -52,7 +52,7 @@ type HttpCheckConfig struct {
 	Port    int                `json:"port,omitempty"`
 	Timeout api.DurationConfig `json:"timeout,omitempty"`
 	Path    string             `json:"path,omitempty"`
-	Method  string             `json:"methos,omitempty"`
+	Method  string             `json:"method,omitempty"`
 	Scheme  string             `json:"scheme,omitempty"`
 	Domain  string             `json:"domain,omitempty"`
 	Codes   []CodeRange        `json:"codes,omitempty"`
@@ -131,6 +131,7 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 
 	httpDial.request, err = http.NewRequest(httpCheckConfig.Method, uri.String(), nil)
 	if err != nil {
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session]  create health check request failed, %v", err)
 		return nil
 	}
 
@@ -145,10 +146,9 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 }
 
 func (s *HTTPDialSession) verifyCode(code int) bool {
-	log.DefaultLogger.Infof("get code:%d", code)
-	// default: [200, 400)
+	// default: [200, 200]
 	if len(s.Codes) == 0 {
-		return code >= 200 && code < 400
+		return code == 200
 	}
 	for _, codeRange := range s.Codes {
 		if code >= codeRange.Start && code <= codeRange.End {
