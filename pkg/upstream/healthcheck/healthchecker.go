@@ -54,6 +54,7 @@ type healthChecker struct {
 	intervalBase       time.Duration
 	intervalJitter     time.Duration
 	healthyThreshold   uint32
+	initialDelay       time.Duration
 	unhealthyThreshold uint32
 	rander             *rand.Rand
 	hostCheckCallbacks []types.HealthCheckCb
@@ -80,6 +81,11 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 	if intervalJitter == 0 {
 		intervalJitter = DefaultIntervalJitter
 	}
+	initialDelay := firstInterval
+	if cfg.InitialDelaySeconds.Duration > 0 {
+		initialDelay = cfg.InitialDelaySeconds.Duration
+	}
+
 	hc := &healthChecker{
 		// cfg
 		sessionConfig:      cfg.SessionConfig,
@@ -88,6 +94,7 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		intervalJitter:     intervalJitter,
 		healthyThreshold:   healthyThreshold,
 		unhealthyThreshold: unhealthyThreshold,
+		initialDelay:       initialDelay,
 		//runtime and stats
 		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},

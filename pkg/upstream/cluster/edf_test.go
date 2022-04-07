@@ -18,10 +18,12 @@
 package cluster
 
 import (
+	"math"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -48,6 +50,18 @@ func Test(t *testing.T) {
 	ele = edfScheduler.NextAndPush(weightFunc)
 	assert.Equal(t, A, ele)
 
+}
+
+func TestEdfFixedWeight(t *testing.T) {
+	if edfFixedWeight(0) != float64(v2.MinHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), edfFixedWeight(0))
+	}
+	if edfFixedWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
+	}
+	if edfFixedWeight(10.0) != 10.0 {
+		t.Fatalf("Except %f but %f", 10.0, edfFixedWeight(10.0))
+	}
 }
 
 func mockHostList(count int, name string) []types.Host {

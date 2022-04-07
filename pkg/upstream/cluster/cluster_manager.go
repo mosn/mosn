@@ -318,11 +318,13 @@ func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
 	return tlsmng
 }
 
+const clusterManagerTLS = "mosn-cluster-manager-tls"
+
 func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 	if tls == nil {
 		tls = &v2.TLSConfig{} // use a disabled config instead
 	}
-	mng, err := mtls.NewTLSClientContextManager(tls)
+	mng, err := mtls.NewTLSClientContextManager(clusterManagerTLS, tls)
 	if err != nil {
 		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: Add TLS Manager failed, error: %v", err)
 		return
@@ -363,7 +365,7 @@ var (
 func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, proto types.ProtocolName) (types.ConnectionPool, types.Host, error) {
 	factory, ok := protocol.GetNewPoolFactory(proto)
 	if !ok {
-		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", proto)
+		return nil, nil, fmt.Errorf("protocol %v is not registered in pool factory", proto)
 	}
 
 	// for pool to know, whether this is a multiplex or pingpong pool

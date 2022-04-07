@@ -22,6 +22,8 @@ import (
 	"encoding/binary"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
 )
@@ -72,6 +74,9 @@ func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd int
 	//4. copy data for io multiplexing
 	request.Data.Write(bytes[:frameLen])
 	request.rawData = request.Data.Bytes()
+
+	// notice: read-only!!! do not modify the raw data!!!
+	variable.Set(ctx, types.VarRequestRawData, request.rawData)
 
 	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := RequestHeaderLen + int(classLen)
@@ -135,6 +140,9 @@ func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, er
 	//4. copy data for io multiplexing
 	response.Data.Write(bytes[:frameLen])
 	response.rawData = response.Data.Bytes()
+
+	// notice: read-only!!! do not modify the raw data!!!
+	variable.Set(ctx, types.VarResponseRawData, response.rawData)
 
 	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := ResponseHeaderLen + int(classLen)

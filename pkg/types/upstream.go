@@ -328,6 +328,8 @@ type LBOriDstInfo interface {
 
 	// GET header name
 	GetHeader() string
+
+	IsReplaceLocal() bool
 }
 
 // SortedHosts is an implementation of sort.Interface

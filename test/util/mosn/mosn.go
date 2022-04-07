@@ -3,6 +3,7 @@ package mosn
 import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
+	_ "mosn.io/mosn/pkg/server/keeper"
 )
 
 type MosnWrapper struct {

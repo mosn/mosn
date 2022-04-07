@@ -36,13 +36,6 @@ import (
 
 type ContentKey string
 
-const (
-	MinHostWeight               = uint32(1)
-	MaxHostWeight               = uint32(128)
-	DefaultMaxRequestPerConn    = uint32(1024)
-	DefaultConnBufferLimitBytes = uint32(16 * 1024)
-)
-
 // ParsedCallback is an
 // alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
@@ -83,14 +76,14 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 			log.StartLogger.Fatalf("[config] [parse cluster] name is required in cluster config")
 		}
 		if c.MaxRequestPerConn == 0 {
-			c.MaxRequestPerConn = DefaultMaxRequestPerConn
+			c.MaxRequestPerConn = v2.DefaultMaxRequestPerConn
 			log.StartLogger.Infof("[config] [parse cluster] max_request_per_conn is not specified, use default value %d",
-				DefaultMaxRequestPerConn)
+				v2.DefaultMaxRequestPerConn)
 		}
 		if c.ConnBufferLimitBytes == 0 {
-			c.ConnBufferLimitBytes = DefaultConnBufferLimitBytes
+			c.ConnBufferLimitBytes = v2.DefaultConnBufferLimitBytes
 			log.StartLogger.Infof("[config] [parse cluster] conn_buffer_limit_bytes is not specified, use default value %d",
-				DefaultConnBufferLimitBytes)
+				v2.DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
 			log.StartLogger.Errorf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
@@ -122,11 +115,11 @@ func parseHostConfig(hosts []v2.Host) (hs []v2.Host) {
 }
 
 func transHostWeight(weight uint32) uint32 {
-	if weight > MaxHostWeight {
-		return MaxHostWeight
+	if weight > v2.MaxHostWeight {
+		return v2.MaxHostWeight
 	}
-	if weight < MinHostWeight {
-		return MinHostWeight
+	if weight < v2.MinHostWeight {
+		return v2.MinHostWeight
 	}
 	return weight
 }
@@ -438,7 +431,7 @@ func AddOrUpdateNetworkFilterFactories(listenerName string, ln *v2.Listener) []a
 	}
 
 	if len(factories) == 0 {
-		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", listenerName)
+		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener: %+v", ln)
 		return nil
 	}
 

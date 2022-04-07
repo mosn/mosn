@@ -51,6 +51,48 @@ const (
 	DefaultConnectTimeout = 10 * time.Second
 )
 
+// Factory function for creating server side connection.
+type ServerConnFactory func(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection
+
+// Factory function for creating client side connection.
+type ClientConnFactory func(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr,
+	stopChan chan struct{}) types.ClientConnection
+
+var (
+	defaultServerConnFactory ServerConnFactory = newServerConnection
+	defaultClientConnFactory ClientConnFactory = newClientConnection
+)
+
+func GetServerConnFactory() ServerConnFactory {
+	return defaultServerConnFactory
+}
+
+func RegisterServerConnFactory(factory ServerConnFactory) {
+	if factory != nil {
+		defaultServerConnFactory = factory
+	}
+}
+
+func GetClientConnFactory() ClientConnFactory {
+	return defaultClientConnFactory
+}
+
+func RegisterClientConnFactory(factory ClientConnFactory) {
+	if factory != nil {
+		defaultClientConnFactory = factory
+	}
+}
+
+// NewServerConnection new server-side connection, rawc is the raw connection from go/net
+func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
+	return defaultServerConnFactory(ctx, rawc, stopChan)
+}
+
+// NewClientConnection new client-side connection
+func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+	return defaultClientConnFactory(connectTimeout, tlsMng, remoteAddr, stopChan)
+}
+
 var idCounter uint64 = 1
 
 type connection struct {
@@ -110,8 +152,7 @@ type connection struct {
 	}
 }
 
-// NewServerConnection new server-side connection, rawc is the raw connection from go/net
-func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
+func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -1034,19 +1075,6 @@ func (c *connection) State() api.ConnState {
 		return api.ConnActive
 	}
 	return api.ConnInit
-}
-
-type ClientConnFactory func(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection
-
-var defaultClientConnFactory ClientConnFactory = newClientConnection
-
-func RegisterClientConnFactory(factory ClientConnFactory) {
-	defaultClientConnFactory = factory
-}
-
-// NewClientConnection new client-side connection
-func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
-	return defaultClientConnFactory(connectTimeout, tlsMng, remoteAddr, stopChan)
 }
 
 type clientConnection struct {

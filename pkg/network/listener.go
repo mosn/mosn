@@ -48,6 +48,21 @@ const (
 	ListenerClosed
 )
 
+// Factory function for creating mosn listener.
+type ListenerFactory func(lc *v2.Listener) types.Listener
+
+var listenerFactory ListenerFactory = NewListener
+
+func GetListenerFactory() ListenerFactory {
+	return listenerFactory
+}
+
+func RegisterListenerFactory(factory ListenerFactory) {
+	if factory != nil {
+		listenerFactory = factory
+	}
+}
+
 // listener impl based on golang net package
 type listener struct {
 	name                    string
@@ -206,30 +221,52 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 	})
 }
 
-func (l *listener) Stop() error {
+// Shutdown stop accepting new connections and graceful close the existing connections
+func (l *listener) Shutdown() error {
+	changed, err := l.stopAccept()
+	if changed {
+		l.cb.OnShutdown()
+	}
+	return err
+}
+
+// stopAccept just stop accepting new connections
+func (l *listener) stopAccept() (changed bool, err error) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.state == ListenerClosed {
-		return nil
+	if l.state == ListenerClosed || l.state == ListenerStopped {
+		return
 	}
 	l.state = ListenerStopped
+	changed = true
 
 	if !l.bindToPort {
-		return nil
+		return
 	}
-	return l.setDeadline(time.Now())
+	err = l.setDeadline(time.Now())
+	return
 }
 
 func (l *listener) setDeadline(t time.Time) error {
 	var err error
 	switch l.network {
 	case "udp":
+		if l.packetConn == nil {
+			return errors.New("setDeadline: packetConn is nil")
+		}
 		err = l.packetConn.SetDeadline(t)
 	case "unix":
+		if l.rawl == nil {
+			return errors.New("setDeadline: raw listener is nil")
+		}
 		err = l.rawl.(*net.UnixListener).SetDeadline(t)
 	case "tcp":
+		if l.rawl == nil {
+			return errors.New("setDeadline: raw listener is nil")
+		}
 		err = l.rawl.(*net.TCPListener).SetDeadline(t)
 	}
+
 	return err
 }
 
@@ -248,12 +285,22 @@ func (l *listener) ListenerFile() (*os.File, error) {
 
 	switch l.network {
 	case "udp":
+		if l.packetConn == nil {
+			return nil, errors.New("ListenerFile: packetConn is nil")
+		}
 		return l.packetConn.(*net.UDPConn).File()
 	case "unix":
+		if l.rawl == nil {
+			return nil, errors.New("ListenerFile: raw listener is nil")
+		}
 		return l.rawl.(*net.UnixListener).File()
 	case "tcp":
+		if l.rawl == nil {
+			return nil, errors.New("ListenerFile: raw listener is nil")
+		}
 		return l.rawl.(*net.TCPListener).File()
 	}
+
 	return nil, errors.New("not support this network " + l.network)
 }
 

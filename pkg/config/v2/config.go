@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+
 	"github.com/c2h5oh/datasize"
 )
 
@@ -35,6 +36,7 @@ type MOSNConfig struct {
 	Metrics              MetricsConfig        `json:"metrics,omitempty"`
 	RawDynamicResources  json.RawMessage      `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
+	Node                 json.RawMessage      `json:"node,omitempty"`              // node info for pilot
 	RawAdmin             *Admin               `json:"admin,omitempty"`             // admin
 	Debug                PProfConfig          `json:"pprof,omitempty"`
 	Pid                  string               `json:"pid,omitempty"`                 // pid file

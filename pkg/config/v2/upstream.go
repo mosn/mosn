@@ -35,6 +35,7 @@ type HealthCheckConfig struct {
 	TimeoutConfig        api.DurationConfig     `json:"timeout,omitempty"`
 	IntervalConfig       api.DurationConfig     `json:"interval,omitempty"`
 	IntervalJitterConfig api.DurationConfig     `json:"interval_jitter,omitempty"`
+	InitialDelaySeconds  api.DurationConfig     `json:"initial_delay_seconds,omitempty"`
 	HealthyThreshold     uint32                 `json:"healthy_threshold,omitempty"`
 	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold,omitempty"`
 	ServiceName          string                 `json:"service_name,omitempty"`
@@ -207,6 +208,9 @@ type LBSubsetConfig struct {
 type LBOriDstConfig struct {
 	UseHeader  bool   `json:"use_header,omitempty"`
 	HeaderName string `json:"header_name,omitempty"`
+	// ReplaceLocal is true means the load balance will always choose
+	// a host with local address
+	ReplaceLocal bool `json:"replace_local,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager
