@@ -53,7 +53,7 @@ func Test_NewSession(t *testing.T) {
 	}
 	hcs = hdsf.NewSession(cfg, h1)
 	hds := hcs.(*HTTPDialSession)
-	if hds.checkUrl != "http://127.0.0.1:22222" {
+	if hds.request.URL.String() != "http://127.0.0.1:22222" {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
@@ -66,7 +66,7 @@ func Test_NewSession(t *testing.T) {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
-	if hds.checkUrl != "http://127.0.0.1:33333" {
+	if hds.request.URL.String() != "http://127.0.0.1:33333" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 	if hds.timeout != time.Second*30 {
@@ -77,6 +77,9 @@ func Test_NewSession(t *testing.T) {
 		Port:    33333,
 		Timeout: api.DurationConfig{time.Second * 15},
 		Path:    "/test",
+		Domain:  "test.healthcheck.com",
+		Method:  "HEAD",
+		Scheme:  "https",
 	}
 
 	hcs = hdsf.NewSession(cfg, h1)
@@ -85,11 +88,17 @@ func Test_NewSession(t *testing.T) {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
 
-	if hds.checkUrl != "http://127.0.0.1:33333/test" {
+	if hds.request.URL.String() != "https://127.0.0.1:33333/test" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 	if hds.timeout != time.Second*15 {
 		t.Errorf("Test_NewSession %+v", hds)
+	}
+	if hds.request.URL.Scheme != "https" {
+		t.Errorf("Test_NewSession scheme should be https, %+v", hds)
+	}
+	if hds.request.Method != "HEAD" {
+		t.Errorf("Test_NewSession method should be HEAD, %+v", hds)
 	}
 
 	h1.addr = "127.0.0.1"
@@ -100,40 +109,100 @@ func Test_NewSession(t *testing.T) {
 }
 
 func Test_CheckHealth(t *testing.T) {
-	hdsf := &HTTPDialSessionFactory{}
-	h1 := &mockHost{}
-	h1.addr = "127.0.0.1:22222"
-	cfg := make(map[string]interface{})
-	cfg[HTTPCheckConfigKey] = &HttpCheckConfig{
-		Port: 33333,
-	}
-	hcs := hdsf.NewSession(cfg, h1)
-	hds := hcs.(*HTTPDialSession)
-	h := hds.CheckHealth()
-	if h {
-		t.Errorf("Test_CheckHealth Error")
+	httpAddr := "127.0.0.1:22222"
+	testCases := []struct {
+		name         string
+		serverCode   int
+		serverPath   string
+		hostAddr     string
+		config       HttpCheckConfig
+		expect       bool
+	}{
+		{
+			name:       "connect failed",
+			serverPath: "/",
+			hostAddr:   "127.0.0.1:22224",
+			config: HttpCheckConfig{
+				Path: "/",
+			},
+			expect: false,
+		},
+		{
+			name:       "normal_code",
+			serverCode: 200,
+			serverPath: "/200",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "/200",
+			},
+			expect: true,
+		},
+		{
+			name:       "abnormal_code",
+			serverCode: 500,
+			serverPath: "/500",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "/500",
+			},
+			expect: false,
+		},
+		{
+			name:       "match_code_range",
+			serverCode: 400,
+			serverPath: "/400",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "/400",
+				Codes: []CodeRange{
+					{
+						Start: 200,
+						End:   500,
+					},
+				},
+			},
+			expect: true,
+		},
+		{
+			name:       "https_scheme_fail",
+			serverCode: 200,
+			serverPath: "/https_fail",
+			hostAddr:  httpAddr,
+			config: HttpCheckConfig{
+				Path:   "/https_tail",
+				Scheme: "https",
+			},
+			expect: false,
+		},
 	}
 
-	hds.client = &http.Client{}
+	addPath := func(path string, code int) {
+		http.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+			writer.WriteHeader(code)
+		})
+	}
 
-	code := 200
-	server := &http.Server{Addr: "127.0.0.1:33333"}
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(code)
-	})
+	// start httpserver
+	server := &http.Server{Addr: "127.0.0.1:22222"}
 	go server.ListenAndServe()
 	time.Sleep(time.Second)
 
-	h = hds.CheckHealth()
-	if !h {
-		t.Errorf("Test_CheckHealth Error")
-	}
+	for _, tc := range testCases {
+		hdsf := &HTTPDialSessionFactory{}
+		h1 := &mockHost{}
+		h1.addr = tc.hostAddr
+		cfg := make(map[string]interface{})
+		cfg[HTTPCheckConfigKey] = &tc.config
+		hcs := hdsf.NewSession(cfg, h1)
+		hds := hcs.(*HTTPDialSession)
 
-	code = 500
-	h = hds.CheckHealth()
-	if h {
-		t.Errorf("Test_CheckHealth Error")
-	}
+		if tc.serverPath != "" {
+			addPath(tc.serverPath, tc.serverCode)
+		}
 
-	server.Close()
+		h := hds.CheckHealth()
+		if h != tc.expect {
+			t.Errorf("Test_CheckHealth Error, case:%s", tc.name)
+		}
+	}
 }
