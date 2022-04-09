@@ -53,7 +53,7 @@ func DeleteRegisteredAdminHandler(pattern string) {
 func init() {
 	// default admin api
 	apiHandlerStore = map[string]*APIHandler{
-		"/api/v1/version":         NewAPIHandler(Version),
+		"/api/v1/version":         NewAPIHandler(OutputVersion),
 		"/api/v1/config_dump":     NewAPIHandler(ConfigDump),
 		"/api/v1/stats":           NewAPIHandler(StatsDump),
 		"/api/v1/stats_glob":      NewAPIHandler(StatsDumpProxyTotal),

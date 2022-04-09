@@ -38,7 +38,8 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const version = "v0.27.0"
+// Version mosn version is specified by build tag, in VERSION file
+var Version = ""
 
 var levelMap = map[string]log.Level{
 	"FATAL": log.FATAL,
@@ -66,8 +67,8 @@ func Help(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
-func Version(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("[admin api] version: " + version))
+func OutputVersion(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("[admin api] version: " + Version))
 }
 
 func ConfigDump(w http.ResponseWriter, r *http.Request) {

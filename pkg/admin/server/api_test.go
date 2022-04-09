@@ -237,7 +237,7 @@ func TestVersion(t *testing.T) {
 	}()
 	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/version", nil)
 	w := httptest.NewRecorder()
-	Version(w, r)
+	OutputVersion(w, r)
 	resp := w.Result()
 	if resp.StatusCode != 200 {
 		t.Fatalf("response status got %d", resp.StatusCode)
@@ -246,7 +246,7 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("response read error: %v", err)
 	}
-	if !reflect.DeepEqual(b, []byte("[admin api] version: "+version)) {
+	if !reflect.DeepEqual(b, []byte("[admin api] version: "+Version)) {
 		t.Fatalf("expectation failure: %v", err)
 	}
 }
