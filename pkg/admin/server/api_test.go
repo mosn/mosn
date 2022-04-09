@@ -228,3 +228,25 @@ func TestInvalidCommon(t *testing.T) {
 		}
 	}
 }
+
+func TestVersion(t *testing.T) {
+	m := metrics.NewTLSStats("global")
+	m.Counter("test").Inc(1)
+	defer func() {
+		metrics.ResetAll()
+	}()
+	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/version", nil)
+	w := httptest.NewRecorder()
+	Version(w, r)
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("response status got %d", resp.StatusCode)
+	}
+	b, err := ioutil.ReadAll(w.Body)
+	if err != nil {
+		t.Fatalf("response read error: %v", err)
+	}
+	if !reflect.DeepEqual(b, []byte("mosn adminApi version: "+version)) {
+		t.Fatalf("expectation failure: %v", err)
+	}
+}

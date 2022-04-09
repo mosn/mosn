@@ -38,6 +38,8 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+const version = "v0.27.0"
+
 var levelMap = map[string]log.Level{
 	"FATAL": log.FATAL,
 	"ERROR": log.ERROR,
@@ -62,6 +64,10 @@ func Help(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Write(buf.Bytes())
+}
+
+func Version(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("mosn adminApi version: " + version))
 }
 
 func ConfigDump(w http.ResponseWriter, r *http.Request) {
