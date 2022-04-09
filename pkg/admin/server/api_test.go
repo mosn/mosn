@@ -246,7 +246,7 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("response read error: %v", err)
 	}
-	if !reflect.DeepEqual(b, []byte("mosn adminApi version: "+version)) {
+	if !reflect.DeepEqual(b, []byte("[admin api] version: "+version)) {
 		t.Fatalf("expectation failure: %v", err)
 	}
 }
