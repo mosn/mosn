@@ -11,8 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	xstream "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/trace"
+	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib/mosn"
 	"mosn.io/pkg/header"
@@ -105,7 +110,7 @@ func sendBoltGoAway(c net.Conn) error {
 	buf = append(buf, bolt.ProtocolCode)
 	buf = append(buf, bolt.CmdTypeRequest)
 
-	tempBytes := make([]byte, 4)
+	tempBytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(tempBytes, bolt.CmdCodeGoAway)
 	buf = append(buf, tempBytes...)
 
@@ -116,6 +121,18 @@ func sendBoltGoAway(c net.Conn) error {
 	buf = append(buf, tempBytes...)
 
 	buf = append(buf, bolt.Hessian2Serialize)
+
+	tempBytes = make([]byte, 2)
+	binary.BigEndian.PutUint16(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytes = make([]byte, 2)
+	binary.BigEndian.PutUint16(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytes = make([]byte, 4)
+	binary.BigEndian.PutUint32(tempBytes, 0)
+	buf = append(buf, tempBytes...)
 
 	tempBytes = make([]byte, 4)
 	binary.BigEndian.PutUint32(tempBytes, 0)
@@ -149,7 +166,7 @@ func boltServe(c net.Conn, mode int) error {
 		buf = append(buf, bolt.ProtocolCode)
 		buf = append(buf, bolt.CmdTypeResponse)
 
-		tempBytes := make([]byte, 4)
+		tempBytes := make([]byte, 2)
 		binary.BigEndian.PutUint16(tempBytes, bolt.CmdCodeRpcResponse)
 		buf = append(buf, tempBytes...)
 
@@ -161,14 +178,26 @@ func boltServe(c net.Conn, mode int) error {
 
 		buf = append(buf, bolt.Hessian2Serialize)
 
-		tempBytes = make([]byte, 4)
+		tempBytes = make([]byte, 2)
 		binary.BigEndian.PutUint16(tempBytes, bolt.ResponseStatusSuccess)
+		buf = append(buf, tempBytes...)
+
+		tempBytes = make([]byte, 2)
+		binary.BigEndian.PutUint16(tempBytes, 0)
+		buf = append(buf, tempBytes...)
+
+		tempBytes = make([]byte, 2)
+		binary.BigEndian.PutUint16(tempBytes, 0)
+		buf = append(buf, tempBytes...)
+
+		tempBytes = make([]byte, 4)
+		binary.BigEndian.PutUint32(tempBytes, uint32(len(bytes)))
 		buf = append(buf, tempBytes...)
 
 		buf = append(buf, bytes...)
 
-		// sleep 500 ms
-		time.Sleep(time.Millisecond * 500)
+		//// sleep 500 ms
+		//time.Sleep(time.Millisecond * 500)
 
 		if _, err := c.Write(buf); err != nil {
 			return err
@@ -334,7 +363,7 @@ func boltRequest(client *BoltClient, msg string) (string, error) {
 	buf = append(buf, bolt.ProtocolCode)
 	buf = append(buf, bolt.CmdTypeRequest)
 
-	tempBytes := make([]byte, 4)
+	tempBytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(tempBytes, bolt.CmdCodeRpcRequest)
 	buf = append(buf, tempBytes...)
 
@@ -348,6 +377,18 @@ func boltRequest(client *BoltClient, msg string) (string, error) {
 
 	tempBytes = make([]byte, 4)
 	binary.BigEndian.PutUint32(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytes = make([]byte, 2)
+	binary.BigEndian.PutUint16(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytes = make([]byte, 2)
+	binary.BigEndian.PutUint16(tempBytes, 0)
+	buf = append(buf, tempBytes...)
+
+	tempBytes = make([]byte, 4)
+	binary.BigEndian.PutUint32(tempBytes, uint32(len(bytes)))
 	buf = append(buf, tempBytes...)
 
 	buf = append(buf, bytes...)
@@ -377,16 +418,115 @@ func boltRequest(client *BoltClient, msg string) (string, error) {
 			return "", fmt.Errorf("decode response failed: %v", err)
 		}
 
-		if resp, ok = frame.(*BoltResponse); ok {
-			break
-		}
-
 		if req, ok := frame.(*BoltRequest); ok && req.BoltRequestHeader.CmdCode == bolt.CmdCodeGoAway {
 			log.DefaultLogger.Infof("got goaway frame: %v", req)
 			client.goaway = true
 		}
+
+		if resp, ok = frame.(*BoltResponse); ok {
+			break
+		}
+
 	}
 	return string(resp.RawContent[:]), nil
+}
+
+func TestBoltClientAndServer(t *testing.T) {
+	Scenario(t, "test bolt request and response", func() {
+		server := &BoltServer{
+			mode: NoGoAway,
+		}
+		Setup(func() {
+			go startBoltServer(server)
+		})
+		Case("client-server", func() {
+			testcases := []struct {
+				reqBody string
+			}{
+				{
+					reqBody: "test-req-body",
+				},
+			}
+			for _, tc := range testcases {
+				conn, err := net.Dial("tcp", "127.0.0.1:10498")
+				if err != nil {
+					log.DefaultLogger.Errorf("connect to server failed: %v", err)
+				}
+				defer conn.Close()
+				client := &BoltClient{
+					conn: conn,
+				}
+				var start time.Time
+				start = time.Now()
+				resp, err := boltRequest(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(server.connected, Equal, 1)
+			}
+		})
+		TearDown(func() {
+			stopBoltServer(server)
+		})
+	})
+}
+
+func TestMosnForward(t *testing.T) {
+	Scenario(t, "test mosn forward", func() {
+		var m *mosn.MosnOperator
+		server := &BoltServer{
+			mode: NoGoAway,
+		}
+		Setup(func() {
+			go startBoltServer(server)
+
+			// register bolt
+			// tracer driver register
+			trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+			// xprotocol action register
+			xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+				name := codec.ProtocolName()
+				trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
+			})
+			// xprotocol register
+			_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+
+			m = mosn.StartMosn(ConfigSimpleBoltExample)
+			Verify(m, NotNil)
+			time.Sleep(15 * time.Second) // wait mosn start
+		})
+		Case("client-mosn-server", func() {
+			testcases := []struct {
+				reqBody string
+			}{
+				{
+					reqBody: "test-req-body",
+				},
+			}
+			for _, tc := range testcases {
+				conn, err := net.Dial("tcp", "127.0.0.1:2046")
+				if err != nil {
+					log.DefaultLogger.Errorf("connect to server failed: %v", err)
+				}
+				defer conn.Close()
+				client := &BoltClient{
+					conn: conn,
+				}
+				var start time.Time
+				start = time.Now()
+				resp, err := boltRequest(client, tc.reqBody)
+				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				time.Sleep(3 * time.Second)
+				Verify(err, Equal, nil)
+				Verify(resp, Equal, tc.reqBody)
+				Verify(server.connected, Equal, 1)
+			}
+		})
+		TearDown(func() {
+			stopBoltServer(server)
+			m.Stop()
+		})
+	})
 }
 
 // server(mosn) send goaway frame when start graceful stop
@@ -401,7 +541,7 @@ func TestBoltGracefulStop(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(2 * time.Second) // wait mosn start
+			time.Sleep(10 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -426,6 +566,7 @@ func TestBoltGracefulStop(t *testing.T) {
 				start = time.Now()
 				resp, err := boltRequest(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				time.Sleep(5 * time.Second)
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, false)
@@ -590,7 +731,7 @@ const ConfigSimpleBoltExample = `{
     "servers": [
         {
             "default_log_path": "stdout",
-            "default_log_level": "ERROR",
+            "default_log_level": "DEBUG",
             "routers": [
                 {
                     "router_config_name": "router_to_server",
@@ -621,11 +762,10 @@ const ConfigSimpleBoltExample = `{
                                 {
                                     "type": "proxy",
                                     "config": {
-                                        "downstream_protocol": "Auto",
+                                        "downstream_protocol": "bolt",
                                         "router_config_name": "router_to_server",
                                         "extend_config": {
-                                            "sub_protocol": "bolt",
-                                            "enable_bolt_go_away": "true"
+                                            "enable_bolt_go_away": true
                                         }
                                     }
                                 }
