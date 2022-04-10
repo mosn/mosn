@@ -191,8 +191,8 @@ func boltServe(c net.Conn, mode int) error {
 
 		buf = append(buf, bytes...)
 
-		// sleep 500 ms
-		time.Sleep(time.Second * 1)
+		// sleep 2 seconds
+		time.Sleep(time.Second * 2)
 
 		if _, err := c.Write(buf); err != nil {
 			return err
@@ -437,7 +437,7 @@ func TestMosnForward(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(15 * time.Second) // wait mosn start
+			time.Sleep(2 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -484,7 +484,7 @@ func TestBoltGracefulStop(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(15 * time.Second) // wait mosn start
+			time.Sleep(2 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -513,6 +513,7 @@ func TestBoltGracefulStop(t *testing.T) {
 				start := time.Now()
 				resp, err := boltRequest(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
+				time.Sleep(time.Second * 1)
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
 				Verify(client.goaway, Equal, true)
@@ -538,7 +539,7 @@ func TestBoltServerGoAwayBeforeResponse(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(15 * time.Second) // wait mosn start
+			time.Sleep(2 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -605,7 +606,7 @@ func TestBoltServerGoAwayAfterResponse(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(15 * time.Second) // wait mosn start
+			time.Sleep(2 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
