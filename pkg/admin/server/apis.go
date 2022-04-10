@@ -68,7 +68,7 @@ func Help(w http.ResponseWriter, r *http.Request) {
 }
 
 func OutputVersion(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("[admin api] version: " + Version))
+	w.Write([]byte("mosn version: " + Version))
 }
 
 func ConfigDump(w http.ResponseWriter, r *http.Request) {
