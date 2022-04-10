@@ -117,7 +117,7 @@ func sendBoltGoAway(c net.Conn) error {
 	buf = append(buf, bolt.ProtocolVersion)
 
 	tempBytes = make([]byte, 4)
-	binary.BigEndian.PutUint32(tempBytes, 0)
+	binary.BigEndian.PutUint32(tempBytes, 1)
 	buf = append(buf, tempBytes...)
 
 	buf = append(buf, bolt.Hessian2Serialize)
@@ -173,7 +173,7 @@ func boltServe(c net.Conn, mode int) error {
 		buf = append(buf, bolt.ProtocolVersion)
 
 		tempBytes = make([]byte, 4)
-		binary.BigEndian.PutUint32(tempBytes, 0)
+		binary.BigEndian.PutUint32(tempBytes, 1)
 		buf = append(buf, tempBytes...)
 
 		buf = append(buf, bolt.Hessian2Serialize)
@@ -196,8 +196,8 @@ func boltServe(c net.Conn, mode int) error {
 
 		buf = append(buf, bytes...)
 
-		//// sleep 500 ms
-		//time.Sleep(time.Millisecond * 500)
+		// sleep 500 ms
+		time.Sleep(time.Millisecond * 500)
 
 		if _, err := c.Write(buf); err != nil {
 			return err
@@ -370,7 +370,7 @@ func boltRequest(client *BoltClient, msg string) (string, error) {
 	buf = append(buf, bolt.ProtocolVersion)
 
 	tempBytes = make([]byte, 4)
-	binary.BigEndian.PutUint32(tempBytes, 0)
+	binary.BigEndian.PutUint32(tempBytes, 1)
 	buf = append(buf, tempBytes...)
 
 	buf = append(buf, bolt.Hessian2Serialize)
@@ -448,7 +448,7 @@ func TestBoltClientAndServer(t *testing.T) {
 				},
 			}
 			for _, tc := range testcases {
-				conn, err := net.Dial("tcp", "127.0.0.1:10498")
+				conn, err := net.Dial("tcp", "127.0.0.1:8080")
 				if err != nil {
 					log.DefaultLogger.Errorf("connect to server failed: %v", err)
 				}
@@ -516,7 +516,6 @@ func TestMosnForward(t *testing.T) {
 				start = time.Now()
 				resp, err := boltRequest(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
-				time.Sleep(3 * time.Second)
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
 				Verify(server.connected, Equal, 1)
@@ -541,7 +540,7 @@ func TestBoltGracefulStop(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(10 * time.Second) // wait mosn start
+			time.Sleep(15 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -561,24 +560,15 @@ func TestBoltGracefulStop(t *testing.T) {
 				client := &BoltClient{
 					conn: conn,
 				}
-				// 1. simple
-				var start time.Time
-				start = time.Now()
-				resp, err := boltRequest(client, tc.reqBody)
-				log.DefaultLogger.Infof("request cost %v", time.Since(start))
-				time.Sleep(5 * time.Second)
-				Verify(err, Equal, nil)
-				Verify(resp, Equal, tc.reqBody)
-				Verify(client.goaway, Equal, false)
-				Verify(server.connected, Equal, 1)
 
-				// 2. graceful stop after send request and before received the response
+				// graceful stop after send request and before received the response
 				go func() {
 					time.Sleep(time.Millisecond * 100)
 					m.GracefulStop()
 				}()
-				start = time.Now()
-				resp, err = boltRequest(client, tc.reqBody)
+				//time.Sleep(time.Millisecond * 10)
+				start := time.Now()
+				resp, err := boltRequest(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
 				Verify(err, Equal, nil)
 				Verify(resp, Equal, tc.reqBody)
@@ -605,7 +595,7 @@ func TestBoltServerGoAwayBeforeResponse(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(2 * time.Second) // wait mosn start
+			time.Sleep(15 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -672,7 +662,7 @@ func TestBoltServerGoAwayAfterResponse(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(2 * time.Second) // wait mosn start
+			time.Sleep(15 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
@@ -731,7 +721,7 @@ const ConfigSimpleBoltExample = `{
     "servers": [
         {
             "default_log_path": "stdout",
-            "default_log_level": "DEBUG",
+            "default_log_level": "ERROR",
             "routers": [
                 {
                     "router_config_name": "router_to_server",
