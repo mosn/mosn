@@ -426,46 +426,6 @@ func boltRequest(client *BoltClient, msg string) (string, error) {
 	return string(resp.RawContent[:]), nil
 }
 
-func TestBoltClientAndServer(t *testing.T) {
-	Scenario(t, "test bolt request and response", func() {
-		server := &BoltServer{
-			mode: NoGoAway,
-		}
-		Setup(func() {
-			go startBoltServer(server)
-		})
-		Case("client-server", func() {
-			testcases := []struct {
-				reqBody string
-			}{
-				{
-					reqBody: "test-req-body",
-				},
-			}
-			for _, tc := range testcases {
-				conn, err := net.Dial("tcp", "127.0.0.1:8080")
-				if err != nil {
-					log.DefaultLogger.Errorf("connect to server failed: %v", err)
-				}
-				defer conn.Close()
-				client := &BoltClient{
-					conn: conn,
-				}
-				var start time.Time
-				start = time.Now()
-				resp, err := boltRequest(client, tc.reqBody)
-				log.DefaultLogger.Infof("request cost %v", time.Since(start))
-				Verify(err, Equal, nil)
-				Verify(resp, Equal, tc.reqBody)
-				Verify(server.connected, Equal, 1)
-			}
-		})
-		TearDown(func() {
-			stopBoltServer(server)
-		})
-	})
-}
-
 func TestMosnForward(t *testing.T) {
 	Scenario(t, "test mosn forward", func() {
 		var m *mosn.MosnOperator
