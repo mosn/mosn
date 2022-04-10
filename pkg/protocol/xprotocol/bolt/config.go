@@ -31,7 +31,7 @@ func init() {
 }
 
 type Config struct {
-	EnableBoltGoAway bool `json:"enable_bolt_go_away,omitempty"`
+	EnableBoltGoAway bool `json:"enable_bolt_goaway,omitempty"`
 }
 
 var defaultConfig = Config{

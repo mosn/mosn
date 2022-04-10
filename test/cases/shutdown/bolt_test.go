@@ -11,13 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	xstream "mosn.io/mosn/pkg/stream/xprotocol"
-	"mosn.io/mosn/pkg/trace"
-	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib/mosn"
 	"mosn.io/pkg/header"
@@ -197,7 +192,7 @@ func boltServe(c net.Conn, mode int) error {
 		buf = append(buf, bytes...)
 
 		// sleep 500 ms
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Second * 1)
 
 		if _, err := c.Write(buf); err != nil {
 			return err
@@ -480,17 +475,6 @@ func TestMosnForward(t *testing.T) {
 		Setup(func() {
 			go startBoltServer(server)
 
-			// register bolt
-			// tracer driver register
-			trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
-			// xprotocol action register
-			xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
-				name := codec.ProtocolName()
-				trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
-			})
-			// xprotocol register
-			_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
-
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
 			time.Sleep(15 * time.Second) // wait mosn start
@@ -566,7 +550,6 @@ func TestBoltGracefulStop(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 					m.GracefulStop()
 				}()
-				//time.Sleep(time.Millisecond * 10)
 				start := time.Now()
 				resp, err := boltRequest(client, tc.reqBody)
 				log.DefaultLogger.Infof("request cost %v", time.Since(start))
@@ -755,7 +738,7 @@ const ConfigSimpleBoltExample = `{
                                         "downstream_protocol": "bolt",
                                         "router_config_name": "router_to_server",
                                         "extend_config": {
-                                            "enable_bolt_go_away": true
+                                            "enable_bolt_goaway": true
                                         }
                                     }
                                 }

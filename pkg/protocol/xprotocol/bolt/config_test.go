@@ -22,7 +22,7 @@ import "testing"
 func TestConfigHandler(t *testing.T) {
 	t.Run("test bolt config", func(t *testing.T) {
 		v := map[string]interface{}{
-			"enable_bolt_go_away": true,
+			"enable_bolt_goaway": true,
 		}
 		rv := ConfigHandler(v)
 		cfg, ok := rv.(Config)
