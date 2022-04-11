@@ -20,10 +20,10 @@ package bolt
 import (
 	"context"
 	"encoding/json"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol"
 
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
