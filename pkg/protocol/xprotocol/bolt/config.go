@@ -20,6 +20,7 @@ package bolt
 import (
 	"context"
 	"encoding/json"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -63,9 +64,14 @@ func ConfigHandler(v interface{}) interface{} {
 func parseConfig(ctx context.Context) Config {
 	config := defaultConfig
 	// get extend config from ctx
-	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if cfg, ok := pgc.(Config); ok {
-		config = cfg
+	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if boltConfig, ok := extendConfig[ProtocolName]; ok {
+				if cfg, ok := boltConfig.(Config); ok {
+					config = cfg
+				}
+			}
+		}
 	}
 	return config
 }
