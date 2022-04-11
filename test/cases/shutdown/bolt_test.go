@@ -437,7 +437,7 @@ func TestMosnForward(t *testing.T) {
 
 			m = mosn.StartMosn(ConfigSimpleBoltExample)
 			Verify(m, NotNil)
-			time.Sleep(2 * time.Second) // wait mosn start
+			time.Sleep(5 * time.Second) // wait mosn start
 		})
 		Case("client-mosn-server", func() {
 			testcases := []struct {
