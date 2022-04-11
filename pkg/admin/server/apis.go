@@ -26,6 +26,8 @@ import (
 	"os"
 	"strconv"
 
+	"mosn.io/mosn/pkg/version"
+
 	gometrics "github.com/rcrowley/go-metrics"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -37,9 +39,6 @@ import (
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
-
-// Version mosn version is specified by build tag, in VERSION file
-var Version = ""
 
 var levelMap = map[string]log.Level{
 	"FATAL": log.FATAL,
@@ -68,7 +67,7 @@ func Help(w http.ResponseWriter, r *http.Request) {
 }
 
 func OutputVersion(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("mosn version: " + Version))
+	w.Write([]byte("mosn version: " + version.Version))
 }
 
 func ConfigDump(w http.ResponseWriter, r *http.Request) {

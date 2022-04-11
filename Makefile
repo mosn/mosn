@@ -78,7 +78,7 @@ binary: build
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	GO111MODULE=on CGO_ENABLED=1 go build ${TAGS_OPT} \
-		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X ${PROJECT_NAME}/pkg/admin/server.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
+		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X ${PROJECT_NAME}/pkg/version.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p build/bundles/${MAJOR_VERSION}/binary

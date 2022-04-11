@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"mosn.io/mosn/pkg/admin/server"
+	"mosn.io/mosn/pkg/version"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
@@ -92,7 +92,7 @@ func main() {
 func newMosnApp(startCmd *cli.Command) *cli.App {
 	app := cli.NewApp()
 	app.Name = "mosn"
-	app.Version = server.Version
+	app.Version = version.Version
 	app.Compiled = time.Now()
 	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Group"
 	app.Usage = "MOSN is modular observable smart netstub."

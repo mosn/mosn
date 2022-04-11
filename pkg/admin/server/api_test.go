@@ -29,6 +29,7 @@ import (
 
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/version"
 )
 
 func TestKnownFeatures(t *testing.T) {
@@ -246,7 +247,7 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("response read error: %v", err)
 	}
-	if !reflect.DeepEqual(b, []byte("mosn version: "+Version)) {
+	if !reflect.DeepEqual(b, []byte("mosn version: "+version.Version)) {
 		t.Fatalf("expectation failure: %v", err)
 	}
 }
