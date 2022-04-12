@@ -26,7 +26,6 @@ import (
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	"github.com/urfave/cli"
-	_ "mosn.io/mosn/istio/_istio152"
 	_ "mosn.io/mosn/istio/istio1106"
 	_ "mosn.io/mosn/istio/istio1106/filter/stream/jwtauthn"
 	_ "mosn.io/mosn/istio/istio1106/filter/stream/mixer"
