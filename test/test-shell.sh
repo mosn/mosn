@@ -1,0 +1,87 @@
+#!/bin/bash
+
+mosn=$1
+verbose=0
+
+if [ "$2" = "-v" ]; then
+  verbose=1
+fi
+
+if [ -z $mosn ]; then
+  echo "not found mosn binary path"
+  echo "Usage: sh test/test-shell.sh /path/to/mosn/binary or make test-shell"
+  exit 1
+fi
+
+if [ ! -f $mosn ]; then
+  echo "$mosn is not existing, please build it firstly"
+  exit 1
+fi
+
+# === global variables === #
+
+PID=0
+
+# ============  util functions  ============ #
+
+function exec_bg {
+  if [ $verbose = 1 ]; then
+    echo "exec shell in background: $@"
+  fi
+
+  nohup $@ &
+  PID=$!
+
+  # sleep 1s to wait the background process
+  sleep 1
+
+  ps -p $PID
+  if [ $? = 0 ]; then
+    if [ $verbose = 1 ]; then
+      echo "exec shell success(pid $PID): $@"
+    fi
+    return
+  fi
+
+  echo "exec shell failed(pid not existing): $@"
+  PID=0
+  return
+}
+
+function start_mosn_with_quit {
+  exec_bg $mosn start $@
+  if [ $PID = 0 ]; then
+    echo "mosn start with $@ failed"
+    return 1
+  fi
+
+  while true; do
+    if [ $verbose = 1 ]; then
+      echo "killing mosn (pid $PID)"
+    fi
+    kill $PID
+    sleep 1
+
+    ps -p $PID
+    if [ $? != 0 ]; then
+      break
+    fi
+  done
+  return 0
+}
+
+# run_shell ls -lh
+
+# ============  test cases ============ #
+
+# TEST 1. start with no arguments
+start_mosn_with_quit
+if [ $? != 0 ]; then
+  exit 1
+fi
+
+# TEST 2. start with unknown arguments
+start_mosn_with_quit -unknown
+if [ $? = 0 ]; then
+  exit 1
+fi
