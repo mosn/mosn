@@ -23,8 +23,6 @@ import (
 	"runtime"
 	"time"
 
-	"mosn.io/mosn/pkg/version"
-
 	"github.com/urfave/cli"
 
 	"mosn.io/api"
@@ -195,7 +193,7 @@ var (
 			stm.AppendInitStage(mosn.DefaultInitStage)
 			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
 				// set version and go version
-				metrics.SetVersion(version.Version)
+				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
 			})
 			stm.AppendInitStage(holmes.Register)
