@@ -390,8 +390,12 @@ func (stm *StageManager) Stop() {
 
 	// other cleanup actions
 	stm.runAfterStopStage()
-	logger.CloseAll()
 
+	if preState != Running {
+		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
+	}
+
+	logger.CloseAll()
 	stm.SetState(Stopped)
 
 	if stm.exitCode != 0 {
@@ -400,7 +404,6 @@ func (stm *StageManager) Stop() {
 
 	// main goroutine is not waiting, exit directly
 	if preState != Running {
-		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
 		os.Exit(1)
 	}
 
