@@ -80,7 +80,7 @@ func InitializeMetrics(m *Mosn) {
 
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), m.IsFromUpgrade())
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), !m.IsFromUpgrade())
 	}
 
 	// set metrics package

@@ -128,6 +128,11 @@ func RegisterPrefix(prefix string, variable Variable) error {
 }
 
 func NewVariableContext(ctx context.Context) context.Context {
+	// avoid duplicate new varialbe context
+	v := mosnctx.Get(ctx, types.ContextKeyVariables)
+	if _, ok := v.([]IndexedValue); ok {
+		return ctx
+	}
 	// TODO: sync.Pool reuse
 	values := make([]IndexedValue, len(indexedVariables)) // TODO: pre-alloc buffer for runtime variable
 
