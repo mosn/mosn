@@ -21,8 +21,12 @@
                                 {
                                     "type": "proxy",
                                     "config": {
-                                      "downstream_protocol": "dubbo",
-                                      "router_config_name": "20882"
+                                      "downstream_protocol": "X",
+                                      "upstream_protocol": "X",
+                                      "router_config_name": "20882",
+                                      "extend_config": {
+                                        "sub_protocol": "dubbo"
+                                      }
                                     }
                                 }
                             ]
@@ -49,8 +53,12 @@
                                 {
                                     "type": "proxy",
                                     "config": {
-                                      "downstream_protocol": "dubbo",
-                                      "router_config_name": "dubbo_provider_router"
+                                      "downstream_protocol": "X",
+                                      "upstream_protocol": "X",
+                                      "router_config_name": "dubbo_provider_router",
+                                      "extend_config": {
+                                        "sub_protocol": "dubbo"
+                                      }
                                     }
                                 }
                             ]
