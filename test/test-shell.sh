@@ -2,6 +2,7 @@
 
 mosn=$1
 config_file=${mosn%/*}/'mosn_config.json'
+default_config_file_path=${mosn%/*}/configs/'mosn_config.json'
 echo $config_file
 verbose=0
 
@@ -90,12 +91,12 @@ if [ $? = 0 ]; then
   exit 1
 fi
 
- TEST 3. start with -c then stop
+# TEST 3. start with -c then stop
 exec_bg $mosn start -c $config_file
-  if [ $PID = 0 ]; then
-    echo "mosn start with $@ failed"
-    exit 1
-  fi
+if [ $PID = 0 ]; then
+  echo "mosn start with $@ failed"
+  exit 1
+fi
 sleep 5
 
 nohup $mosn stop -c $config_file &
@@ -104,11 +105,13 @@ if [ $? != 0 ]; then
   exit 1
 fi
 
+sleep 1
+
 # TEST 4. start with default params then stop
 exec_bg $mosn start
 if [ $PID = 0 ]; then
   echo "mosn start with default failed"
- exit 1
+  exit 1
 fi
 sleep 5
 
@@ -117,3 +120,4 @@ ps -p $PID
 if [ $? != 0 ]; then
   exit 1
 fi
+
