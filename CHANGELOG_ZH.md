@@ -4,8 +4,7 @@
 
 ### 新功能
 
-- MOSN 默认支持 istio v1.10.6 版本，可通过 make 命令快速切换 istio 支持版本，目前还支持 istio v1.5.2 (
-  #1910) [@nejisama](https://github.com/nejisama)
+- MOSN 默认支持 istio v1.10.6 版本，可通过 make 命令快速切换 istio 支持版本，目前还支持 istio v1.5.2 (#1910) [@nejisama](https://github.com/nejisama)
 - 路由规则新增、修改请求头、响应头时，支持使用变量动态设置 (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
 - Upstream 健康检查支持配置第一次健康检查间隔 (#1942) [@rickey17](https://github.com/rickey17)
 - 新增基于 HTTP 协议的健康检查方式 (#1942) [@rickey17](https://github.com/rickey17)
@@ -16,6 +15,7 @@
 - SDS 接口新增同步获取证书、主动更新证书的能力 (#1945) [@nejisama](https://github.com/nejisama)
 - 支持 TLS 校验的 SNI 扩展配置 (#1910) [@nejisama](https://github.com/nejisama)
 
+
 ### 变更
 
 - 更新 dubbo-go-hessian 版本到 v1.10.2 版本 (#1896) [@wongoo](https://github.com/wongoo)
@@ -25,6 +25,7 @@
 - OriginalDst Filter 新增配置项：可在 Listener 转发匹配时配置使用 local 地址进行兜底 (#1972) [@nejisama](https://github.com/nejisama)
 - OriginalDst Cluster 新增配置项：可在请求转发时将目标地址修改为 localhost (#1972) [@nejisama](https://github.com/nejisama)
 - 放弃了原有的 vendor 模式，默认使用 go.mod 进行管理 (#1997) [@nejisama](https://github.com/nejisama)
+
 
 ### 重构
 
@@ -43,6 +44,7 @@
 - 优化 maglev 负载均衡内存分配 (#1964) [@baerwang](https://github.com/baerwang)
 - 优化日志行为，支持统一输出 iobuffer 的错误信息，支持日志轮转出现错误时的异常处理 (#1996) [@nejisama](https://github.com/nejisama)
 
+
 ### Bug 修复
 
 - 修复：当 HTTP2 协议中 StreamID 过大时，未关闭连接并持续使用导致问题 (#1900) [@jayantxie](https://github.com/jayantxie)
@@ -59,6 +61,7 @@
 - 修复：Listener 在调用 setDeadline 时可能导致空指针异常 (#1981)  [@antJack](https://github.com/antJack)
 - 修复：typo 错误修复 [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
 - 修复：单元测试因为 goroutine 过多导致无法执行 race 测试的问题 (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
 
 ## v0.26.0
 
