@@ -29,7 +29,7 @@
 								"type": "proxy",
 								"config": {
 									"downstream_protocol": "bolt",
-									"router_config_name": "server_router"
+									"router_config_name":"server_router"
 								}
 							}
 						]
