@@ -51,7 +51,6 @@ bugfix: got the wrong CACert filename when converting the listen filter from ist
 - IDE 方式：使用如 Goland IDE，在 Go->imports 页面中选择 ”Group stdlib imports“ - “Move all stdlib imports in a single group” - “Move
   all imports in a single declaration”
 - 在运行 CI 测试的时候会检查代码格式，请确保您在提交代码之前已对代码进行格式化
-
 2. 确保所有新的 `.go` 文件都具有简单的 doc 类注释，其中至少包含一个 `author` 标记标识您，并且最好至少包含一个有关该类用途的段落。
 3. 将 Apache Software Foundation 许可证标头注释添加到所有新的 `.go` 文件（可以从项目中的现有文件复制）
 4. 将您自己添加为您实质修改的 `.go` 文件的作者（不仅仅是外观更改）。

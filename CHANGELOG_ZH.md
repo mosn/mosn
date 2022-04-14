@@ -5,7 +5,7 @@
 ### 新功能
 
 - MOSN 默认支持 istio v1.10.6 版本，可通过 make 命令快速切换 istio 支持版本，目前还支持 istio v1.5.2 (
-  # 1910) [@nejisama](https://github.com/nejisama)
+  #1910) [@nejisama](https://github.com/nejisama)
 - 路由规则新增、修改请求头、响应头时，支持使用变量动态设置 (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
 - Upstream 健康检查支持配置第一次健康检查间隔 (#1942) [@rickey17](https://github.com/rickey17)
 - 新增基于 HTTP 协议的健康检查方式 (#1942) [@rickey17](https://github.com/rickey17)

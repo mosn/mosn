@@ -14,7 +14,7 @@
 - Support graceful shutdown for xprotocol framework. (#1922) [@doujiang24](https://github.com/doujiang24)
 - Support graceful shutdown for MOSN (#1922) [@doujiang24](https://github.com/doujiang24)
 - Integrated [Holmes](https://github.com/mosn/holmes) for automatically pprof (
-  # 1978) [@doujiang24](https://github.com/doujiang24)
+  #1978) [@doujiang24](https://github.com/doujiang24)
 - Add Fetch and RequireCert for SDS client [@nejisama](https://github.com/nejisama)
 - Add a new tls verify extension: sni verify (#1910) [@nejisama](https://github.com/nejisama)
 
@@ -23,10 +23,10 @@
 - Upgrade dubbo-go-hessian to v1.10.2 (#1896) [@wongoo](https://github.com/wongoo)
 - Add new configuration for upstream cluster: IdleTimeout (#1914) [hui-cha](https://github.com/hui-cha)
 - Transfer some upstream cluster configuration constants to `config/v2` package (
-  # 1970) [@jizhuozhi](https://github.com/jizhuozhi)
+  #1970) [@jizhuozhi](https://github.com/jizhuozhi)
 - Add variable to store request raw data in xprotocol protocols implementations [@antJack](https://github.com/antJack)
 - Add new configuration for original-dst filter: localhost listener can be used in listener match fallback (
-  # 1972) [@nejisama](https://github.com/nejisama)
+  #1972) [@nejisama](https://github.com/nejisama)
 - Add new configuration for original-dst cluster: use localhost address as the target
   address [@nejisama](https://github.com/nejisama)
 - Do not use vendor mode any more, use go mod instead. (#1997) [@nejisama](https://github.com/nejisama)
@@ -38,7 +38,7 @@
   scalable for behavior after receiving a signal. (#1859) [@doujiang24](https://github.com/doujiang24)
 - Use separate IoBuffer for log (#1936) [@nejisama](https://github.com/nejisama)
 - Refactor sds provider, support a sds config to generate different tls config (
-  # 1958) [@nejisama](https://github.com/nejisama)
+  #1958) [@nejisama](https://github.com/nejisama)
 
 ### Optimization
 
@@ -50,12 +50,12 @@
   now [@wangfakang](https://github.com/wangfakang)
 - Optimize the memory usage in maglev loadbalancer (#1964) [@baerwang](https://github.com/baerwang)
 - Support error log to iobuffer error, support exception handling when log rotation error occurs (
-  # 1996) [@nejisama](https://github.com/nejisama)
+  #1996) [@nejisama](https://github.com/nejisama)
 
 ### Bug fixes
 
 - Fix: when stream id is too large in http2, the connection is not closed. (
-  # 1900) [@jayantxie](https://github.com/jayantxie)
+  #1900) [@jayantxie](https://github.com/jayantxie)
 - Fix: route error log output is abnormal (#1915) [@scaat](https://github.com/scaat)
 - Fix: xprotocol go plugin example build errors (#1899) [@nearmeng](https://github.com/nearmeng)
 - Fix: original-dst filter get ip errors being ignored (#1931) [@alpha-baby](https://github.com/alpha-baby)
@@ -69,6 +69,7 @@
 - Fix: listener may cause nil panic when set deadline (#1981)  [@antJack](https://github.com/antJack)
 - Fix: some typo errors [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
 - Fix: too many goroutines makes go test race failed (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
 
 ## v0.26.0
 
