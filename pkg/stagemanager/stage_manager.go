@@ -258,6 +258,8 @@ func (stm *StageManager) runStartStage() {
 
 	// transfer existing connections from old server
 	if err := stm.app.InheritConnections(); err != nil {
+		// align to the old exit code
+		stm.exitCode = 2
 		stm.Stop()
 	}
 
@@ -388,18 +390,21 @@ func (stm *StageManager) Stop() {
 
 	// other cleanup actions
 	stm.runAfterStopStage()
-	logger.CloseAll()
 
-	stm.SetState(Stopped)
-
-	// main goroutine is not waiting, exit directly
 	if preState != Running {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
-		os.Exit(1)
 	}
+
+	logger.CloseAll()
+	stm.SetState(Stopped)
 
 	if stm.exitCode != 0 {
 		os.Exit(stm.exitCode)
+	}
+
+	// main goroutine is not waiting, exit directly
+	if preState != Running {
+		os.Exit(1)
 	}
 
 	// will exit with 0 by default

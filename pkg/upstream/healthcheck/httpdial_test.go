@@ -77,6 +77,32 @@ func Test_NewSession(t *testing.T) {
 		Port:    33333,
 		Timeout: api.DurationConfig{time.Second * 15},
 		Path:    "/test",
+	}
+
+	hcs = hdsf.NewSession(cfg, h1)
+	hds = hcs.(*HTTPDialSession)
+	if hcs == nil {
+		t.Errorf("Test_NewSession %+v", hcs)
+	}
+
+	if hds.request.URL.String() != "http://127.0.0.1:33333/test" {
+		t.Errorf("Test_NewSession %+v", hds)
+	}
+	if hds.timeout != time.Second*15 {
+		t.Errorf("Test_NewSession %+v", hds)
+	}
+
+	h1.addr = "127.0.0.1"
+	hcs = hdsf.NewSession(cfg, h1)
+	if hcs != nil {
+		t.Errorf("Test_NewSession %+v", hcs)
+	}
+
+	h1.addr = "127.0.0.1:44444"
+	cfg[HTTPCheckConfigKey] = &HttpCheckConfig{
+		Port:    44444,
+		Timeout: api.DurationConfig{time.Second * 15},
+		Path:    "/test",
 		Domain:  "test.healthcheck.com",
 		Method:  "HEAD",
 		Scheme:  "https",
@@ -87,11 +113,7 @@ func Test_NewSession(t *testing.T) {
 	if hcs == nil {
 		t.Errorf("Test_NewSession %+v", hcs)
 	}
-
-	if hds.request.URL.String() != "https://127.0.0.1:33333/test" {
-		t.Errorf("Test_NewSession %+v", hds)
-	}
-	if hds.timeout != time.Second*15 {
+	if hds.request.URL.String() != "https://127.0.0.1:44444/test" {
 		t.Errorf("Test_NewSession %+v", hds)
 	}
 	if hds.request.URL.Scheme != "https" {
@@ -100,15 +122,48 @@ func Test_NewSession(t *testing.T) {
 	if hds.request.Method != "HEAD" {
 		t.Errorf("Test_NewSession method should be HEAD, %+v", hds)
 	}
-
-	h1.addr = "127.0.0.1"
-	hcs = hdsf.NewSession(cfg, h1)
-	if hcs != nil {
-		t.Errorf("Test_NewSession %+v", hcs)
-	}
 }
 
 func Test_CheckHealth(t *testing.T) {
+	hdsf := &HTTPDialSessionFactory{}
+	h1 := &mockHost{}
+	h1.addr = "127.0.0.1:22222"
+	cfg := make(map[string]interface{})
+	cfg[HTTPCheckConfigKey] = &HttpCheckConfig{
+		Port: 33333,
+	}
+	hcs := hdsf.NewSession(cfg, h1)
+	hds := hcs.(*HTTPDialSession)
+	h := hds.CheckHealth()
+	if h {
+		t.Errorf("Test_CheckHealth Error")
+	}
+
+	hds.client = &http.Client{}
+
+	code := 200
+	server := &http.Server{Addr: "127.0.0.1:33333"}
+	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(code)
+	})
+	go server.ListenAndServe()
+	time.Sleep(time.Second)
+
+	h = hds.CheckHealth()
+	if !h {
+		t.Errorf("Test_CheckHealth Error")
+	}
+
+	code = 500
+	h = hds.CheckHealth()
+	if h {
+		t.Errorf("Test_CheckHealth Error")
+	}
+
+	server.Close()
+}
+
+func Test_CheckL7Health(t *testing.T) {
 	httpAddr := "127.0.0.1:22222"
 	testCases := []struct {
 		name       string
@@ -120,10 +175,10 @@ func Test_CheckHealth(t *testing.T) {
 	}{
 		{
 			name:       "connect failed",
-			serverPath: "/",
+			serverPath: "/index.html",
 			hostAddr:   "127.0.0.1:22224",
 			config: HttpCheckConfig{
-				Path: "/",
+				Path: "/index.html",
 			},
 			expect: false,
 		},
@@ -205,4 +260,6 @@ func Test_CheckHealth(t *testing.T) {
 			t.Errorf("Test_CheckHealth Error, case:%s", tc.name)
 		}
 	}
+
+	server.Close()
 }

@@ -112,3 +112,5 @@ jobs:
       - name: Run Build.
         run: make build
 
+      - name: Run test-shell.
+        run: make test-shell

@@ -78,7 +78,7 @@ binary: build
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	GO111MODULE=on CGO_ENABLED=1 go build ${TAGS_OPT} \
-		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
+		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/istio.IstioVersion=${ISTIO_VERSION}" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p build/bundles/${MAJOR_VERSION}/binary
@@ -86,6 +86,12 @@ build-local:
 	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET} | cut -d' ' -f1  > ${TARGET}.md5
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
 	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
+
+test-shell-local:
+	bash test/test-shell.sh build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR} -v && echo "run tests successfully"
+
+test-shell:
+	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make test-shell-local
 
 image:
 	@rm -rf IMAGEBUILD
