@@ -55,7 +55,7 @@ function start_mosn_with_quit {
     return 1
   fi
 
-  while true; do
+  for ((i=0; i<100; i++)); do
     if [ $verbose = 1 ]; then
       echo "killing mosn (pid $PID)"
     fi
@@ -64,10 +64,12 @@ function start_mosn_with_quit {
 
     ps -p $PID
     if [ $? != 0 ]; then
-      break
+      return 0
     fi
   done
-  return 0
+
+  echo "kill mosn (pid $PID) failed"
+  exit 1
 }
 
 # run_shell ls -lh
