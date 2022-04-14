@@ -87,6 +87,12 @@ build-local:
 	cp configs/${CONFIG_FILE} build/bundles/${MAJOR_VERSION}/binary
 	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET}  build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
+test-shell-local:
+	bash test/test-shell.sh build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR} -v && echo "run tests successfully"
+
+test-shell:
+	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make test-shell-local
+
 image:
 	@rm -rf IMAGEBUILD
 	cp -r build/contrib/builder/image IMAGEBUILD && cp build/bundles/${MAJOR_VERSION}/binary/${TARGET} IMAGEBUILD && cp -r configs IMAGEBUILD && cp -r etc IMAGEBUILD
