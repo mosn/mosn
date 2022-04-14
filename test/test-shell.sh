@@ -1,6 +1,8 @@
 #!/bin/bash
 
 mosn=$1
+config_file=${mosn%/*}/'mosn_config.json'
+echo $config_file
 verbose=0
 
 if [ "$2" = "-v" ]; then
@@ -87,3 +89,33 @@ start_mosn_with_quit -unknown
 if [ $? = 0 ]; then
   exit 1
 fi
+
+# TEST 3. start with -c then stop
+#exec_bg $mosn start -c $config_file
+#  if [ $PID = 0 ]; then
+#    echo "mosn start with $@ failed"
+#    return 1
+#  fi
+#sleep 5
+#
+#nohup $mosn stop -c $config_file &
+#  ps -p $PID
+#  if [ $? != 0 ]; then
+#    exit 1
+#  fi
+#sleep 2
+
+# TEST 4. start with default params then stop
+exec_bg $mosn start
+  if [ $PID = 0 ]; then
+    echo "mosn start with default failed"
+    return 1
+  fi
+sleep 5
+
+nohup $mosn stop &
+  ps -p $PID
+  if [ $? != 0 ]; then
+    exit 1
+  fi
+sleep 2
