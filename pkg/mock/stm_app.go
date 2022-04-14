@@ -74,6 +74,20 @@ func (mr *MockApplicationMockRecorder) Init(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockApplication)(nil).Init), arg0)
 }
 
+// IsFromUpgrade mocks base method.
+func (m *MockApplication) IsFromUpgrade() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsFromUpgrade")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsFromUpgrade indicates an expected call of IsFromUpgrade.
+func (mr *MockApplicationMockRecorder) IsFromUpgrade() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsFromUpgrade", reflect.TypeOf((*MockApplication)(nil).IsFromUpgrade))
+}
+
 // Shutdown mocks base method.
 func (m *MockApplication) Shutdown() error {
 	m.ctrl.T.Helper()

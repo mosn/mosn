@@ -246,12 +246,16 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(map[string]interface{}); ok {
-			if v, ok := extendConfig["max_header_size"]; ok {
-				// json.Unmarshal stores float64 for JSON numbers in the interface{}
-				// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
-				if fv, ok := v.(float64); ok {
-					maxResponseHeaderSize = int(fv)
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+				if config, ok := http1Config.(map[string]interface{}); ok {
+					if v, ok := config["max_header_size"]; ok {
+						// json.Unmarshal stores float64 for JSON numbers in the interface{}
+						// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+						if fv, ok := v.(float64); ok {
+							maxResponseHeaderSize = int(fv)
+						}
+					}
 				}
 			}
 		}
@@ -420,9 +424,14 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if cfg, ok := pgc.(StreamConfig); ok {
-		streamConfig = cfg
+	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+				if cfg, ok := http1Config.(StreamConfig); ok {
+					streamConfig = cfg
+				}
+			}
+		}
 	}
 	return streamConfig
 }

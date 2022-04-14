@@ -28,13 +28,9 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "X",
-									"upstream_protocol": "X",
-									"extend_config": {
-										"sub_protocol": "bolt"
-									},
-									"router_config_name":"client_router"
-								}
+                                  "downstream_protocol": "bolt",
+                                  "router_config_name": "client_router"
+                                }
 							}
 						]
 					}]

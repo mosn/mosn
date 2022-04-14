@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
@@ -106,6 +107,9 @@ type Application interface {
 	Shutdown() error
 	// Close means stop working immediately
 	Close()
+	// IsFromUpgrade application start from upgrade mode,
+	// means inherit connections and configuration(if enabled) from old application.
+	IsFromUpgrade() bool
 }
 
 var (
@@ -566,6 +570,16 @@ func (stm *StageManager) RunAll() {
 	stm.WaitFinish()
 	// stop working
 	stm.Stop()
+}
+
+// IsActiveUpgrading just for backward compatible
+// means the current application is upgrading from an old application, and not running yet.
+// may be inheriting connections or configuration from old one.
+func IsActiveUpgrading() bool {
+	if stm.app != nil {
+		return stm.app.IsFromUpgrade() && stm.state < Running
+	}
+	return false
 }
 
 // StopMosnProcess stops Mosn process via command line,

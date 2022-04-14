@@ -24,11 +24,13 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+
 	"mosn.io/api"
 	"mosn.io/mosn/istio/istio152"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/holmes"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
@@ -47,6 +49,7 @@ import (
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
 	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
+	"mosn.io/pkg/buffer"
 )
 
 var (
@@ -154,10 +157,13 @@ var (
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
 			})
+			stm.AppendInitStage(holmes.Register)
 			// pre-startup
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
+			// after-stop
+			stm.AppendAfterStopStage(holmes.Stop)
 			// execute all runs
 			stm.RunAll()
 			return nil
@@ -243,4 +249,8 @@ func ExtensionsRegister(c *cli.Context) {
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
 
+	// register buffer logger
+	buffer.SetLogFunc(func(msg string) {
+		log.DefaultLogger.Errorf("[iobuffer] iobuffer error log info: %s", msg)
+	})
 }

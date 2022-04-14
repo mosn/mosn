@@ -1,13 +1,83 @@
 # Changelog
 
+## v0.27.0
+
+### New Features
+
+- Support istio v1.10.6 by default. Support switch istio version by make command, current MOSN support v1.10.6 and
+  v1.5.2. (#1910) [@nejisama](https://github.com/nejisama)
+- Support use variables to configure route headers add or remove. (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
+- Support health check's initialize interval can be configured (#1942) [@rickey17](https://github.com/rickey17)
+- Add HTTP Dial for upstream cluster health check (#1942) [@rickey17](https://github.com/rickey17)
+- Add extension callback function for tls context created. [@antJack](https://github.com/antJack)
+- Support extension for Listener and Connection created. [@antJack](https://github.com/antJack)
+- Support graceful shutdown for xprotocol framework. (#1922) [@doujiang24](https://github.com/doujiang24)
+- Support graceful shutdown for MOSN (#1922) [@doujiang24](https://github.com/doujiang24)
+- Integrated [Holmes](https://github.com/mosn/holmes) for automatically pprof (
+  #1978) [@doujiang24](https://github.com/doujiang24)
+- Add Fetch and RequireCert for SDS client [@nejisama](https://github.com/nejisama)
+- Add a new tls verify extension: sni verify (#1910) [@nejisama](https://github.com/nejisama)
+
+### Changes
+
+- Upgrade dubbo-go-hessian to v1.10.2 (#1896) [@wongoo](https://github.com/wongoo)
+- Add new configuration for upstream cluster: IdleTimeout (#1914) [hui-cha](https://github.com/hui-cha)
+- Transfer some upstream cluster configuration constants to `config/v2` package (
+  #1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- Add variable to store request raw data in xprotocol protocols implementations [@antJack](https://github.com/antJack)
+- Add new configuration for original-dst filter: localhost listener can be used in listener match fallback (
+  #1972) [@nejisama](https://github.com/nejisama)
+- Add new configuration for original-dst cluster: use localhost address as the target
+  address [@nejisama](https://github.com/nejisama)
+- Do not use vendor mode any more, use go mod instead. (#1997) [@nejisama](https://github.com/nejisama)
+
+### Refactoring
+
+- Refactor MOSN state management and stage management. (#1859) [@doujiang24](https://github.com/doujiang24)
+- Shield signal processing extension related interfaces, do not expose semaphore to developers, and modify it to be
+  scalable for behavior after receiving a signal. (#1859) [@doujiang24](https://github.com/doujiang24)
+- Use separate IoBuffer for log (#1936) [@nejisama](https://github.com/nejisama)
+- Refactor sds provider, support a sds config to generate different tls config (
+  #1958) [@nejisama](https://github.com/nejisama)
+
+### Optimization
+
+- Optimize the irregular module naming in examples. (#1913) [@scaat](https://github.com/scaat)
+- Delete some useless fields in connection struct (#1811) [@doujiang24](https://github.com/doujiang24)
+- Optimize the heap management in edf loadbalancer (#1920) [@jizhuozhi](https://github.com/jizhuozhi)
+- Optimize the error message when get variables returns error (#1952) [@antJack](https://github.com/antJack)
+- Optimize the memory reuse in proxy: a finished request received reset will take no effect on memory reuse
+  now [@wangfakang](https://github.com/wangfakang)
+- Optimize the memory usage in maglev loadbalancer (#1964) [@baerwang](https://github.com/baerwang)
+- Support error log to iobuffer error, support exception handling when log rotation error occurs (
+  #1996) [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix: when stream id is too large in http2, the connection is not closed. (
+  #1900) [@jayantxie](https://github.com/jayantxie)
+- Fix: route error log output is abnormal (#1915) [@scaat](https://github.com/scaat)
+- Fix: xprotocol go plugin example build errors (#1899) [@nearmeng](https://github.com/nearmeng)
+- Fix: original-dst filter get ip errors being ignored (#1931) [@alpha-baby](https://github.com/alpha-baby)
+- Fix: HTTP may cause hangs in high concurrency (#1949) [@alpha-baby](https://github.com/alpha-baby)
+- Fix: istio config parse extension spell error (#1927) [LemmyHuang](https://github.com/LemmyHuang)
+- Fix: proxy may cause nil panic when get variables (#1953) [@doujiang24](https://github.com/doujiang24)
+- Fix: HTTP cannot get reason for connection reset (#1772) [@wangfakang](https://github.com/wangfakang)
+- Fix: cannot restart a stopped listener  (#1883) [@lemonlinger](https://github.com/lemonlinger)
+- Fix: strict-dns debug log output is abnormal (#1963) [@wangfakang](https://github.com/wangfakang)
+- Fix: divide 0 error in edf loadbalancer (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- Fix: listener may cause nil panic when set deadline (#1981)  [@antJack](https://github.com/antJack)
+- Fix: some typo errors [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
+- Fix: too many goroutines makes go test race failed (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
 ## v0.26.0
 
 ### Incompatible Change
 
-For implementing new protocols more nature, XProtocol is no longer as a protocol and no subprotocol any more.
-XProtocol is a framework to implement protocol easier now.
-So, the old existing code for implementing new protocols need some changes,
-please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the old existing code suit for the new release.
+For implementing new protocols more nature, XProtocol is no longer as a protocol and no subprotocol any more. XProtocol
+is a framework to implement protocol easier now. So, the old existing code for implementing new protocols need some
+changes, please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the old existing code suit for the
+new release.
 
 ### New Features
 
