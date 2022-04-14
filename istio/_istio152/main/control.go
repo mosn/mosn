@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"time"
 
+	admin "mosn.io/mosn/pkg/admin/server"
+
 	"github.com/urfave/cli"
 
 	"mosn.io/api"
@@ -156,6 +158,7 @@ var (
 				// set version and go version
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
+				admin.SetVersion(Version)
 			})
 			stm.AppendInitStage(holmes.Register)
 			// pre-startup

@@ -47,6 +47,8 @@ var levelMap = map[string]log.Level{
 	"TRACE": log.TRACE,
 }
 
+var version string
+
 const errMsgFmt = `{
 	"error": "%s"
 }
@@ -62,6 +64,14 @@ func Help(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Write(buf.Bytes())
+}
+
+func SetVersion(v string) {
+	version = v
+}
+
+func OutputVersion(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("mosn version: " + version))
 }
 
 func ConfigDump(w http.ResponseWriter, r *http.Request) {
