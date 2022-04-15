@@ -93,31 +93,40 @@ fi
 
 
 # TEST 3. start then stop
+echo "TEST Case 3: start mosn then stop it"
 exec_bg $mosn start
 if [ $PID = 0 ]; then
   echo "mosn start with default failed"
   exit 1
 fi
+echo "mosn start successfully, pid($PID)"
+# sleep 5s to mosn init
 sleep 5
 
-nohup $mosn stop &
+echo "stopping mosn"
+$mosn stop
+sleep 1
 ps -p $PID
 if [ $? != 0 ]; then
+  echo "mosn stop failed, pid($PID)"
   exit 1
 fi
 
-sleep 2
-
 # TEST 4. start with -c then stop
+echo "TEST Case 4: start with -c then stop"
 exec_bg $mosn start -c $config_file
 if [ $PID = 0 ]; then
   echo "mosn start with $@ failed"
   exit 1
 fi
+echo "mosn start successfully, pid($PID)"
+# sleep 5s to mosn init
 sleep 5
 
-nohup $mosn stop -c $config_file &
+$mosn stop -c $config_file
+sleep 1
 ps -p $PID
 if [ $? != 0 ]; then
+  echo "mosn stop with $@ failed, pid($PID)"
   exit 1
 fi
