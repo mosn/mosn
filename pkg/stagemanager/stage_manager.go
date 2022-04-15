@@ -604,7 +604,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 		return
 	}
 
-	// finds process and sends SIGTERM to mosn process, makes it graceful exit.
+	// finds process and sends SIGINT to mosn process, makes it force exit.
 	proc, err := os.FindProcess(p)
 	if err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", p, err)
