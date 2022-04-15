@@ -2,7 +2,8 @@
 
 mosn=$1
 config_file=${mosn%/*}/'mosn_config.json'
-default_config_file_path=${mosn%/*}/configs/'mosn_config.json'
+admin_port=34901
+
 echo $config_file
 verbose=0
 
@@ -75,6 +76,17 @@ function start_mosn_with_quit {
   exit 1
 }
 
+function check_mosn_state {
+  state=$(curl 127.0.0.1:$admin_port/api/v1/states)
+  state=${state:(-1)}
+  if [ $state = '6' ]; then
+    echo "mosn is running"
+    return 0
+  fi
+  echo "mosn is not running, state($state)"
+  return 1
+}
+
 # run_shell ls -lh
 
 # ============  test cases ============ #
@@ -92,27 +104,7 @@ if [ $? = 0 ]; then
 fi
 
 
-# TEST 3. start then stop
-echo "TEST Case 3: start mosn then stop it"
-exec_bg $mosn start
-if [ $PID = 0 ]; then
-  echo "mosn start with default failed"
-  exit 1
-fi
-echo "mosn start successfully, pid($PID)"
-# sleep 5s to mosn init
-sleep 5
-
-echo "stopping mosn"
-$mosn stop
-sleep 1
-ps -p $PID
-if [ $? != 0 ]; then
-  echo "mosn stop failed, pid($PID)"
-  exit 1
-fi
-
-# TEST 4. start with -c then stop
+# TEST 3. start with -c then stop
 echo "TEST Case 4: start with -c then stop"
 exec_bg $mosn start -c $config_file
 if [ $PID = 0 ]; then
@@ -121,12 +113,19 @@ if [ $PID = 0 ]; then
 fi
 echo "mosn start successfully, pid($PID)"
 # sleep 5s to mosn init
-sleep 5
+sleep 10
+
+echo "checking mosn state"
+check_mosn_state
+
+if [ $? != 0 ]; then
+  exit 1
+fi
 
 $mosn stop -c $config_file
 sleep 1
 ps -p $PID
-if [ $? != 0 ]; then
+if [ $? = 0 ]; then
   echo "mosn stop with $@ failed, pid($PID)"
   exit 1
 fi
