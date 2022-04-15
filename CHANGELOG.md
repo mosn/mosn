@@ -8,7 +8,7 @@
 - Protocol: HTTP health check support more configurations (#1999) [@dengqian](https://github.com/dengqian)
 - Add new Admin API for query MOSN version (#2002) [@songzhibin97](https://github.com/songzhibin97)
 - Exit code change to 2 when mosn start failed in upgrade mode (#2006) [@doujiang24](https://github.com/doujiang24)
-- Add a new function to check wether MOSN is in active upgrading state (#2003) [@doujiang24](https://github.com/doujiang24)
+- Add a new function to check whether MOSN is in active upgrading state (#2003) [@doujiang24](https://github.com/doujiang24)
 - Add new command: stop (#1990) [@Jun10ng](https://github.com/Jun10ng)
 
 ### Bug fixes
