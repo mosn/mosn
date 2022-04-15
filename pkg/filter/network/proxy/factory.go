@@ -41,7 +41,7 @@ func init() {
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 	//
-	extendConfig interface{}
+	extendConfig map[api.ProtocolName]interface{}
 	protocols    []api.ProtocolName
 }
 
@@ -79,7 +79,19 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	}
 
 	if len(p.ExtendConfig) != 0 {
-		gfcf.extendConfig = protocol.HandleConfig(api.ProtocolName(p.DownstreamProtocol), p.ExtendConfig)
+		gfcf.extendConfig = make(map[api.ProtocolName]interface{})
+		// It's just for backward compatibility, will be removed in the feature.
+		if len(gfcf.protocols) == 1 && gfcf.protocols[0] != protocol.Auto {
+			proto := gfcf.protocols[0]
+			gfcf.extendConfig[proto] = protocol.HandleConfig(proto, p.ExtendConfig)
+			if p.ExtendConfig[string(proto)] == nil {
+				log.DefaultLogger.Warnf(`Old extend_config format is deprecated, please use the protocol name as key index, eg: "Http2: {http2_use_stream: true}"`)
+			}
+		} else {
+			for proto, value := range p.ExtendConfig {
+				gfcf.extendConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), value)
+			}
+		}
 	}
 	return gfcf, nil
 }

@@ -36,6 +36,7 @@ import (
 	mhttp2 "mosn.io/mosn/pkg/module/http2"
 	mhpack "mosn.io/mosn/pkg/module/http2/hpack"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	phttp2 "mosn.io/mosn/pkg/protocol/http2"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
@@ -208,7 +209,12 @@ func TestServerH2ReqUseStream(t *testing.T) {
 			fp(ctx, headers, data, trailers)
 		})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	http2Config := map[string]interface{}{
+		"http2_use_stream": true,
+	}
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	serverCallbacks := mock.NewMockServerStreamConnectionEventListener(ctrl)
 
@@ -279,7 +285,6 @@ func (mp *mockProtocol) Decode(ctx context.Context, data types.IoBuffer) (interf
 	return nil, nil
 }
 
-
 func TestClientH2ReqUseStream(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -298,7 +303,12 @@ func TestClientH2ReqUseStream(t *testing.T) {
 		},
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	http2Config := map[string]interface{}{
+		"http2_use_stream": true,
+	}
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().AddConnectionEventListener(gomock.Any()).AnyTimes()
@@ -367,8 +377,8 @@ func TestClientH2RespUseStream(t *testing.T) {
 			dataFrame: func() *mhttp2.DataFrame {
 				dataFrame := &mhttp2.DataFrame{
 					FrameHeader: mhttp2.FrameHeader{
-						Type:     mhttp2.FrameData,
-						Flags:    0,
+						Type:  mhttp2.FrameData,
+						Flags: 0,
 					},
 				}
 				monkey.PatchInstanceMethod(reflect.TypeOf(dataFrame), "Data", func(f *mhttp2.DataFrame) []byte {
@@ -382,8 +392,8 @@ func TestClientH2RespUseStream(t *testing.T) {
 			dataFrame: func() *mhttp2.DataFrame {
 				dataFrame := &mhttp2.DataFrame{
 					FrameHeader: mhttp2.FrameHeader{
-						Type:     mhttp2.FrameData,
-						Flags:    mhttp2.FlagDataEndStream,
+						Type:  mhttp2.FrameData,
+						Flags: mhttp2.FlagDataEndStream,
 					},
 				}
 				monkey.PatchInstanceMethod(reflect.TypeOf(dataFrame), "Data", func(f *mhttp2.DataFrame) []byte {
@@ -411,7 +421,12 @@ func TestClientH2RespUseStream(t *testing.T) {
 			fp(ctx, headers, data, trailers)
 		})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	http2Config := map[string]interface{}{
+		"http2_use_stream": true,
+	}
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	clientCallbacks := mock.NewMockStreamConnectionEventListener(ctrl)
 
@@ -473,19 +488,24 @@ func TestServerH2RespUseStream(t *testing.T) {
 	defer ctrl.Finish()
 
 	testcases := []struct {
-		useStream   bool
+		useStream bool
 	}{
 		{
-			useStream:   true,
+			useStream: true,
 		},
 		{
-			useStream:   false,
+			useStream: false,
 		},
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, StreamConfig{Http2UseStream: true})
+	http2Config := map[string]interface{}{
+		"http2_use_stream": true,
+	}
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().SetTransferEventListener(gomock.Any()).AnyTimes()

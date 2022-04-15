@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
@@ -106,6 +107,9 @@ type Application interface {
 	Shutdown() error
 	// Close means stop working immediately
 	Close()
+	// IsFromUpgrade application start from upgrade mode,
+	// means inherit connections and configuration(if enabled) from old application.
+	IsFromUpgrade() bool
 }
 
 var (
@@ -212,6 +216,12 @@ func (stm *StageManager) runInitStage() {
 	log.StartLogger.Infof("init stage cost: %v", time.Since(st))
 }
 
+func (stm *StageManager) runStopInit() {
+	for _, f := range stm.initStages {
+		f(stm.data.config)
+	}
+}
+
 // more init works after inherit config from old server and new server inited
 func (stm *StageManager) AppendPreStartStage(f func(Application)) *StageManager {
 	if f == nil || stm.started {
@@ -254,6 +264,8 @@ func (stm *StageManager) runStartStage() {
 
 	// transfer existing connections from old server
 	if err := stm.app.InheritConnections(); err != nil {
+		// align to the old exit code
+		stm.exitCode = 2
 		stm.Stop()
 	}
 
@@ -384,18 +396,21 @@ func (stm *StageManager) Stop() {
 
 	// other cleanup actions
 	stm.runAfterStopStage()
-	logger.CloseAll()
 
-	stm.SetState(Stopped)
-
-	// main goroutine is not waiting, exit directly
 	if preState != Running {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
-		os.Exit(1)
 	}
+
+	logger.CloseAll()
+	stm.SetState(Stopped)
 
 	if stm.exitCode != 0 {
 		os.Exit(stm.exitCode)
+	}
+
+	// main goroutine is not waiting, exit directly
+	if preState != Running {
+		os.Exit(1)
 	}
 
 	// will exit with 0 by default
@@ -566,4 +581,79 @@ func (stm *StageManager) RunAll() {
 	stm.WaitFinish()
 	// stop working
 	stm.Stop()
+}
+
+// IsActiveUpgrading just for backward compatible
+// means the current application is upgrading from an old application, and not running yet.
+// may be inheriting connections or configuration from old one.
+func IsActiveUpgrading() bool {
+	if stm.app != nil {
+		return stm.app.IsFromUpgrade() && stm.state < Running
+	}
+	return false
+}
+
+// StopMosnProcess stops Mosn process via command line,
+// and it not support stop on windows.
+func (stm *StageManager) StopMosnProcess() (err error) {
+	// init
+	stm.runParamsParsedStage()
+	stm.runStopInit()
+
+	mosnConfig := stm.data.config
+
+	// reads mosn process pid from `mosn.pid` file.
+	var p int
+	if p, err = pid.GetPidFrom(mosnConfig.Pid); err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to get pid: %v", err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	// finds process and sends SIGINT to mosn process, makes it force exit.
+	proc, err := os.FindProcess(p)
+	if err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", p, err)
+		return
+	}
+	// check if process is existing.
+	err = proc.Signal(syscall.Signal(0))
+	if err != nil {
+		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", p, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", p)
+	if err = proc.Signal(syscall.SIGINT); err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", p, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	// check the process status
+	t := time.Now().Add(10 * time.Second)
+	cnt := 0
+	for {
+
+		if time.Now().After(t) {
+			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v, ignore it and quiting ...", p, 10*time.Second)
+			return
+		}
+
+		cnt++
+		if cnt%10 == 0 { //log it per second.
+			log.StartLogger.Infof("[mosn stop] mosn process(%v)  is still existing, waiting for it quiting", p)
+		}
+
+		if err = proc.Signal(syscall.Signal(0)); err == nil {
+			// process alive still.
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		log.StartLogger.Infof("[mosn stop] stopped mosn process(%v) successfully.", p)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
 }

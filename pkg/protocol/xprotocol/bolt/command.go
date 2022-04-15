@@ -81,6 +81,10 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return r.RequestHeader.CmdCode == CmdCodeHeartbeat
 }
 
+func (r *Request) IsGoAwayFrame() bool {
+	return r.RequestHeader.CmdCode == CmdCodeGoAway
+}
+
 func (r *Request) GetTimeout() int32 {
 	return r.RequestHeader.Timeout
 }
@@ -112,7 +116,7 @@ func (r *Request) SetData(data api.IoBuffer) {
 	}
 }
 
-// RequestHeader is the header part of bolt v1 response
+// ResponseHeader is the header part of bolt v1 response
 type ResponseHeader struct {
 	Protocol       byte // meta fields
 	CmdType        byte

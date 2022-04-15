@@ -1,11 +1,91 @@
 # 更新日志
 
+## v1.0.0
+
+### 变更
+
+- Bolt 协议新增 GoAway 实现，可通过 proxy 配置开启 (#1993) [@z2z23n0](https://github.com/z2z23n0)
+- HTTP 协议健康检查支持更多的配置模式 (#1999) [@dengqian](https://github.com/dengqian)
+- 新增查看版本号的 Admin API 实现 (#2002) [@songzhibin97](https://github.com/songzhibin97)
+- 调整热升级失败时的返回码 (#2006) [@doujiang24](https://github.com/doujiang24)
+- 新增是否出于主动热升级的状态 (#2003) [@doujiang24](https://github.com/doujiang24)
+- 新增 Stop 命令支持 (#1990) [@Jun10ng](https://github.com/Jun10ng)
+
+### Bug 修复
+
+- 修复 StrictDnsCluster 在存在多个 DNS 域名时，域名更新结果错误的问题 (#1994) [@Jun10ng](https://github.com/Jun10ng)
+- 修复使用共享内存进行热升级场景，错误清空共享内存的问题 (#2011) [@nejisama](https://github.com/nejisama)
+
+
+## v0.27.0
+
+### 新功能
+
+- MOSN 默认支持 istio v1.10.6 版本，可通过 make 命令快速切换 istio 支持版本，目前还支持 istio v1.5.2 (#1910) [@nejisama](https://github.com/nejisama)
+- 路由规则新增、修改请求头、响应头时，支持使用变量动态设置 (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
+- Upstream 健康检查支持配置第一次健康检查间隔 (#1942) [@rickey17](https://github.com/rickey17)
+- 新增基于 HTTP 协议的健康检查方式 (#1942) [@rickey17](https://github.com/rickey17)
+- 新增创建 TLS Context 时的回调扩展能力 (#1877) [@antJack](https://github.com/antJack)
+- Listener 创建函数和连接创建函数支持扩展 (#1877) [@antJack](https://github.com/antJack)
+- XProtocol 协议框架支持优雅退出的能力，MOSN 支持优雅关闭的能力 (#1922) [@doujiang24](https://github.com/doujiang24)
+- 集成 [Holmes](https://github.com/mosn/holmes) 自动 pprof 能力 (#1978) [@doujiang24](https://github.com/doujiang24)
+- SDS 接口新增同步获取证书、主动更新证书的能力 (#1945) [@nejisama](https://github.com/nejisama)
+- 支持 TLS 校验的 SNI 扩展配置 (#1910) [@nejisama](https://github.com/nejisama)
+
+
+### 变更
+
+- 更新 dubbo-go-hessian 版本到 v1.10.2 版本 (#1896) [@wongoo](https://github.com/wongoo)
+- Upstream cluster 新增 IdleTimeout 配置 (#1914) [hui-cha](https://github.com/hui-cha)
+- Cluster 权重配置、默认连接配置调整到`config/v2` 包 (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- XProtocol 实现的协议解析中新增 RawData 的变量设置 (#1972) [@antJack](https://github.com/antJack)
+- OriginalDst Filter 新增配置项：可在 Listener 转发匹配时配置使用 local 地址进行兜底 (#1972) [@nejisama](https://github.com/nejisama)
+- OriginalDst Cluster 新增配置项：可在请求转发时将目标地址修改为 localhost (#1972) [@nejisama](https://github.com/nejisama)
+- 放弃了原有的 vendor 模式，默认使用 go.mod 进行管理 (#1997) [@nejisama](https://github.com/nejisama)
+
+
+### 重构
+
+- 重构 MOSN 状态管理和期待阶段管理逻辑，统一由 StageManager 模块进行管理 (#1859) [@doujiang24](https://github.com/doujiang24)
+- 屏蔽信号处理扩展相关接口，不对开发者暴露信号量，修改为针对收到信号后行为的可扩展 (#1859) [@doujiang24](https://github.com/doujiang24)
+- 日志模块使用独立的 IoBuffer，避免因日志问题影响请求内存复用 (#1936) [@nejisama](https://github.com/nejisama)
+- 重构 SDS 模块复用逻辑，支持同一张证书可生成不同的 TLS 配置 (#1958) [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- 优化 Example 中 module 模块命名不规范的问题 (#1913) [@scaat](https://github.com/scaat)
+- 删除部分连接结构中未使用的字段 (#1811) [@doujiang24](https://github.com/doujiang24)
+- 优化 Edf 负载均衡的堆管理策略 (#1920) [@jizhuozhi](https://github.com/jizhuozhi)
+- 变量获取错误时返回更详细的信息 (#1952) [@antJack](https://github.com/antJack)
+- 优化内存复用场景：当请求正常响应后再触发 reset 异常不再影响内存复用 (#1956) [@wangfakang](https://github.com/wangfakang)
+- 优化 maglev 负载均衡内存分配 (#1964) [@baerwang](https://github.com/baerwang)
+- 优化日志行为，支持统一输出 iobuffer 的错误信息，支持日志轮转出现错误时的异常处理 (#1996) [@nejisama](https://github.com/nejisama)
+
+
+### Bug 修复
+
+- 修复：当 HTTP2 协议中 StreamID 过大时，未关闭连接并持续使用导致问题 (#1900) [@jayantxie](https://github.com/jayantxie)
+- 修复：RPC 路由错误日志输出格式异常 (#1915) [@scaat](https://github.com/scaat)
+- 修复：Example 中 xprotocol go plugin 相关示例编译错误的问题 (#1899) [@nearmeng](https://github.com/nearmeng)
+- 修复：OriginalDst 拦截器未能正确获取 IP 处理错误的问题 (#1931) [@alpha-baby](https://github.com/alpha-baby)
+- 修复：HTTP 连接在并发场景下，有概率触发连接卡死的问题 (#1949) [@alpha-baby](https://github.com/alpha-baby)
+- 修复：istio 配置解析扩展接口拼写错误 (#1927) [LemmyHuang](https://github.com/LemmyHuang)
+- 修复：proxy 部分变量获取接口可能触发空指针异常 (#1953) [@doujiang24](https://github.com/doujiang24)
+- 修复：HTTP 连接关闭时无法正确获取连接关闭的原因 (#1772) [@wangfakang](https://github.com/wangfakang)
+- 修复：通过 Stop 关闭的 Listener 无法正常 ReStart 的问题 (#1883) [@lemonlinger](https://github.com/lemonlinger)
+- 修复：StrictDNS 在解析过程中 DEBUG 日志输出格式错误的问题 (#1963) [@wangfakang](https://github.com/wangfakang)
+- 修复：Edf 负载均衡计算权重可能导致除 0 错误的问题 (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- 修复：Listener 在调用 setDeadline 时可能导致空指针异常 (#1981)  [@antJack](https://github.com/antJack)
+- 修复：typo 错误修复 [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
+- 修复：单元测试因为 goroutine 过多导致无法执行 race 测试的问题 (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
+
 ## v0.26.0
 
 ### 不兼容变更
 
 为了更自然的添加扩展协议，新版对 XProtocol 进行了重构，XProtocol 不再是一种协议，而是便于协议扩展实现的框架。
-扩展协议的实现需要一些调整，具体请见 [XProtocol协议改造适配指南](reports/xprotocol_0.26.0.md)
+扩展协议的实现需要一些调整，具体请见 [XProtocol 协议改造适配指南](reports/xprotocol_0.26.0.md)
 
 ### 新功能
 
@@ -15,7 +95,7 @@
 - 为 tls connection 增加 SetConnectionState 方法，在 pkg/mtls/crypto/tls.Conn 中 (#1804) [@antJack](https://github.com/antJack)
 - 增加了 after-start 和 after-stop 这两个新的执行阶段，并允许在这两个阶段注册处理函数 [@doujiang24](https://github.com/doujiang24)
 - 新增 uds_dir 配置项，用于指定 unix domain socket 的目录 (#1829) [@dengqian](https://github.com/dengqian)
-- 支持go plugin加载协议转化插件，并支持动态选择协议转换插件 [@Tanc010](https://github.com/Tanc010)
+- 支持 go plugin 加载协议转化插件，并支持动态选择协议转换插件 [@Tanc010](https://github.com/Tanc010)
 - 增加更多的 HTTP 协议方法，使动态协议匹配更加精准 (#1870) [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
 - 支持动态设置上游协议 (#1808) [@YIDWang](https://github.com/YIDWang)
 - 支持动态设置 HTTP 默认最大值配置 #1886 [@nejisama](https://github.com/nejisama)
@@ -38,7 +118,7 @@
 - 修复：应该在关闭 stream connection 之前设置 resetReason，否则可能导致获取不到真实的原因 (#1828) [@wangfakang](https://github.com/wangfakang)
 - 修复：当有多个匹配的 listener 的时候，应该选择最优的匹配的 listener，否则可能导致 400 错误 [@MengJiapeng](https://github.com/MengJiapeng)
 - 修复：HTTP2 协议处理 broadcast 可能导致 map 并发读写 panic [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
-- 修复：XProtocol 连接池(binding connpool) 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
+- 修复：XProtocol 连接池 (binding connpool) 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
 - 修复：应该将 close logger 放在最后，否则在关闭 MOSN 实例过程中将没有日志输出 (#1845) [@doujiang24](https://github.com/doujiang24)
 - 修复：XProtocol PingPong 类型连接超时的时候，因为 codecClient 没有初始化，会导致 panic (#1849) [@cuiweixie](https://github.com/cuiweixie)
 - 修复：当 unhealthyThreshold 是一个空值时，健康检查将不会工作，修改为空值时使用默认值 (#1853) [@Bryce-huang](https://github.com/Bryce-huang)
