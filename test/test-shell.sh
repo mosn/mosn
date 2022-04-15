@@ -112,8 +112,8 @@ if [ $PID = 0 ]; then
   exit 1
 fi
 echo "mosn start successfully, pid($PID)"
-# sleep 5s to mosn init
-sleep 10
+# sleep 15s to mosn init
+sleep 15
 
 echo "checking mosn state"
 check_mosn_state
