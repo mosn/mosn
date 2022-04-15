@@ -1,5 +1,22 @@
 # 更新日志
 
+## v1.0.0
+
+### 变更
+
+- Bolt 协议新增 GoAway 实现，可通过 proxy 配置开启 (#1993) [@z2z23n0](https://github.com/z2z23n0)
+- HTTP 协议健康检查支持更多的配置模式 (#1999) [@dengqian](https://github.com/dengqian)
+- 新增查看版本号的 Admin API 实现 (#2002) [@songzhibin97](https://github.com/songzhibin97)
+- 调整热升级失败时的返回码 (#2006) [@doujiang24](https://github.com/doujiang24)
+- 新增是否出于主动热升级的状态 (#2003) [@doujiang24](https://github.com/doujiang24)
+- 新增 Stop 命令支持 (#1990) [@Jun10ng](https://github.com/Jun10ng)
+
+### Bug 修复
+
+- 修复 StrictDnsCluster 在存在多个 DNS 域名时，域名更新结果错误的问题 (#1994) [@Jun10ng](https://github.com/Jun10ng)
+- 修复使用共享内存进行热升级场景，错误清空共享内存的问题 (#2011) [@nejisama](https://github.com/nejisama)
+
+
 ## v0.27.0
 
 ### 新功能
