@@ -216,6 +216,12 @@ func (stm *StageManager) runInitStage() {
 	log.StartLogger.Infof("init stage cost: %v", time.Since(st))
 }
 
+func (stm *StageManager) runStopInit() {
+	for _, f := range stm.initStages {
+		f(stm.data.config)
+	}
+}
+
 // more init works after inherit config from old server and new server inited
 func (stm *StageManager) AppendPreStartStage(f func(Application)) *StageManager {
 	if f == nil || stm.started {
@@ -592,7 +598,7 @@ func IsActiveUpgrading() bool {
 func (stm *StageManager) StopMosnProcess() (err error) {
 	// init
 	stm.runParamsParsedStage()
-	stm.runInitStage()
+	stm.runStopInit()
 
 	mosnConfig := stm.data.config
 
