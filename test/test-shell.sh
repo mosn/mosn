@@ -91,23 +91,8 @@ if [ $? = 0 ]; then
   exit 1
 fi
 
-# TEST 3. start with -c then stop
-exec_bg $mosn start -c $config_file
-if [ $PID = 0 ]; then
-  echo "mosn start with $@ failed"
-  exit 1
-fi
-sleep 5
 
-nohup $mosn stop -c $config_file &
-ps -p $PID
-if [ $? != 0 ]; then
-  exit 1
-fi
-
-sleep 1
-
-# TEST 4. start with default params then stop
+# TEST 3. start then stop
 exec_bg $mosn start
 if [ $PID = 0 ]; then
   echo "mosn start with default failed"
@@ -121,3 +106,18 @@ if [ $? != 0 ]; then
   exit 1
 fi
 
+sleep 2
+
+# TEST 4. start with -c then stop
+exec_bg $mosn start -c $config_file
+if [ $PID = 0 ]; then
+  echo "mosn start with $@ failed"
+  exit 1
+fi
+sleep 5
+
+nohup $mosn stop -c $config_file &
+ps -p $PID
+if [ $? != 0 ]; then
+  exit 1
+fi
