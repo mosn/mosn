@@ -19,6 +19,7 @@ package zipkin
 
 import (
 	"fmt"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
