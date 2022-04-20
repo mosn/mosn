@@ -51,7 +51,36 @@ func _createDynamicCluster() types.Cluster {
 }
 
 func TestDynamicClusterUpdateHosts(t *testing.T) {
+
 	cluster := _createDynamicCluster()
+	sdc := cluster.(*strictDnsCluster)
+
+	monkey.PatchInstanceMethod(reflect.TypeOf(sdc.dnsResolver), "DnsResolve",
+		func(resolver *network.DnsResolver, dnsAddr string, dnsLookupFamily v2.DnsLookupFamily) *[]network.DnsResponse {
+			switch dnsAddr {
+			case "github.com":
+				return &[]network.DnsResponse{
+					{Address: "127.0.0.1:10068"},
+					{Address: "127.0.0.1:10069"},
+				}
+			case "www.baidu.com":
+				return &[]network.DnsResponse{
+					{Address: "127.0.0.1:10070"},
+					{Address: "127.0.0.1:10071"},
+				}
+			case "www.qq.com:80":
+				return &[]network.DnsResponse{
+					{Address: "127.0.0.1:10072"},
+					{Address: "127.0.0.1:10073"},
+				}
+			}
+			return &[]network.DnsResponse{
+				{Address: "127.0.0.1:10074"},
+				{Address: "127.0.0.1:10075"},
+			}
+		})
+	defer monkey.UnpatchAll()
+
 	// init hosts
 	addrs := []string{
 		"github.com:80",
@@ -84,6 +113,7 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	// verify
 	snap := cluster.Snapshot()
 	hostSet := snap.HostSet().Hosts()
+	assert.Equal(t, len(hostSet), 6)
 	for _, host := range hostSet {
 		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
