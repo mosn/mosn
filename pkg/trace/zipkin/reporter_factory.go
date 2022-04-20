@@ -20,8 +20,6 @@ package zipkin
 import (
 	"time"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
-
 	"github.com/openzipkin/zipkin-go/reporter"
 	"github.com/openzipkin/zipkin-go/reporter/http"
 	"github.com/openzipkin/zipkin-go/reporter/kafka"
@@ -32,8 +30,8 @@ var (
 )
 
 func init() {
-	factory[v2.ZipkinHttpReport] = HttpReporterBuilder
-	factory[v2.ZipkinKafkaReport] = KafkaReporterBuilder
+	factory[ZipkinHttpReport] = HttpReporterBuilder
+	factory[ZipkinKafkaReport] = KafkaReporterBuilder
 }
 
 func GetReportBuilder(typ string) (ReporterBuilder, bool) {
@@ -43,9 +41,9 @@ func GetReportBuilder(typ string) (ReporterBuilder, bool) {
 	return nil, false
 }
 
-type ReporterBuilder func(v2.ZipkinTraceConfig) (reporter.Reporter, error)
+type ReporterBuilder func(ZipkinTraceConfig) (reporter.Reporter, error)
 
-func HttpReporterBuilder(cfg v2.ZipkinTraceConfig) (reporter.Reporter, error) {
+func HttpReporterBuilder(cfg ZipkinTraceConfig) (reporter.Reporter, error) {
 	opts := make([]http.ReporterOption, 0, 3)
 	if cfg.HttpConfig.Timeout > 0 {
 		opts = append(opts, http.Timeout(time.Second*time.Duration(cfg.HttpConfig.Timeout)))
@@ -60,7 +58,7 @@ func HttpReporterBuilder(cfg v2.ZipkinTraceConfig) (reporter.Reporter, error) {
 	return http.NewReporter(cfg.Addresses[0], opts...), nil
 }
 
-func KafkaReporterBuilder(cfg v2.ZipkinTraceConfig) (reporter.Reporter, error) {
+func KafkaReporterBuilder(cfg ZipkinTraceConfig) (reporter.Reporter, error) {
 	opts := make([]kafka.ReporterOption, 0, 1)
 	if cfg.KafkaConfig.Topic != "" {
 		opts = append(opts, kafka.Topic(cfg.KafkaConfig.Topic))

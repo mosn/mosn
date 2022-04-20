@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/openzipkin/zipkin-go"
 	"net"
 	"strconv"
 	"strings"
@@ -33,17 +34,10 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 
-	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
 )
-
-func init() {
-	trace.RegisterTracerBuilder(DriverName, protocol.HTTP1, NewHttpTracer)
-}
 
 type httpTracer struct {
 	serviceName string
@@ -136,7 +130,7 @@ func NewHttpTracer(config map[string]interface{}) (api.Tracer, error) {
 }
 
 // parseZipkinConfig parse and verify zipkin config
-func parseZipkinConfig(config map[string]interface{}) (cfg v2.ZipkinTraceConfig, err error) {
+func parseZipkinConfig(config map[string]interface{}) (cfg ZipkinTraceConfig, err error) {
 	data, err := json.Marshal(config)
 	if err != nil {
 		return
