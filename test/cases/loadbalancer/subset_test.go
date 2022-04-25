@@ -56,7 +56,7 @@ func TestSubsetLoadBalancer(t *testing.T) {
 					},
 				},
 				Verify: &boltv1.VerifyConfig{
-					ExpectedStatusCode: 6,
+					ExpectedStatusCode: 6, // expected got a ResponseStatusNoProcessor
 				},
 			})
 			Verify(client.SyncCall(), Equal, true)
