@@ -36,7 +36,7 @@ func TestServerNotSupportTLS(t *testing.T) {
 					},
 				},
 				Verify: &boltv1.VerifyConfig{
-					ExpectedStatusCode: 16, // connection failed
+					ExpectedStatusCode: 6, // connection failed
 				},
 			})
 			Verify(client.SyncCall(), Equal, true)

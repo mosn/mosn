@@ -36,7 +36,7 @@ func TestTerminateRequest(t *testing.T) {
 					Timeout: 5 * time.Second,
 				},
 				Verify: &boltv1.VerifyConfig{
-					ExpectedStatusCode: 16, // expected got a ResponseStatusConnectionClosed
+					ExpectedStatusCode: 6, // expected got a ResponseStatusConnectionClosed
 				},
 			})
 			Verify(client.SyncCall(), Equal, true)

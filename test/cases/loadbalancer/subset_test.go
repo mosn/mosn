@@ -56,7 +56,7 @@ func TestSubsetLoadBalancer(t *testing.T) {
 					},
 				},
 				Verify: &boltv1.VerifyConfig{
-					ExpectedStatusCode: 16,
+					ExpectedStatusCode: 6,
 				},
 			})
 			Verify(client.SyncCall(), Equal, true)
