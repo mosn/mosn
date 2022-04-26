@@ -76,7 +76,7 @@ func TestMapping(t *testing.T) {
 		mapping = map[uint32]uint32{
 			http.StatusOK:             uint32(ResponseStatusSuccess),
 			api.RouterUnavailableCode: uint32(ResponseStatusNoProcessor),
-			api.NoHealthUpstreamCode:  uint32(ResponseStatusConnectionClosed),
+			api.NoHealthUpstreamCode:  uint32(ResponseStatusNoProcessor),
 			api.UpstreamOverFlowCode:  uint32(ResponseStatusServerThreadpoolBusy),
 			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
