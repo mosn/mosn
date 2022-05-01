@@ -116,7 +116,6 @@ var (
 	stm StageManager = StageManager{
 		state:          Nil,
 		data:           Data{},
-		started:        false,
 		paramsStages:   []func(*cli.Context){},
 		initStages:     []func(*v2.MOSNConfig){},
 		preStartStages: []func(Application){},
@@ -145,7 +144,6 @@ type StageManager struct {
 	data                    Data
 	app                     Application // Application interface
 	wg                      sync.WaitGroup
-	started                 bool
 	paramsStages            []func(*cli.Context)
 	initStages              []func(*v2.MOSNConfig)
 	preStartStages          []func(Application)
@@ -172,7 +170,7 @@ func InitStageManager(ctx *cli.Context, path string, app Application) *StageMana
 }
 
 func (stm *StageManager) AppendParamsParsedStage(f func(*cli.Context)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -194,7 +192,7 @@ func (stm *StageManager) runParamsParsedStage() {
 
 // init work base on the local config
 func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -224,7 +222,7 @@ func (stm *StageManager) runStopInit() {
 
 // more init works after inherit config from old server and new server inited
 func (stm *StageManager) AppendPreStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -243,7 +241,7 @@ func (stm *StageManager) runPreStartStage() {
 
 // start
 func (stm *StageManager) AppendStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -274,7 +272,7 @@ func (stm *StageManager) runStartStage() {
 
 // after start, already working (accepting request)
 func (stm *StageManager) AppendAfterStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -294,8 +292,6 @@ func (stm *StageManager) runAfterStartStage() {
 
 // Run until the application is started
 func (stm *StageManager) Run() {
-	// 0: mark already started
-	stm.started = true
 	// 1: parser params
 	stm.runParamsParsedStage()
 	// 2: init
@@ -313,7 +309,7 @@ func (stm *StageManager) Run() {
 // used for the main goroutine wait the finish signal
 // if Run is not called, return directly
 func (stm *StageManager) WaitFinish() {
-	if !stm.started {
+	if stm.state != Running {
 		return
 	}
 	stm.wg.Wait()
@@ -322,7 +318,7 @@ func (stm *StageManager) WaitFinish() {
 // graceful stop handlers,
 // will exit with non-zero code when a callback handler return error
 func (stm *StageManager) AppendGracefulStopStage(f func(Application) error) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -352,7 +348,7 @@ func (stm *StageManager) runGracefulStopStage() {
 
 // after application is not working
 func (stm *StageManager) AppendAfterStopStage(f func(Application)) *StageManager {
-	if f == nil || stm.started {
+	if f == nil || stm.state == Running {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -375,7 +371,7 @@ func (stm *StageManager) runAfterStopStage() {
 // 1: failed to start
 // 4: run before-stop/graceful-stop callback failed
 func (stm *StageManager) Stop() {
-	if !stm.started {
+	if stm.state != Running {
 		return
 	}
 	preState := stm.state
