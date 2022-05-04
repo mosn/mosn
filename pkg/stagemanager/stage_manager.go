@@ -170,7 +170,7 @@ func InitStageManager(ctx *cli.Context, path string, app Application) *StageMana
 }
 
 func (stm *StageManager) AppendParamsParsedStage(f func(*cli.Context)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -192,7 +192,7 @@ func (stm *StageManager) runParamsParsedStage() {
 
 // init work base on the local config
 func (stm *StageManager) AppendInitStage(f func(*v2.MOSNConfig)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -222,7 +222,7 @@ func (stm *StageManager) runStopInit() {
 
 // more init works after inherit config from old server and new server inited
 func (stm *StageManager) AppendPreStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -241,7 +241,7 @@ func (stm *StageManager) runPreStartStage() {
 
 // start
 func (stm *StageManager) AppendStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -272,7 +272,7 @@ func (stm *StageManager) runStartStage() {
 
 // after start, already working (accepting request)
 func (stm *StageManager) AppendAfterStartStage(f func(Application)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
@@ -348,7 +348,7 @@ func (stm *StageManager) runGracefulStopStage() {
 
 // after application is not working
 func (stm *StageManager) AppendAfterStopStage(f func(Application)) *StageManager {
-	if f == nil || stm.state == Running {
+	if f == nil || stm.state != Nil {
 		log.StartLogger.Errorf("[stage] invalid stage function or already started")
 		return stm
 	}
