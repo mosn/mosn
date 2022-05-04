@@ -44,6 +44,7 @@ type simpleHost struct {
 	tlsDisable    bool
 	weight        uint32
 	healthFlags   *uint64
+	createdTime   time.Time
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -58,6 +59,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
 		healthFlags:   GetHealthFlagPointer(config.Address),
+		createdTime:   time.Now(), // TODO How to decide when to create?
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h
@@ -113,6 +115,10 @@ func (sh *simpleHost) Config() v2.Host {
 		},
 		MetaData: sh.metaData,
 	}
+}
+
+func (sh *simpleHost) CreatedTime() time.Time {
+	return sh.createdTime
 }
 
 func (sh *simpleHost) SupportTLS() bool {
@@ -182,7 +188,7 @@ func (sh *simpleHost) Health() bool {
 
 // net.Addr reuse for same address, valid in simple type
 // Update DNS cache using asynchronous mode
-var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var AddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveTCPAddr("tcp", key.(string))
 		if err == nil {
@@ -240,7 +246,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 }
 
 // store resolved UDP addr
-var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var UDPAddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveUDPAddr("udp", key.(string))
 		if err == nil {

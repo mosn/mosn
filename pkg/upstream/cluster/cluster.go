@@ -79,6 +79,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
+		slowStartAggression:  clusterConfig.SlowStartAggression,
 	}
 
 	// set ConnectTimeout
@@ -91,6 +92,10 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	// set IdleTimeout
 	if clusterConfig.IdleTimeout != nil {
 		info.idleTimeout = clusterConfig.IdleTimeout.Duration
+	}
+
+	if clusterConfig.SlowStartWindow != nil {
+		info.slowStartWindow = clusterConfig.SlowStartWindow.Duration
 	}
 
 	// tls mng
@@ -186,6 +191,8 @@ type clusterInfo struct {
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
 	lbConfig             v2.IsCluster_LbConfig
+	slowStartWindow      time.Duration
+	slowStartAggression  float64
 }
 
 func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
@@ -251,6 +258,14 @@ func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
 
 func (ci *clusterInfo) SubType() string {
 	return ci.subType
+}
+
+func (ci *clusterInfo) SlowStartWindow() time.Duration {
+	return ci.slowStartWindow
+}
+
+func (ci *clusterInfo) SlowStartAggression() float64 {
+	return ci.slowStartAggression
 }
 
 type clusterSnapshot struct {

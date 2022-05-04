@@ -108,6 +108,8 @@ type Cluster struct {
 	DnsResolverConfig    DnsResolverConfig   `json:"dns_resolvers,omitempty"`
 	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
 	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
+	SlowStartWindow      *api.DurationConfig `json:"slow_start_window,omitempty"`
+	SlowStartAggression  float64             `json:"slow_start_aggression,omitempty"`
 }
 
 type DnsResolverConfig struct {

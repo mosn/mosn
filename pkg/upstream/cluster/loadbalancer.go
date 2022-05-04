@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -197,7 +198,14 @@ type WRRLoadBalancer struct {
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	wrrLB := &WRRLoadBalancer{}
-	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
+	var slowStartWindow = time.Duration(0)
+	var slowStartAggression = 0.0
+	if info != nil {
+		slowStartWindow = info.SlowStartWindow()
+		slowStartAggression = info.SlowStartAggression()
+	}
+	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight,
+		slowStartWindow, slowStartAggression)
 	wrrLB.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	return wrrLB
 }
@@ -235,7 +243,14 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 	} else {
 		lb.choice = default_choice
 	}
-	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost, lb.hostWeight)
+	var slowStartWindow = time.Duration(0)
+	var slowStartAggression = 0.0
+	if info != nil {
+		slowStartWindow = info.SlowStartWindow()
+		slowStartAggression = info.SlowStartAggression()
+	}
+	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost, lb.hostWeight,
+		slowStartWindow, slowStartAggression)
 	return lb
 }
 
@@ -278,6 +293,10 @@ type EdfLoadBalancer struct {
 	// the method to choose host when all host
 	unweightChooseHostFunc func(types.LoadBalancerContext) types.Host
 	hostWeightFunc         func(item WeightItem) float64
+	// slow start
+	slowStartWindow     time.Duration
+	slowStartAggression float64
+	lastHostAddedTime   time.Time // TODO when did we add the host?
 }
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
@@ -301,7 +320,13 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	if lb.scheduler != nil {
 		for i := 0; i < total; i++ {
 			// do weight selection
-			candicate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
+			candicate = lb.scheduler.NextAndPush(func(item WeightItem) float64 {
+				w := lb.hostWeightFunc(item)
+				if !lb.noHostsAreInSlowStart() {
+					return lb.calculateSlowStartWeight(w, item.(types.Host))
+				}
+				return w
+			}).(types.Host)
 			if candicate != nil && candicate.Health() {
 				return candicate
 			}
@@ -320,12 +345,47 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 
-func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
+func (lb *EdfLoadBalancer) isSlowStartEnabled() bool {
+	return lb.slowStartWindow > 0
+}
+
+func (lb *EdfLoadBalancer) noHostsAreInSlowStart() bool {
+	if !lb.isSlowStartEnabled() {
+		return false
+	}
+	return time.Now().Sub(lb.lastHostAddedTime) <= lb.slowStartWindow
+}
+
+// timePercentage = max(timeSinceCreated, 1) / slowStartWindow
+// hostWeight = timePercentage ^ (1 / aggression) * weight
+func (lb *EdfLoadBalancer) calculateSlowStartWeight(w float64, host types.Host) float64 {
+	hostCreatedDuration := time.Now().Sub(host.CreatedTime())
+	if hostCreatedDuration >= lb.slowStartWindow || !host.Health() {
+		return w
+	}
+	a := lb.slowStartAggression
+	t := math.Max(1.0, float64(hostCreatedDuration.Milliseconds())) / float64(lb.slowStartWindow.Milliseconds())
+	return w * func() float64 {
+		if a == 1.0 || t == 1.0 {
+			return t
+		} else {
+			return math.Pow(t, 1/a)
+		}
+	}()
+}
+
+func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host,
+	hostWeightFunc func(host WeightItem) float64, slowStartWindow time.Duration, slowStartAggression float64) *EdfLoadBalancer {
+	if slowStartAggression < 0 || math.IsNaN(slowStartAggression) {
+		slowStartAggression = 1.0
+	}
 	lb := &EdfLoadBalancer{
 		hosts:                  hosts,
 		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
+		slowStartWindow:        slowStartWindow,
+		slowStartAggression:    slowStartAggression,
 	}
 	lb.refresh(hosts.Hosts())
 	return lb
