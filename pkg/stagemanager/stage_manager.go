@@ -371,7 +371,7 @@ func (stm *StageManager) runAfterStopStage() {
 // 1: failed to start
 // 4: run before-stop/graceful-stop callback failed
 func (stm *StageManager) Stop() {
-	if stm.state != Running {
+	if stm.state == Nil {
 		return
 	}
 	preState := stm.state
