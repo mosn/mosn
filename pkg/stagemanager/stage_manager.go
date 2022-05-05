@@ -162,6 +162,7 @@ func InitStageManager(ctx *cli.Context, path string, app Application) *StageMana
 	stm.data.configPath = path
 	stm.data.ctx = ctx
 	stm.app = app
+	stm.state = Nil
 
 	RegisterOnStateChanged(func(s State) {
 		metrics.SetStateCode(int64(s))
