@@ -311,7 +311,7 @@ func (stm *StageManager) Run() {
 // used for the main goroutine wait the finish signal
 // if Run is not called, return directly
 func (stm *StageManager) WaitFinish() {
-	if stm.state != Running {
+	if stm.state == Nil {
 		return
 	}
 	stm.wg.Wait()
