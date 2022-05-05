@@ -138,6 +138,7 @@ type Data struct {
 
 // StageManager is used to controls service life stages.
 type StageManager struct {
+	lock                    sync.Mutex
 	state                   State
 	exitCode                int
 	stopAction              StopAction
@@ -318,11 +319,13 @@ func (stm *StageManager) WaitFinish() {
 // graceful stop handlers,
 // will exit with non-zero code when a callback handler return error
 func (stm *StageManager) AppendGracefulStopStage(f func(Application) error) *StageManager {
-	if f == nil || stm.state == Running {
-		log.StartLogger.Errorf("[stage] invalid stage function or already started")
+	if f == nil || stm.state > Running {
+		log.StartLogger.Errorf("[stage] invalid stage function or already stopping")
 		return stm
 	}
+	stm.lock.Lock()
 	stm.gracefulStopStages = append(stm.gracefulStopStages, f)
+	stm.lock.Unlock()
 	return stm
 }
 
@@ -335,6 +338,8 @@ func (stm *StageManager) runGracefulStopStage() {
 		log.DefaultLogger.Errorf("failed to graceful stop app: %v", err)
 		stm.exitCode = 4
 	}
+	stm.lock.Lock()
+	defer stm.lock.Unlock()
 	// 2. run the registered hooks
 	for _, f := range stm.gracefulStopStages {
 		if err := f(stm.app); err != nil {
