@@ -471,7 +471,13 @@ func OnGracefulStop(f func() error) {
 
 // will exit with non-zero code when a callback handler return error
 func (stm *StageManager) AppendBeforeStopStage(f func(StopAction, Application) error) *StageManager {
+	if f == nil || stm.state > Running {
+		log.StartLogger.Errorf("[stage] invalid stage function or already stopping")
+		return stm
+	}
+	stm.lock.Lock()
 	stm.beforeStopStages = append(stm.beforeStopStages, f)
+	stm.lock.Unlock()
 	return stm
 }
 
@@ -483,6 +489,8 @@ func OnBeforeStopStage(f func(StopAction, Application) error) {
 func (stm StageManager) runBeforeStopStages() {
 	st := time.Now()
 	stm.SetState(BeforeStop)
+	stm.lock.Lock()
+	defer stm.lock.Unlock()
 	for _, f := range stm.beforeStopStages {
 		if err := f(stm.stopAction, stm.app); err != nil {
 			log.DefaultLogger.Errorf("failed to run before-stop callback: %v", err)
