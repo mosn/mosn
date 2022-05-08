@@ -216,7 +216,8 @@ func (stm *StageManager) runInitStage() {
 	log.StartLogger.Infof("init stage cost: %v", time.Since(st))
 }
 
-func (stm *StageManager) runStopInit() {
+// runReconfigurationParamsInit to reload mosn configurations from cmd.
+func (stm *StageManager) runReconfigurationParamsInit() {
 	for _, f := range stm.initStages {
 		f(stm.data.config)
 	}
@@ -603,39 +604,56 @@ func IsActiveUpgrading() bool {
 	return false
 }
 
+func getMosnProcess(cfg *v2.MOSNConfig) (mosnProcess *os.Process, p int, err error) {
+	// reads mosn process pid from `mosn.pid` file.
+	if p, err = pid.GetPidFrom(cfg.Pid); err != nil {
+		log.StartLogger.Errorf("[mosn] fail to get pid: %v", err)
+		return
+	}
+
+	// finds process and sends SIGINT to mosn process, makes it force exit.
+	mosnProcess, err = os.FindProcess(p)
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] fail to find process(%v), err: %v", p, err)
+		return
+	}
+	return
+}
+
+func sendSignal2Mosn(proc *os.Process, p int, sig syscall.Signal) (err error) {
+
+	// check if process is existing.
+	err = proc.Signal(syscall.Signal(0))
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] process(%v) is not existing, err: %v", p, err)
+		return
+	}
+
+	log.StartLogger.Infof("[mosn] sending (%v) to process(%v)", sig.String(), p)
+	if err = proc.Signal(sig); err != nil {
+		log.StartLogger.Errorf("[mosn] fail to send (%v) to mosn process(%v), err: %v", sig.String(), p, err)
+		return
+	}
+	return
+}
+
 // StopMosnProcess stops Mosn process via command line,
 // and it not support stop on windows.
 func (stm *StageManager) StopMosnProcess() (err error) {
 	// init
 	stm.runParamsParsedStage()
-	stm.runStopInit()
+	stm.runReconfigurationParamsInit()
 
 	mosnConfig := stm.data.config
 
-	// reads mosn process pid from `mosn.pid` file.
-	var p int
-	if p, err = pid.GetPidFrom(mosnConfig.Pid); err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to get pid: %v", err)
-		time.Sleep(100 * time.Millisecond) // waiting logs output
-		return
-	}
-
 	// finds process and sends SIGINT to mosn process, makes it force exit.
-	proc, err := os.FindProcess(p)
+	proc, p, err := getMosnProcess(mosnConfig)
 	if err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", p, err)
 		return
 	}
-	// check if process is existing.
-	err = proc.Signal(syscall.Signal(0))
-	if err != nil {
-		log.StartLogger.Errorf("[mosn stop] process(%v) is not existing, err: %v", p, err)
-		time.Sleep(100 * time.Millisecond) // waiting logs output
-		return
-	}
 
-	log.StartLogger.Infof("[mosn stop] sending INT signal to process(%v)", p)
-	if err = proc.Signal(syscall.SIGINT); err != nil {
+	if err = sendSignal2Mosn(proc, p, syscall.SIGINT); err != nil {
 		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", p, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
@@ -666,4 +684,30 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
+}
+
+// ReloadMosnProcess stops Mosn process via command line,
+// and it not support reload on windows.
+func (stm *StageManager) ReloadMosnProcess() (err error) {
+	// init
+	stm.runParamsParsedStage()
+	stm.runReconfigurationParamsInit()
+
+	mosnConfig := stm.data.config
+
+	log.StartLogger.Infof("[mosn reload] start reload mosn configurations")
+	// finds process and sends SIGINT to mosn process, makes it force exit.
+	proc, p, err := getMosnProcess(mosnConfig)
+	if err != nil {
+		log.StartLogger.Errorf("[mosn reload] fail to find process(%v), err: %v", p, err)
+		return
+	}
+
+	if err = sendSignal2Mosn(proc, p, syscall.SIGHUP); err != nil {
+		log.StartLogger.Errorf("[mosn reload] fail to send HUP signal to mosn process(%v), err: %v", p, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	return
 }

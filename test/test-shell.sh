@@ -89,6 +89,12 @@ function check_mosn_state {
   return 1
 }
 
+function get_mosn_state {
+  state=$(curl 127.0.0.1:$admin_port/api/v1/states)
+  state=${state:(-1)}
+  return $state
+}
+
 # run_shell ls -lh
 
 # ============  test cases ============ #
@@ -159,3 +165,50 @@ if [ $? = 0 ]; then
   echo "mosn stop with default failed, pid($PID)"
   exit 1
 fi
+
+# TEST 5. start with default then reload
+echo "TEST Case 5: start with default then reload"
+mkdir $default_config_dir
+cp $config_file $default_config_file_path
+exec_bg $mosn start
+if [ $PID = 0 ]; then
+  echo "mosn start with default failed"
+  exit 1
+fi
+echo "mosn start successfully, pid($PID)"
+# sleep 10s to mosn init
+sleep 10
+
+echo "checking mosn state"
+check_mosn_state
+if [ $? != 0 ]; then
+  exit 1
+fi
+
+$mosn reload
+
+# mosn will set StartingNewServer(12) state when it received HUP signal
+
+for ((i=0; i<3; i++)); do
+  get_mosn_state
+  s=$?
+  echo "[want new(12) state] " $i " times get mosn state "$s
+  if [ $s = 12 ];then
+    echo "mosn already receive HUP signal"
+    goto wait_run_state
+  fi
+done
+
+wait_run_state:
+  for ((i=0; i<3; i++)); do
+    get_mosn_state
+    s=$?
+    echo "[want run(6) state] " $i " times get mosn state "$s
+    if [ $s = 6 ];then
+      echo "mosn already run"
+      break
+    fi
+  done
+
+$mosn stop
+
