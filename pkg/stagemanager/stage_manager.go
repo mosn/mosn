@@ -604,39 +604,6 @@ func IsActiveUpgrading() bool {
 	return false
 }
 
-func getMosnProcess(cfg *v2.MOSNConfig) (mosnProcess *os.Process, p int, err error) {
-	// reads mosn process pid from `mosn.pid` file.
-	if p, err = pid.GetPidFrom(cfg.Pid); err != nil {
-		log.StartLogger.Errorf("[mosn] fail to get pid: %v", err)
-		return
-	}
-
-	// finds process and sends SIGINT to mosn process, makes it force exit.
-	mosnProcess, err = os.FindProcess(p)
-	if err != nil {
-		log.StartLogger.Errorf("[mosn] fail to find process(%v), err: %v", p, err)
-		return
-	}
-	return
-}
-
-func sendSignal2Mosn(proc *os.Process, p int, sig syscall.Signal) (err error) {
-
-	// check if process is existing.
-	err = proc.Signal(syscall.Signal(0))
-	if err != nil {
-		log.StartLogger.Errorf("[mosn] process(%v) is not existing, err: %v", p, err)
-		return
-	}
-
-	log.StartLogger.Infof("[mosn] sending (%v) to process(%v)", sig.String(), p)
-	if err = proc.Signal(sig); err != nil {
-		log.StartLogger.Errorf("[mosn] fail to send (%v) to mosn process(%v), err: %v", sig.String(), p, err)
-		return
-	}
-	return
-}
-
 // StopMosnProcess stops Mosn process via command line,
 // and it not support stop on windows.
 func (stm *StageManager) StopMosnProcess() (err error) {
@@ -709,5 +676,38 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 		return
 	}
 
+	return
+}
+
+func getMosnProcess(cfg *v2.MOSNConfig) (mosnProcess *os.Process, p int, err error) {
+	// reads mosn process pid from `mosn.pid` file.
+	if p, err = pid.GetPidFrom(cfg.Pid); err != nil {
+		log.StartLogger.Errorf("[mosn] fail to get pid: %v", err)
+		return
+	}
+
+	// finds process and sends SIGINT to mosn process, makes it force exit.
+	mosnProcess, err = os.FindProcess(p)
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] fail to find process(%v), err: %v", p, err)
+		return
+	}
+	return
+}
+
+func sendSignal2Mosn(proc *os.Process, p int, sig syscall.Signal) (err error) {
+
+	// check if process is existing.
+	err = proc.Signal(syscall.Signal(0))
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] process(%v) is not existing, err: %v", p, err)
+		return
+	}
+
+	log.StartLogger.Infof("[mosn] sending (%v) to process(%v)", sig.String(), p)
+	if err = proc.Signal(sig); err != nil {
+		log.StartLogger.Errorf("[mosn] fail to send (%v) to mosn process(%v), err: %v", sig.String(), p, err)
+		return
+	}
 	return
 }
