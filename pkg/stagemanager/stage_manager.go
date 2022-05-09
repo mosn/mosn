@@ -675,7 +675,61 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
+	// check the old process state
+	t := time.Now().Add(120 * time.Second)
+	cnt := 0
+	for {
+		if time.Now().After(t) {
+			log.StartLogger.Errorf("[mosn reload] the old mosn process(%v) is still existing after waiting for %v, ignore it and quiting ...", procid, t)
+			time.Sleep(100 * time.Millisecond) // waiting logs output
+			return
+		}
 
+		cnt++
+		if cnt%100 == 0 { //log it per 10 second.
+			log.StartLogger.Infof("[mosn reload] the old mosn process(%v) is still existing, waiting for it quiting...", procid)
+		}
+
+		if err = proc.Signal(syscall.Signal(0)); err == nil {
+			// process alive still.
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		// stopped successfully
+		break
+	}
+	log.StartLogger.Infof("[mosn reload] stopped the old mosn process(%v), now waitting the new mosn process start")
+
+	// get new process info
+	if proc, procid, err = getMosnProcess(mosnConfig); err != nil {
+		log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", procid, err)
+		time.Sleep(100 * time.Millisecond) // waiting logs output
+		return
+	}
+
+	//wait the new process start
+	t = time.Now().Add(10 * time.Second)
+	for {
+		if time.Now().After(t) {
+			log.StartLogger.Errorf("[mosn reload] the new process still not existing ignore it and quiting ...", procid, 10*time.Second)
+			return
+		}
+
+		cnt++
+		if cnt%10 == 0 { //log it per second.
+			log.StartLogger.Infof("[mosn reload] the new mosn process(%v) is still not existing, waiting for it quiting", procid)
+		}
+
+		if err = proc.Signal(syscall.Signal(0)); err == nil {
+			// process has started!
+			log.StartLogger.Infof("[mosn reload] the new mosn process(%v) start successfully!", procid)
+			break
+		}
+	}
+
+	log.StartLogger.Infof("[mosn reload]reload mosn successfully!")
+	time.Sleep(100 * time.Millisecond) // waiting logs output
 	return
 }
 
@@ -704,7 +758,7 @@ func sendSignal2Mosn(proc *os.Process, p int, sig syscall.Signal) (err error) {
 		return
 	}
 
-	log.StartLogger.Infof("[mosn] sending (%v) to process(%v)", sig.String(), p)
+	log.StartLogger.Infof("[mosn] sending signal(%v) to process(%v)", sig.String(), p)
 	if err = proc.Signal(sig); err != nil {
 		log.StartLogger.Errorf("[mosn] fail to send (%v) to mosn process(%v), err: %v", sig.String(), p, err)
 		return
