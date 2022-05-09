@@ -614,14 +614,14 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	mosnConfig := stm.data.config
 
 	// finds process and sends SIGINT to mosn process, makes it force exit.
-	proc, p, err := getMosnProcess(mosnConfig)
+	proc, procid, err := getMosnProcess(mosnConfig)
 	if err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", p, err)
+		log.StartLogger.Errorf("[mosn stop] fail to find process(%v), err: %v", procid, err)
 		return
 	}
 
-	if err = sendSignal2Mosn(proc, p, syscall.SIGINT); err != nil {
-		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", p, err)
+	if err = sendSignal2Mosn(proc, procid, syscall.SIGINT); err != nil {
+		log.StartLogger.Errorf("[mosn stop] fail to send INT signal to mosn process(%v), err: %v", procid, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
@@ -632,13 +632,13 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 	for {
 
 		if time.Now().After(t) {
-			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v, ignore it and quiting ...", p, 10*time.Second)
+			log.StartLogger.Errorf("[mosn stop] mosn process(%v) is still existing after waiting for %v, ignore it and quiting ...", procid, 10*time.Second)
 			return
 		}
 
 		cnt++
 		if cnt%10 == 0 { //log it per second.
-			log.StartLogger.Infof("[mosn stop] mosn process(%v)  is still existing, waiting for it quiting", p)
+			log.StartLogger.Infof("[mosn stop] mosn process(%v)  is still existing, waiting for it quiting", procid)
 		}
 
 		if err = proc.Signal(syscall.Signal(0)); err == nil {
@@ -647,7 +647,7 @@ func (stm *StageManager) StopMosnProcess() (err error) {
 			continue
 		}
 
-		log.StartLogger.Infof("[mosn stop] stopped mosn process(%v) successfully.", p)
+		log.StartLogger.Infof("[mosn stop] stopped mosn process(%v) successfully.", procid)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
@@ -662,16 +662,16 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 
 	mosnConfig := stm.data.config
 
-	log.StartLogger.Infof("[mosn reload] start reload mosn configurations")
+	log.StartLogger.Infof("[mosn reload] start to reload mosn configurations")
 	// finds process and sends SIGINT to mosn process, makes it force exit.
-	proc, p, err := getMosnProcess(mosnConfig)
+	proc, procid, err := getMosnProcess(mosnConfig)
 	if err != nil {
-		log.StartLogger.Errorf("[mosn reload] fail to find process(%v), err: %v", p, err)
+		log.StartLogger.Errorf("[mosn reload] fail to find process(%v), err: %v", procid, err)
 		return
 	}
 
-	if err = sendSignal2Mosn(proc, p, syscall.SIGHUP); err != nil {
-		log.StartLogger.Errorf("[mosn reload] fail to send HUP signal to mosn process(%v), err: %v", p, err)
+	if err = sendSignal2Mosn(proc, procid, syscall.SIGHUP); err != nil {
+		log.StartLogger.Errorf("[mosn reload] fail to send HUP signal to mosn process(%v), err: %v", procid, err)
 		time.Sleep(100 * time.Millisecond) // waiting logs output
 		return
 	}
