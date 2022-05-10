@@ -697,35 +697,24 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 		}
 
 		// stopped successfully
-		break
-	}
-	log.StartLogger.Infof("[mosn reload] stopped the old mosn process(%v), now waitting the new mosn process start")
+		log.StartLogger.Infof("[mosn reload] stopped the old mosn process(%v), now waitting the new mosn process start")
 
-	// get new process info
-	if proc, procid, err = getMosnProcess(mosnConfig); err != nil {
-		log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", procid, err)
-		time.Sleep(100 * time.Millisecond) // waiting logs output
-		return
-	}
-
-	//wait the new process start
-	t = time.Now().Add(10 * time.Second)
-	for {
-		if time.Now().After(t) {
-			log.StartLogger.Errorf("[mosn reload] the new process still not existing ignore it and quiting ...", procid, 10*time.Second)
+		// get new process info
+		if proc, procid, err = getMosnProcess(mosnConfig); err != nil {
+			log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", procid, err)
+			time.Sleep(100 * time.Millisecond) // waiting logs output
 			return
 		}
 
-		cnt++
-		if cnt%10 == 0 { //log it per second.
-			log.StartLogger.Infof("[mosn reload] the new mosn process(%v) is still not existing, waiting for it quiting", procid)
+		// check the new process state
+		if err = proc.Signal(syscall.Signal(0)); err != nil {
+			log.StartLogger.Infof("[mosn reload] the new mosn process(%v) is still not existing, ignore it and quit...")
+			time.Sleep(100 * time.Millisecond) // waiting logs output
+			return
 		}
 
-		if err = proc.Signal(syscall.Signal(0)); err == nil {
-			// process has started!
-			log.StartLogger.Infof("[mosn reload] the new mosn process(%v) start successfully!", procid)
-			break
-		}
+		log.StartLogger.Infof("[mosn reload] the new mosn process(%v) start successfully!", procid)
+		break
 	}
 
 	log.StartLogger.Infof("[mosn reload]reload mosn successfully!")
