@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.1
+
+### Changes
+
+- Protocol: Bolt v1 v2 maps status code api.NoHealthUpstreamCode -> ResponseStatusNoProcessor (#2018) [@antJack](https://github.com/antJack).
+
+### Bug fixes
+
+- Should allow AppendGracefulStopStage and AppendBeforeStopStage when MOSN is starting or running (#2029) [@rayowang](https://github.com/rayowang).
+- Fix wrong variable in error message when workerPool Panic (#2019) [@antJack](https://github.com/antJack).
+
 ## v1.0.0
 
 ### Changes
