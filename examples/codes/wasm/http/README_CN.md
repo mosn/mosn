@@ -19,7 +19,7 @@ makefile    // 用于编译 wasm 文件
 ### 编译 wasm 文件
 
 ```
-make name=filter
+make
 ```
 
 该操作将产生 filter.wasm 文件
