@@ -677,22 +677,23 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 		return
 	}
 
-	// wait pid file re-generate
-	time.Sleep(3 * time.Second)
-
-	// get new process info
-	var newProc *os.Process
-	var newProcID int
-	if newProc, newProcID, err = getMosnProcess(mosnConfig); err != nil {
-		log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", newProcID, err)
-		time.Sleep(100 * time.Millisecond) // waiting logs output
-		return
-	}
-
-	log.StartLogger.Infof("[mosn reload] new process(%v) already start, wait the old process exit.", newProcID, oldProcID)
-
-	t, newProcRun, oldProcRun := time.Now().Add(360*time.Second), true, true
+	t, cnt, newProcRun, oldProcRun := time.Now().Add(360*time.Second), 0, true, true
+	newProc, newProcID := &os.Process{}, int(0)
 	for {
+		cnt++
+
+		// first time loop in: try to get new process info
+		if newProcID == 0 {
+			if newProc, newProcID, err = getMosnProcess(mosnConfig); err != nil {
+				if time.Now().After(t) { // timeout
+					log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", newProcID, err)
+					time.Sleep(100 * time.Millisecond) // waiting logs output
+					return
+				}
+				continue
+			}
+			log.StartLogger.Infof("[mosn reload] new process(%v) already start, wait the old process(%v) exit.", newProcID, oldProcID)
+		}
 
 		// get processes state
 		if oldProc.Signal(syscall.Signal(0)) != nil {
@@ -710,14 +711,16 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 			return
 		}
 
-		// continue: new run old run
-		if newProcRun && oldProcRun { // log per 10s
-			log.StartLogger.Infof("[mosn reload] the new process(%v) and old process(%v) are running, wait the old process exit", newProcID, oldProcID)
-			time.Sleep(10 * time.Second)
+		// continue: new run, old run
+		if newProcRun && oldProcRun {
+			if cnt%10 == 0 { // log per 10s
+				log.StartLogger.Infof("[mosn reload] the new process(%v) and old process(%v) are running, wait the old process exit", newProcID, oldProcID)
+			}
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
-		// success exit: new run old exit
+		// success exit: new run, old exit
 		if newProcRun && !oldProcRun {
 			log.StartLogger.Infof("[mosn reload]reload mosn successfully! The old process(%v) already exited and new process(%v) is running", oldProcID, newProcID)
 			time.Sleep(100 * time.Millisecond) // waiting logs output
