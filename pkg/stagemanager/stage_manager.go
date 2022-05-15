@@ -668,6 +668,7 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 	var oldProcID int
 	if oldProc, oldProcID, err = getMosnProcess(mosnConfig); err != nil {
 		log.StartLogger.Errorf("[mosn reload] fail to find process(%v), err: %v", oldProcID, err)
+		time.Sleep(100 * time.Millisecond)
 		return
 	}
 
@@ -681,15 +682,24 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 	newProc, newProcID := &os.Process{}, int(0)
 	for {
 		cnt++
+		// time-out force exit: both new & old processes are running while run out the time
+		if time.Now().After(t) {
+			if newProcID == 0 {
+				log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", mosnConfig.Pid, err)
+			} else {
+				log.StartLogger.Errorf("[mosn reload] the new process(%v) and old process(%v) are still running after waiting for %v, ignore it and quiting ...", newProcID, oldProcID, t)
+			}
+			time.Sleep(100 * time.Millisecond) // waiting logs output
+			return
+		}
 
 		// first time loop in: try to get new process info
 		if newProcID == 0 {
 			if newProc, newProcID, err = getMosnProcess(mosnConfig); err != nil {
-				if time.Now().After(t) { // timeout
-					log.StartLogger.Errorf("[mosn reload] fail to find new process(%v), err: %v", newProcID, err)
-					time.Sleep(100 * time.Millisecond) // waiting logs output
-					return
+				if cnt > 30 && cnt%100 == 0 { // log warning per 10s, after failed to get new process info for 3s.
+					log.StartLogger.Errorf("[mosn reload] failed to get new process(%v)", mosnConfig.Pid)
 				}
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			log.StartLogger.Infof("[mosn reload] new process(%v) already start, wait the old process(%v) exit.", newProcID, oldProcID)
@@ -702,13 +712,6 @@ func (stm *StageManager) ReloadMosnProcess() (err error) {
 
 		if newProc.Signal(syscall.Signal(0)) != nil {
 			newProcRun = false
-		}
-
-		// time-out force exit: both new & old processes are running while run out the time
-		if time.Now().After(t) {
-			log.StartLogger.Errorf("[mosn reload] the new process(%v) and old process(%v) are still running after waiting for %v, ignore it and quiting ...", newProcID, oldProcID, t)
-			time.Sleep(100 * time.Millisecond) // waiting logs output
-			return
 		}
 
 		// continue: new run, old run
