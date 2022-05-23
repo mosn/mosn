@@ -403,8 +403,8 @@ func (stm *StageManager) Stop() {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
 	}
 
-	logger.CloseAll()
 	stm.SetState(Stopped)
+	logger.CloseAll()
 
 	if stm.exitCode != 0 {
 		os.Exit(stm.exitCode)
