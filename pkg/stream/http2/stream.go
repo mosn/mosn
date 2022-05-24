@@ -473,8 +473,8 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	if trace.IsEnabled() {
 		// try build trace span
 		tracer := trace.Tracer(protocol.HTTP2)
-
 		if tracer != nil {
+			ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 			span = tracer.Start(ctx, h2s.Request, time.Now())
 		}
 	}

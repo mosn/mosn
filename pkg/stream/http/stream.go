@@ -567,6 +567,7 @@ func (conn *serverStreamConnection) serve() {
 		if trace.IsEnabled() {
 			tracer := trace.Tracer(protocol.HTTP1)
 			if tracer != nil {
+				ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 				span = tracer.Start(ctx, s.header, time.Now())
 			}
 		}
