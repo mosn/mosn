@@ -46,7 +46,8 @@ var rrFactory *roundRobinLoadBalancerFactory
 
 func init() {
 	rrFactory = &roundRobinLoadBalancerFactory{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+		mutex: &sync.Mutex{},
+		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
@@ -133,7 +134,7 @@ type roundRobinLoadBalancer struct {
 }
 
 type roundRobinLoadBalancerFactory struct {
-	mutex sync.Mutex
+	mutex *sync.Mutex
 	rand  *rand.Rand
 }
 
