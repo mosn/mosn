@@ -19,6 +19,8 @@ package trace
 
 import (
 	"fmt"
+	"plugin"
+	"strings"
 
 	"mosn.io/api"
 
@@ -35,7 +37,15 @@ type defaultDriver struct {
 }
 
 func (d *defaultDriver) Init(config map[string]interface{}) error {
+	tracers, err := d.loadPlugin(config)
+	if err != nil {
+		return err
+	}
 	for proto, holder := range d.tracers {
+		if tracer, ok := tracers[proto]; ok {
+			holder.Tracer = tracer
+			continue
+		}
 		tracer, err := holder.TracerBuilder(config)
 		if err != nil {
 			return fmt.Errorf("build tracer for %v error, %s", proto, err)
@@ -43,6 +53,44 @@ func (d *defaultDriver) Init(config map[string]interface{}) error {
 		holder.Tracer = tracer
 	}
 	return nil
+}
+
+func (d *defaultDriver) loadPlugin(config map[string]interface{}) (map[api.ProtocolName]api.Tracer, error) {
+	ps, ok1 := config["protocols"].(string)
+	sopath, ok2 := config["sopath"].(string)
+	if !ok1 || !ok2 {
+		return nil, nil
+	}
+
+	loaderFuncName, ok := config["factory_method"].(string)
+	if !ok {
+		loaderFuncName = "TracerBuilder"
+	}
+
+	p, err := plugin.Open(sopath)
+	if err != nil {
+		return nil, err
+	}
+
+	sym, err := p.Lookup(loaderFuncName)
+	if err != nil {
+		return nil, err
+	}
+
+	loadFunc, ok := sym.(func(config map[string]interface{}) (api.Tracer, error))
+	if !ok {
+		return nil, err
+	}
+
+	tracers := make(map[api.ProtocolName]api.Tracer)
+	for _, proto := range strings.Split(ps, ",") {
+		tracer, err := loadFunc(config)
+		if err != nil {
+			return nil, fmt.Errorf("build tracer for %v error, %s", proto, err)
+		}
+		tracers[api.ProtocolName(proto)] = tracer
+	}
+	return tracers, nil
 }
 
 func (d *defaultDriver) Register(proto types.ProtocolName, builder api.TracerBuilder) {
