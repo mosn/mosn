@@ -56,10 +56,11 @@ func (d *defaultDriver) Init(config map[string]interface{}) error {
 }
 
 func (d *defaultDriver) loadPlugin(config map[string]interface{}) (map[api.ProtocolName]api.Tracer, error) {
+	tracers := make(map[api.ProtocolName]api.Tracer)
 	ps, ok1 := config["protocols"].(string)
 	sopath, ok2 := config["sopath"].(string)
 	if !ok1 || !ok2 {
-		return nil, nil
+		return tracers, nil
 	}
 
 	loaderFuncName, ok := config["factory_method"].(string)
@@ -82,7 +83,6 @@ func (d *defaultDriver) loadPlugin(config map[string]interface{}) (map[api.Proto
 		return nil, err
 	}
 
-	tracers := make(map[api.ProtocolName]api.Tracer)
 	for _, proto := range strings.Split(ps, ",") {
 		tracer, err := loadFunc(config)
 		if err != nil {
