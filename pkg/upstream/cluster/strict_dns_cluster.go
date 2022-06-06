@@ -161,6 +161,7 @@ func (sdc *strictDnsCluster) InheritCluster(cluster types.Cluster) {
 	sci, ok := cluster.(*strictDnsCluster)
 	if ok {
 		sdc.resolveTargets = sci.resolveTargets
+		sdc.simpleCluster.InheritCluster(sci.simpleCluster)
 	}
 }
 
