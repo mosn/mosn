@@ -113,6 +113,7 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 }
 
 // CDS Options
+// old cluster maybe nil when cluster is newly created.
 type ClusterUpdateOption func(oldCluster, newCluster types.Cluster)
 
 func updateClusterResourceManager(oc, nc types.Cluster) {
@@ -137,19 +138,11 @@ func updateClusterResourceManager(oc, nc types.Cluster) {
 	updateResourceValue(oldResourceManager, newResourceManager)
 }
 
-func inheritClusters(oc, nc types.Cluster) {
+func cleanOldCluster(oc, _ types.Cluster) {
 	if oc == nil {
 		return
 	}
-	newSnap := nc.Snapshot()
-	oldSnap := oc.Snapshot()
-
-	if newSnap.ClusterInfo().ClusterType() == oldSnap.ClusterInfo().ClusterType() {
-		nc.InheritCluster(oc)
-	} else {
-		// if cluster type is changed, the old cluster should be stopped like removed
-		oc.StopHealthChecking()
-	}
+	oc.StopHealthChecking()
 }
 
 func updateClusterHosts(oc, nc types.Cluster) {
@@ -169,7 +162,7 @@ func updateClusterHosts(oc, nc types.Cluster) {
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	return cm.updateCluster(cluster, []ClusterUpdateOption{
 		updateClusterResourceManager,
-		inheritClusters,
+		cleanOldCluster,
 		updateClusterHosts,
 	})
 }
@@ -178,7 +171,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 func (cm *clusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hostConfigs []v2.Host) error {
 	return cm.updateCluster(cluster, []ClusterUpdateOption{
 		updateClusterResourceManager,
-		inheritClusters,
+		cleanOldCluster,
 		func(_, nc types.Cluster) {
 			snap := nc.Snapshot()
 			hosts := make([]types.Host, 0, len(hostConfigs))

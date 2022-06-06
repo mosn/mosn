@@ -120,14 +120,6 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	return cluster
 }
 
-func (sc *simpleCluster) InheritCluster(c types.Cluster) {
-	if sci, ok := c.(*simpleCluster); ok {
-		sc.mutex.Lock()
-		defer sc.mutex.Unlock()
-		sc.healthChecker = sci.healthChecker
-	}
-}
-
 func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	info := sc.info
 	hostSet := &hostSet{}

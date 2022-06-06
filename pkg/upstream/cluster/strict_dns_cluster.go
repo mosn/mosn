@@ -155,16 +155,6 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 	sdc.resolveTargets = rts
 }
 
-// InheritCluster use the original resolveTargets when updated.
-// When UpdateHosts, StopResolve will stop the original resolveTargets.
-func (sdc *strictDnsCluster) InheritCluster(cluster types.Cluster) {
-	sci, ok := cluster.(*strictDnsCluster)
-	if ok {
-		sdc.resolveTargets = sci.resolveTargets
-		sdc.simpleCluster.InheritCluster(sci.simpleCluster)
-	}
-}
-
 func (sdc *strictDnsCluster) StopHealthChecking() {
 	sdc.mutex.Lock()
 	defer sdc.mutex.Unlock()

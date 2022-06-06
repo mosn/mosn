@@ -119,9 +119,6 @@ type Cluster interface {
 
 	// Shutdown the healthcheck routine, if exists
 	StopHealthChecking()
-
-	// InheritCluster updates cluster datas from input cluster.
-	InheritCluster(Cluster)
 }
 
 // HostPredicate checks wether the host is matched the metadata

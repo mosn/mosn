@@ -402,18 +402,6 @@ func (mr *MockClusterMockRecorder) AddHealthCheckCallbacks(cb interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHealthCheckCallbacks", reflect.TypeOf((*MockCluster)(nil).AddHealthCheckCallbacks), cb)
 }
 
-// InheritCluster mocks base method.
-func (m *MockCluster) InheritCluster(arg0 types.Cluster) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "InheritCluster", arg0)
-}
-
-// InheritCluster indicates an expected call of InheritCluster.
-func (mr *MockClusterMockRecorder) InheritCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InheritCluster", reflect.TypeOf((*MockCluster)(nil).InheritCluster), arg0)
-}
-
 // Snapshot mocks base method.
 func (m *MockCluster) Snapshot() types.ClusterSnapshot {
 	m.ctrl.T.Helper()
