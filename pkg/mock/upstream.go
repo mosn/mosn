@@ -81,6 +81,20 @@ func (mr *MockClusterManagerMockRecorder) AppendClusterHosts(clusterName, hostCo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).AppendClusterHosts), clusterName, hostConfigs)
 }
 
+// ClusterAndHostsAddOrUpdate mocks base method.
+func (m *MockClusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterAndHostsAddOrUpdate", cluster, hosts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClusterAndHostsAddOrUpdate indicates an expected call of ClusterAndHostsAddOrUpdate.
+func (mr *MockClusterManagerMockRecorder) ClusterAndHostsAddOrUpdate(cluster, hosts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterAndHostsAddOrUpdate", reflect.TypeOf((*MockClusterManager)(nil).ClusterAndHostsAddOrUpdate), cluster, hosts)
+}
+
 // ClusterExist mocks base method.
 func (m *MockClusterManager) ClusterExist(clusterName string) bool {
 	m.ctrl.T.Helper()
@@ -386,6 +400,18 @@ func (m *MockCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
 func (mr *MockClusterMockRecorder) AddHealthCheckCallbacks(cb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHealthCheckCallbacks", reflect.TypeOf((*MockCluster)(nil).AddHealthCheckCallbacks), cb)
+}
+
+// InheritCluster mocks base method.
+func (m *MockCluster) InheritCluster(arg0 types.Cluster) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "InheritCluster", arg0)
+}
+
+// InheritCluster indicates an expected call of InheritCluster.
+func (mr *MockClusterMockRecorder) InheritCluster(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InheritCluster", reflect.TypeOf((*MockCluster)(nil).InheritCluster), arg0)
 }
 
 // Snapshot mocks base method.

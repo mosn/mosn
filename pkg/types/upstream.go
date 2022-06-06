@@ -38,6 +38,9 @@ type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
 
+	// ClusterAndHostsAddOrUpdate
+	ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error
+
 	// Add Cluster health check callbacks
 	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
 
@@ -116,6 +119,9 @@ type Cluster interface {
 
 	// Shutdown the healthcheck routine, if exists
 	StopHealthChecking()
+
+	// InheritCluster updates cluster datas from input cluster.
+	InheritCluster(Cluster)
 }
 
 // HostPredicate checks wether the host is matched the metadata

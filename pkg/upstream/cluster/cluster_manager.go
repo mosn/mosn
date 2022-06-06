@@ -112,9 +112,86 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	return clusterManagerInstance
 }
 
+// CDS Options
+type ClusterUpdateOption func(oldCluster, newCluster types.Cluster)
+
+func updateClusterResourceManager(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+	newSnap := nc.Snapshot()
+	oldSnap := oc.Snapshot()
+
+	if newSnap.ClusterInfo().ClusterType() != oldSnap.ClusterInfo().ClusterType() {
+		return
+	}
+
+	newResourceManager := newSnap.ClusterInfo().ResourceManager()
+	oldResourceManager := oldSnap.ClusterInfo().ResourceManager()
+
+	// sync oldResourceManager to new cluster ResourceManager
+	if ci, ok := newSnap.ClusterInfo().(*clusterInfo); ok {
+		ci.resourceManager = oldResourceManager
+	}
+	// sync newResourceManager config to oldResourceManager
+	updateResourceValue(oldResourceManager, newResourceManager)
+}
+
+func inheritClusters(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+	newSnap := nc.Snapshot()
+	oldSnap := oc.Snapshot()
+
+	if newSnap.ClusterInfo().ClusterType() == oldSnap.ClusterInfo().ClusterType() {
+		nc.InheritCluster(oc)
+	} else {
+		// if cluster type is changed, the old cluster should be stopped like removed
+		oc.StopHealthChecking()
+	}
+}
+
+func updateClusterHosts(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+	hosts := oc.Snapshot().HostSet().Hosts()
+	newInfo := nc.Snapshot().ClusterInfo()
+	for _, host := range hosts {
+		host.SetClusterInfo(newInfo) // update host cluster info
+	}
+	nc.UpdateHosts(hosts)
+}
+
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
 // if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
+	return cm.updateCluster(cluster, []ClusterUpdateOption{
+		updateClusterResourceManager,
+		inheritClusters,
+		updateClusterHosts,
+	})
+}
+
+// ClusterAndHostsAddOrUpdate will create a new cluster and use hosts config replace the original hosts if cluster is exists
+func (cm *clusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hostConfigs []v2.Host) error {
+	return cm.updateCluster(cluster, []ClusterUpdateOption{
+		updateClusterResourceManager,
+		inheritClusters,
+		func(_, nc types.Cluster) {
+			snap := nc.Snapshot()
+			hosts := make([]types.Host, 0, len(hostConfigs))
+			for _, hc := range hostConfigs {
+				hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
+			}
+			nc.UpdateHosts(hosts)
+
+		},
+	})
+}
+
+func (cm *clusterManager) updateCluster(cluster v2.Cluster, clusterOpts []ClusterUpdateOption) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
 	if newCluster == nil || reflect.ValueOf(newCluster).IsNil() {
@@ -127,33 +204,20 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	configmanager.SetClusterConfig(cluster)
 	// add or update
 	ci, exists := cm.clustersMap.Load(clusterName)
+	var oldCluster types.Cluster
 	if exists {
-		c := ci.(types.Cluster)
-		hosts := c.Snapshot().HostSet().Hosts()
-
-		newSnap := newCluster.Snapshot()
-
-		oldResourceManager := c.Snapshot().ClusterInfo().ResourceManager()
-		newResourceManager := newSnap.ClusterInfo().ResourceManager()
-
-		// sync oldResourceManager to new cluster ResourceManager
-		updateClusterResourceManager(newSnap.ClusterInfo(), oldResourceManager)
-
-		// sync newResourceManager value to oldResourceManager value
-		updateResourceValue(oldResourceManager, newResourceManager)
-		for _, host := range hosts {
-			host.SetClusterInfo(newSnap.ClusterInfo()) // update host cluster info
-		}
-
-		// update hosts, refresh
-		newCluster.UpdateHosts(hosts)
-		refreshHostsConfig(c)
+		oldCluster = ci.(types.Cluster)
+	}
+	for _, opt := range clusterOpts {
+		opt(oldCluster, newCluster)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
+	refreshHostsConfig(newCluster)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	}
 	return nil
+
 }
 
 // AddClusterHealthCheckCallbacks adds a health check callback function into cluster

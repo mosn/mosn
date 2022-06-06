@@ -120,6 +120,14 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	return cluster
 }
 
+func (sc *simpleCluster) InheritCluster(c types.Cluster) {
+	if sci, ok := c.(*simpleCluster); ok {
+		sc.mutex.Lock()
+		defer sc.mutex.Unlock()
+		sc.healthChecker = sci.healthChecker
+	}
+}
+
 func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	info := sc.info
 	hostSet := &hostSet{}
@@ -189,12 +197,6 @@ type clusterInfo struct {
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
 	lbConfig             v2.IsCluster_LbConfig
-}
-
-func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
-	if c, ok := ci.(*clusterInfo); ok {
-		c.resourceManager = rm
-	}
 }
 
 func (ci *clusterInfo) Name() string {
