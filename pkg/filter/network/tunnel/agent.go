@@ -27,7 +27,7 @@ import (
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server"
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
@@ -75,7 +75,7 @@ func init() {
 				bootstrap(&conf)
 			}, nil)
 
-			keeper.OnProcessShutDown(func() error {
+			stagemanager.OnGracefulStop(func() error {
 				utils.GoWithRecover(stopAllPeers, nil)
 				return nil
 			})

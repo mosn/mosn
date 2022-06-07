@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	ext2 "mosn.io/mosn/pkg/upstream/tunnel/ext"
+	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 )
 
 func init() {
-	ext2.RegisterConnectionValidator("test", &CustomValidator{})
-	ext2.RegisterConnectionCredentialGetter("test", func(cluster string) string {
+	ext.RegisterConnectionValidator("test", &CustomValidator{})
+	ext.RegisterConnectionCredentialGetter("test", func(cluster string) string {
 		return fmt.Sprintf("%s_%s", "prefix_", cluster)
 	})
 }

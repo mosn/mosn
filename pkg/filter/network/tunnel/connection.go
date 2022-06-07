@@ -69,7 +69,7 @@ func newBaseConnection(config ConnectionConfig, listener types.Listener, initFun
 		init:                   initFunc,
 	}
 	if config.TLSContext != nil {
-		mgr, err := mtls.NewTLSClientContextManager(config.TLSContext)
+		mgr, err := mtls.NewTLSClientContextManager("", config.TLSContext)
 		if err != nil {
 			log.DefaultLogger.Fatalf("[agent] create tls context manager failed, %v", err)
 			return nil
