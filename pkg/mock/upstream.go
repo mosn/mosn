@@ -248,6 +248,20 @@ func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, sna
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UDPConnForCluster", reflect.TypeOf((*MockClusterManager)(nil).UDPConnForCluster), balancerContext, snapshot)
 }
 
+// UpdateCluster mocks base method.
+func (m *MockClusterManager) UpdateCluster(cluster v2.Cluster, clusterOpts []types.ClusterUpdateOption) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCluster", cluster, clusterOpts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCluster indicates an expected call of UpdateCluster.
+func (mr *MockClusterManagerMockRecorder) UpdateCluster(cluster, clusterOpts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockClusterManager)(nil).UpdateCluster), cluster, clusterOpts)
+}
+
 // UpdateClusterHosts mocks base method.
 func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host) error {
 	m.ctrl.T.Helper()
@@ -260,6 +274,20 @@ func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host)
 func (mr *MockClusterManagerMockRecorder) UpdateClusterHosts(cluster, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateClusterHosts), cluster, hosts)
+}
+
+// UpdateHost mocks base method.
+func (m *MockClusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostOpts []types.HostUpdateOption) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHost", clusterName, hostConfigs, hostOpts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHost indicates an expected call of UpdateHost.
+func (mr *MockClusterManagerMockRecorder) UpdateHost(clusterName, hostConfigs, hostOpts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHost", reflect.TypeOf((*MockClusterManager)(nil).UpdateHost), clusterName, hostConfigs, hostOpts)
 }
 
 // UpdateTLSManager mocks base method.
