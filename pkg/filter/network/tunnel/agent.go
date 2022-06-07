@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
@@ -46,18 +47,18 @@ type AgentBootstrapConfig struct {
 	// DynamicServerListConfig is used to specify dynamic server configuration
 	DynamicServerListConfig struct {
 		DynamicServerLister string `json:"dynamic_server_lister"`
-	}
+	} `json:"dynamic_server_list_config"`
 
 	// ConnectRetryTimes
 	ConnectRetryTimes int `json:"connect_retry_times"`
 	// ReconnectBaseDuration
-	ReconnectBaseDurationMs int `json:"reconnect_base_duration_ms"`
+	ReconnectBaseDuration api.DurationConfig `json:"reconnect_base_duration"`
 
-	// ConnectTimeoutDurationMs specifies the timeout for establishing a connection and initializing the agent
-	ConnectTimeoutDurationMs int    `json:"connect_timeout_duration_ms"`
-	CredentialPolicy         string `json:"credential_policy"`
-	// GracefulCloseMaxWaitDurationMs specifies the maximum waiting time to close conn gracefully
-	GracefulCloseMaxWaitDurationMs int `json:"graceful_close_max_wait_duration_ms"`
+	// ConnectTimeoutDuration specifies the timeout for establishing a connection and initializing the agent
+	ConnectTimeoutDuration api.DurationConfig `json:"connect_timeout_duration"`
+	CredentialPolicy       string             `json:"credential_policy"`
+	// GracefulCloseMaxWaitDuration specifies the maximum waiting time to close conn gracefully
+	GracefulCloseMaxWaitDuration api.DurationConfig `json:"graceful_close_max_wait_duration"`
 
 	TLSContext *v2.TLSConfig `json:"tls_context"`
 }
@@ -76,7 +77,7 @@ func init() {
 			}, nil)
 
 			stagemanager.OnGracefulStop(func() error {
-				utils.GoWithRecover(stopAllPeers, nil)
+				stopAllPeers()
 				return nil
 			})
 		}
@@ -192,12 +193,12 @@ func connectServer(conf *AgentBootstrapConfig, address string) {
 		Address:                      address,
 		ClusterName:                  conf.Cluster,
 		Weight:                       10,
-		ReconnectBaseDuration:        time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
-		ConnectTimeoutDuration:       time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
+		ReconnectBaseDuration:        conf.ReconnectBaseDuration.Duration,
+		ConnectTimeoutDuration:       conf.ConnectTimeoutDuration.Duration,
 		ConnectRetryTimes:            conf.ConnectRetryTimes,
 		CredentialPolicy:             conf.CredentialPolicy,
 		ConnectionNumPerAddress:      conf.ConnectionNum,
-		GracefulCloseMaxWaitDuration: time.Duration(conf.GracefulCloseMaxWaitDurationMs) * time.Millisecond,
+		GracefulCloseMaxWaitDuration: conf.GracefulCloseMaxWaitDuration.Duration,
 		TLSContext:                   conf.TLSContext,
 	}
 	if config.Network == "" {

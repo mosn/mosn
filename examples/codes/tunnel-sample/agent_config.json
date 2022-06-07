@@ -52,6 +52,7 @@
         "cluster": "clientCluster",
         "enable": true,
         "connection_num": 1,
+        "reconnect_base_duration": "8s",
         "tls_context": {
           "status": true,
           "ca_cert": "../certs/ca.pem",
