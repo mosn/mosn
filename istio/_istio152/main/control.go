@@ -51,6 +51,7 @@ import (
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
 	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
+	"mosn.io/mosn/pkg/trace/zipkin"
 	"mosn.io/pkg/buffer"
 )
 
@@ -247,6 +248,7 @@ func DefaultParamsParsed(c *cli.Context) {
 func ExtensionsRegister(c *cli.Context) {
 	// tracer driver register
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	trace.RegisterDriver(zipkin.DriverName, zipkin.NewZipkinDriverImpl())
 	// xprotocol action register
 	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
@@ -262,6 +264,7 @@ func ExtensionsRegister(c *cli.Context) {
 	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+	trace.RegisterTracerBuilder(zipkin.DriverName, protocol.HTTP1, zipkin.NewHttpTracer)
 
 	// register buffer logger
 	buffer.SetLogFunc(func(msg string) {
