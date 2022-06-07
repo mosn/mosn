@@ -56,10 +56,10 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER      ClusterType = "STATIC"
-	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
-	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
-	EDS_CLUSTER         ClusterType = "EDS"
+	//	STATIC_CLUSTER      ClusterType = "STATIC"
+	SIMPLE_CLUSTER ClusterType = "SIMPLE"
+	//	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
+	//	EDS_CLUSTER         ClusterType = "EDS"
 	ORIGINALDST_CLUSTER ClusterType = "ORIGINAL_DST"
 	STRICT_DNS_CLUSTER  ClusterType = "STRICT_DNS"
 )
