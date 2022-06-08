@@ -47,7 +47,6 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -636,26 +635,18 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 }
 
-// defaultIdleTimeout represents the idle timeout if listener have no such configuration
-// we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
-var (
-	defaultIdleTimeout    = types.DefaultIdleTimeout
-	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
-	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
-)
-
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
+		conn.SetIdleTimeout(types.DefaultConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
 		switch conn.LocalAddr().Network() {
 		case "udp":
-			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultUDPReadTimeout, types.DefaultUDPIdleTimeout)
 		default:
-			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)

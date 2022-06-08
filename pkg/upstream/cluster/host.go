@@ -30,7 +30,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -141,7 +140,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
 	if sh.ClusterInfo().IdleTimeout() > 0 {
-		clientConn.SetIdleTimeout(buffer.ConnReadTimeout, sh.ClusterInfo().IdleTimeout())
+		clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
 	}
 
 	return types.CreateConnectionData{
