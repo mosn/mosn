@@ -393,7 +393,7 @@ func (l *listener) accept(lctx context.Context) error {
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
 		if l.cb != nil {
-			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
+			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil, nil)
 		}
 	}, nil)
 
