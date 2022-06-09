@@ -249,17 +249,17 @@ func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, sna
 }
 
 // UpdateCluster mocks base method.
-func (m *MockClusterManager) UpdateCluster(cluster v2.Cluster, clusterOpts []types.ClusterUpdateOption) error {
+func (m *MockClusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types.ClusterUpdateHandler) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateCluster", cluster, clusterOpts)
+	ret := m.ctrl.Call(m, "UpdateCluster", cluster, clusterHandler)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateCluster indicates an expected call of UpdateCluster.
-func (mr *MockClusterManagerMockRecorder) UpdateCluster(cluster, clusterOpts interface{}) *gomock.Call {
+func (mr *MockClusterManagerMockRecorder) UpdateCluster(cluster, clusterHandler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockClusterManager)(nil).UpdateCluster), cluster, clusterOpts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockClusterManager)(nil).UpdateCluster), cluster, clusterHandler)
 }
 
 // UpdateClusterHosts mocks base method.
@@ -277,17 +277,17 @@ func (mr *MockClusterManagerMockRecorder) UpdateClusterHosts(cluster, hosts inte
 }
 
 // UpdateHost mocks base method.
-func (m *MockClusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostOpts []types.HostUpdateOption) error {
+func (m *MockClusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateHost", clusterName, hostConfigs, hostOpts)
+	ret := m.ctrl.Call(m, "UpdateHost", clusterName, hostConfigs, hostHandler)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateHost indicates an expected call of UpdateHost.
-func (mr *MockClusterManagerMockRecorder) UpdateHost(clusterName, hostConfigs, hostOpts interface{}) *gomock.Call {
+func (mr *MockClusterManagerMockRecorder) UpdateHost(clusterName, hostConfigs, hostHandler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHost", reflect.TypeOf((*MockClusterManager)(nil).UpdateHost), clusterName, hostConfigs, hostOpts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHost", reflect.TypeOf((*MockClusterManager)(nil).UpdateHost), clusterName, hostConfigs, hostHandler)
 }
 
 // UpdateTLSManager mocks base method.

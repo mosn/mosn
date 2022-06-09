@@ -112,9 +112,9 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	return clusterManagerInstance
 }
 
-// CDS Options
+// CDS Handler
 // old cluster maybe nil when cluster is newly created.
-func UpdateClusterResourceManagerOption(oc, nc types.Cluster) {
+func UpdateClusterResourceManagerHandler(oc, nc types.Cluster) {
 	if oc == nil {
 		return
 	}
@@ -136,14 +136,14 @@ func UpdateClusterResourceManagerOption(oc, nc types.Cluster) {
 	updateResourceValue(oldResourceManager, newResourceManager)
 }
 
-func CleanOldClusterOption(oc, _ types.Cluster) {
+func CleanOldClusterHandler(oc, _ types.Cluster) {
 	if oc == nil {
 		return
 	}
 	oc.StopHealthChecking()
 }
 
-func InheritClusterHostsOption(oc, nc types.Cluster) {
+func InheritClusterHostsHandler(oc, nc types.Cluster) {
 	if oc == nil {
 		return
 	}
@@ -158,31 +158,23 @@ func InheritClusterHostsOption(oc, nc types.Cluster) {
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
 // if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
-	return cm.UpdateCluster(cluster, []types.ClusterUpdateOption{
-		UpdateClusterResourceManagerOption,
-		CleanOldClusterOption,
-		InheritClusterHostsOption,
+	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
+		UpdateClusterResourceManagerHandler(oc, nc)
+		CleanOldClusterHandler(oc, nc)
+		InheritClusterHostsHandler(oc, nc)
 	})
 }
 
 // ClusterAndHostsAddOrUpdate will create a new cluster and use hosts config replace the original hosts if cluster is exists
 func (cm *clusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hostConfigs []v2.Host) error {
-	return cm.UpdateCluster(cluster, []types.ClusterUpdateOption{
-		UpdateClusterResourceManagerOption,
-		CleanOldClusterOption,
-		func(_, nc types.Cluster) {
-			snap := nc.Snapshot()
-			hosts := make([]types.Host, 0, len(hostConfigs))
-			for _, hc := range hostConfigs {
-				hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
-			}
-			nc.UpdateHosts(hosts)
-
-		},
+	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
+		UpdateClusterResourceManagerHandler(oc, nc)
+		CleanOldClusterHandler(oc, nc)
+		NewSimpleHostHandler(nc, hostConfigs)
 	})
 }
 
-func (cm *clusterManager) UpdateCluster(cluster v2.Cluster, clusterOpts []types.ClusterUpdateOption) error {
+func (cm *clusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types.ClusterUpdateHandler) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
 	if newCluster == nil || reflect.ValueOf(newCluster).IsNil() {
@@ -199,8 +191,8 @@ func (cm *clusterManager) UpdateCluster(cluster v2.Cluster, clusterOpts []types.
 	if exists {
 		oldCluster = ci.(types.Cluster)
 	}
-	for _, opt := range clusterOpts {
-		opt(oldCluster, newCluster)
+	if clusterHandler != nil {
+		clusterHandler(oldCluster, newCluster)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
 	refreshHostsConfig(newCluster)
@@ -256,8 +248,8 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	return nil
 }
 
-// EDS Options
-func NewSimpleHostOption(c types.Cluster, hostConfigs []v2.Host) {
+// EDS Handler
+func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	snap := c.Snapshot()
 	hosts := make([]types.Host, 0, len(hostConfigs))
 	for _, hc := range hostConfigs {
@@ -267,7 +259,7 @@ func NewSimpleHostOption(c types.Cluster, hostConfigs []v2.Host) {
 
 }
 
-func AppendSimpleHostOption(c types.Cluster, hostConfigs []v2.Host) {
+func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	snap := c.Snapshot()
 	hosts := make([]types.Host, 0, len(hostConfigs))
 	for _, hc := range hostConfigs {
@@ -280,17 +272,17 @@ func AppendSimpleHostOption(c types.Cluster, hostConfigs []v2.Host) {
 
 // UpdateClusterHosts update all hosts in the cluster
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	return cm.UpdateHost(clusterName, hostConfigs, []types.HostUpdateOption{NewSimpleHostOption})
+	return cm.UpdateHost(clusterName, hostConfigs, NewSimpleHostHandler)
 }
 
 // AppendClusterHosts adds new hosts into cluster
 func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	return cm.UpdateHost(clusterName, hostConfigs, []types.HostUpdateOption{AppendSimpleHostOption})
+	return cm.UpdateHost(clusterName, hostConfigs, AppendSimpleHostHandler)
 }
 
 // RemoveClusterHosts removes hosts from cluster by address string
 func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string) error {
-	return cm.UpdateHost(clusterName, nil, []types.HostUpdateOption{
+	return cm.UpdateHost(clusterName, nil,
 		func(c types.Cluster, _ []v2.Host) {
 			snap := c.Snapshot()
 			hosts := snap.HostSet().Hosts()
@@ -310,18 +302,18 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 			c.UpdateHosts(sortedHosts)
 
 		},
-	})
+	)
 }
 
-func (cm *clusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostOpts []types.HostUpdateOption) error {
+func (cm *clusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] cluster %s is not found", clusterName)
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
 	c := ci.(types.Cluster)
-	for _, opt := range hostOpts {
-		opt(c, hostConfigs)
+	if hostHandler != nil {
+		hostHandler(c, hostConfigs)
 	}
 	refreshHostsConfig(c)
 	return nil

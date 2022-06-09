@@ -33,11 +33,11 @@ import (
 //           1              * | 1                          1 | 1          *
 //   clusterManager --------- cluster  --------- --------- hostSet------hosts
 
-// CDS Option for cluster manager
-type ClusterUpdateOption func(oldCluster, newCluster Cluster)
+// CDS Handler for cluster manager
+type ClusterUpdateHandler func(oldCluster, newCluster Cluster)
 
 // EDS Option for cluster manager
-type HostUpdateOption func(cluster Cluster, hostConfigs []v2.Host)
+type HostUpdateHandler func(cluster Cluster, hostConfigs []v2.Host)
 
 // ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
@@ -48,7 +48,7 @@ type ClusterManager interface {
 	ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error
 
 	// Cluster Update functions, keep AddOrUpdatePrimaryCluster and ClusterAndHostsAddOrUpdate for compatible
-	UpdateCluster(cluster v2.Cluster, clusterOpts []ClusterUpdateOption) error
+	UpdateCluster(cluster v2.Cluster, clusterHandler ClusterUpdateHandler) error
 
 	// Add Cluster health check callbacks
 	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
@@ -67,7 +67,7 @@ type ClusterManager interface {
 	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
 
 	// Host Update functions, keep UpdateClusterHosts and AppendClusterHosts for compatible
-	UpdateHost(clusterName string, hostConfigs []v2.Host, hostOpts []HostUpdateOption) error
+	UpdateHost(clusterName string, hostConfigs []v2.Host, hostHandler HostUpdateHandler) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData

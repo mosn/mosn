@@ -104,16 +104,14 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 				TLSDisable: false,
 			},
 		},
-	}, []types.HostUpdateOption{
-		func(c types.Cluster, hostConfigs []v2.Host) {
-			snap := c.Snapshot()
-			hosts := make([]types.Host, 0, len(hostConfigs))
-			for _, hc := range hostConfigs {
-				hosts = append(hosts, NewHost(hc, snap.ClusterInfo(), CreateAgentBackendConnection(conn)))
-			}
-			hosts = append(hosts, snap.HostSet().Hosts()...)
-			c.UpdateHosts(hosts)
-		},
+	}, func(c types.Cluster, hostConfigs []v2.Host) {
+		snap := c.Snapshot()
+		hosts := make([]types.Host, 0, len(hostConfigs))
+		for _, hc := range hostConfigs {
+			hosts = append(hosts, NewHost(hc, snap.ClusterInfo(), CreateAgentBackendConnection(conn)))
+		}
+		hosts = append(hosts, snap.HostSet().Hosts()...)
+		c.UpdateHosts(hosts)
 	})
 	t.connInitialized = true
 	return api.Stop
