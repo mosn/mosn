@@ -1,5 +1,16 @@
 # 更新日志
 
+## v1.0.1
+
+### 变更
+
+- 协议： Bolt v1 v2 将状态码 `api.NoHealthUpstreamCode` 映射为 `ResponseStatusNoProcessor` (#2018) [@antJack](https://github.com/antJack).
+
+### Bug 修复
+
+- MOSN 启动时和运行时，应该还是允许 `AppendGracefulStopStage` 和 `AppendBeforeStopStage` 注册回调 (#2029) [@rayowang](https://github.com/rayowang).
+- 协程池 panic 时，错误日志中的变量使用错误 (#2019) [@antJack](https://github.com/antJack).
+
 ## v1.0.0
 
 ### 变更

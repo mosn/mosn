@@ -20,7 +20,7 @@ client.go   // Mocked SofaRPC client
 ### Compile Wasm Extension
 
 ```
-make name=filter
+make
 ```
 
 This operation will generate filter.wasm

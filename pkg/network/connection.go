@@ -152,6 +152,7 @@ type connection struct {
 	}
 }
 
+// NewServerConnection new server-side connection, rawc is the raw connection from go/net
 func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
@@ -253,9 +254,8 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// create a new timer and bind it to connection
 	c.poll.readTimeoutTimer = time.AfterFunc(buffer.ConnReadTimeout, func() {
-		for _, cb := range c.connCallbacks {
-			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
-		}
+		// run read timeout callback, for keep alive if configured
+		c.OnConnectionEvent(api.OnReadTimeout)
 
 		c.poll.readBufferMux.Lock()
 		defer c.poll.readBufferMux.Unlock()
@@ -949,9 +949,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
 
-	for _, cb := range c.connCallbacks {
-		cb.OnEvent(eventType)
-	}
+	c.OnConnectionEvent(eventType)
 
 	return nil
 }

@@ -19,7 +19,7 @@ makefile    // makefile to compile wasm source file into wasm extension
 ### Compile Wasm Extension
 
 ```
-make name=filter
+make
 ```
 
 This operation will generate filter.wasm

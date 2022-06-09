@@ -193,7 +193,7 @@ func (proto boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	case api.RouterUnavailableCode:
 		return uint32(ResponseStatusNoProcessor)
 	case api.NoHealthUpstreamCode:
-		return uint32(ResponseStatusConnectionClosed)
+		return uint32(ResponseStatusNoProcessor)
 	case api.UpstreamOverFlowCode:
 		return uint32(ResponseStatusServerThreadpoolBusy)
 	case api.CodecExceptionCode:
