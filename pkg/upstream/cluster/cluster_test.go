@@ -20,6 +20,7 @@ package cluster
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
@@ -213,4 +214,20 @@ func TestClusterUseClusterManagerTLS(t *testing.T) {
 		t.Fatal("tls should not enabled")
 	}
 
+}
+
+func TestClusterTypeCompatible(t *testing.T) {
+	// keep static/dynamic/eds as simple
+	for _, typ := range []v2.ClusterType{
+		v2.EDS_CLUSTER,
+		v2.STATIC_CLUSTER,
+		v2.DYNAMIC_CLUSTER,
+	} {
+		cfg := v2.Cluster{
+			Name:        "test",
+			ClusterType: typ,
+		}
+		c := NewCluster(cfg)
+		require.Equal(t, v2.SIMPLE_CLUSTER, c.Snapshot().ClusterInfo().ClusterType())
+	}
 }

@@ -18,8 +18,6 @@
 package tunnel
 
 import (
-	"context"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
@@ -97,14 +95,24 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	tunnelHostMutex.Lock()
 	defer tunnelHostMutex.Unlock()
-	snapshot := t.clusterManager.GetClusterSnapshot(context.Background(), info.ClusterName)
-	_ = t.clusterManager.AppendClusterTypesHosts(info.ClusterName, []types.Host{NewHost(v2.Host{
-		HostConfig: v2.HostConfig{
-			Address:    conn.RemoteAddr().String(),
-			Hostname:   info.HostName,
-			Weight:     uint32(info.Weight),
-			TLSDisable: false,
-		}}, snapshot.ClusterInfo(), CreateAgentBackendConnection(conn))})
+	_ = t.clusterManager.UpdateHosts(info.ClusterName, []v2.Host{
+		{
+			HostConfig: v2.HostConfig{
+				Address:    conn.RemoteAddr().String(),
+				Hostname:   info.HostName,
+				Weight:     uint32(info.Weight),
+				TLSDisable: false,
+			},
+		},
+	}, func(c types.Cluster, hostConfigs []v2.Host) {
+		snap := c.Snapshot()
+		hosts := make([]types.Host, 0, len(hostConfigs))
+		for _, hc := range hostConfigs {
+			hosts = append(hosts, NewHost(hc, snap.ClusterInfo(), CreateAgentBackendConnection(conn)))
+		}
+		hosts = append(hosts, snap.HostSet().Hosts()...)
+		c.UpdateHosts(hosts)
+	})
 	t.connInitialized = true
 	return api.Stop
 }
