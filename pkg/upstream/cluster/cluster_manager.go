@@ -272,17 +272,17 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 
 // UpdateClusterHosts update all hosts in the cluster
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	return cm.UpdateHost(clusterName, hostConfigs, NewSimpleHostHandler)
+	return cm.UpdateHosts(clusterName, hostConfigs, NewSimpleHostHandler)
 }
 
 // AppendClusterHosts adds new hosts into cluster
 func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	return cm.UpdateHost(clusterName, hostConfigs, AppendSimpleHostHandler)
+	return cm.UpdateHosts(clusterName, hostConfigs, AppendSimpleHostHandler)
 }
 
 // RemoveClusterHosts removes hosts from cluster by address string
 func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string) error {
-	return cm.UpdateHost(clusterName, nil,
+	return cm.UpdateHosts(clusterName, nil,
 		func(c types.Cluster, _ []v2.Host) {
 			snap := c.Snapshot()
 			hosts := snap.HostSet().Hosts()
@@ -305,7 +305,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 	)
 }
 
-func (cm *clusterManager) UpdateHost(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
+func (cm *clusterManager) UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] cluster %s is not found", clusterName)

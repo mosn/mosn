@@ -95,7 +95,7 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	tunnelHostMutex.Lock()
 	defer tunnelHostMutex.Unlock()
-	_ = t.clusterManager.UpdateHost(info.ClusterName, []v2.Host{
+	_ = t.clusterManager.UpdateHosts(info.ClusterName, []v2.Host{
 		{
 			HostConfig: v2.HostConfig{
 				Address:    conn.RemoteAddr().String(),

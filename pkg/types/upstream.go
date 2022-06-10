@@ -36,7 +36,7 @@ import (
 // CDS Handler for cluster manager
 type ClusterUpdateHandler func(oldCluster, newCluster Cluster)
 
-// EDS Option for cluster manager
+// EDS Handler for cluster manager
 type HostUpdateHandler func(cluster Cluster, hostConfigs []v2.Host)
 
 // ClusterManager manages connection pools and load balancing for upstream clusters.
@@ -67,7 +67,7 @@ type ClusterManager interface {
 	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
 
 	// Host Update functions, keep UpdateClusterHosts and AppendClusterHosts for compatible
-	UpdateHost(clusterName string, hostConfigs []v2.Host, hostHandler HostUpdateHandler) error
+	UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler HostUpdateHandler) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
