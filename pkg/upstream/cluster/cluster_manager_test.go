@@ -38,7 +38,7 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 			},
 		},
 	}
-	clusterManagerInstance.ClusterAndHostsAddOrUpdate(config, []v2.Host{
+	clusterManagerInstance.AddOrUpdateClusterAndHost(config, []v2.Host{
 		{
 			HostConfig: v2.HostConfig{
 				Address: "127.0.0.1:10000",
