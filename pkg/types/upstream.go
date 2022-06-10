@@ -44,10 +44,10 @@ type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
 
-	// ClusterAndHostsAddOrUpdate
-	ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error
+	// AddOrUpdateClusterAndHost
+	AddOrUpdateClusterAndHost(cluster v2.Cluster, hosts []v2.Host) error
 
-	// Cluster Update functions, keep AddOrUpdatePrimaryCluster and ClusterAndHostsAddOrUpdate for compatible
+	// Cluster Update functions, keep AddOrUpdatePrimaryCluster and AddOrUpdateClusterAndHost for compatible
 	UpdateCluster(cluster v2.Cluster, clusterHandler ClusterUpdateHandler) error
 
 	// Add Cluster health check callbacks

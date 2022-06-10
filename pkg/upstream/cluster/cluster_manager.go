@@ -165,8 +165,8 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	})
 }
 
-// ClusterAndHostsAddOrUpdate will create a new cluster and use hosts config replace the original hosts if cluster is exists
-func (cm *clusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hostConfigs []v2.Host) error {
+// AddOrUpdateClusterAndHost will create a new cluster and use hosts config replace the original hosts if cluster is exists
+func (cm *clusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hostConfigs []v2.Host) error {
 	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
 		UpdateClusterResourceManagerHandler(oc, nc)
 		CleanOldClusterHandler(oc, nc)

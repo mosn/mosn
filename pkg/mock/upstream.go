@@ -53,6 +53,20 @@ func (mr *MockClusterManagerMockRecorder) AddClusterHealthCheckCallbacks(name, c
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddClusterHealthCheckCallbacks", reflect.TypeOf((*MockClusterManager)(nil).AddClusterHealthCheckCallbacks), name, cb)
 }
 
+// AddOrUpdateClusterAndHost mocks base method.
+func (m *MockClusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hosts []v2.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddOrUpdateClusterAndHost", cluster, hosts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddOrUpdateClusterAndHost indicates an expected call of AddOrUpdateClusterAndHost.
+func (mr *MockClusterManagerMockRecorder) AddOrUpdateClusterAndHost(cluster, hosts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrUpdateClusterAndHost", reflect.TypeOf((*MockClusterManager)(nil).AddOrUpdateClusterAndHost), cluster, hosts)
+}
+
 // AddOrUpdatePrimaryCluster mocks base method.
 func (m *MockClusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	m.ctrl.T.Helper()
@@ -79,20 +93,6 @@ func (m *MockClusterManager) AppendClusterHosts(clusterName string, hostConfigs 
 func (mr *MockClusterManagerMockRecorder) AppendClusterHosts(clusterName, hostConfigs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).AppendClusterHosts), clusterName, hostConfigs)
-}
-
-// ClusterAndHostsAddOrUpdate mocks base method.
-func (m *MockClusterManager) ClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ClusterAndHostsAddOrUpdate", cluster, hosts)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ClusterAndHostsAddOrUpdate indicates an expected call of ClusterAndHostsAddOrUpdate.
-func (mr *MockClusterManagerMockRecorder) ClusterAndHostsAddOrUpdate(cluster, hosts interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterAndHostsAddOrUpdate", reflect.TypeOf((*MockClusterManager)(nil).ClusterAndHostsAddOrUpdate), cluster, hosts)
 }
 
 // ClusterExist mocks base method.
