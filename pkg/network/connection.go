@@ -253,7 +253,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	c.poll.eventLoop = attach()
 
 	// create a new timer and bind it to connection
-	c.poll.readTimeoutTimer = time.AfterFunc(buffer.ConnReadTimeout, func() {
+	c.poll.readTimeoutTimer = time.AfterFunc(types.DefaultConnReadTimeout, func() {
 		// run read timeout callback, for keep alive if configured
 		c.OnConnectionEvent(api.OnReadTimeout)
 
@@ -270,7 +270,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 		// if connection is not closed, timer should be reset
 		if !c.poll.ev.stopped.Load() {
-			c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+			c.poll.readTimeoutTimer.Reset(types.DefaultConnReadTimeout)
 		}
 	})
 
@@ -304,7 +304,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 				// mainly for heartbeat request
 				if err == nil {
 					// read err is nil, start timer
-					c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					c.poll.readTimeoutTimer.Reset(types.DefaultConnReadTimeout)
 					return true
 				}
 
@@ -316,7 +316,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 					}
 
 					// should reset timer
-					c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					c.poll.readTimeoutTimer.Reset(types.DefaultConnReadTimeout)
 					return true
 				}
 
@@ -532,7 +532,7 @@ func (c *connection) setReadDeadline() {
 	case "udp":
 		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultUDPReadTimeout))
 	default:
-		c.rawConnection.SetReadDeadline(time.Now().Add(buffer.ConnReadTimeout))
+		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
 	}
 }
 

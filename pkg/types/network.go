@@ -188,7 +188,7 @@ type ClientConnection interface {
 }
 
 // Default connection arguments
-const (
+var (
 	DefaultConnReadTimeout  = 15 * time.Second
 	DefaultConnWriteTimeout = 15 * time.Second
 	DefaultConnTryTimeout   = 60 * time.Second
