@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 var maxIdleCount uint32 = 0
@@ -31,7 +31,7 @@ var maxIdleCount uint32 = 0
 // SetIdleTimeout calculates the idle timeout as max idle count.
 func SetIdleTimeout(d time.Duration) {
 	fd := float64(d)
-	ft := float64(buffer.ConnReadTimeout)
+	ft := float64(types.DefaultConnReadTimeout)
 	maxIdleCount = uint32(math.Ceil(fd / ft))
 }
 
