@@ -50,6 +50,7 @@ var (
 		variable.NewStringVariable(types.VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamTransportFailureReason, nil, upstreamTransportFailureReasonGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamCluster, nil, upstreamClusterGetter, nil, 0),
+		variable.NewStringVariable(types.VarUpstreamConnectID, nil, upstreamConnectId, nil, 0),
 
 		variable.NewVariable(types.VarProxyDisableRetry, nil, nil, variable.DefaultSetter, 0),
 		variable.NewStringVariable(types.VarProxyTryTimeout, nil, nil, variable.DefaultStringSetter, 0),
@@ -231,6 +232,16 @@ func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, da
 		return stream.cluster.Name(), nil
 	}
 	return variable.ValueNotFound, errors.New("not found clustername")
+}
+
+func upstreamConnectId(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	stream := proxyBuffers.stream
+
+	if stream.cluster != nil {
+		return strconv.Itoa(int(stream.ID)), nil
+	}
+	return "", errors.New("not found upstream connection id")
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

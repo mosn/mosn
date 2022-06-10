@@ -36,6 +36,7 @@ const (
 	VarUpstreamHost                   string = "upstream_host"
 	VarUpstreamTransportFailureReason string = "upstream_transport_failure_reason"
 	VarUpstreamCluster                string = "upstream_cluster"
+	VarUpstreamConnectID              string = "upstream_connect_id"
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
 	VarProtocolConfig                 string = "protocol_config"
@@ -67,9 +68,9 @@ const (
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 
 	// notice: read-only!!! do not modify the raw data!!!
-	VarRequestRawData        string = "x-mosn-req-raw-data"
+	VarRequestRawData string = "x-mosn-req-raw-data"
 	// notice: read-only!!! do not modify the raw data!!!
-	VarResponseRawData       string = "x-mosn-resp-raw-data"
+	VarResponseRawData string = "x-mosn-resp-raw-data"
 )
 
 // [server]: common
