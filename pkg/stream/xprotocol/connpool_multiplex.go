@@ -179,7 +179,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	}
 
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, strconv.FormatUint(activeClient.codecClient.ConnID(), 10))
-	
+
 	atomic.AddUint64(&activeClient.totalStream, 1)
 	host.HostStats().UpstreamRequestTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
