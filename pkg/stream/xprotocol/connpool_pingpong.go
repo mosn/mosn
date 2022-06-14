@@ -19,6 +19,8 @@ package xprotocol
 
 import (
 	"context"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -61,6 +63,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 	if reason != "" {
 		return host, nil, reason
 	}
+	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, strconv.FormatUint(c.codecClient.ConnID(), 10))
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 

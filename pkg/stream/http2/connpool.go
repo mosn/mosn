@@ -19,6 +19,7 @@ package http2
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -92,6 +93,8 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 	if activeClient == nil {
 		return host, nil, types.ConnectionFailure
 	}
+
+	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, strconv.FormatUint(activeClient.client.ConnID(), 10))
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)

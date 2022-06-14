@@ -20,6 +20,7 @@ package xprotocol
 import (
 	"context"
 	"errors"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,6 +80,8 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	}
 
 	c.addDownConnListenerOnce(ctx)
+
+	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, strconv.FormatUint(c.connID, 10))
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
