@@ -122,9 +122,9 @@ func traceInfo(ctx context.Context) string {
 	if traceId != nil {
 		tid = traceId.(string)
 	}
-	upstreamConnectionId := mosnctx.Get(ctx, types.ContextUpstreamConnectionID) // string
+	upstreamConnectionId := mosnctx.Get(ctx, types.ContextUpstreamConnectionID) // uint64
 	if upstreamConnectionId != nil {
-		uid = upstreamConnectionId.(string)
+		uid = strconv.FormatUint(upstreamConnectionId.(uint64), 10)
 	}
 
 	return "[" + cid + "," + uid + "," + tid + "]"
