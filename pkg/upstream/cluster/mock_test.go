@@ -23,6 +23,7 @@ import (
 	"net"
 	"sort"
 	"sync/atomic"
+	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
@@ -63,8 +64,9 @@ type mockHost struct {
 	w          uint32
 	healthFlag *uint64
 	types.Host
-	stats   types.HostStats
-	hostSet types.HostSet
+	stats       types.HostStats
+	hostSet     types.HostSet
+	createdTime time.Time
 }
 
 func (h *mockHost) Hostname() string {
@@ -114,6 +116,10 @@ func (h *mockHost) HostStats() types.HostStats {
 
 func (h *mockHost) Weight() uint32 {
 	return h.w
+}
+
+func (h *mockHost) CreatedTime() time.Time {
+	return h.createdTime
 }
 
 type ipPool struct {

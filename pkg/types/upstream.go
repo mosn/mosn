@@ -23,7 +23,7 @@ import (
 	"sort"
 	"time"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
@@ -166,6 +166,8 @@ type Host interface {
 	Address() net.Addr
 	// Config creates a host config by the host attributes
 	Config() v2.Host
+
+	CreatedTime() time.Time
 }
 
 // ClusterInfo defines a cluster's information
@@ -211,6 +213,12 @@ type ClusterInfo interface {
 
 	//  Optional configuration for some cluster description
 	SubType() string
+
+	// SlowStartWindow the time interval required for the slow start to end
+	SlowStartWindow() time.Duration
+
+	// SlowStartAggression the aggression used to control the weight growth slope when slow starting
+	SlowStartAggression() float64
 }
 
 // ResourceManager manages different types of Resource
