@@ -36,7 +36,6 @@ const (
 	VarUpstreamHost                   string = "upstream_host"
 	VarUpstreamTransportFailureReason string = "upstream_transport_failure_reason"
 	VarUpstreamCluster                string = "upstream_cluster"
-	VarUpstreamConnectID              string = "upstream_connect_id"
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
 	VarProtocolConfig                 string = "protocol_config"

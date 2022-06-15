@@ -50,7 +50,6 @@ var (
 		variable.NewStringVariable(types.VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamTransportFailureReason, nil, upstreamTransportFailureReasonGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamCluster, nil, upstreamClusterGetter, nil, 0),
-		variable.NewStringVariable(types.VarUpstreamConnectID, nil, nil, variable.DefaultStringSetter, 0),
 
 		variable.NewVariable(types.VarProxyDisableRetry, nil, nil, variable.DefaultSetter, 0),
 		variable.NewStringVariable(types.VarProxyTryTimeout, nil, nil, variable.DefaultStringSetter, 0),
