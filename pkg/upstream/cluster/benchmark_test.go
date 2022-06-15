@@ -115,9 +115,9 @@ func BenchmarkUpdateClusterHosts(b *testing.B) {
 	b.Run("UpdateClusterHost", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			cluster.UpdateHosts(hosts)
+			cluster.UpdateHosts(NewHostSet(hosts))
 			b.StartTimer()
-			cluster.UpdateHosts(newHosts)
+			cluster.UpdateHosts(NewHostSet(newHosts))
 		}
 	})
 
@@ -156,9 +156,9 @@ func BencmarkUpdateClusterHostsLabel(b *testing.B) {
 	b.Run("UpdateClusterHostsLabel", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			cluster.UpdateHosts(hosts)
+			cluster.UpdateHosts(NewHostSet(hosts))
 			b.StartTimer()
-			cluster.UpdateHosts(newHosts)
+			cluster.UpdateHosts(NewHostSet(newHosts))
 		}
 	})
 }

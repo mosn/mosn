@@ -23,6 +23,7 @@ import (
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 var _ api.ReadFilter = (*tunnelFilter)(nil)
@@ -114,7 +115,7 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 			hosts = append(hosts, h)
 			return true
 		})
-		c.UpdateHosts(hosts)
+		c.UpdateHosts(cluster.NewHostSet(hosts))
 	})
 	t.connInitialized = true
 	return api.Stop

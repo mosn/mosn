@@ -163,22 +163,25 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
 func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	newHostsMap := make(map[string]types.Host, new.Size())
-	new.Range(func(newHost types.Host) bool {
-		newHostsMap[newHost.AddressString()] = newHost
-		return true
-	})
+	if new != nil{
+		new.Range(func(newHost types.Host) bool {
+			newHostsMap[newHost.AddressString()] = newHost
+			return true
+		})
+	}
 	// find delete host
 	deleteHosts := make([]types.Host, 0)
-	old.Range(func(oldHost types.Host) bool {
-		_, ok := newHostsMap[oldHost.AddressString()]
-		if ok {
-			delete(newHostsMap, oldHost.AddressString())
-		} else {
-			deleteHosts = append(deleteHosts, oldHost)
-		}
-		return true
-	})
-
+	if old != nil{
+		old.Range(func(oldHost types.Host) bool {
+			_, ok := newHostsMap[oldHost.AddressString()]
+			if ok {
+				delete(newHostsMap, oldHost.AddressString())
+			} else {
+				deleteHosts = append(deleteHosts, oldHost)
+			}
+			return true
+		})
+	}
 	// find new host
 	newHosts := make([]types.Host, 0, len(newHostsMap))
 	for _, newHost := range newHostsMap {

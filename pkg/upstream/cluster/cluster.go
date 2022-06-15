@@ -98,7 +98,7 @@ type simpleCluster struct {
 	mutex         sync.Mutex
 	healthChecker types.HealthChecker
 	lbInstance    types.LoadBalancer // load balancer used for this cluster
-	hostSet       *hostSet
+	hostSet       types.HostSet
 	snapshot      atomic.Value
 }
 
@@ -127,10 +127,8 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	return cluster
 }
 
-func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
+func (sc *simpleCluster) UpdateHosts(hostSet types.HostSet) {
 	info := sc.info
-	hostSet := &hostSet{}
-	hostSet.setFinalHost(newHosts)
 	// load balance
 	var lb types.LoadBalancer
 	if info.LbSubsetInfo().IsEnabled() {

@@ -457,7 +457,7 @@ func (mr *MockClusterMockRecorder) StopHealthChecking() *gomock.Call {
 }
 
 // UpdateHosts mocks base method.
-func (m *MockCluster) UpdateHosts(arg0 []types.Host) {
+func (m *MockCluster) UpdateHosts(arg0 types.HostSet) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateHosts", arg0)
 }
@@ -503,20 +503,6 @@ func (m *MockHostSet) Get(arg0 int) types.Host {
 func (mr *MockHostSetMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockHostSet)(nil).Get), arg0)
-}
-
-// Hosts mocks base method.
-func (m *MockHostSet) Hosts() []types.Host {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Hosts")
-	ret0, _ := ret[0].([]types.Host)
-	return ret0
-}
-
-// Hosts indicates an expected call of Hosts.
-func (mr *MockHostSetMockRecorder) Hosts() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hosts", reflect.TypeOf((*MockHostSet)(nil).Hosts))
 }
 
 // Range mocks base method.

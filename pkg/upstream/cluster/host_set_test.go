@@ -51,7 +51,7 @@ func TestHostSetDistinct(t *testing.T) {
 		hosts = append(hosts, host)
 	}
 	hs.setFinalHost(hosts)
-	if len(hs.Hosts()) != 1 {
+	if hs.Size() != 1 {
 		t.Fatal("hostset distinct failed")
 	}
 }

@@ -55,7 +55,7 @@ func TestClusterUpdateHosts(t *testing.T) {
 	for _, meta := range metas {
 		hosts = append(hosts, pool.MakeHosts(10, meta)...)
 	}
-	cluster.UpdateHosts(hosts)
+	cluster.UpdateHosts(NewHostSet(hosts))
 	// verify
 	snap := cluster.Snapshot()
 	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
@@ -95,7 +95,7 @@ func TestClusterUpdateHosts(t *testing.T) {
 		"version": "3",
 		"ignore":  "true",
 	})...)
-	cluster.UpdateHosts(newHosts)
+	cluster.UpdateHosts(NewHostSet(newHosts))
 	newSnap := cluster.Snapshot()
 	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	// verify
@@ -134,7 +134,7 @@ func TestUpdateHostLabels(t *testing.T) {
 			"version": "1",
 		},
 	}
-	cluster.UpdateHosts([]types.Host{host})
+	cluster.UpdateHosts(NewHostSet([]types.Host{host}))
 	snap := cluster.Snapshot()
 	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
 	result := &subSetMapResult{
@@ -161,7 +161,7 @@ func TestUpdateHostLabels(t *testing.T) {
 			"version": "2",
 		},
 	}
-	cluster.UpdateHosts([]types.Host{newHost})
+	cluster.UpdateHosts(NewHostSet([]types.Host{newHost}))
 	newSnap := cluster.Snapshot()
 	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	newResult := &subSetMapResult{

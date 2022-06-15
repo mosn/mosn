@@ -103,7 +103,7 @@ func getHostPortFromAddr(addr string) (string, string) {
 	}
 }
 
-func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
+func (sdc *strictDnsCluster) UpdateHosts(newHosts types.HostSet) {
 	sdc.mutex.Lock()
 	defer sdc.mutex.Unlock()
 	// stop all resolve targets before update
@@ -116,11 +116,11 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 
 	// update resolve targets and start new resolve task
 	var rts []*ResolveTarget
-	for _, host := range newHosts {
+	newHosts.Range(func(host types.Host) bool {
 		addr, port := getHostPortFromAddr(host.AddressString())
 		if addr == "" {
 			log.DefaultLogger.Errorf("[upstream] [strict_dns_cluster] config address format error: %s", host.AddressString())
-			continue
+			return true
 		}
 		// default port: 80
 		if port == "" {
@@ -143,7 +143,7 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 		rts = append(rts, rt)
 		// if address is already an ip, skip dns resolution
 		if net.ParseIP(rt.dnsAddress) != nil {
-			continue
+			return true
 		}
 		utils.GoWithRecover(func() {
 			rt.StartResolve()
@@ -151,7 +151,9 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] create a resolver for address: %s", rt.dnsAddress)
 		}
-	}
+		return true
+	})
+
 	sdc.resolveTargets = rts
 }
 
@@ -185,24 +187,26 @@ func (sdc *strictDnsCluster) calculateNextResolveInterval(minTtl time.Duration) 
 }
 
 // just check address string, hostname and metadata
-func hostEqual(hosts1, hosts2 *[]types.Host) bool {
+func hostEqual(hosts1, hosts2 types.HostSet) bool {
 	hosts := map[string]types.Host{}
-	if len(*hosts1) != len(*hosts2) {
+	if hosts1.Size() != hosts2.Size() {
 		return false
 	}
-	for _, host := range *hosts1 {
+	hosts1.Range(func(host types.Host) bool {
 		hosts[host.AddressString()] = host
-	}
-	for _, host := range *hosts2 {
+		return true
+	})
+	var equals = true
+	hosts2.Range(func(host types.Host) bool {
 		if h, exists := hosts[host.AddressString()]; exists {
 			if h.Hostname() == host.Hostname() && reflect.DeepEqual(h.Metadata(), host.Metadata()) {
-				continue
+				return true
 			}
-			return false
 		}
+		equals = false
 		return false
-	}
-	return true
+	})
+	return equals
 }
 
 // get all hosts in current rt and other rt, do updating if hosts changed
@@ -227,14 +231,14 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 	}
 
 	// compare current hosts with allHosts
-	hostNotChanged := hostEqual(&allHosts, &sdc.hostSet.allHosts)
+	hostNotChanged := hostEqual(NewNoDistinctHostSet(allHosts), sdc.hostSet)
 	if !hostNotChanged {
 		for _, h := range newHosts {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns new address:%s", h.AddressString())
 			}
 		}
-		sdc.simpleCluster.UpdateHosts(allHosts)
+		sdc.simpleCluster.UpdateHosts(NewHostSet(allHosts))
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns result updated, cluster_name:%s, address:%s", sdc.simpleCluster.info.Name(), rt.dnsAddress)
 		}

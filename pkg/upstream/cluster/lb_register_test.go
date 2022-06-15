@@ -36,15 +36,15 @@ type headerLB struct {
 func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if headers := ctx.DownstreamHeaders(); headers != nil {
 		if value, ok := headers.Get(lb.key); ok {
-			var h types.Host
+			var choosed types.Host
 			lb.hostSet.Range(func(host types.Host) bool {
 				if host.Health() && host.Hostname() == value {
-					h = host
+					choosed = host
 					return false
 				}
 				return true
 			})
-			return h
+			return choosed
 		}
 	}
 	// random choose a host

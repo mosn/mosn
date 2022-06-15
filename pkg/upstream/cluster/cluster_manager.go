@@ -53,7 +53,7 @@ func refreshHostsConfig(c types.Cluster) {
 		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, hostSet.Size())
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, types.ListHostSet(hostSet))
+		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hostSet)
 	}
 }
 
@@ -149,12 +149,12 @@ func InheritClusterHostsHandler(oc, nc types.Cluster) {
 		return
 	}
 
-	hosts := types.ListHostSet(oc.Snapshot().HostSet())
 	newInfo := nc.Snapshot().ClusterInfo()
-	for _, host := range hosts {
+	oc.Snapshot().HostSet().Range(func(host types.Host) bool {
 		host.SetClusterInfo(newInfo) // update host cluster info
-	}
-	nc.UpdateHosts(hosts)
+		return true
+	})
+	nc.UpdateHosts(oc.Snapshot().HostSet())
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
@@ -257,7 +257,7 @@ func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	c.UpdateHosts(hosts)
+	c.UpdateHosts(NewHostSet(hosts))
 
 }
 
@@ -271,7 +271,7 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 		hosts = append(hosts, host)
 		return true
 	})
-	c.UpdateHosts(hosts)
+	c.UpdateHosts(NewHostSet(hosts))
 
 }
 
@@ -306,7 +306,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 					sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
 				}
 			}
-			c.UpdateHosts(sortedHosts)
+			c.UpdateHosts(NewHostSet(sortedHosts))
 
 		},
 	)
