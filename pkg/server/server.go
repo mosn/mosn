@@ -26,7 +26,6 @@ import (
 	mlog "mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
 )
 
@@ -160,7 +159,7 @@ func WaitConnectionsDone(duration time.Duration) {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// DefaultConnReadTimeout wait for read timeout
-	timeout := time.NewTimer(2*duration + 2*buffer.ConnReadTimeout)
+	timeout := time.NewTimer(2*duration + 2*types.DefaultConnReadTimeout)
 	StopConnection()
 	log.DefaultLogger.Infof("[server] StopConnection")
 

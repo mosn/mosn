@@ -47,7 +47,6 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -437,7 +436,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte) {
+func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte, listeners []api.ConnectionEventListener) {
 	var rawf *os.File
 
 	// only store fd and tls conn handshake in final working listener
@@ -506,6 +505,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	}
 	if oriRemoteAddr != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+	}
+
+	if len(listeners) != 0 {
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -632,31 +635,29 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 }
 
-// defaultIdleTimeout represents the idle timeout if listener have no such configuration
-// we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
-var (
-	defaultIdleTimeout    = types.DefaultIdleTimeout
-	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
-	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
-)
-
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
+		conn.SetIdleTimeout(types.DefaultConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
 		switch conn.LocalAddr().Network() {
 		case "udp":
-			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultUDPReadTimeout, types.DefaultUDPIdleTimeout)
 		default:
-			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
+	}
+	listeners := mosnctx.Get(ctx, types.ContextKeyConnectionEventListeners)
+	if listeners != nil {
+		for _, listener := range listeners.([]api.ConnectionEventListener) {
+			conn.AddConnectionEventListener(listener)
+		}
 	}
 	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
 	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
@@ -739,15 +740,14 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
-		return
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 	}
 
 	if localListener != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 		return
 	}
 
@@ -755,7 +755,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
-	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {

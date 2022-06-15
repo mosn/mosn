@@ -53,6 +53,20 @@ func (mr *MockClusterManagerMockRecorder) AddClusterHealthCheckCallbacks(name, c
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddClusterHealthCheckCallbacks", reflect.TypeOf((*MockClusterManager)(nil).AddClusterHealthCheckCallbacks), name, cb)
 }
 
+// AddOrUpdateClusterAndHost mocks base method.
+func (m *MockClusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hosts []v2.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddOrUpdateClusterAndHost", cluster, hosts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddOrUpdateClusterAndHost indicates an expected call of AddOrUpdateClusterAndHost.
+func (mr *MockClusterManagerMockRecorder) AddOrUpdateClusterAndHost(cluster, hosts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrUpdateClusterAndHost", reflect.TypeOf((*MockClusterManager)(nil).AddOrUpdateClusterAndHost), cluster, hosts)
+}
+
 // AddOrUpdatePrimaryCluster mocks base method.
 func (m *MockClusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	m.ctrl.T.Helper()
@@ -234,6 +248,20 @@ func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, sna
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UDPConnForCluster", reflect.TypeOf((*MockClusterManager)(nil).UDPConnForCluster), balancerContext, snapshot)
 }
 
+// UpdateCluster mocks base method.
+func (m *MockClusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types.ClusterUpdateHandler) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCluster", cluster, clusterHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCluster indicates an expected call of UpdateCluster.
+func (mr *MockClusterManagerMockRecorder) UpdateCluster(cluster, clusterHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockClusterManager)(nil).UpdateCluster), cluster, clusterHandler)
+}
+
 // UpdateClusterHosts mocks base method.
 func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host) error {
 	m.ctrl.T.Helper()
@@ -246,6 +274,20 @@ func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host)
 func (mr *MockClusterManagerMockRecorder) UpdateClusterHosts(cluster, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateClusterHosts), cluster, hosts)
+}
+
+// UpdateHosts mocks base method.
+func (m *MockClusterManager) UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHosts", clusterName, hostConfigs, hostHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHosts indicates an expected call of UpdateHosts.
+func (mr *MockClusterManagerMockRecorder) UpdateHosts(clusterName, hostConfigs, hostHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateHosts), clusterName, hostConfigs, hostHandler)
 }
 
 // UpdateTLSManager mocks base method.

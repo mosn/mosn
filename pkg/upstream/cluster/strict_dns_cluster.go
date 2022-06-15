@@ -106,7 +106,9 @@ func getHostPortFromAddr(addr string) (string, string) {
 func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 	sdc.mutex.Lock()
 	defer sdc.mutex.Unlock()
-	sdc.StopResolve()
+	// stop all resolve targets before update
+	// TODO: optimize it, compare diff
+	sdc.stopResolve()
 	atomic.AddUint64(&sdc.version, 1)
 
 	// before resolve, init hosts to origin unresolved address
@@ -153,7 +155,15 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 	sdc.resolveTargets = rts
 }
 
-func (sdc *strictDnsCluster) StopResolve() {
+func (sdc *strictDnsCluster) StopHealthChecking() {
+	sdc.mutex.Lock()
+	defer sdc.mutex.Unlock()
+	sdc.stopResolve()
+	sdc.simpleCluster.StopHealthChecking()
+}
+
+// stopResolve set to unexport, call it in other functions to avoid lock concurrency
+func (sdc *strictDnsCluster) stopResolve() {
 	for _, rt := range sdc.resolveTargets {
 		rt.StopResolve()
 	}

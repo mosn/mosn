@@ -49,6 +49,9 @@ func NewCluster(clusterConfig v2.Cluster) types.Cluster {
 	if f, ok := clusterFactories[clusterConfig.ClusterType]; ok {
 		return f(clusterConfig)
 	}
+	// if cluster type is not registered, we use simple cluster instead
+	// the cluster type should convert to simple too.
+	clusterConfig.ClusterType = v2.SIMPLE_CLUSTER
 	return clusterFactories[v2.SIMPLE_CLUSTER](clusterConfig)
 }
 
@@ -189,12 +192,6 @@ type clusterInfo struct {
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
 	lbConfig             v2.IsCluster_LbConfig
-}
-
-func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
-	if c, ok := ci.(*clusterInfo); ok {
-		c.resourceManager = rm
-	}
 }
 
 func (ci *clusterInfo) Name() string {

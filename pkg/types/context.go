@@ -48,6 +48,7 @@ const (
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
 	ContextUpstreamConnectionID
+	ContextKeyConnectionEventListeners
 	ContextKeyEnd
 )
 
