@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // poolBinding is a special purpose connection pool,
@@ -80,7 +80,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	c.addDownConnListenerOnce(ctx)
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.connID)
+	_ = variable.SetVariable(ctx, types.VarUpstreamConnectionID, c.connID)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -164,9 +164,8 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 
 	host := p.Host()
 
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
-
-	connCtx = mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, ac.protocol) // TODO: make sure we need it?
+	connCtx := variable.ContextSet(ctx, types.VarConnectionID, ac.host.Connection.ID())
+	connCtx = variable.ContextSet(connCtx, types.VarUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -361,7 +360,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnectionID); val != nil {
+		if val := variable.ContextGet(ctx, types.VarConnectionID); val != nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

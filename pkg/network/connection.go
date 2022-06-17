@@ -33,12 +33,12 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // Network related const
@@ -182,12 +182,12 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// store fd
-	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
+	if val := variable.ContextGet(ctx, types.VarConnectionFd); val != nil {
 		conn.file = val.(*os.File)
 	}
 
 	if conn.network == "udp" {
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val := variable.ContextGet(ctx, types.VarAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 			conn.readBuffer.Write(buf)
@@ -196,14 +196,14 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// transfer old mosn connection
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+	if cval := variable.ContextGet(ctx, types.VarAcceptChan); cval != nil {
+		if val := variable.ContextGet(ctx, types.VarAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)
 		}
 
-		ch := val.(chan api.Connection)
+		ch := cval.(chan api.Connection)
 		ch <- conn
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[network] [new server connection] NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())

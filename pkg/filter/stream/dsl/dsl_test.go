@@ -24,7 +24,6 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
@@ -86,8 +85,8 @@ func TestDSLStreamFilter(t *testing.T) {
 		"dsl0": "dsl0",
 	})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarDownStreamReqHeaders, reqHeaders)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
 	variable.SetString(ctx, types.VarPath, "/dsl")
 	variable.SetString(ctx, types.VarHost, "dsl")
@@ -102,7 +101,7 @@ func TestDSLStreamFilter(t *testing.T) {
 	}
 
 	// add dsl1 respheader
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRespHeaders, respHeaders)
+	_ = variable.SetVariable(ctx, types.VarDownStreamRespHeaders, respHeaders)
 	f.Append(ctx, respHeaders, nil, nil)
 	if _, ok := respHeaders.Get("dsl1"); !ok {
 		t.Error("DSL execute failed, at the Append phase")
@@ -175,8 +174,8 @@ func BenchmarkDSL(b *testing.B) {
 		"dsl": "dsl",
 	})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	variable.SetVariable(ctx, types.VarDownStreamReqHeaders, reqHeaders)
 	variable.SetString(ctx, types.VarPath, "/dsl")
 	variable.SetString(ctx, types.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter

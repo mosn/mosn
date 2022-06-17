@@ -23,11 +23,11 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // types.ConnectionPool
@@ -93,7 +93,7 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 		return host, nil, types.ConnectionFailure
 	}
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, activeClient.client.ConnID())
+	_ = variable.SetVariable(ctx, types.VarUpstreamConnectionID, activeClient.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
@@ -201,7 +201,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	host := pool.Host()
 	data := host.CreateConnection(ctx)
 	data.Connection.AddConnectionEventListener(ac)
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := variable.ContextSet(ctx, types.VarConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.SetStreamConnectionEventListener(ac)
 

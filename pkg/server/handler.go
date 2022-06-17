@@ -38,7 +38,6 @@ import (
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -46,8 +45,8 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // ConnectionHandler
@@ -488,27 +487,27 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// connection context support variables too
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx = variable.ContextSet(ctx, types.VarListenerPort, al.listenPort)
+	ctx = variable.ContextSet(ctx, types.VarListenerType, al.listener.Config().Type)
+	ctx = variable.ContextSet(ctx, types.VarListenerName, al.listener.Name())
+	ctx = variable.ContextSet(ctx, types.VarNetworkFilterChainFactories, al.networkFiltersFactories)
+	ctx = variable.ContextSet(ctx, types.VarAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		ctx = variable.ContextSet(ctx, types.VarConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = variable.ContextSet(ctx, types.VarAcceptChan, ch)
+		ctx = variable.ContextSet(ctx, types.VarAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = variable.ContextSet(ctx, types.VarAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		ctx = variable.ContextSet(ctx, types.VarOriRemoteAddr, oriRemoteAddr)
 	}
 
 	if len(listeners) != 0 {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionEventListeners, listeners)
+		ctx = variable.ContextSet(ctx, types.VarConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -649,18 +648,18 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
+	oriRemoteAddr := variable.ContextGet(ctx, types.VarOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	listeners := mosnctx.Get(ctx, types.ContextKeyConnectionEventListeners)
+	listeners := variable.ContextGet(ctx, types.VarConnectionEventListeners)
 	if listeners != nil {
 		for _, listener := range listeners.([]api.ConnectionEventListener) {
 			conn.AddConnectionEventListener(listener)
 		}
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
-	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
+	newCtx := variable.ContextSet(ctx, types.VarConnectionID, conn.ID())
+	newCtx = variable.ContextSet(ctx, types.VarConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -729,9 +728,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val := variable.ContextGet(ctx, types.VarAcceptChan); val != nil {
 		ch = val.(chan api.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val := variable.ContextGet(ctx, types.VarAcceptBuffer); val != nil {
 			buf = val.([]byte)
 		}
 	}

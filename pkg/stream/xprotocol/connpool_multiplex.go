@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // poolMultiplex is used for multiplex protocols like sofa, dubbo, etc.
@@ -112,7 +112,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
 			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
 			// set current client index to downstream context
-			mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+			variable.SetVariable(ctx, types.VarConnectionPoolIndex, clientIdx)
 		}
 	}
 
@@ -150,7 +150,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	)
 
 	if len(p.activeClients) > 1 {
-		clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+		clientIdxInter := variable.ContextGet(ctx, types.VarConnectionPoolIndex)
 		if clientIdx, ok = clientIdxInter.(int64); !ok {
 			// this client is not inited
 			return p.Host(), nil, types.ConnectionFailure
@@ -177,7 +177,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		return host, nil, types.Overflow
 	}
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, activeClient.codecClient.ConnID())
+	_ = variable.SetVariableValue(ctx, types.VarUpstreamConnectionID, activeClient.codecClient.ConnID())
 
 	atomic.AddUint64(&activeClient.totalStream, 1)
 	host.HostStats().UpstreamRequestTotal.Inc(1)
@@ -237,7 +237,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 
 	host := p.Host()
 	data := host.CreateConnection(ctx)
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := variable.ContextSet(ctx, types.VarConnectionID, data.Connection.ID())
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -402,7 +402,7 @@ func (ac *activeClientMultiplex) OnGoAway() {
 const invalidClientID = -1
 
 func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
-	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+	clientIdxInter := variable.ContextGet(ctx, types.VarConnectionPoolIndex)
 	clientIdx, ok := clientIdxInter.(int64)
 	if !ok {
 		return invalidClientID

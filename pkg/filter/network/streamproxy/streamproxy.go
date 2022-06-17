@@ -27,12 +27,12 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // ReadFilter
@@ -57,7 +57,7 @@ func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
 		config:         NewProxyConfig(config),
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     variable.ContextGet(ctx, types.VarAccessLogs).([]api.AccessLog),
 		ctx:            ctx,
 		network:        net,
 	}

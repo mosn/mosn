@@ -21,9 +21,9 @@ import (
 	"context"
 	"strconv"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
+	"mosn.io/pkg/variable"
 )
 
 // proxyLogger is a default implementation of ContextLogger
@@ -114,7 +114,7 @@ func traceInfo(ctx context.Context) string {
 	tid := "-"
 	uid := "-"
 
-	connId := mosnctx.Get(ctx, types.ContextKeyConnectionID) // uint64
+	connId := variable.ContextGet(ctx, types.VarConnectionID) // uint64
 	if connId != nil {
 		uConnId, ok := connId.(uint64)
 		if ok {
@@ -122,11 +122,11 @@ func traceInfo(ctx context.Context) string {
 		}
 
 	}
-	traceId := mosnctx.Get(ctx, types.ContextKeyTraceId) // string
+	traceId := variable.ContextGet(ctx, types.VarTraceId) // string
 	if traceId != nil {
 		tid = traceId.(string)
 	}
-	upstreamConnectionId := mosnctx.Get(ctx, types.ContextUpstreamConnectionID) // uint64
+	upstreamConnectionId := variable.ContextGet(ctx, types.VarUpstreamConnectionID) // uint64
 	if upstreamConnectionId != nil {
 		uConnId, ok := upstreamConnectionId.(uint64)
 		if ok {

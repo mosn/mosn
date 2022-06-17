@@ -24,12 +24,12 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	apitran "mosn.io/api/extensions/transcoder"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -58,7 +58,7 @@ func (t *http2Tohttp) TranscodingRequest(ctx context.Context, headers api.Header
 		return true
 	})
 
-	mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarUpstreamProtocol, protocol.HTTP1)
 
 	return headerImpl, buf, trailers, nil
 }

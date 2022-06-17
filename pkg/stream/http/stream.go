@@ -33,17 +33,15 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // TODO: move it to main
@@ -245,7 +243,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+	if pgc := variable.ContextGet(ctx, types.VarProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if config, ok := http1Config.(map[string]interface{}); ok {
@@ -336,7 +334,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+		ctx:      variable.ContextSet(ctx, types.VarStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -424,7 +422,7 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+	if pgc := variable.ContextGet(ctx, types.VarProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if cfg, ok := http1Config.(StreamConfig); ok {
@@ -550,7 +548,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      variable.ContextSet(ctx, types.VarStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
@@ -1011,7 +1009,7 @@ type contextManager struct {
 
 func (cm *contextManager) next() {
 	// new stream-level context based on connection-level's
-	cm.curr = mbuffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }
 
 func fasthttpPath(pathOriginal string) []byte {

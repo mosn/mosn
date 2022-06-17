@@ -20,7 +20,6 @@ package wasm
 import (
 	"context"
 
-	buf "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
 )
@@ -28,11 +27,11 @@ import (
 var rpcBufCtx wasmRpcBufferCtx
 
 func init() {
-	buf.RegisterBuffer(&rpcBufCtx)
+	buffer.RegisterBuffer(&rpcBufCtx)
 }
 
 type wasmRpcBufferCtx struct {
-	buf.TempBufferCtx
+	buffer.TempBufferCtx
 }
 
 func (ctx wasmRpcBufferCtx) New() interface{} {
@@ -71,6 +70,6 @@ type wasmRpcBuffer struct {
 }
 
 func bufferByContext(ctx context.Context) *wasmRpcBuffer {
-	poolCtx := buf.PoolContext(ctx)
+	poolCtx := buffer.PoolContext(ctx)
 	return poolCtx.Find(&rpcBufCtx, nil).(*wasmRpcBuffer)
 }

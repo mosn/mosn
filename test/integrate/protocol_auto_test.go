@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -16,6 +15,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util" // import protocol register by this package's init
 	"mosn.io/mosn/test/util/mosn"
+	"mosn.io/pkg/variable"
 )
 
 func (c *TestCase) StartAuto(tls bool) {
@@ -187,7 +187,7 @@ func TestXProtocol(t *testing.T) {
 	var magic []byte
 	var err error
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyStreamID, 1)
+	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarStreamID, 1)
 
 	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic, nil)

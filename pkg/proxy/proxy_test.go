@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
@@ -37,8 +36,8 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestMain(m *testing.M) {
@@ -51,8 +50,8 @@ func TestNewProxy(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
 		ctx := variable.NewVariableContext(context.Background())
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx = variable.ContextSet(ctx, types.VarAccessLogs, []api.AccessLog{})
+		ctx = variable.ContextSet(ctx, types.VarListenerName, "test_listener")
 		return ctx
 	}
 	t.Run("config simple", func(t *testing.T) {
@@ -115,12 +114,12 @@ func TestNewProxy(t *testing.T) {
 		// mock create proxy factory
 		extConfig := make(map[api.ProtocolName]interface{})
 		extConfig[api.ProtocolName(cfg.DownstreamProtocol)] = protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		ctx = variable.ContextSet(ctx, types.VarProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
 		var v http.StreamConfig
-		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if pgc := variable.ContextGet(p.context, types.VarProxyGeneralConfig); pgc != nil {
 			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 					if cfg, ok := http1Config.(http.StreamConfig); ok {
@@ -158,13 +157,13 @@ func TestNewProxy(t *testing.T) {
 		for proto, _ := range cfg.ExtendConfig {
 			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
 		}
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		ctx = variable.ContextSet(ctx, types.VarProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
 		var value1 http.StreamConfig
 		var value2 http2.StreamConfig
-		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if pgc := variable.ContextGet(p.context, types.VarProxyGeneralConfig); pgc != nil {
 			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 					if cfg, ok := http1Config.(http.StreamConfig); ok {
@@ -210,12 +209,12 @@ func TestNewProxy(t *testing.T) {
 		for proto, _ := range cfg.ExtendConfig {
 			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
 		}
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		ctx = variable.ContextSet(ctx, types.VarProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
 		var v http.StreamConfig
-		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if pgc := variable.ContextGet(p.context, types.VarProxyGeneralConfig); pgc != nil {
 			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 					if cfg, ok := http1Config.(http.StreamConfig); ok {
@@ -254,13 +253,13 @@ func TestNewProxy(t *testing.T) {
 		for proto, _ := range cfg.ExtendConfig {
 			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
 		}
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		ctx = variable.ContextSet(ctx, types.VarProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
 		var value1 http.StreamConfig
 		var value2 http2.StreamConfig
-		if pgc := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if pgc := variable.ContextGet(p.context, types.VarProxyGeneralConfig); pgc != nil {
 			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 					if cfg, ok := http1Config.(http.StreamConfig); ok {
@@ -298,8 +297,8 @@ func TestNewProxyRequest(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
 		ctx := variable.NewVariableContext(context.Background())
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx = variable.ContextSet(ctx, types.VarAccessLogs, []api.AccessLog{})
+		ctx = variable.ContextSet(ctx, types.VarListenerName, "test_listener")
 		return ctx
 	}
 	callCreateFilterChain := false

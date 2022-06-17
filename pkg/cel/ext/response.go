@@ -21,12 +21,12 @@ import (
 	"context"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func addResponseheader(ctx context.Context, key, val string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamRespHeaders).(api.HeaderMap)
+	headers, ok := variable.ContextGet(ctx, types.VarDownStreamRespHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}
@@ -37,7 +37,7 @@ func addResponseheader(ctx context.Context, key, val string) bool {
 }
 
 func delResponseheader(ctx context.Context, key string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamRespHeaders).(api.HeaderMap)
+	headers, ok := variable.ContextGet(ctx, types.VarDownStreamRespHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}

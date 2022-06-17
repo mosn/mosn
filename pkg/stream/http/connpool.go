@@ -19,7 +19,6 @@ package http
 
 import (
 	"context"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +29,7 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -96,7 +96,7 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 		return host, nil, reason
 	}
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.client.ConnID())
+	variable.SetVariable(ctx, types.VarUpstreamConnectionID, c.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)

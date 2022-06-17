@@ -31,7 +31,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	mhttp2 "mosn.io/mosn/pkg/module/http2"
 	mhpack "mosn.io/mosn/pkg/module/http2/hpack"
@@ -214,7 +213,7 @@ func TestServerH2ReqUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	serverCallbacks := mock.NewMockServerStreamConnectionEventListener(ctrl)
 
@@ -308,7 +307,7 @@ func TestClientH2ReqUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().AddConnectionEventListener(gomock.Any()).AnyTimes()
@@ -426,7 +425,7 @@ func TestClientH2RespUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	clientCallbacks := mock.NewMockStreamConnectionEventListener(ctrl)
 
@@ -498,14 +497,12 @@ func TestServerH2RespUseStream(t *testing.T) {
 		},
 	}
 
-	ctx := variable.NewVariableContext(context.Background())
-
 	http2Config := map[string]interface{}{
 		"http2_use_stream": true,
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().SetTransferEventListener(gomock.Any()).AnyTimes()
@@ -540,21 +537,22 @@ func TestServerH2RespUseStream(t *testing.T) {
 			}
 			return nil, nil
 		}
-		ctx := mosnctx.Clone(ctx)
-		variable.Set(ctx, types.VarHttp2ResponseUseStream, testcase.useStream)
+		// mock Next, stream context inherit by connection context
+		sctx := variable.NewVariableContext(ctx)
+		variable.Set(sctx, types.VarHttp2ResponseUseStream, testcase.useStream)
 
 		h2s := &mhttp2.MStream{}
 		monkey.PatchInstanceMethod(reflect.TypeOf(h2s), "ID", func(cc *mhttp2.MStream) uint32 {
 			return 1
 		})
-		serverStream, _ := sc.onNewStreamDetect(ctx, h2s, false)
-		err := serverStream.AppendHeaders(ctx, &phttp2.RspHeader{
+		serverStream, _ := sc.onNewStreamDetect(sctx, h2s, false)
+		err := serverStream.AppendHeaders(sctx, &phttp2.RspHeader{
 			HeaderMap: &phttp2.HeaderMap{
 				H: rsp.Header,
 			},
 			Rsp: rsp,
 		}, false)
 		assert.Nil(t, err)
-		serverStream.AppendTrailers(ctx, nil)
+		serverStream.AppendTrailers(sctx, nil)
 	}
 }

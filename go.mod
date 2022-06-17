@@ -67,3 +67,5 @@ require (
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
+
+replace mosn.io/pkg => /Users/neji.bp/Go/src/mosn.io/pkg

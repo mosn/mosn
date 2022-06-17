@@ -22,13 +22,13 @@ import (
 	"net"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 type mirror struct {
@@ -67,7 +67,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	utils.GoWithRecover(func() {
 		clusterAdapter := cluster.GetClusterMngAdapterInstance()
 
-		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
+		m.ctx = buffer.CleanBufferPoolContext(ctx)
 		if headers != nil {
 			// ! xprotocol should reimplement Clone function, not use default, trans protocol.CommonHeader
 			h := headers.Clone()
@@ -149,7 +149,7 @@ func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 }
 
 func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
-	if dp, ok := mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol).(types.ProtocolName); ok {
+	if dp, ok := variable.ContextGet(m.ctx, types.VarDownStreamProtocol).(types.ProtocolName); ok {
 		return dp
 	}
 	return m.receiveHandler.RequestInfo().Protocol()
@@ -162,7 +162,7 @@ func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 		configProtocol = types.ProtocolName(m.receiveHandler.Route().RouteRule().UpstreamProtocol())
 	}
 
-	if proto, ok := mosnctx.Get(m.ctx, types.ContextKeyUpStreamProtocol).(types.ProtocolName); ok {
+	if proto, ok := variable.ContextGet(m.ctx, types.VarUpstreamProtocol).(types.ProtocolName); ok {
 		configProtocol = proto
 	}
 

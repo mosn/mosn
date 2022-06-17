@@ -21,7 +21,7 @@ import (
 	"context"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {

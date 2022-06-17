@@ -27,7 +27,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -37,8 +36,8 @@ import (
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -115,7 +114,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     variable.ContextGet(ctx, types.VarAccessLogs).([]api.AccessLog),
 	}
 
 	if pi, err := variable.Get(ctx, types.VarProtocolConfig); err == nil {
@@ -130,7 +129,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	listenerName := variable.ContextGet(ctx, types.VarListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {

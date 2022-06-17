@@ -27,12 +27,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 type serverType struct {
@@ -115,8 +114,8 @@ func TestDownClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	ctx = variable.ContextSet(ctx, types.VarConnection, sConnI)
+	ctx = variable.ContextSet(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -160,8 +159,8 @@ func TestUpperClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	ctx = variable.ContextSet(ctx, types.VarConnection, sConnI)
+	ctx = variable.ContextSet(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))

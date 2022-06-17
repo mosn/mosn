@@ -19,11 +19,12 @@ package ipaccess
 
 import (
 	"context"
+
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
+	"mosn.io/pkg/variable"
 )
 
 type IPAccessFilter struct {
@@ -46,7 +47,7 @@ func (f *IPAccessFilter) OnReceive(ctx context.Context, headers api.HeaderMap, b
 		addr, _ = headers.Get(f.header)
 	}
 	if addr == "" {
-		if conn, ok := mosnctx.Get(ctx, types.ContextKeyConnection).(api.Connection); ok {
+		if conn, ok := variable.ContextGet(ctx, types.VarConnection).(api.Connection); ok {
 			addr = conn.RemoteAddr().String()
 		}
 	}

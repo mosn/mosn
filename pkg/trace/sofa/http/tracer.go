@@ -23,11 +23,11 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 type HTTPTracer struct {
@@ -63,7 +63,7 @@ func (t *HTTPTracer) HTTPDelegate(ctx context.Context, header http.RequestHeader
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(sofa.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	lType := variable.ContextGet(ctx, types.VarListenerType)
 
 	spanId, ok := header.Get(sofa.HTTP_RPC_ID_KEY)
 	if !ok {

@@ -22,13 +22,12 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -60,12 +59,12 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
-	proto := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol)
+	proto := variable.ContextGet(ctx, types.VarDownStreamProtocol)
 	if proto == nil || dubbo.ProtocolName != proto {
 		return api.StreamFilterContinue
 	}
 
-	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	listener := variable.ContextGet(ctx, types.VarListenerName).(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
@@ -99,7 +98,7 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	listener := variable.ContextGet(ctx, types.VarListenerName).(string)
 	service, err := variable.GetString(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)

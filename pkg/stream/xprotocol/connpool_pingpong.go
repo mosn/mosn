@@ -19,7 +19,6 @@ package xprotocol
 
 import (
 	"context"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // poolPingPong is used for ping pong protocol such as http
@@ -62,7 +62,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 	if reason != "" {
 		return host, nil, reason
 	}
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.codecClient.ConnID())
+	_ = variable.SetVariable(ctx, types.VarUpstreamConnectionID, c.codecClient.ConnID())
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
