@@ -19,10 +19,8 @@ package trace
 
 import (
 	"fmt"
-	"plugin"
 
 	"mosn.io/api"
-	"mosn.io/pkg/log"
 
 	"mosn.io/mosn/pkg/types"
 )
@@ -37,16 +35,7 @@ type defaultDriver struct {
 }
 
 func (d *defaultDriver) Init(config map[string]interface{}) error {
-	tracer, err := d.loadPlugin(config)
-	if err != nil {
-		log.DefaultLogger.Errorf("lood trace plugin failed err:%s", err.Error())
-		return err
-	}
 	for proto, holder := range d.tracers {
-		if tracer != nil {
-			holder.Tracer = tracer
-			continue
-		}
 		tracer, err := holder.TracerBuilder(config)
 		if err != nil {
 			return fmt.Errorf("build tracer for %v error, %s", proto, err)
@@ -54,35 +43,6 @@ func (d *defaultDriver) Init(config map[string]interface{}) error {
 		holder.Tracer = tracer
 	}
 	return nil
-}
-
-func (d *defaultDriver) loadPlugin(config map[string]interface{}) (api.Tracer, error) {
-	sopath, ok2 := config["sopath"].(string)
-	if !ok2 {
-		return nil, nil
-	}
-
-	loaderFuncName, ok := config["factory_method"].(string)
-	if !ok {
-		loaderFuncName = "TracerBuilder"
-	}
-
-	p, err := plugin.Open(sopath)
-	if err != nil {
-		return nil, err
-	}
-
-	sym, err := p.Lookup(loaderFuncName)
-	if err != nil {
-		return nil, err
-	}
-
-	loadFunc, ok := sym.(func(config map[string]interface{}) (api.Tracer, error))
-	if !ok {
-		return nil, err
-	}
-	log.DefaultLogger.Infof("lood trace plugin funcname:%s,sopath:%s", loaderFuncName, sopath)
-	return loadFunc(config)
 }
 
 func (d *defaultDriver) Register(proto types.ProtocolName, builder api.TracerBuilder) {

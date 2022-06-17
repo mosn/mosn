@@ -34,7 +34,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
@@ -43,7 +42,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/stagemanager"
-	"mosn.io/mosn/pkg/trace"
 	"mosn.io/pkg/buffer"
 )
 
@@ -232,8 +230,6 @@ func DefaultParamsParsed(c *cli.Context) {
 
 // Call the extensions that are needed here, instead of in extensions init() function
 func ExtensionsRegister(c *cli.Context) {
-	// tracer driver register
-	trace.RegisterDriver("SkyWalking", trace.NewDefaultDriverImpl())
 	// xprotocol register
 	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&boltv2.XCodec{})
@@ -241,8 +237,6 @@ func ExtensionsRegister(c *cli.Context) {
 	_ = xprotocol.RegisterXProtocolCodec(&dubbothrift.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
 
-	// trace register
-	trace.RegisterTracerBuilder("SkyWalking", protocol.HTTP1, nil)
 	// register buffer logger
 	buffer.SetLogFunc(func(msg string) {
 		log.DefaultLogger.Errorf("[iobuffer] iobuffer error log info: %s", msg)
