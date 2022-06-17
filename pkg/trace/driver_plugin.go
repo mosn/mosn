@@ -74,7 +74,12 @@ func (d *pluginDriver) loadPlugin(config map[string]interface{}) (api.Tracer, er
 		return nil, err
 	}
 	log.DefaultLogger.Infof("lood trace plugin funcname:%s,sopath:%s", loaderFuncName, sopath)
-	return loadFunc(config)
+
+	builderc, ok := config["builder"].(map[string]interface{})
+	if ok {
+		return loadFunc(builderc)
+	}
+	return nil, fmt.Errorf("the builder config is empty")
 }
 
 func (d *pluginDriver) Register(proto types.ProtocolName, builder api.TracerBuilder) {

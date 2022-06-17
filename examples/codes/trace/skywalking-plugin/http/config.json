@@ -69,9 +69,11 @@
     "driver": "PluginDriver",
     "config": {
       "sopath":"tracer.so",
-      "reporter": "gRPC",
-      "backend_service": "127.0.0.1:11800",
-      "service_name": "MOSN"
+      "builder":{
+           "reporter": "gRPC",
+           "backend_service": "127.0.0.1:11800",
+           "service_name": "MOSN"
+      }
     }
   },
   "admin": {
