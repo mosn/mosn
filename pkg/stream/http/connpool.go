@@ -19,6 +19,7 @@ package http
 
 import (
 	"context"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -94,6 +95,8 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	if c == nil {
 		return host, nil, reason
 	}
+
+	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
