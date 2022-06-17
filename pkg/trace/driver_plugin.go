@@ -18,6 +18,7 @@
 package trace
 
 import (
+	"fmt"
 	"plugin"
 
 	"mosn.io/api"
@@ -49,8 +50,8 @@ func (d *pluginDriver) Init(config map[string]interface{}) error {
 
 func (d *pluginDriver) loadPlugin(config map[string]interface{}) (api.Tracer, error) {
 	sopath, ok2 := config["sopath"].(string)
-	if !ok2 {
-		return nil, nil
+	if !ok2 || len(sopath) == 0 {
+		return nil, fmt.Errorf("sopath is empty")
 	}
 
 	loaderFuncName, ok := config["factory_method"].(string)
