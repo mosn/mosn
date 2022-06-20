@@ -36,6 +36,7 @@ import (
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -105,7 +106,9 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, string(c.Protocol))
+
+	ctx := variable.NewVariableContext(context.Background())
+	ctx = variable.ContextSet(ctx, types.VarUpstreamProtocol, c.Protocol)
 	c.Codec = stream.NewStreamClient(ctx, c.Protocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", c.Protocol, cc)
