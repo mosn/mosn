@@ -27,15 +27,14 @@ import (
 	"strings"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnhttp "mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/pkg/variable"
-
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
-
+	zipkin "github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 type httpTracer struct {

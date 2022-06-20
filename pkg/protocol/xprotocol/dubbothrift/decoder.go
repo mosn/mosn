@@ -27,7 +27,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 

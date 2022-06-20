@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // load should be balanced when node fails

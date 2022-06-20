@@ -39,8 +39,8 @@ import (
 	phttp2 "mosn.io/mosn/pkg/protocol/http2"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestDirectResponse(t *testing.T) {
@@ -340,7 +340,7 @@ func TestClientH2ReqUseStream(t *testing.T) {
 			}
 			return nil, nil
 		}
-		ctx := variable.NewVariableContext(context.Background())
+		ctx := variable.NewVariableContext(ctx)
 		variable.Set(ctx, types.VarHttp2RequestUseStream, testcase.useStream)
 
 		clientStream := sc.NewStream(ctx, responseReceiveListener)

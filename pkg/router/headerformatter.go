@@ -19,7 +19,7 @@ package router
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"strings"
 )
 

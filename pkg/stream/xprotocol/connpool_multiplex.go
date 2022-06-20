@@ -177,7 +177,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		return host, nil, types.Overflow
 	}
 
-	_ = variable.SetVariableValue(ctx, types.VarUpstreamConnectionID, activeClient.codecClient.ConnID())
+	_ = variable.SetVariable(ctx, types.VarUpstreamConnectionID, activeClient.codecClient.ConnID())
 
 	atomic.AddUint64(&activeClient.totalStream, 1)
 	host.HostStats().UpstreamRequestTotal.Inc(1)
