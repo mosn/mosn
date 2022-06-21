@@ -42,17 +42,18 @@ var errNilCluster = errors.New("cannot update nil cluster")
 func refreshHostsConfig(c types.Cluster) {
 	// use new cluster snapshot to get new cluster config
 	name := c.Snapshot().ClusterInfo().Name()
-	hosts := c.Snapshot().HostSet().Hosts()
-	hostsConfig := make([]v2.Host, 0, len(hosts))
-	for _, h := range hosts {
+	hostSet := c.Snapshot().HostSet()
+	hostsConfig := make([]v2.Host, 0, hostSet.Size())
+	hostSet.Range(func(h types.Host) bool {
 		hostsConfig = append(hostsConfig, h.Config())
-	}
+		return true
+	})
 	configmanager.SetHosts(name, hostsConfig)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
+		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, hostSet.Size())
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hosts)
+		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hostSet)
 	}
 }
 
@@ -60,11 +61,11 @@ const globalTLSMetrics = "global"
 
 // types.ClusterManager
 type clusterManager struct {
-	clustersMap      sync.Map
-	protocolConnPool sync.Map // protocolname: { address : connpool }
-	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSClientContextManager
-	mux              sync.Mutex
+	clustersMap          sync.Map
+	protocolConnPool     sync.Map // protocolname: { address : connpool }
+	tlsMetrics           *mtls.TLSStats
+	tlsMng               atomic.Value // store types.TLSClientContextManager
+	mux                  sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -147,12 +148,13 @@ func InheritClusterHostsHandler(oc, nc types.Cluster) {
 	if oc == nil {
 		return
 	}
-	hosts := oc.Snapshot().HostSet().Hosts()
+
 	newInfo := nc.Snapshot().ClusterInfo()
-	for _, host := range hosts {
+	oc.Snapshot().HostSet().Range(func(host types.Host) bool {
 		host.SetClusterInfo(newInfo) // update host cluster info
-	}
-	nc.UpdateHosts(hosts)
+		return true
+	})
+	nc.UpdateHosts(oc.Snapshot().HostSet())
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
@@ -255,7 +257,7 @@ func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	c.UpdateHosts(hosts)
+	c.UpdateHosts(NewHostSet(hosts))
 
 }
 
@@ -265,8 +267,11 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	hosts = append(hosts, snap.HostSet().Hosts()...)
-	c.UpdateHosts(hosts)
+	snap.HostSet().Range(func(host types.Host) bool {
+		hosts = append(hosts, host)
+		return true
+	})
+	c.UpdateHosts(NewHostSet(hosts))
 
 }
 
@@ -285,9 +290,11 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 	return cm.UpdateHosts(clusterName, nil,
 		func(c types.Cluster, _ []v2.Host) {
 			snap := c.Snapshot()
-			hosts := snap.HostSet().Hosts()
-			newHosts := make([]types.Host, len(hosts))
-			copy(newHosts, hosts)
+			newHosts := make([]types.Host,0, snap.HostSet().Size())
+			snap.HostSet().Range(func(host types.Host) bool {
+				newHosts = append(newHosts, host)
+				return true
+			})
 			sortedHosts := types.SortedHosts(newHosts)
 			sort.Sort(sortedHosts)
 			for _, addr := range addrs {
@@ -299,7 +306,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 					sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
 				}
 			}
-			c.UpdateHosts(sortedHosts)
+			c.UpdateHosts(NewHostSet(sortedHosts))
 
 		},
 	)

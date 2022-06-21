@@ -23,6 +23,7 @@ import (
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 var _ api.ReadFilter = (*tunnelFilter)(nil)
@@ -110,8 +111,11 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 		for _, hc := range hostConfigs {
 			hosts = append(hosts, NewHost(hc, snap.ClusterInfo(), CreateAgentBackendConnection(conn)))
 		}
-		hosts = append(hosts, snap.HostSet().Hosts()...)
-		c.UpdateHosts(hosts)
+		snap.HostSet().Range(func(h types.Host) bool {
+			hosts = append(hosts, h)
+			return true
+		})
+		c.UpdateHosts(cluster.NewHostSet(hosts))
 	})
 	t.connInitialized = true
 	return api.Stop

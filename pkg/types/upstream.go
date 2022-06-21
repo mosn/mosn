@@ -124,7 +124,7 @@ type Cluster interface {
 	Snapshot() ClusterSnapshot
 
 	// UpdateHosts updates the host set's hosts
-	UpdateHosts([]Host)
+	UpdateHosts(HostSet)
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
@@ -138,8 +138,14 @@ type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
 type HostSet interface {
-	// Hosts returns all hosts that make up the set at the current time.
-	Hosts() []Host
+	// Size return len(hosts) in hostSet
+	Size() int
+
+	// Get get hosts[i] in hostSet
+	// The value range of i should be [0, len(hosts) )
+	Get(i int) Host
+	// Range iterate each host in hostSet
+	Range(func(Host) bool)
 }
 
 // Host is an upstream host
