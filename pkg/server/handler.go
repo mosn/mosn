@@ -751,7 +751,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		return
 	}
 
-	// If it can’t find any matching listeners and should using the self listener.
+	// If it can’t find any matching listeners and should use the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
