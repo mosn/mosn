@@ -741,6 +741,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
+		return
 	}
 
 	if localListener != nil {
