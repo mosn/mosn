@@ -251,7 +251,7 @@ func (sslb *subsetLoadBalancer) LoadBalancers() map[string]types.LoadBalancer {
 	lbs := map[string]types.LoadBalancer{
 		types.AllHostMetaKey: sslb.fullLb,
 	}
-	lbs = TraversalLbSubsetMap(lbs, "", sslb.subSets)
+	TraversalLbSubsetMap(lbs, "", sslb.subSets)
 
 	if sslb.fallbackSubset != nil {
 		lbs[types.FallbackMetaKey] = sslb.fallbackSubset.LoadBalancer()
@@ -261,21 +261,21 @@ func (sslb *subsetLoadBalancer) LoadBalancers() map[string]types.LoadBalancer {
 
 // TraversalLbSubsetMap returns all load balancers in subset tree.
 // The map key format is
-// metakey:metavalue -> metakey: metavalue...
-func TraversalLbSubsetMap(lbs map[string]types.LoadBalancer, prefix string, subsetMap types.LbSubsetMap) map[string]types.LoadBalancer {
+// metakey:metavalue->metakey:metavalue...
+func TraversalLbSubsetMap(lbs map[string]types.LoadBalancer, prefix string, subsetMap types.LbSubsetMap) {
 	for key, vm := range subsetMap {
 		for v, entry := range vm {
 			p := prefix + key + ":" + v
 			child := entry.Children()
 			if child != nil {
-				lbs = TraversalLbSubsetMap(lbs, p+types.MetaKeySep, child)
+				TraversalLbSubsetMap(lbs, p+types.MetaKeySep, child)
 			}
 			if entry.Initialized() {
 				lbs[p] = entry.LoadBalancer()
 			}
 		}
 	}
-	return lbs
+	return
 }
 
 // if subsetKeys are all contained in the host metadata
