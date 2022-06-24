@@ -270,7 +270,7 @@ func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadB
 }
 
 type EdfLoadBalancer struct {
-	scheduler *edfSchduler
+	scheduler *edfScheduler
 	hosts     types.HostSet
 	rand      *rand.Rand
 	mutex     sync.Mutex
@@ -281,7 +281,7 @@ type EdfLoadBalancer struct {
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 
-	var candicate types.Host
+	var candidate types.Host
 	hs := lb.hosts
 	total := hs.Size()
 	if total == 0 {
@@ -300,9 +300,9 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	if lb.scheduler != nil {
 		for i := 0; i < total; i++ {
 			// do weight selection
-			candicate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
-			if candicate != nil && candicate.Health() {
-				return candicate
+			candidate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
+			if candidate != nil && candidate.Health() {
+				return candidate
 			}
 		}
 	}

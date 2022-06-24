@@ -24,14 +24,14 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 )
 
-type edfSchduler struct {
+type edfScheduler struct {
 	lock        sync.Mutex
 	items       *edfHeap
 	currentTime float64
 }
 
-func newEdfScheduler(cap int) *edfSchduler {
-	return &edfSchduler{
+func newEdfScheduler(cap int) *edfScheduler {
+	return &edfScheduler{
 		items: newEdfHeap(cap),
 	}
 }
@@ -48,8 +48,8 @@ type WeightItem interface {
 	Weight() uint32
 }
 
-// Add new item into the edfSchduler
-func (edf *edfSchduler) Add(item WeightItem, weight float64) {
+// Add new item into the edfScheduler
+func (edf *edfScheduler) Add(item WeightItem, weight float64) {
 	weight = edfFixedWeight(weight)
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
@@ -64,7 +64,7 @@ func (edf *edfSchduler) Add(item WeightItem, weight float64) {
 
 // Pick entry with closest deadline and push again
 // Note that you need to ensure the return result of weightFunc is not equal to 0
-func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) interface{} {
+func (edf *edfScheduler) NextAndPush(weightFunc func(item WeightItem) float64) interface{} {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	if edf.items.Empty() {
