@@ -36,7 +36,7 @@ type subsetLoadBalancer struct {
 	fullLb         types.LoadBalancer // a loadbalancer for all hosts
 }
 
-func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.LoadBalancer {
+func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.SubsetLoadBalancer {
 	subsetInfo := info.LbSubsetInfo()
 	subsetLB := &subsetLoadBalancer{
 		lbType:  info.LbType(),
@@ -243,6 +243,41 @@ func (sslb *subsetLoadBalancer) findOrCreateSubset(subsets types.LbSubsetMap, kv
 	return sslb.findOrCreateSubset(entry.Children(), kvs, idx)
 }
 
+// LoadBalancers returns all load balancers in the subset load balancer.
+// the max load balancers count equals fallback lb，full lb
+// and load balancers in subset tree.
+func (sslb *subsetLoadBalancer) LoadBalancers() map[string]types.LoadBalancer {
+
+	lbs := map[string]types.LoadBalancer{
+		types.AllHostMetaKey: sslb.fullLb,
+	}
+	TraversalLbSubsetMap(lbs, "", sslb.subSets)
+
+	if sslb.fallbackSubset != nil {
+		lbs[types.FallbackMetaKey] = sslb.fallbackSubset.LoadBalancer()
+	}
+	return lbs
+}
+
+// TraversalLbSubsetMap returns all load balancers in subset tree.
+// The map key format is
+// metakey:metavalue->metakey:metavalue...
+func TraversalLbSubsetMap(lbs map[string]types.LoadBalancer, prefix string, subsetMap types.LbSubsetMap) {
+	for key, vm := range subsetMap {
+		for v, entry := range vm {
+			p := prefix + key + ":" + v
+			child := entry.Children()
+			if child != nil {
+				TraversalLbSubsetMap(lbs, p+types.MetaKeySep, child)
+			}
+			if entry.Initialized() {
+				lbs[p] = entry.LoadBalancer()
+			}
+		}
+	}
+	return
+}
+
 // if subsetKeys are all contained in the host metadata
 func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata, kvs types.SubsetMetadata) types.SubsetMetadata {
 	for _, key := range subsetKeys {
@@ -293,12 +328,12 @@ func (entry *LBSubsetEntryImpl) Initialized() bool {
 }
 
 func (entry *LBSubsetEntryImpl) Active() bool {
-	return entry.hostSet != nil && entry.hostSet.Size() != 0
+	return entry.HostNum() > 0
 }
 
 func (entry *LBSubsetEntryImpl) HostNum() int {
-	if entry.hostSet != nil {
-		return entry.hostSet.Size()
+	if entry.lb != nil {
+		return entry.lb.HostNum(nil)
 	}
 	return 0
 }
