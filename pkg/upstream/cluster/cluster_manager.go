@@ -222,12 +222,12 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 // RemovePrimaryCluster removes clusters from cluster manager
-// If the cluster is more than one, all of them should be exists, or no one will be deleted
+// If the cluster is more than one, all of them should exist, or no one will be deleted
 func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
-	// check all clutsers in cluster manager
+	// check all clusters in cluster manager
 	for _, clusterName := range clusterNames {
 		if _, ok := cm.clustersMap.Load(clusterName); !ok {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] Remove Primary Cluster,  cluster %s not exists", clusterName)
+			log.DefaultLogger.Errorf("[upstream] [cluster manager] Remove Primary Cluster,  cluster %s is not exists", clusterName)
 			return fmt.Errorf("remove cluster failed, cluster %s is not exists", clusterName)
 		}
 	}
@@ -457,7 +457,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 
 		connectionPool := value.(*sync.Map)
-		// we cannot use sync.Map.LoadOrStore directly, becasue we do not want to new a connpool every time
+		// we cannot use sync.Map.LoadOrStore directly, because we do not want to new a connpool every time
 		loadOrStoreConnPool := func() (types.ConnectionPool, bool) {
 			// avoid locking if it is already exists
 			if connPool, ok := connectionPool.Load(addr); ok {

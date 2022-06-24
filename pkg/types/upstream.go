@@ -165,7 +165,7 @@ type Host interface {
 	// CreateConnection a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// CreateUDPConnection a udp connection for this host.
+	// CreateUDPConnection an udp connection for this host.
 	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
@@ -203,7 +203,7 @@ type ClusterInfo interface {
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
 
-	// ConectTimeout returns the connect timeout
+	// ConnectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
 
 	// IdleTimeout returns the idle timeout
@@ -234,7 +234,7 @@ type ResourceManager interface {
 	Retries() Resource
 }
 
-// Resource is a interface to statistics information
+// Resource is an interface to statistics information
 type Resource interface {
 	CanCreate() bool
 	Increase()

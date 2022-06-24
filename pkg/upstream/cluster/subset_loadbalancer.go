@@ -54,9 +54,9 @@ func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.
 
 func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if ctx != nil {
-		host, hostChoosen := sslb.tryChooseHostFromContext(ctx)
+		host, hostChosen := sslb.tryChooseHostFromContext(ctx)
 		// if a subset's hosts are all deleted, it will return a nil host and a true flag
-		if hostChoosen && host != nil {
+		if hostChosen && host != nil {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match subset entry success, "+
 					"choose hostaddr = %s", host.AddressString())
