@@ -133,10 +133,10 @@ type Cluster interface {
 	StopHealthChecking()
 }
 
-// HostPredicate checks wether the host is matched the metadata
+// HostPredicate checks whether the host is matched the metadata
 type HostPredicate func(Host) bool
 
-// HostSet is as set of hosts that contains all of the endpoints for a given
+// HostSet is as set of hosts that contains all the endpoints for a given
 type HostSet interface {
 	// Size return len(hosts) in hostSet
 	Size() int
@@ -144,7 +144,7 @@ type HostSet interface {
 	// Get get hosts[i] in hostSet
 	// The value range of i should be [0, len(hosts) )
 	Get(i int) Host
-	// Range iterate each host in hostSet
+	// Range iterates each host in hostSet
 	Range(func(Host) bool)
 }
 
