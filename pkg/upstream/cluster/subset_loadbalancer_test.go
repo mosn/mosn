@@ -841,6 +841,40 @@ func TestNoFallbackWithEmpty(t *testing.T) {
 
 }
 
+func TestSubsetLoadBalancers(t *testing.T) {
+	info := NewLBSubsetInfo(exampleSubsetConfig()).(*LBSubsetInfoImpl)
+	stats := newClusterStats("TestNewSubsetLoadBalancer")
+	ps := createHostset(exampleHostConfigs())
+	t.Run("test no fallback", func(t *testing.T) {
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+1, len(slb.LoadBalancers()))
+		}
+	})
+	t.Run("test with default fallback", func(t *testing.T) {
+		info.fallbackPolicy = types.DefaultSubset
+		info.defaultSubSet = types.SubsetMetadata(
+			[]types.Pair{
+				{
+					T1: "version",
+					T2: "1.0",
+				},
+			},
+		)
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+2, len(slb.LoadBalancers()))
+		}
+	})
+	t.Run("test with any fallback", func(t *testing.T) {
+		info.fallbackPolicy = types.AnyEndPoint
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+2, len(slb.LoadBalancers()))
+		}
+	})
+}
+
 func benchHostConfigs(hostCount int, keyValues int) []v2.Host {
 	ret := make([]v2.Host, 0, hostCount)
 	keyValues = int(math.Max(float64(keyValues), 1))

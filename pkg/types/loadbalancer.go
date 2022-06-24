@@ -72,6 +72,16 @@ type LoadBalancerContext interface {
 	DownstreamRoute() api.Route
 }
 
+// SubsetLoadBalancer is a special LoadBalancer
+// consisting of a set of LoadBalancers
+type SubsetLoadBalancer interface {
+	LoadBalancer
+	// LoadBalancers returns all load balancers in
+	// the subset load balancer, include load balancers
+	// in subset tree and fallback load balancers.
+	LoadBalancers() []LoadBalancer
+}
+
 // LBSubsetEntry is a entry that stored in the subset hierarchy.
 type LBSubsetEntry interface {
 	// Initialized returns the entry is initialized or not.

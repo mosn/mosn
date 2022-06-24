@@ -59,7 +59,7 @@ func TestClusterUpdateHosts(t *testing.T) {
 	// verify
 	snap := cluster.Snapshot()
 	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
-	if subLb.fallbackSubset.hostSet.Size() != 40 {
+	if subLb.fallbackSubset.HostNum() != 40 {
 		t.Fatal("default fallback should be all hosts")
 	}
 	result := &subSetMapResult{
@@ -99,7 +99,7 @@ func TestClusterUpdateHosts(t *testing.T) {
 	newSnap := cluster.Snapshot()
 	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	// verify
-	if newSubLb.fallbackSubset.hostSet.Size() != 60 {
+	if newSubLb.fallbackSubset.HostNum() != 60 {
 		t.Fatal("default fallback should be all hosts")
 	}
 	newResult := &subSetMapResult{
