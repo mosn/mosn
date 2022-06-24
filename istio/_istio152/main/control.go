@@ -130,7 +130,7 @@ var (
 				Usage: "ip version, v4 or v6, currently useless",
 			}, cli.IntFlag{
 				Name:  "restart-epoch",
-				Usage: "eporch to restart, align to Istio startup params, currently useless",
+				Usage: "epoch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
 				Usage: "seconds to drain connections, default 600 seconds",
