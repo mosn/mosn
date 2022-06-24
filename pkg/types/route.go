@@ -61,7 +61,7 @@ type RouterManager interface {
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
 	// AddRoute adds a single router rule into specified virtualhost(by domain)
 	AddRoute(routerConfigName, domain string, route *v2.Router) error
-	// RemoveAllRoutes clear all of the specified virtualhost's routes
+	// RemoveAllRoutes clear all the specified virtualhost's routes
 	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
