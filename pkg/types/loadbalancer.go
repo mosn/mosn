@@ -72,6 +72,12 @@ type LoadBalancerContext interface {
 	DownstreamRoute() api.Route
 }
 
+const (
+	AllHostMetaKey  = "MOSN-Subset-All"
+	FallbackMetaKey = "MOSN-Subset-Fallback"
+	MetaKeySep      = "->"
+)
+
 // SubsetLoadBalancer is a special LoadBalancer
 // consisting of a set of LoadBalancers
 type SubsetLoadBalancer interface {
@@ -79,7 +85,8 @@ type SubsetLoadBalancer interface {
 	// LoadBalancers returns all load balancers in
 	// the subset load balancer, include load balancers
 	// in subset tree and fallback load balancers.
-	LoadBalancers() []LoadBalancer
+	// the key is metadata information string
+	LoadBalancers() map[string]LoadBalancer
 }
 
 // LBSubsetEntry is a entry that stored in the subset hierarchy.
