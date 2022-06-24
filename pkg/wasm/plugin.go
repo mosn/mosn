@@ -261,7 +261,7 @@ func (w *wasmPluginImpl) Clear() {
 // SetCpuLimit set cpu limit of the plugin, no-op.
 func (w *wasmPluginImpl) SetCpuLimit(cpu int) {}
 
-// SetCpuLimit set cpu limit of the plugin, no-op.
+// SetMemLimit set memory limit of the plugin, no-op.
 func (w *wasmPluginImpl) SetMemLimit(mem int) {}
 
 // Exec execute the f for each instance.

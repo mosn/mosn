@@ -303,7 +303,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together
+	// bytes total adds all connections' data together
 	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac, ""
