@@ -112,16 +112,22 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 
 	if err != nil {
-		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder request failed: %v", err)
+		if outHeaders != nil {
+			f.receiveHandler.SetRequestHeaders(outHeaders)
+			f.receiveHandler.SetRequestData(outBuf)
+			f.receiveHandler.SendHijackReply(http.StatusBadRequest, outHeaders)
+			f.receiveHandler.SetRequestTrailers(outTrailers)
+		} else {
+			f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
+		}
 		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
-		f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder request failed: %v", err)
 		return api.StreamFilterStop
 	}
 
 	f.receiveHandler.SetRequestHeaders(outHeaders)
 	f.receiveHandler.SetRequestData(outBuf)
 	f.receiveHandler.SetRequestTrailers(outTrailers)
-
 	return api.StreamFilterContinue
 }
 
