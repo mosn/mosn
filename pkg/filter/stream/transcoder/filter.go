@@ -115,8 +115,8 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 		if outHeaders != nil {
 			f.receiveHandler.SetRequestHeaders(outHeaders)
 			f.receiveHandler.SetRequestData(outBuf)
-			f.receiveHandler.SendHijackReply(http.StatusBadRequest, outHeaders)
 			f.receiveHandler.SetRequestTrailers(outTrailers)
+			f.receiveHandler.SendHijackReply(http.StatusBadRequest, outHeaders)
 		} else {
 			f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
 		}
@@ -153,17 +153,23 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 
 	// do transcoding
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingResponse(ctx, headers, buf, trailers)
-
 	if err != nil {
+		if outHeaders != nil {
+			f.receiveHandler.SetRequestHeaders(outHeaders)
+			f.receiveHandler.SetRequestData(outBuf)
+			f.receiveHandler.SetRequestTrailers(outTrailers)
+			f.receiveHandler.SendHijackReply(http.StatusBadRequest, outHeaders)
+		} else {
+			f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
+		}
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcoder response failed: %v", err)
 		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
-		f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
 		f.needTranscode = false // send hijack should not transcode now.
 		return api.StreamFilterStop
 	}
+
 	f.sendHandler.SetResponseHeaders(outHeaders)
 	f.sendHandler.SetResponseData(outBuf)
 	f.sendHandler.SetResponseTrailers(outTrailers)
-
 	return api.StreamFilterContinue
 }
