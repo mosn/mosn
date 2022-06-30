@@ -87,6 +87,10 @@ type SubsetLoadBalancer interface {
 	// in subset tree and fallback load balancers.
 	// the key is metadata information string
 	LoadBalancers() map[string]LoadBalancer
+
+	// FallbackLoadBalancer return the fallback load balancer in
+	// the subset load balancer, if NoFallback return nil
+	FallbackLoadBalancer() LoadBalancer
 }
 
 // LBSubsetEntry is a entry that stored in the subset hierarchy.

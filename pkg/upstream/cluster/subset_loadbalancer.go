@@ -259,6 +259,13 @@ func (sslb *subsetLoadBalancer) LoadBalancers() map[string]types.LoadBalancer {
 	return lbs
 }
 
+func (sslb *subsetLoadBalancer) FallbackLoadBalancer() types.LoadBalancer {
+	if sslb.fallbackSubset != nil{
+		return sslb.fallbackSubset.LoadBalancer()
+	}
+	return nil
+}
+
 // TraversalLbSubsetMap returns all load balancers in subset tree.
 // The map key format is
 // metakey:metavalue->metakey:metavalue...
