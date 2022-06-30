@@ -47,14 +47,14 @@ func NewSubsetLoadBalancerPreIndex(info types.ClusterInfo, hostSet types.HostSet
 type subsetLoadBalancerBuilder struct {
 	info        types.ClusterInfo
 	indexer     map[string]map[string]*intsets.Sparse
-	hostSet     types.HostSet
+	hosts       types.HostSet
 	subSetCount int64
 }
 
 func newSubsetLoadBalancerBuilder(info types.ClusterInfo, hs types.HostSet) *subsetLoadBalancerBuilder {
 	b := &subsetLoadBalancerBuilder{
-		hostSet: hs,
-		info:    info,
+		hosts: hs,
+		info:  info,
 	}
 	b.initIndex()
 	return b
@@ -68,7 +68,7 @@ func (b *subsetLoadBalancerBuilder) Build() *subsetLoadBalancer {
 	sslb := &subsetLoadBalancer{
 		lbType:         b.info.LbType(),
 		stats:          b.info.Stats(),
-		hostSet:        b.hostSet,
+		hostSet:        b.hosts,
 		fullLb:         fullLb,
 		fallbackSubset: fallbackSubset,
 		subSets:        subsets,
@@ -80,15 +80,16 @@ func (b *subsetLoadBalancerBuilder) Build() *subsetLoadBalancer {
 func (b *subsetLoadBalancerBuilder) initIndex() {
 	subsetInfo := b.info.LbSubsetInfo()
 	keys := subsetMergeKeys(subsetInfo.SubsetKeys(), subsetInfo.DefaultSubset())
-	hosts := b.hostSet.Hosts()
 	indexer := make(map[string]map[string]*intsets.Sparse)
 	for _, key := range keys {
 		valueMap := make(map[string]*intsets.Sparse)
 		indexer[key] = valueMap
-		for i, host := range hosts {
+		i := 0
+		b.hosts.Range(func(host types.Host) bool {
 			value, ok := host.Metadata()[key]
 			if !ok {
-				continue
+				i++
+				return true
 			}
 			s, ok := valueMap[value]
 			if !ok {
@@ -96,7 +97,9 @@ func (b *subsetLoadBalancerBuilder) initIndex() {
 				valueMap[value] = s
 			}
 			s.Insert(i)
-		}
+			i++
+			return true
+		})
 	}
 	b.indexer = indexer
 }
@@ -121,21 +124,22 @@ func (b *subsetLoadBalancerBuilder) selectHosts(s *intsets.Sparse) []types.Host 
 	if s == nil {
 		return nil
 	}
-	hosts := b.hostSet.Hosts()
 	offsets := make([]int, 0, s.Len())
 	offsets = s.AppendTo(offsets)
 	ret := make([]types.Host, len(offsets))
 	for i, n := range offsets {
-		ret[i] = hosts[n]
+		ret[i] = b.hosts.Get(n)
 	}
 	return ret
 }
 
 func (b *subsetLoadBalancerBuilder) filterHosts(kvs types.SubsetMetadata) []types.Host {
-	hosts := b.hostSet.Hosts()
 	if len(kvs) == 0 {
-		ret := make([]types.Host, len(hosts))
-		copy(ret, hosts)
+		ret := make([]types.Host, 0, b.hosts.Size())
+		b.hosts.Range(func(host types.Host) bool {
+			ret = append(ret, host)
+			return true
+		})
 		return ret
 	}
 	var curSet *intsets.Sparse
@@ -172,7 +176,7 @@ func (b *subsetLoadBalancerBuilder) createFallbackSubset(fullLb types.LoadBalanc
 		return &LBSubsetEntryImpl{
 			children: nil,
 			lb:       fullLb,
-			hostSet:  b.hostSet,
+			hostSet:  b.hosts,
 		}
 	case types.DefaultSubset:
 		subset := &LBSubsetEntryImpl{

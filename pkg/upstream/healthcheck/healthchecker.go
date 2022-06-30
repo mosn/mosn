@@ -47,7 +47,7 @@ type healthChecker struct {
 	sessionFactory      types.HealthCheckSessionFactory
 	checkers            map[string]*sessionChecker
 	localProcessHealthy int64
-	hosts               []types.Host
+	hosts               types.HostSet
 	stats               *healthCheckStats
 	// check config
 	timeout            time.Duration
@@ -122,9 +122,10 @@ func (hc *healthChecker) Start() {
 }
 
 func (hc *healthChecker) start() {
-	for _, h := range hc.hosts {
+	hc.hosts.Range(func(h types.Host) bool {
 		hc.startCheck(h)
-	}
+		return true
+	})
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 
 }
@@ -135,9 +136,10 @@ func (hc *healthChecker) Stop() {
 }
 
 func (hc *healthChecker) stop() {
-	for _, h := range hc.hosts {
+	hc.hosts.Range(func(h types.Host) bool {
 		hc.stopCheck(h)
-	}
+		return true
+	})
 }
 
 func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
@@ -147,34 +149,39 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 // only called in cluster, lock in cluster
 // SetHealthCheckerHostSet reset the healthchecker's hosts
 func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
-	deleteHosts, newHosts := findNewAndDeleteHost(hc.hosts, hostSet.Hosts())
+	deleteHosts, newHosts := findNewAndDeleteHost(hc.hosts, hostSet)
 	for _, newHost := range newHosts {
 		hc.startCheck(newHost)
 	}
 	for _, deleteHost := range deleteHosts {
 		hc.stopCheck(deleteHost)
 	}
-	hc.hosts = hostSet.Hosts()
+	hc.hosts = hostSet
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 }
 
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
-func findNewAndDeleteHost(old, new []types.Host) ([]types.Host, []types.Host) {
-	newHostsMap := make(map[string]types.Host, len(new))
-	for _, newHost := range new {
-		newHostsMap[newHost.AddressString()] = newHost
+func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
+	newHostsMap := make(map[string]types.Host, new.Size())
+	if new != nil{
+		new.Range(func(newHost types.Host) bool {
+			newHostsMap[newHost.AddressString()] = newHost
+			return true
+		})
 	}
 	// find delete host
 	deleteHosts := make([]types.Host, 0)
-	for _, oldHost := range old {
-		_, ok := newHostsMap[oldHost.AddressString()]
-		if ok {
-			delete(newHostsMap, oldHost.AddressString())
-		} else {
-			deleteHosts = append(deleteHosts, oldHost)
-		}
+	if old != nil{
+		old.Range(func(oldHost types.Host) bool {
+			_, ok := newHostsMap[oldHost.AddressString()]
+			if ok {
+				delete(newHostsMap, oldHost.AddressString())
+			} else {
+				deleteHosts = append(deleteHosts, oldHost)
+			}
+			return true
+		})
 	}
-
 	// find new host
 	newHosts := make([]types.Host, 0, len(newHostsMap))
 	for _, newHost := range newHostsMap {

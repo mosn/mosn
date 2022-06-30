@@ -314,9 +314,10 @@ func TestLARChooseHost(t *testing.T) {
 	host := balancer.ChooseHost(newMockLbContext(nil))
 	assert.NotNil(t, host)
 
-	for _, host := range hosts.Hosts() {
+	hosts.Range(func(host types.Host) bool {
 		mockRequest(host, true, 10)
-	}
+		return true
+	})
 	// new lb to refresh edf
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual := balancer.ChooseHost(newMockLbContext(nil))
@@ -714,9 +715,10 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			lb := factory(tt.fields.info, tt.fields.hosts)
 			defer func() {
 				close(tt.resultChan)
-				for _, host := range tt.fields.hosts.Hosts() {
+				tt.fields.hosts.Range(func(host types.Host) bool {
 					host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
-				}
+					return true
+				})
 			}()
 			for l := 0; l < tt.args.runCount; l++ {
 				go func() {

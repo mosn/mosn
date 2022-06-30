@@ -43,9 +43,11 @@ func TestProxyLog(t *testing.T) {
 
 	traceId := "0abfc19515355177863163255e6d87"
 	connId := uint64(rand.Intn(10))
-	targetStr := fmt.Sprintf("[%v,%v]", connId, traceId)
+	upstreamConnID := uint64(rand.Intn(10))
+	targetStr := fmt.Sprintf("[%v,%v,%v]", connId, upstreamConnID, traceId)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
+	ctx = mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, upstreamConnID)
 
 	for i := 0; i < 10; i++ {
 		lg.Infof(ctx, "[unittest] test write, round %d", i)
@@ -74,9 +76,12 @@ func TestProxyLog2(t *testing.T) {
 	}
 	traceId := "0abfc19515355177863163255e6d87"
 	connId := uint64(1)
-	proxyMsg := fmt.Sprintf("[%d,%s]", connId, traceId)
+	upstreamConnID := uint64(2)
+	proxyMsg := fmt.Sprintf("[%d,%d,%s]", connId, upstreamConnID, traceId)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
+	ctx = mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, upstreamConnID)
+
 	funcs := []func(ctx context.Context, format string, args ...interface{}){
 		lg.Infof,
 		lg.Warnf,

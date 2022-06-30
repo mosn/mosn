@@ -146,17 +146,16 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 
 // createSubsets creates the sslb.subSets
 func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys []types.SortedStringSetType) {
-	hosts := sslb.hostSet.Hosts()
 	var kvs types.SubsetMetadata
 	var subsSetCount int64 = 0
-	for _, host := range hosts {
+	sslb.hostSet.Range(func(host types.Host) bool {
 		for _, subSetKey := range subSetKeys {
 			// one keys will create one subset
 			kvs = ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata(), kvs[:0])
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
-					subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
+					subHostset := CreateSubset(sslb.hostSet, func(host types.Host) bool {
 						return HostMatches(kvs, host)
 					})
 					subsSetCount += 1
@@ -164,7 +163,8 @@ func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys
 				}
 			}
 		}
-	}
+		return true
+	})
 	sslb.stats.LBSubsetsCreated.Update(subsSetCount)
 }
 
@@ -187,7 +187,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, pol
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
+		subHostset := CreateSubset(sslb.hostSet, func(host types.Host) bool {
 			return HostMatches(meta, host)
 		})
 		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
@@ -258,13 +258,14 @@ func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata, kvs types
 	return kvs
 }
 
-func CreateSubset(hosts []types.Host, predicate types.HostPredicate) types.HostSet {
+func CreateSubset(hs types.HostSet, predicate types.HostPredicate) types.HostSet {
 	var subHosts []types.Host
-	for _, h := range hosts {
+	hs.Range(func(h types.Host) bool {
 		if predicate(h) {
 			subHosts = append(subHosts, h)
 		}
-	}
+		return true
+	})
 	sub := &hostSet{}
 	sub.setFinalHost(subHosts)
 	return sub
@@ -292,12 +293,12 @@ func (entry *LBSubsetEntryImpl) Initialized() bool {
 }
 
 func (entry *LBSubsetEntryImpl) Active() bool {
-	return entry.hostSet != nil && len(entry.hostSet.Hosts()) != 0
+	return entry.hostSet != nil && entry.hostSet.Size() != 0
 }
 
 func (entry *LBSubsetEntryImpl) HostNum() int {
 	if entry.hostSet != nil {
-		return len(entry.hostSet.Hosts())
+		return entry.hostSet.Size()
 	}
 	return 0
 }

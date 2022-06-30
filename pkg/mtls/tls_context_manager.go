@@ -75,7 +75,10 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 }
 
 func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	var defaultProvider types.TLSProvider
+	var (
+		defaultProvider          types.TLSProvider
+		firstALPNMatchedProvider types.TLSProvider
+	)
 	for _, provider := range mng.providers {
 		if !provider.Ready() {
 			continue
@@ -87,9 +90,13 @@ func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (
 		if provider.MatchedServerName(info.ServerName) {
 			return provider.GetTLSConfigContext(false).Config(), nil
 		}
-		if provider.MatchedALPN(info.SupportedProtos) {
-			return provider.GetTLSConfigContext(false).Config(), nil
+		if firstALPNMatchedProvider == nil && provider.MatchedALPN(info.SupportedProtos) {
+			firstALPNMatchedProvider = provider
 		}
+	}
+	// use first ALPN matched provider when all provider can't match serverName
+	if firstALPNMatchedProvider != nil {
+		return firstALPNMatchedProvider.GetTLSConfigContext(false).Config(), nil
 	}
 	if defaultProvider == nil {
 		return nil, ErrorNoCertConfigure

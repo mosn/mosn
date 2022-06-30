@@ -67,9 +67,9 @@ const (
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 
 	// notice: read-only!!! do not modify the raw data!!!
-	VarRequestRawData        string = "x-mosn-req-raw-data"
+	VarRequestRawData string = "x-mosn-req-raw-data"
 	// notice: read-only!!! do not modify the raw data!!!
-	VarResponseRawData       string = "x-mosn-resp-raw-data"
+	VarResponseRawData string = "x-mosn-resp-raw-data"
 )
 
 // [server]: common

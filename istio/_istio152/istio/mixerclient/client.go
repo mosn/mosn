@@ -94,13 +94,13 @@ func (c *mixerClient) tryConnect(retry bool) error {
 		return err
 	}
 
-	hosts := snapshot.HostSet().Hosts()
-	if len(hosts) == 0 {
+	hs := snapshot.HostSet()
+	if hs.Size() == 0 {
 		return fmt.Errorf("no hosts for reportCluster %s", c.reportCluster)
 	}
 
 	// TODO: use lb
-	mixerAddress := hosts[0].AddressString()
+	mixerAddress := hs.Get(0).AddressString()
 	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
 	if err != nil {
 		err := fmt.Errorf("grpc dial to mixer server %s error %v", mixerAddress, err)

@@ -71,7 +71,7 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "config, c",
-				Usage:  "Load configuration from `FILE`",
+				Usage:  "load configuration from `FILE`",
 				EnvVar: "MOSN_CONFIG",
 				Value:  "configs/mosn_config.json",
 			}, cli.StringFlag{
@@ -165,7 +165,7 @@ var (
 			// parameter parsed registered
 			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
-			// initial registerd
+			// initial registered
 			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
 				drainTime := c.Int("drain-time-s")
 				server.SetDrainTime(time.Duration(drainTime) * time.Second)
@@ -286,4 +286,5 @@ func ExtensionsRegister(c *cli.Context) {
 	buffer.SetLogFunc(func(msg string) {
 		log.DefaultLogger.Errorf("[iobuffer] iobuffer error log info: %s", msg)
 	})
+
 }

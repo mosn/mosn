@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"strings"
 	"sync"
 
 	"mosn.io/mosn/pkg/log"
@@ -31,9 +32,55 @@ type hostSet struct {
 	allHosts []types.Host
 }
 
-// Hosts do not needs lock, becasue it "immutable"
-func (hs *hostSet) Hosts() []types.Host {
-	return hs.allHosts
+func (hs *hostSet) Size() int {
+	return len(hs.allHosts)
+}
+
+func (hs *hostSet) Get(i int) types.Host {
+	if i < 0 {
+		i = 0
+	}
+	if i >= len(hs.allHosts) {
+		i = len(hs.allHosts) - 1
+	}
+	return hs.allHosts[i]
+}
+
+func (hs *hostSet) Range(f func(types.Host) bool) {
+	for _, h := range hs.allHosts {
+		if !f(h) {
+			return
+		}
+	}
+}
+
+func (hs *hostSet) String() string {
+	var sb strings.Builder
+	sb.Grow(len(hs.allHosts) * 16)
+	sb.WriteString("[")
+	for i, h := range hs.allHosts {
+		if i != 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(h.AddressString())
+	}
+	sb.WriteString("]")
+	return sb.String()
+}
+
+func NewHostSet(hosts []types.Host) types.HostSet {
+	// create distinct HostSet
+	hs := &hostSet{}
+	hs.setFinalHost(hosts)
+	return hs
+}
+func NewNoDistinctHostSet(hosts []types.Host) types.HostSet {
+	// create HostSet without distinct
+	// In some scenarios, the hosts are always de duplicated.
+	// such as do split hosts in load balancer
+	// For performance reasons, there is no need to re duplicate them.
+	// Therefore, the function of creating HostSet without distinct is provided
+	return &hostSet{allHosts: hosts}
 }
 
 // setFinalHosts makes a slice copy, distinct host by address string
