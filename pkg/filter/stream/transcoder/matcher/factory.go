@@ -23,18 +23,18 @@ import (
 
 type MatcherFactory func(config interface{}) RuleMatcher
 
-// macther factory
-var mactherFactoryMaps = make(map[string]MatcherFactory)
+// matcher factory
+var matcherFactoryMaps = make(map[string]MatcherFactory)
 
 func RegisterMatcherFatcory(typ string, factory MatcherFactory) {
-	if mactherFactoryMaps[typ] != nil {
+	if matcherFactoryMaps[typ] != nil {
 		log.DefaultLogger.Fatalf("[stream filter][transcoder][matcher]target stream matcher already exists: %s", typ)
 	}
-	mactherFactoryMaps[typ] = factory
+	matcherFactoryMaps[typ] = factory
 }
 
 func NewMatcher(cfg *MatcherConfig) RuleMatcher {
-	mf := mactherFactoryMaps[cfg.MatcherType]
+	mf := matcherFactoryMaps[cfg.MatcherType]
 	if mf == nil {
 		log.DefaultLogger.Errorf("[stream filter][transcoder][matcher]target stream matcher not exists: %s", cfg.MatcherType)
 		return nil

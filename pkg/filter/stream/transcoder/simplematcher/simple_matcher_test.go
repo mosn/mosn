@@ -30,7 +30,7 @@ import (
 
 func TestSimpleMatcher(t *testing.T) {
 	type fields struct {
-		Macther matcher.RuleMatcher
+		Matcher matcher.RuleMatcher
 	}
 	type args struct {
 		ctx     context.Context
@@ -46,7 +46,7 @@ func TestSimpleMatcher(t *testing.T) {
 		{
 			name: "TestSimpleMatcher_match",
 			fields: fields{
-				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+				Matcher: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher",
 				}),
 			},
@@ -60,7 +60,7 @@ func TestSimpleMatcher(t *testing.T) {
 		{
 			name: "TestSimpleMatcher_no_match",
 			fields: fields{
-				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+				Matcher: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher2",
 				}),
 			},
@@ -73,12 +73,12 @@ func TestSimpleMatcher(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.fields.Macther
+			got := tt.fields.Matcher
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Matches() got = %v, want %v", tt.fields.Macther, tt.want)
+				t.Errorf("Matches() got = %v, want %v", tt.fields.Matcher, tt.want)
 			}
-			if tt.fields.Macther != nil {
-				got1 := tt.fields.Macther.Matches(tt.args.ctx, tt.args.headers)
+			if tt.fields.Matcher != nil {
+				got1 := tt.fields.Matcher.Matches(tt.args.ctx, tt.args.headers)
 				if !reflect.DeepEqual(got1, tt.want1) {
 					t.Errorf("Matches() got = %v, want %v", got1, tt.want1)
 				}
@@ -102,7 +102,7 @@ func TestDefaultMatches(t *testing.T) {
 		{
 			name: "TestDefaultMatches_no_header_match",
 			rules: []*matcher.TransferRule{{
-				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+				Matcher: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher",
 				}),
 				RuleInfo: &matcher.RuleInfo{
@@ -122,7 +122,7 @@ func TestDefaultMatches(t *testing.T) {
 		{
 			name: "TestDefaultMatches_header_match",
 			rules: []*matcher.TransferRule{{
-				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+				Matcher: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher",
 					Config: map[string]interface{}{
 						"name":  "serviceCode",
@@ -146,7 +146,7 @@ func TestDefaultMatches(t *testing.T) {
 		{
 			name: "TestDefaultMatches_header_no_match",
 			rules: []*matcher.TransferRule{{
-				Macther: matcher.NewMatcher(&matcher.MatcherConfig{
+				Matcher: matcher.NewMatcher(&matcher.MatcherConfig{
 					MatcherType: "simpleMatcher",
 					Config: map[string]interface{}{
 						"name":  "serviceCode",
