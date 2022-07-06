@@ -128,13 +128,13 @@ func (cvt *xdsConverter) ConvertDeleteListeners(listeners []*envoy_config_listen
 	}
 
 	// cannot delete by mosn listener name
-	// because a envoy_config_listener_v3.Listener maybe convert to multiple mosn listeners
+	// because an envoy_config_listener_v3.Listener maybe convert to multiple mosn listeners
 	// and we record the envoy_config_listener_v3.Listener
 	EnvoyConfigDeleteListeners(listeners)
 
 }
 
-// ConvertUpdateClusters converts cluster configuration, used to udpate cluster
+// ConvertUpdateClusters converts cluster configuration, used to update cluster
 func (cvt *xdsConverter) ConvertUpdateClusters(clusters []*envoy_config_cluster_v3.Cluster) {
 	mosnClusters := ConvertClustersConfig(clusters)
 	for _, cluster := range mosnClusters {

@@ -36,7 +36,7 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// UpgradeData stores datas that are used to smooth upgrade
+// UpgradeData stores data that are used to smooth upgrade
 type UpgradeData struct {
 	InheritListeners  []net.Listener
 	InheritPacketConn []net.PacketConn

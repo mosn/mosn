@@ -33,13 +33,13 @@ var (
 	xExtends          func(codec api.XProtocolCodec)
 )
 
-// ResgisterXProtocolAction register the xprotocol actions that used to
+// RegisterXProtocolAction register the xprotocol actions that used to
 // register into protocol.
-// The actions conatins:
+// The actions contain:
 // 1. A function to create a connection pool
 // 2. A function to create a stream factory
 // 3. A function to extends, for example, tracer register
-func ResgisterXProtocolAction(newConnpool func(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool,
+func RegisterXProtocolAction(newConnpool func(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool,
 	newStreamFactory func(codec api.XProtocolCodec) types.ProtocolStreamFactory,
 	extends func(codec api.XProtocolCodec)) {
 	xNewConnpool = newConnpool
@@ -51,7 +51,7 @@ func ResgisterXProtocolAction(newConnpool func(ctx context.Context, codec api.XP
 func RegisterXProtocolCodec(codec api.XProtocolCodec) error {
 
 	if xNewConnpool == nil || xNewStreamFactory == nil {
-		return errors.New("xprotocol actions is not registed, xprotocol register failed")
+		return errors.New("xprotocol actions is not registered, xprotocol register failed")
 	}
 
 	name := codec.ProtocolName()

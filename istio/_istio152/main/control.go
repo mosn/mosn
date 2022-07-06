@@ -130,7 +130,7 @@ var (
 				Usage: "ip version, v4 or v6, currently useless",
 			}, cli.IntFlag{
 				Name:  "restart-epoch",
-				Usage: "eporch to restart, align to Istio startup params, currently useless",
+				Usage: "epoch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
 				Usage: "seconds to drain connections, default 600 seconds",
@@ -250,7 +250,7 @@ func ExtensionsRegister(c *cli.Context) {
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
 	trace.RegisterDriver(zipkin.DriverName, zipkin.NewZipkinDriverImpl())
 	// xprotocol action register
-	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
 		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
 	})

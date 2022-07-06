@@ -207,7 +207,7 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
-	// because streamConnection's Read will do some processing depends it.
+	// because streamConnection's Read will do some processing depends on it.
 	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
@@ -581,9 +581,9 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
-		// Currently Http1 protocol's workPool is enable
+		// Currently Http1 protocol's workPool is enabled
 		// ww can't use serverStream object, after handleRequest
-		// because it will be recycle in proxy
+		// because it will be recycled in proxy
 		// refer https://github.com/mosn/mosn/issues/1948
 		responseDoneChan := s.responseDoneChan
 

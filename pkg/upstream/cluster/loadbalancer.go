@@ -249,7 +249,7 @@ func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadB
 	total := hs.Size()
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	var candicate types.Host
+	var candidate types.Host
 	// Choose `choice` times and return the best one
 	// See The Power of Two Random Choices: A Survey of Techniques and Results
 	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
@@ -257,20 +257,20 @@ func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadB
 
 		randIdx := lb.rand.Intn(total)
 		tempHost := hs.Get(randIdx)
-		if candicate == nil {
-			candicate = tempHost
+		if candidate == nil {
+			candidate = tempHost
 			continue
 		}
-		if candicate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
-			candicate = tempHost
+		if candidate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+			candidate = tempHost
 		}
 	}
-	return candicate
+	return candidate
 
 }
 
 type EdfLoadBalancer struct {
-	scheduler *edfSchduler
+	scheduler *edfScheduler
 	hosts     types.HostSet
 	rand      *rand.Rand
 	mutex     sync.Mutex
@@ -281,7 +281,7 @@ type EdfLoadBalancer struct {
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 
-	var candicate types.Host
+	var candidate types.Host
 	hs := lb.hosts
 	total := hs.Size()
 	if total == 0 {
@@ -300,14 +300,14 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	if lb.scheduler != nil {
 		for i := 0; i < total; i++ {
 			// do weight selection
-			candicate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
-			if candicate != nil && candicate.Health() {
-				return candicate
+			candidate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
+			if candidate != nil && candidate.Health() {
+				return candidate
 			}
 		}
 	}
 
-	// Use unweighted roud-robin as a fallback while failed to pick a healthy host by weighted round-robin.
+	// Use unweighted round-robin as a fallback while failed to pick a healthy host by weighted round-robin.
 	return lb.unweightChooseHostFunc(context)
 }
 

@@ -79,7 +79,7 @@ func main() {
 	//
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
 	// xprotocol action register
-	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
 		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
 	})

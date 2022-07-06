@@ -358,7 +358,7 @@ type ServiceConfig struct {
 	ClusterConfig *ClusterConfig
 }
 
-// ClusterConfig contains an cluster info from static resources
+// ClusterConfig contains a cluster info from static resources
 type ClusterConfig struct {
 	LbPolicy       envoy_config_cluster_v3.Cluster_LbPolicy
 	Address        []string
