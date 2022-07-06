@@ -76,7 +76,7 @@ func (srri *RPCRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) 
 		}
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, RouterLogFormat, "Match", "sofa route rule", fmt.Sprintf("failed to match, macther %s", srri.fastmatch))
+		log.Proxy.Debugf(ctx, RouterLogFormat, "Match", "sofa route rule", fmt.Sprintf("failed to match, matcher %s", srri.fastmatch))
 	}
 	return nil
 }
