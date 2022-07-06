@@ -50,7 +50,7 @@ type HealthChecker interface {
 type HealthCheckSession interface {
 	// CheckHealth returns true if session checks the server is ok, or returns false
 	CheckHealth() bool
-	// OnTimeout is called when a check health does not returned after timeout duration
+	// OnTimeout is called when a check health does not return after timeout duration
 	OnTimeout()
 }
 

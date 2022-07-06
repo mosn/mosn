@@ -89,7 +89,7 @@ func (proto tarsProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return 0
 }
 
-//判断packet的类型，resonse Packet的包tag=5是字段iRet,int类型；request packet的包tag=5是字段sServantName,string类型
+//判断packet的类型，response Packet的包tag=5是字段iRet,int类型；request packet的包tag=5是字段sServantName,string类型
 func getStreamType(pkg []byte) (byte, error) {
 	// skip pkg length
 	pkg = pkg[4:]

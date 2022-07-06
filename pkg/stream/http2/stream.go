@@ -373,7 +373,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	if stream == nil {
 		stream = conn.onStreamRecv(ctx, id, endStream)
 		if stream == nil {
-			log.Proxy.Errorf(ctx, "http2 server OnStreamRecv error, invaild id = %d", id)
+			log.Proxy.Errorf(ctx, "http2 server OnStreamRecv error, invalid id = %d", id)
 			return
 		}
 	}
@@ -781,7 +781,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		conn.lastStream = lastStream
 		conn.streamConnectionEventListener.OnGoAway()
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("http2 client recevice goaway lastStremID = %d", conn.lastStream)
+			log.DefaultLogger.Debugf("http2 client receive goaway lastStreamID = %d", conn.lastStream)
 		}
 		return
 	}
@@ -793,7 +793,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	conn.mutex.Unlock()
 
 	if stream == nil {
-		log.Proxy.Errorf(ctx, "http2 client invaild steamID :%v", f)
+		log.Proxy.Errorf(ctx, "http2 client invalid steamID :%v", f)
 		return
 	}
 

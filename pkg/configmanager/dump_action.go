@@ -100,7 +100,7 @@ func DumpConfig() {
 // if auto_config is enabled, this function never be called
 var transferExtensionFunc func(*v2.MOSNConfig)
 
-// RegisterTransferExtension regists the transferExtensionFunc.
+// RegisterTransferExtension registers the transferExtensionFunc.
 // this function should be called before dump goroutine is started.
 func RegisterTransferExtension(f func(*v2.MOSNConfig)) {
 	transferExtensionFunc = f

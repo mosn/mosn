@@ -92,7 +92,7 @@ type downStream struct {
 	downstreamRecvDone bool
 	// upstream req sent
 	upstreamRequestSent bool
-	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
+	// 1. at the end of upstream response 2. by an upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone uatomic.Bool
 	// direct response.  e.g. sendHijack
 	directResponse bool
