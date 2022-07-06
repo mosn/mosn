@@ -535,6 +535,9 @@ func (conn *serverStreamConnection) serve() {
 			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
 			_, errNothingRead := err.(fasthttp.ErrNothingRead)
 			if err != errConnClose && err != io.EOF && !errNothingRead {
+				log.DefaultLogger.Errorf("[stream] [http] parse http request error. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+					conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), err)
+
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
