@@ -593,7 +593,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				return p
 			}
 
-			if log.Proxy.GetLogLevel() >= log.DEBUG {
+			if log.Proxy.GetLogLevel() >= log.TRACE {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive send downstream response %+v", s.downstreamRespHeaders)
 			}
 
