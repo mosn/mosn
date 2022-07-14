@@ -114,7 +114,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespDataBuf = data
 	r.downStream.downstreamRespTrailers = trailers
 
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
+	if log.Proxy.GetLogLevel() >= log.TRACE {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive headers: %+v, data: %+v, trailers: %+v", headers, data, trailers)
 	}
 
@@ -157,7 +157,7 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	if r.downStream.processDone() {
 		return
 	}
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
+	if log.Proxy.GetLogLevel() >= log.TRACE {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append headers: %+v", r.downStream.downstreamReqHeaders)
 	}
 	r.sendComplete = endStream

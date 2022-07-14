@@ -376,7 +376,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	s.downstreamReqTrailers = trailers
 	s.tracks = track.TrackBufferByContext(ctx).Tracks
 
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
+	if log.Proxy.GetLogLevel() >= log.TRACE {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
 	}
 

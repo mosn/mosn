@@ -109,7 +109,7 @@ func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap
 }
 
 func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key string, value string) api.Route {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+	if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
