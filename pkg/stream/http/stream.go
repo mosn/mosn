@@ -207,7 +207,7 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
-	// because streamConnection's Read will do some processing depends it.
+	// because streamConnection's Read will do some processing depends on it.
 	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
@@ -535,6 +535,9 @@ func (conn *serverStreamConnection) serve() {
 			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
 			_, errNothingRead := err.(fasthttp.ErrNothingRead)
 			if err != errConnClose && err != io.EOF && !errNothingRead {
+				log.DefaultLogger.Errorf("[stream] [http] parse http request error. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+					conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), err)
+
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
@@ -581,9 +584,9 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
-		// Currently Http1 protocol's workPool is enable
+		// Currently Http1 protocol's workPool is enabled
 		// ww can't use serverStream object, after handleRequest
-		// because it will be recycle in proxy
+		// because it will be recycled in proxy
 		// refer https://github.com/mosn/mosn/issues/1948
 		responseDoneChan := s.responseDoneChan
 

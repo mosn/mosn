@@ -41,7 +41,7 @@ type SdsSubscriber struct {
 type SdsStreamClient interface {
 	// Send creates a secret discovery request with name, and send it to server
 	Send(name string) error
-	// Recv receive a secret discovert response, handle it and send a ack response
+	// Recv receives a secret discovery response, handle it and send an ack response
 	Recv(provider types.SecretProvider, callback func()) error
 	// Fetch creates a secret discovery request with name, and wait the response
 	Fetch(ctx context.Context, name string) (*types.SdsSecret, error)

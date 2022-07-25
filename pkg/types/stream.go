@@ -244,7 +244,7 @@ type ConnectionPool interface {
 	CheckAndInit(ctx context.Context) bool
 
 	// TLSHashValue returns the TLS Config's HashValue.
-	// If HashValue is changed, the connection pool will changed.
+	// If HashValue is changed, the connection pool will be changed.
 	TLSHashValue() *HashValue
 
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests

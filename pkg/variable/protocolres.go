@@ -57,7 +57,7 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 	}
 
 	if v, ok := protocolVar[convert(p, name)]; ok {
-		// apend data behind if data exists
+		// append data behind if data exists
 		if len(data) == 1 {
 			v = fmt.Sprintf("%s%s", v, data[0])
 		}

@@ -36,7 +36,7 @@ import (
 func TestMain(m *testing.M) {
 	// register xstream
 	// TODO: framework unit test should not depend on the implementations
-	xprotocol.ResgisterXProtocolAction(NewConnPool, NewStreamFactory, nil)
+	xprotocol.RegisterXProtocolAction(NewConnPool, NewStreamFactory, nil)
 	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
 
