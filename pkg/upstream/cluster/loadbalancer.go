@@ -429,10 +429,27 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 	hash := hashPolicy.GenerateHash(ctx.DownstreamContext())
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Get(index)
+	total := lb.hosts.Size()
+
+	// if retry, means request to last chose host failed, do not use it again
+	context := ctx.DownstreamContext()
+	if ind, err := variable.GetString(context, VarProxyUpstreamIndex); err == nil {
+		if i, err := strconv.Atoi(ind); err == nil {
+			index = i + 1
+		}
+		for i := 0; i < total; i++ {
+			in := (index + i) % total
+			host := lb.hosts.Get(in)
+			if host.Health() {
+				variable.SetString(context, VarProxyUpstreamIndex, strconv.Itoa(in))
+				return host
+			}
+		}
+	}
 
 	// fallback
 	if !chosen.Health() {
-		chosen = lb.chooseHostFromHostList(index)
+		chosen, index = lb.chooseHostFromHostList(index)
 	}
 
 	if chosen == nil {
@@ -441,6 +458,7 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 				hash, index)
 		}
 	} else {
+		variable.SetString(context, VarProxyUpstreamIndex, strconv.Itoa(index))
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
 				hash, index, chosen.AddressString())
@@ -459,7 +477,7 @@ func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 }
 
 // chooseHostFromHostList traverse host list to find a healthy host
-func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
+func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) (types.Host, int) {
 	hostCount := lb.hosts.Size()
 
 	// go left
@@ -469,7 +487,7 @@ func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
 
 		target := lb.hosts.Get(counterIndex)
 		if target.Health() {
-			return target
+			return target, counterIndex
 		}
 	}
 
@@ -477,11 +495,11 @@ func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
 	for counterIndex = index + 1; counterIndex < hostCount; counterIndex++ {
 		target := lb.hosts.Get(counterIndex)
 		if target.Health() {
-			return target
+			return target, counterIndex
 		}
 	}
 
-	return nil
+	return nil, index
 }
 
 type reqRoundRobinLoadBalancer struct {
