@@ -197,10 +197,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 
-	// TODO avoid copy
-	buf := buffer.GetIoBuffer(n)
-	buf.Write(p)
-
+	buf := buffer.NewIoBufferBytes(p)
 	err = conn.conn.Write(buf)
 	return
 }
