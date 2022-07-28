@@ -359,36 +359,37 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 // this function must return false always, and return true just for test.
 func (c *connection) checkUseWriteLoop() bool {
 	return false
-
-	// if return false, and connection just use write directly.
-	// if return true, and connection remote address is loopback
-	// connection will start a goroutine for write.
-	var ip net.IP
-	switch c.network {
-	case "udp":
-		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
-			ip = udpAddr.IP
-		} else {
+	/*
+		// if return false, and connection just use write directly.
+		// if return true, and connection remote address is loopback
+		// connection will start a goroutine for write.
+		var ip net.IP
+		switch c.network {
+		case "udp":
+			if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
+				ip = udpAddr.IP
+			} else {
+				return false
+			}
+		case "unix":
 			return false
+		case "tcp":
+			if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
+				ip = tcpAddr.IP
+			} else {
+				return false
+			}
 		}
-	case "unix":
+
+		if ip.IsLoopback() {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
+					c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
+			}
+			return true
+		}
 		return false
-	case "tcp":
-		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
-			ip = tcpAddr.IP
-		} else {
-			return false
-		}
-	}
-
-	if ip.IsLoopback() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
-				c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
-		}
-		return true
-	}
-	return false
+	*/
 }
 
 func (c *connection) startRWLoop(lctx context.Context) {
