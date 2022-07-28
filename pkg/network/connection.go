@@ -356,19 +356,13 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
-var OptimizeLocalWrite = false
-
-func SetOptimizeLocalWrite(b bool) {
-	OptimizeLocalWrite = b
-}
-
+// this function must return false always, and return true just for test.
 func (c *connection) checkUseWriteLoop() bool {
-	// if OptimizeLocalWrite is false, connection just use write directly.
-	// if OptimizeLocalWrite is true, and connection remote address is loopback
-	// connection will start a goroutine for write
-	if !OptimizeLocalWrite {
-		return false
-	}
+	return false
+
+	// if return false, and connection just use write directly.
+	// if return true, and connection remote address is loopback
+	// connection will start a goroutine for write.
 	var ip net.IP
 	switch c.network {
 	case "udp":
@@ -720,6 +714,7 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	return nil
 }
 
+// This function will only be called when testing.
 func (c *connection) startWriteLoop() {
 	var needTransfer bool
 	defer func() {
