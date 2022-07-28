@@ -26,7 +26,6 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -123,7 +122,7 @@ type connection struct {
 	writeBufferChan    chan *[]buffer.IoBuffer
 	transferChan       chan uint64
 
-	// readLoop/writeLoop goroutine fields:
+	// readLoop goroutine fields:
 	internalLoopStarted bool
 	internalStopChan    chan struct{}
 	// eventLoop fields:
@@ -141,7 +140,6 @@ type connection struct {
 
 	tryMutex     *utils.Mutex
 	needTransfer bool
-	useWriteLoop bool
 
 	// eventloop related
 	poll struct {
@@ -230,7 +228,7 @@ func (c *connection) Start(lctx context.Context) {
 		if UseNetpollMode {
 			c.attachEventLoop(lctx)
 		} else {
-			c.startRWLoop(lctx)
+			c.startReadLoop(lctx)
 		}
 	})
 }
@@ -356,67 +354,17 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
-var OptimizeLocalWrite = false
-
-func SetOptimizeLocalWrite(b bool) {
-	OptimizeLocalWrite = b
-}
-
-func (c *connection) checkUseWriteLoop() bool {
-	// if OptimizeLocalWrite is false, connection just use write directly.
-	// if OptimizeLocalWrite is true, and connection remote address is loopback
-	// connection will start a goroutine for write
-	if !OptimizeLocalWrite {
-		return false
-	}
-	var ip net.IP
-	switch c.network {
-	case "udp":
-		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
-			ip = udpAddr.IP
-		} else {
-			return false
-		}
-	case "unix":
-		return false
-	case "tcp":
-		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
-			ip = tcpAddr.IP
-		} else {
-			return false
-		}
-	}
-
-	if ip.IsLoopback() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
-				c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
-		}
-		return true
-	}
-	return false
-}
-
-func (c *connection) startRWLoop(lctx context.Context) {
+func (c *connection) startReadLoop(lctx context.Context) {
 	c.internalLoopStarted = true
 
 	utils.GoWithRecover(func() {
-		c.startReadLoop()
+		c.readLoop()
 	}, func(r interface{}) {
 		c.Close(api.NoFlush, api.LocalClose)
 	})
-
-	if c.checkUseWriteLoop() {
-		c.useWriteLoop = true
-		utils.GoWithRecover(func() {
-			c.startWriteLoop()
-		}, func(r interface{}) {
-			c.Close(api.NoFlush, api.LocalClose)
-		})
-	}
 }
 
-func (c *connection) startReadLoop() {
+func (c *connection) readLoop() {
 	var transferTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
@@ -500,14 +448,10 @@ func (c *connection) transfer() {
 }
 
 func (c *connection) notifyTransfer() {
-	if c.useWriteLoop {
-		c.transferChan <- transferNotify
-	} else {
-		locked := c.tryMutex.TryLock(types.DefaultConnTryTimeout)
-		if locked {
-			c.needTransfer = true
-			c.tryMutex.Unlock()
-		}
+	locked := c.tryMutex.TryLock(types.DefaultConnTryTimeout)
+	if locked {
+		c.needTransfer = true
+		c.tryMutex.Unlock()
 	}
 }
 
@@ -638,26 +582,7 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 		return
 	}
 
-	// non netpoll mode
-	if c.useWriteLoop {
-		select {
-		case c.writeBufferChan <- &buffers:
-			return
-		default:
-		}
-
-		// fail after 60s
-		t := acquireTimer(types.DefaultConnTryTimeout)
-		select {
-		case c.writeBufferChan <- &buffers:
-		case <-t.C:
-			err = types.ErrWriteBufferChanTimeout
-		}
-		releaseTimer(t)
-	} else {
-		err = c.writeDirectly(&buffers)
-	}
-
+	err = c.writeDirectly(&buffers)
 	return
 }
 
@@ -718,80 +643,6 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	}
 
 	return nil
-}
-
-func (c *connection) startWriteLoop() {
-	var needTransfer bool
-	defer func() {
-		if !needTransfer {
-			close(c.writeBufferChan)
-		}
-	}()
-
-	var err error
-	for {
-		// exit loop asap. one receive & one default block will be optimized by go compiler
-		select {
-		case <-c.internalStopChan:
-			return
-		default:
-		}
-
-		select {
-		case <-c.internalStopChan:
-			return
-		case <-c.transferChan:
-			needTransfer = true
-			return
-		case buf, ok := <-c.writeBufferChan:
-			if !ok {
-				return
-			}
-			c.appendBuffer(buf)
-
-			//todo: dynamic set loop nums
-		OUTER:
-			for i := 0; i < 10; i++ {
-				select {
-				case buf, ok := <-c.writeBufferChan:
-					if !ok {
-						return
-					}
-					c.appendBuffer(buf)
-				default:
-					break OUTER
-				}
-			}
-
-			c.setWriteDeadline()
-			_, err = c.doWrite()
-		}
-
-		if err != nil {
-
-			if err == buffer.EOF {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-						c.id, c.RemoteAddr().String(), err, c)
-				}
-				c.Close(api.NoFlush, api.LocalClose)
-			} else {
-				log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-					c.id, c.RemoteAddr().String(), err, c)
-			}
-
-			if te, ok := err.(net.Error); ok && te.Timeout() {
-				c.Close(api.NoFlush, api.OnWriteTimeout)
-			}
-
-			if c.network == "udp" && strings.Contains(err.Error(), "connection refused") {
-				c.Close(api.NoFlush, api.RemoteClose)
-			}
-			//other write errs not close connection, because readbuffer may have unread data, wait for readloop close connection,
-
-			return
-		}
-	}
 }
 
 func (c *connection) appendBuffer(iobuffers *[]buffer.IoBuffer) {
