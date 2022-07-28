@@ -363,8 +363,6 @@ func SetOptimizeLocalWrite(b bool) {
 }
 
 func (c *connection) checkUseWriteLoop() bool {
-	// Disable Writeloop
-	return false
 	// if OptimizeLocalWrite is false, connection just use write directly.
 	// if OptimizeLocalWrite is true, and connection remote address is loopback
 	// connection will start a goroutine for write
