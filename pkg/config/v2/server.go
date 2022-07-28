@@ -37,10 +37,6 @@ type ServerConfig struct {
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
-	// OptimizeLocalWrite set to true means if a connection remote address is
-	// localhost, we will use a goroutine for write, which can get better performance
-	// but lower write time costs accuracy.
-	OptimizeLocalWrite bool `json:"optimize_local_write,omitempty"`
 
 	// int go processor number
 	// string set auto means use real cpu core or limit cpu core
