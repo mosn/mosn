@@ -607,7 +607,11 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	if locked {
 		defer c.tryMutex.Unlock()
 		if c.needTransfer {
-			c.writeBufferChan <- buf
+			var wbuf []buffer.IoBuffer
+			for _, b := range *buf {
+				wbuf = append(wbuf, b.Clone())
+			}
+			c.writeBufferChan <- &wbuf
 			return
 		}
 
