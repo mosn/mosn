@@ -534,9 +534,20 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		return
 	}
 	ac := newActiveConnection(al, conn)
+	// connection may be closed by upstream before added to conn list
+	if conn.State() == api.ConnClosed {
+		return
+	}
+
+	if conn.LocalAddr().Network() == "udp" {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	}
 
 	e := al.conns.PushBack(ac)
 	ac.element = e
+
+	// add event listener after setting ac.element to avoid delete empty element
+	ac.conn.AddConnectionEventListener(ac)
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
@@ -544,9 +555,6 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
-		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
-	}
 
 	// start conn loops first
 	conn.Start(ctx)
@@ -808,7 +816,6 @@ func newActiveConnection(listener *activeListener, conn api.Connection) *activeC
 	}
 
 	ac.conn.SetNoDelay(true)
-	ac.conn.AddConnectionEventListener(ac)
 	ac.conn.AddBytesReadListener(func(bytesRead uint64) {
 
 		if bytesRead > 0 {
