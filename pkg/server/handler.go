@@ -535,7 +535,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	}
 	ac := newActiveConnection(al, conn)
 	// connection may be closed by upstream before added to conn list
-	if conn.State() != api.ConnClosed {
+	if conn.State() == api.ConnClosed {
 		return
 	}
 
