@@ -548,6 +548,7 @@ func (conn *serverStreamConnection) serve() {
 		s := &buffers.serverStream
 
 		// 4. request processing
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 		s.stream = stream{
 			id:       id,
 			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
@@ -567,7 +568,6 @@ func (conn *serverStreamConnection) serve() {
 		if trace.IsEnabled() {
 			tracer := trace.Tracer(protocol.HTTP1)
 			if tracer != nil {
-				ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 				span = tracer.Start(ctx, s.header, time.Now())
 			}
 		}
