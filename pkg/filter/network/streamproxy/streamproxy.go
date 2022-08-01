@@ -81,10 +81,7 @@ func (p *proxy) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
-	err := p.upstreamConnection.Write(buffer.Clone())
-	if err == types.ErrConnectionHasClosed {
-		p.onUpstreamEvent(api.LocalClose)
-	}
+	p.upstreamConnection.Write(buffer.Clone())
 	buffer.Drain(buffer.Len())
 	return api.Stop
 }
@@ -117,6 +114,8 @@ func (p *proxy) getUpstreamConnection(ctx types.LoadBalancerContext, snapshot ty
 	}
 }
 
+const defaultConnectRetryTimes = 3
+
 func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
@@ -147,8 +146,8 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	}
 
 	retryTime := clusterSnapshot.HostSet().Size()
-	if retryTime > 3 {
-		retryTime = 3
+	if retryTime > defaultConnectRetryTimes {
+		retryTime = defaultConnectRetryTimes
 	}
 	var connectionData types.CreateConnectionData
 	connected := false
@@ -254,9 +253,10 @@ func (p *proxy) onConnectionSuccess() {
 
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if p.upstreamConnection != nil {
-		if event == api.RemoteClose {
+		switch event {
+		case api.RemoteClose, api.OnWriteTimeout, api.OnWriteErrClose:
 			p.upstreamConnection.Close(api.FlushWrite, api.LocalClose)
-		} else if event == api.LocalClose {
+		case api.LocalClose, api.OnReadErrClose:
 			p.upstreamConnection.Close(api.NoFlush, api.LocalClose)
 		}
 	}
