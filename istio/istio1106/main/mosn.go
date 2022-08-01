@@ -50,6 +50,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
+	_ "mosn.io/mosn/pkg/filter/stream/proxywasm/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/seata"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/httpconv"
@@ -72,6 +73,7 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
+	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm020"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	_ "mosn.io/pkg/buffer"
 )

@@ -35,14 +35,14 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
-	github.com/wasmerio/wasmer-go v1.0.3
+	github.com/wasmerio/wasmer-go v1.0.4
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
@@ -67,3 +67,5 @@ require (
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
+
+replace mosn.io/proxy-wasm-go-host => github.com/lawrshen/proxy-wasm-go-host v0.0.0-20220926022903-e55c8003d87c
