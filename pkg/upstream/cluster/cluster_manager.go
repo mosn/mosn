@@ -172,7 +172,7 @@ func (cm *clusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hostConf
 	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
 		UpdateClusterResourceManagerHandler(oc, nc)
 		CleanOldClusterHandler(oc, nc)
-		NewSimpleHostHandler(nc, hostConfigs)
+		NewHealthySimpleHostHandler(nc, hostConfigs)
 	})
 }
 
@@ -250,15 +250,31 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	return nil
 }
 
+
 // EDS Handler
-func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
+func NewHealthySimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	snap := c.Snapshot()
 	hosts := make([]types.Host, 0, len(hostConfigs))
-	for _, hc := range hostConfigs {
-		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
-	}
-	c.UpdateHosts(NewHostSet(hosts))
+	allHostDown := true
+	oldHosts := map[string]bool{}
 
+	snap.HostSet().Range(func(host types.Host) bool {
+		oldHosts[host.AddressString()] = true
+		return true
+	})
+
+	for _, hc := range hostConfigs {
+		host := NewSimpleHost(hc, snap.ClusterInfo())
+		hosts = append(hosts, host)
+		if host.Health() || oldHosts[host.AddressString()] != true {
+			allHostDown = false
+		}
+	}
+
+	// if new hosts is subset of old hosts and unhealthy, skip update
+	if ! allHostDown  {
+		c.UpdateHosts(NewHostSet(hosts))
+	}
 }
 
 func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
@@ -277,7 +293,7 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 
 // UpdateClusterHosts update all hosts in the cluster
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	return cm.UpdateHosts(clusterName, hostConfigs, NewSimpleHostHandler)
+	return cm.UpdateHosts(clusterName, hostConfigs, NewHealthySimpleHostHandler)
 }
 
 // AppendClusterHosts adds new hosts into cluster

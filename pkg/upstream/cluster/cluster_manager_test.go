@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"mosn.io/api"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -68,4 +69,28 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 	require.Equal(t, int64(1), snap2.ClusterInfo().ResourceManager().Connections().Cur())
 	require.Equal(t, uint64(20), snap2.ClusterInfo().ResourceManager().Connections().Max())
 
+}
+
+func TestUpdateHealthyHosts(t *testing.T) {
+	_createClusterManager()
+	snap := clusterManagerInstance.GetClusterSnapshot(context.Background(), "test1")
+	if snap == nil {
+		t.Fatalf("test cluser not found")
+	}
+	host := snap.HostSet().Get(0)
+	host.SetHealthFlag(api.FAILED_ACTIVE_HC)
+	host1 := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: host.AddressString(),
+		},
+	}
+
+	clusterManagerInstance.UpdateClusterHosts("test1",[]v2.Host{host1})
+	snap1 := clusterManagerInstance.GetClusterSnapshot(context.Background(), "test1")
+	require.Equal(t, 2, snap1.HostNum(nil))
+
+	host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
+	clusterManagerInstance.UpdateClusterHosts("test1",[]v2.Host{host1})
+	snap2 := clusterManagerInstance.GetClusterSnapshot(context.Background(), "test1")
+	require.Equal(t, 1, snap2.HostNum(nil))
 }
