@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.0.2
+
+### New Features
+
+- Added zipkin support (#2014) [@fibbery](https://github.com/fibbery)
+- Support tunnel connection (#1640) [@CodingSinger](https://github.com/CodingSinger)
+
+### Changes
+
+- Optimize the load balancing for creating subsets when the cluster has multiple nodes (#2010) [@dzdx](https://github.com/dzdx)
+- Enhanced cluster update host resources (#2048) [@nejisama](https://github.com/nejisama)
+- Reference buffer.ConnReadTimeout changed to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- Add hostSet and export NewClusterInfo methods (#2036) [@dzdx](https://github.com/dzdx)
+- Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+
+### Bug fixes
+
+- wasm example tinygo/tinygo-dev mirror version (#2033) [@antJack](https://github.com/antJack)
+
+
 ## v1.0.1
 
 ### Changes

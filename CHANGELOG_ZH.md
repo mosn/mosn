@@ -1,5 +1,25 @@
 # 更新日志
 
+## v1.0.2
+
+### 新功能
+
+- 新增 zipkin 支持 (#2014) [@fibbery](https://github.com/fibbery)
+- 支持 tunnel 连接 (#1640) [@CodingSinger](https://github.com/CodingSinger)
+
+### 变更
+
+- 优化 集群多节点时 创建 subset 的负载均衡 (#2010) [@dzdx](https://github.com/dzdx)
+- 增强集群更新主机资源 (#2048) [@nejisama](https://github.com/nejisama)
+- 参考 buffer.ConnReadTimeout 更改为 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- 添加 hostSet 和导出 NewClusterInfo 方法 (#2036) [@dzdx](https://github.com/dzdx)
+- 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+
+### Bug 修复
+
+- wasm 示例 tinygo/tinygo-dev 镜像版本（#2033）[@antJack](https://github.com/antJack)
+
+
 ## v1.0.1
 
 ### 变更
