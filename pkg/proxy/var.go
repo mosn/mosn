@@ -174,7 +174,11 @@ func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValu
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	return info.UpstreamLocalAddress(), nil
+	if info.UpstreamLocalAddress() != "" {
+		return info.UpstreamLocalAddress(), nil
+	}
+
+	return variable.ValueNotFound, nil
 }
 
 // DownstreamLocalAddressGetter
