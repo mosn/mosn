@@ -56,7 +56,7 @@ require (
 	istio.io/api v0.0.0-20211103171850-665ed2b92d52
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
-	mosn.io/api v1.0.0
+	mosn.io/api v1.0.1-0.20220727021759-9bf17e6cecba
 	mosn.io/holmes v1.0.1
 	mosn.io/pkg v1.0.0
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
