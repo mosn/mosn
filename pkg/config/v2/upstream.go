@@ -40,6 +40,7 @@ type HealthCheckConfig struct {
 	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold,omitempty"`
 	ServiceName          string                 `json:"service_name,omitempty"`
 	SessionConfig        map[string]interface{} `json:"check_config,omitempty"`
+	EventLogPath         string                 `json:"event_log_path,omitempty"`
 	CommonCallbacks      []string               `json:"common_callbacks,omitempty"` // HealthCheck support register some common callbacks that are not related to specific cluster
 }
 

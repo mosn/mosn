@@ -102,6 +102,12 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
 	}
+
+	if cfg.EventLogPath != "" {
+		hcLog := NewHealthCheckLog(cfg.EventLogPath)
+		hc.AddHostCheckCompleteCb(hcLog.LogUpdate)
+	}
+
 	// Add common callbacks when create
 	// common callbacks should be registered and configured
 	for _, name := range cfg.CommonCallbacks {
@@ -224,10 +230,10 @@ func (hc *healthChecker) stopCheck(host types.Host) {
 	}
 }
 
-func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool) {
+func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool, info string) {
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 	for _, cb := range hc.hostCheckCallbacks {
-		cb(host, changed, isHealthy)
+		cb(host, changed, isHealthy, info)
 	}
 }
 
@@ -240,7 +246,7 @@ func (hc *healthChecker) getCheckInterval() time.Duration {
 	return interval
 }
 
-func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
+func (hc *healthChecker) incHealthy(host types.Host, changed bool, info string) {
 	hc.stats.success.Inc(1)
 	if changed {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -248,10 +254,10 @@ func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
 		}
 		atomic.AddInt64(&hc.localProcessHealthy, 1)
 	}
-	hc.runCallbacks(host, changed, true)
+	hc.runCallbacks(host, changed, true, info)
 }
 
-func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool) {
+func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool, info string) {
 	hc.stats.failure.Inc(1)
 	if changed {
 		// hc.localProcessHealthy--
@@ -268,6 +274,6 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 	case types.FailurePassive: //TODO: not support yet
 		hc.stats.passiveFailure.Inc(1)
 	}
-	hc.runCallbacks(host, changed, false)
+	hc.runCallbacks(host, changed, false, info)
 
 }

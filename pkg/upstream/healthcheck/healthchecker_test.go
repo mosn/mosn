@@ -39,7 +39,7 @@ type testResult struct {
 	results map[string]*testCounter
 }
 
-func (r *testResult) testCallback(host types.Host, changed bool, isHealthy bool) {
+func (r *testResult) testCallback(host types.Host, changed bool, isHealthy bool, info string) {
 	addr := host.AddressString()
 	c, ok := r.results[addr]
 	if !ok {

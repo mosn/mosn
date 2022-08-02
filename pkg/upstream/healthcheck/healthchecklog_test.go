@@ -14,44 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package healthcheck
 
 import (
-	"net"
+	"fmt"
+	"io/ioutil"
+	"strings"
+	"testing"
 	"time"
-
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
-type TCPDialSessionFactory struct{}
-
-func (f *TCPDialSessionFactory) NewSession(cfg map[string]interface{}, host types.Host) types.HealthCheckSession {
-	return &TCPDialSession{
-		addr: host.AddressString(),
+func TestHealthCheckLog(t *testing.T) {
+	path := "/tmp/hc.log"
+	hc := NewHealthCheckLog(path)
+	if hc != nil {
+		return
 	}
-}
-
-type TCPDialSession struct {
-	addr string
-}
-
-func (s *TCPDialSession) CheckHealth() bool {
-	// default dial timeout, maybe already timeout by checker
-	conn, err := net.DialTimeout("tcp", s.addr, 30*time.Second)
+	host := &mockHost{
+		addr: "localhost:5300",
+	}
+	hc.LogUpdate(host, false, false, "code:200")
+	dat, err := ioutil.ReadFile(path)
 	if err != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [health check] [tcpdial session] dial tcp for host %s error: %v", s.addr, err)
-		}
-		return false
+		t.Errorf("health check log file open failed, err:%v", err)
 	}
-	conn.Close()
-	return true
-}
-
-func (s *TCPDialSession) OnTimeout() {}
-
-func (s *TCPDialSession) CheckInfo() string {
-	return ""
+	// "time:%d host:%s health_status:%v current_result:%v status_changed:%v %s"
+	expected := fmt.Sprintf(defaultHealthCheckFormat,
+		time.Now().Unix(), "localhost:5300", 0, 0, 0, "code:200")
+	if ! strings.Contains(string(dat), expected) {
+		t.Errorf("health check log failed, data:%s, expected:%s", string(dat), expected)
+	}
+	//os.Remove(path)
 }

@@ -47,6 +47,7 @@ type sessionChecker struct {
 type checkResponse struct {
 	ID      uint64
 	Healthy bool
+	Info    string
 }
 
 func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *sessionChecker {
@@ -88,9 +89,9 @@ func (c *sessionChecker) Start() {
 				if resp.ID == currentID {
 					c.checkTimeout.Stop()
 					if resp.Healthy {
-						c.HandleSuccess()
+						c.HandleSuccess(resp.Info)
 					} else {
-						c.HandleFailure(types.FailureActive)
+						c.HandleFailure(types.FailureActive, resp.Info)
 					}
 					// next health checker
 					c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
@@ -105,7 +106,7 @@ func (c *sessionChecker) Start() {
 			case <-c.timeout:
 				c.checkTimer.Stop()
 				c.Session.OnTimeout() // session timeout callbacks
-				c.HandleFailure(types.FailureNetwork)
+				c.HandleFailure(types.FailureNetwork, "")
 				// next health checker
 				c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -120,7 +121,7 @@ func (c *sessionChecker) Stop() {
 	close(c.stop)
 }
 
-func (c *sessionChecker) HandleSuccess() {
+func (c *sessionChecker) HandleSuccess(info string) {
 	c.unHealthCount = 0
 	changed := false
 	if c.Host.ContainHealthFlag(api.FAILED_ACTIVE_HC) {
@@ -131,10 +132,10 @@ func (c *sessionChecker) HandleSuccess() {
 			c.Host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 		}
 	}
-	c.HealthChecker.incHealthy(c.Host, changed)
+	c.HealthChecker.incHealthy(c.Host, changed, info)
 }
 
-func (c *sessionChecker) HandleFailure(reason types.FailureType) {
+func (c *sessionChecker) HandleFailure(reason types.FailureType, info string) {
 	c.healthCount = 0
 	changed := false
 	if !c.Host.ContainHealthFlag(api.FAILED_ACTIVE_HC) {
@@ -145,7 +146,7 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 			c.Host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 		}
 	}
-	c.HealthChecker.decHealthy(c.Host, reason, changed)
+	c.HealthChecker.decHealthy(c.Host, reason, changed, info)
 }
 
 func (c *sessionChecker) OnCheck() {
@@ -158,6 +159,7 @@ func (c *sessionChecker) OnCheck() {
 	c.resp <- checkResponse{
 		ID:      id,
 		Healthy: c.Session.CheckHealth(),
+		Info:    c.Session.CheckInfo(),
 	}
 }
 
