@@ -117,7 +117,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			Type:           convertTrafficDirection(xdsListener),
 		},
-		Addr:                    addr,
+		Addr: addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -305,13 +305,7 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 			}
 		}
 	default:
-		config, err := api.HandleXDSConfig(name, s)
-		if err != nil {
-			log.DefaultLogger.Infof("[xds] convertStreamFilter, unsupported filter config, name: %s,err=%v", name, err)
-			break
-		}
-		filter.Type = name
-		filter.Config = config
+		log.DefaultLogger.Infof("[xds] convertStreamFilter, unsupported filter config, name: %s", name)
 	}
 	return filter
 }
