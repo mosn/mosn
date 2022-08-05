@@ -32,7 +32,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
@@ -186,11 +185,6 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 	if err != nil {
 		log.DefaultLogger.Errorf("invalid grpc server config: %v, error: %v", conf, err)
 		return nil, err
-	}
-	// if OptimizeLocalWrite is true, the connection maybe start a goroutine for connection write,
-	// which maybe cause some errors when grpc write. so we do not allow this
-	if network.OptimizeLocalWrite {
-		return nil, errors.New("grpc does not support local optimize write")
 	}
 	name := cfg.ServerName
 	handler := getRegisterServerHandler(name)
