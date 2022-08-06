@@ -80,8 +80,8 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 	} else {
 		// adds new router
 		// if a routerConfig with no routes, it is a valid config
-		// we ignore the error when we addsd a new router
-		// becasue we may stored a nil routers, which is used in istio "RDS" mode
+		// we ignore the error when we add a new router
+		// because we may store a nil routers, which is used in istio "RDS" mode
 		routers, _ := NewRouters(routerConfig)
 		rm.routersWrapperMap.Store(routerConfig.RouterConfigName, &RoutersWrapper{
 			routers:       routers,
@@ -144,7 +144,7 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 	return nil
 }
 
-// RemoveAllRoutes clear all of the specified virtualhost's routes
+// RemoveAllRoutes clear all the specified virtualhost's routes
 func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) error {
 	if v, ok := rm.routersWrapperMap.Load(routerConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)

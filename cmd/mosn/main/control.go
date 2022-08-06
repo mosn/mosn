@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"time"
 
+	admin "mosn.io/mosn/pkg/admin/server"
+
 	"github.com/urfave/cli"
 
 	"mosn.io/api"
@@ -48,6 +50,7 @@ import (
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
 	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
+	"mosn.io/mosn/pkg/trace/zipkin"
 	"mosn.io/pkg/buffer"
 )
 
@@ -126,7 +129,7 @@ var (
 				Usage: "ip version, v4 or v6, currently useless",
 			}, cli.IntFlag{
 				Name:  "restart-epoch",
-				Usage: "eporch to restart, align to Istio startup params, currently useless",
+				Usage: "epoch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
 				Usage: "seconds to drain connections, default 600 seconds",
@@ -162,7 +165,7 @@ var (
 			// parameter parsed registered
 			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
-			// initial registerd
+			// initial registered
 			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
 				drainTime := c.Int("drain-time-s")
 				server.SetDrainTime(time.Duration(drainTime) * time.Second)
@@ -195,6 +198,7 @@ var (
 				// set version and go version
 				metrics.SetVersion(Version)
 				metrics.SetGoVersion(runtime.Version())
+				admin.SetVersion(Version)
 			})
 			stm.AppendInitStage(holmes.Register)
 			// pre-startup
@@ -213,8 +217,19 @@ var (
 	cmdStop = cli.Command{
 		Name:  "stop",
 		Usage: "stop mosn proxy",
-		Action: func(c *cli.Context) error {
-			return nil
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:   "config, c",
+				Usage:  "load configuration from `FILE`",
+				EnvVar: "MOSN_CONFIG",
+				Value:  "configs/mosn_config.json",
+			},
+		},
+		Action: func(c *cli.Context) (err error) {
+			app := mosn.NewMosn()
+			stm := stagemanager.InitStageManager(c, c.String("config"), app)
+			stm.AppendInitStage(mosn.InitDefaultPath)
+			return stm.StopMosnProcess()
 		},
 	}
 
@@ -249,8 +264,9 @@ func DefaultParamsParsed(c *cli.Context) {
 func ExtensionsRegister(c *cli.Context) {
 	// tracer driver register
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	trace.RegisterDriver(zipkin.DriverName, zipkin.NewZipkinDriverImpl())
 	// xprotocol action register
-	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
 		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
 	})
@@ -264,6 +280,7 @@ func ExtensionsRegister(c *cli.Context) {
 	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+	trace.RegisterTracerBuilder(zipkin.DriverName, protocol.HTTP1, zipkin.NewHttpTracer)
 
 	// register buffer logger
 	buffer.SetLogFunc(func(msg string) {

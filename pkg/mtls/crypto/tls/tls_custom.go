@@ -202,6 +202,10 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	return state
 }
 
+func (c *Conn) SetConfig(config *Config) {
+	c.config = config
+}
+
 func (c *Conn) SetConnectionState(state gotls.ConnectionState) {
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()

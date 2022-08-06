@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.0.1
+
+### Changes
+
+- Protocol: Bolt v1 v2 maps status code api.NoHealthUpstreamCode -> ResponseStatusNoProcessor (#2018) [@antJack](https://github.com/antJack).
+
+### Bug fixes
+
+- Should allow AppendGracefulStopStage and AppendBeforeStopStage when MOSN is starting or running (#2029) [@rayowang](https://github.com/rayowang).
+- Fix wrong variable in error message when workerPool Panic (#2019) [@antJack](https://github.com/antJack).
+
+## v1.0.0
+
+### Changes
+
+- Protocol: bolt support GoAway (#1993) [@z2z23n0](https://github.com/z2z23n0)
+- Protocol: HTTP health check support more configurations (#1999) [@dengqian](https://github.com/dengqian)
+- Add new Admin API for query MOSN version (#2002) [@songzhibin97](https://github.com/songzhibin97)
+- Exit code change to 2 when mosn start failed in upgrade mode (#2006) [@doujiang24](https://github.com/doujiang24)
+- Add a new function to check whether MOSN is in active upgrading state (#2003) [@doujiang24](https://github.com/doujiang24)
+- Add new command: stop (#1990) [@Jun10ng](https://github.com/Jun10ng)
+
+### Bug fixes
+
+- Fix the problem that the domain name update result is wrong when there are multiple DNS domain names in StrictDnsCluster (#1994) [@Jun10ng](https://github.com/Jun10ng)
+- Fix upgrade state check error when metrics is configured to shared memory (#2011) [@nejisama](https://github.com/nejisama)
+
 ## v0.27.0
 
 ### New Features
@@ -8,8 +35,8 @@
 - Support use variables to configure route headers add or remove. (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
 - Support health check's initialize interval can be configured (#1942) [@rickey17](https://github.com/rickey17)
 - Add HTTP Dial for upstream cluster health check (#1942) [@rickey17](https://github.com/rickey17)
-- Add extension callback function for tls context created. [@antJack](https://github.com/antJack) 
-- Support extension for Listener and Connection created. [@antJack](https://github.com/antJack) 
+- Add extension callback function for tls context created. [@antJack](https://github.com/antJack)
+- Support extension for Listener and Connection created. [@antJack](https://github.com/antJack)
 - Support graceful shutdown for xprotocol framework. (#1922) [@doujiang24](https://github.com/doujiang24)
 - Support graceful shutdown for MOSN (#1922) [@doujiang24](https://github.com/doujiang24)
 - Integrated [Holmes](https://github.com/mosn/holmes) for automatically pprof (#1978) [@doujiang24](https://github.com/doujiang24)
@@ -24,7 +51,7 @@
 - Add variable to store request raw data in xprotocol protocols implementations [@antJack](https://github.com/antJack)
 - Add new configuration for original-dst filter: localhost listener can be used in listener match fallback (#1972) [@nejisama](https://github.com/nejisama)
 - Add new configuration for original-dst cluster: use localhost address as the target address [@nejisama](https://github.com/nejisama)
-- Do not use vendor mode any more, use go mod instead. (#1997) [@nejisama](https://github.com/nejisama) 
+- Do not use vendor mode any more, use go mod instead. (#1997) [@nejisama](https://github.com/nejisama)
 
 ### Refactoring
 
@@ -33,7 +60,7 @@
 - Use separate IoBuffer for log (#1936) [@nejisama](https://github.com/nejisama)
 - Refactor sds provider, support a sds config to generate different tls config (#1958) [@nejisama](https://github.com/nejisama)
 
-### Optimization 
+### Optimization
 
 - Optimize the irregular module naming in examples. (#1913) [@scaat](https://github.com/scaat)
 - Delete some useless fields in connection struct (#1811) [@doujiang24](https://github.com/doujiang24)
@@ -41,7 +68,7 @@
 - Optimize the error message when get variables returns error (#1952) [@antJack](https://github.com/antJack)
 - Optimize the memory reuse in proxy: a finished request received reset will take no effect on memory reuse now [@wangfakang](https://github.com/wangfakang)
 - Optimize the memory usage in maglev loadbalancer (#1964) [@baerwang](https://github.com/baerwang)
-- Support error log to iobuffer error, support exception handling when log rotation error occurs (#1996) [@nejisama](https://github.com/nejisama)  
+- Support error log to iobuffer error, support exception handling when log rotation error occurs (#1996) [@nejisama](https://github.com/nejisama)
 
 ### Bug fixes
 
@@ -357,7 +384,7 @@ please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the 
 ### Bug fixes
 
 - Fix `go mod tidy` failing [@champly](https://github.com/champly)
-- Fix `ResourceExhausted: grpc: received message larger than max` when MOSN receive > 4M XDS messages [@champly](https://github.com/champly) 
+- Fix `ResourceExhausted: grpc: received message larger than max` when MOSN receive > 4M XDS messages [@champly](https://github.com/champly)
 - Fix fault tolerance unit-test [@wangfakang](https://github.com/wangfakang)
 - Fix MOSN reconfig fails when `MOSNConfig.servers[].listeners[].bind_port` is `false` [@alpha-baby](https://github.com/alpha-baby)
 - Set timeout for local write buffer send, avoid goroutine leak [@cch123](https://github.com/cch123)

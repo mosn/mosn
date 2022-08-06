@@ -80,6 +80,8 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	c.addDownConnListenerOnce(ctx)
 
+	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.connID)
+
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
 	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream

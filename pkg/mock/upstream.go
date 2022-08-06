@@ -53,6 +53,20 @@ func (mr *MockClusterManagerMockRecorder) AddClusterHealthCheckCallbacks(name, c
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddClusterHealthCheckCallbacks", reflect.TypeOf((*MockClusterManager)(nil).AddClusterHealthCheckCallbacks), name, cb)
 }
 
+// AddOrUpdateClusterAndHost mocks base method.
+func (m *MockClusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hosts []v2.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddOrUpdateClusterAndHost", cluster, hosts)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddOrUpdateClusterAndHost indicates an expected call of AddOrUpdateClusterAndHost.
+func (mr *MockClusterManagerMockRecorder) AddOrUpdateClusterAndHost(cluster, hosts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrUpdateClusterAndHost", reflect.TypeOf((*MockClusterManager)(nil).AddOrUpdateClusterAndHost), cluster, hosts)
+}
+
 // AddOrUpdatePrimaryCluster mocks base method.
 func (m *MockClusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	m.ctrl.T.Helper()
@@ -234,6 +248,20 @@ func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, sna
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UDPConnForCluster", reflect.TypeOf((*MockClusterManager)(nil).UDPConnForCluster), balancerContext, snapshot)
 }
 
+// UpdateCluster mocks base method.
+func (m *MockClusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types.ClusterUpdateHandler) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCluster", cluster, clusterHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCluster indicates an expected call of UpdateCluster.
+func (mr *MockClusterManagerMockRecorder) UpdateCluster(cluster, clusterHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockClusterManager)(nil).UpdateCluster), cluster, clusterHandler)
+}
+
 // UpdateClusterHosts mocks base method.
 func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host) error {
 	m.ctrl.T.Helper()
@@ -246,6 +274,20 @@ func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host)
 func (mr *MockClusterManagerMockRecorder) UpdateClusterHosts(cluster, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateClusterHosts), cluster, hosts)
+}
+
+// UpdateHosts mocks base method.
+func (m *MockClusterManager) UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHosts", clusterName, hostConfigs, hostHandler)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHosts indicates an expected call of UpdateHosts.
+func (mr *MockClusterManagerMockRecorder) UpdateHosts(clusterName, hostConfigs, hostHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateHosts), clusterName, hostConfigs, hostHandler)
 }
 
 // UpdateTLSManager mocks base method.
@@ -415,7 +457,7 @@ func (mr *MockClusterMockRecorder) StopHealthChecking() *gomock.Call {
 }
 
 // UpdateHosts mocks base method.
-func (m *MockCluster) UpdateHosts(arg0 []types.Host) {
+func (m *MockCluster) UpdateHosts(arg0 types.HostSet) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateHosts", arg0)
 }
@@ -449,18 +491,44 @@ func (m *MockHostSet) EXPECT() *MockHostSetMockRecorder {
 	return m.recorder
 }
 
-// Hosts mocks base method.
-func (m *MockHostSet) Hosts() []types.Host {
+// Get mocks base method.
+func (m *MockHostSet) Get(arg0 int) types.Host {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Hosts")
-	ret0, _ := ret[0].([]types.Host)
+	ret := m.ctrl.Call(m, "Get", arg0)
+	ret0, _ := ret[0].(types.Host)
 	return ret0
 }
 
-// Hosts indicates an expected call of Hosts.
-func (mr *MockHostSetMockRecorder) Hosts() *gomock.Call {
+// Get indicates an expected call of Get.
+func (mr *MockHostSetMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hosts", reflect.TypeOf((*MockHostSet)(nil).Hosts))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockHostSet)(nil).Get), arg0)
+}
+
+// Range mocks base method.
+func (m *MockHostSet) Range(arg0 func(types.Host) bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Range", arg0)
+}
+
+// Range indicates an expected call of Range.
+func (mr *MockHostSetMockRecorder) Range(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Range", reflect.TypeOf((*MockHostSet)(nil).Range), arg0)
+}
+
+// Size mocks base method.
+func (m *MockHostSet) Size() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Size")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// Size indicates an expected call of Size.
+func (mr *MockHostSetMockRecorder) Size() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockHostSet)(nil).Size))
 }
 
 // MockHost is a mock of Host interface.
@@ -1452,4 +1520,18 @@ func (m *MockLBOriDstInfo) IsEnabled() bool {
 func (mr *MockLBOriDstInfoMockRecorder) IsEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEnabled", reflect.TypeOf((*MockLBOriDstInfo)(nil).IsEnabled))
+}
+
+// IsReplaceLocal mocks base method.
+func (m *MockLBOriDstInfo) IsReplaceLocal() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsReplaceLocal")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsReplaceLocal indicates an expected call of IsReplaceLocal.
+func (mr *MockLBOriDstInfoMockRecorder) IsReplaceLocal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReplaceLocal", reflect.TypeOf((*MockLBOriDstInfo)(nil).IsReplaceLocal))
 }

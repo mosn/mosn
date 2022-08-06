@@ -58,14 +58,14 @@ func parseConfig(cfg interface{}) (*config, error) {
 	}
 	for _, rc := range filterConfig.RuleConfigs {
 		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
-			Macther:  matcher.NewMatcher(rc.MatcherConfig),
+			Matcher:  matcher.NewMatcher(rc.MatcherConfig),
 			RuleInfo: rc.RuleInfo,
 		})
 	}
 
 	if filterConfig.Type != "" {
 		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
-			Macther: &simplematcher.SimpleRuleMatcher{},
+			Matcher: &simplematcher.SimpleRuleMatcher{},
 			RuleInfo: &matcher.RuleInfo{
 				Type: filterConfig.Type,
 			},

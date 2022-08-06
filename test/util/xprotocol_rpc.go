@@ -42,7 +42,7 @@ func init() {
 	// tracer driver register
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
 	// xprotocol action register
-	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
 		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
 	})
@@ -173,7 +173,7 @@ func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
 		if _, ok := c.Waits.Load(streamID); ok {
-			c.t.Logf("RPC client receive streamId:%s \n", streamID)
+			c.t.Logf("RPC client receive streamId:%s, status: %v \n", streamID, cmd.GetStatusCode())
 			atomic.AddUint32(&c.respCount, 1)
 			status := int16(cmd.GetStatusCode())
 			if status == c.ExpectedStatus {

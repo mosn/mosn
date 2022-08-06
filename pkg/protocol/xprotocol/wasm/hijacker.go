@@ -31,7 +31,7 @@ func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, s
 	wasmCtx := req.ctx
 	if wasmCtx == nil {
 		// the reason why the existing context is not reused is
-		// because the wasm instance requested is still obtained,
+		// that the wasm instance requested is still obtained,
 		// but we need a new contextId to process the response
 		wasmCtx = proto.newWasmContext(context)
 		if wasmCtx == nil {

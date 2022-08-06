@@ -36,12 +36,15 @@ type headerLB struct {
 func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if headers := ctx.DownstreamHeaders(); headers != nil {
 		if value, ok := headers.Get(lb.key); ok {
-			hosts := lb.hostSet.Hosts()
-			for _, h := range hosts {
-				if h.Health() && h.Hostname() == value {
-					return h
+			var choosed types.Host
+			lb.hostSet.Range(func(host types.Host) bool {
+				if host.Health() && host.Hostname() == value {
+					choosed = host
+					return false
 				}
-			}
+				return true
+			})
+			return choosed
 		}
 	}
 	// random choose a host
@@ -49,11 +52,11 @@ func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 }
 
 func (lb *headerLB) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hostSet.Hosts()) > 0
+	return lb.hostSet.Size() > 0
 }
 
 func (lb *headerLB) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hostSet.Hosts())
+	return lb.hostSet.Size()
 }
 
 type headerLBCfg struct {
@@ -110,27 +113,28 @@ func TestRegisterNewLB(t *testing.T) {
 	// subset is also valid
 	//  reuse subset test config
 	subsetInfo := NewLBSubsetInfo(exampleSubsetConfig())
-	sublb := newSubsetLoadBalancer(headerKey, hs, newClusterStats("test"), subsetInfo)
-	// choose host is valid
-	// 1. ctx contains subset matched config
-	// 2. ctx contains header with key "hostname"
-	// should choose e1 only
-	for i := 0; i < 100; i++ {
-		host := sublb.ChooseHost(ctx)
-		if host == nil || host.Hostname() != "e1" {
-			t.Fatal("choose host not expected, get: ", host)
+	for name, sublb := range newSubsetLoadBalancers(headerKey, hs, newClusterStats("test"), subsetInfo) {
+		// choose host is valid
+		// 1. ctx contains subset matched config
+		// 2. ctx contains header with key "hostname"
+		// should choose e1 only
+		for i := 0; i < 100; i++ {
+			host := sublb.ChooseHost(ctx)
+			if host == nil || host.Hostname() != "e1" {
+				t.Fatalf("[%s] choose host not expected, get: %s", name, host)
+			}
 		}
-	}
-	// choose e1,e2,e5
-	for i := 0; i < 100; i++ {
-		host := sublb.ChooseHost(ctx2)
-		if host == nil {
-			t.Fatal("choose host failed")
-		}
-		switch host.Hostname() {
-		case "e1", "e2", "e5":
-		default:
-			t.Fatal("choose host not expected, get: ", host)
+		// choose e1,e2,e5
+		for i := 0; i < 100; i++ {
+			host := sublb.ChooseHost(ctx2)
+			if host == nil {
+				t.Fatalf("[%s] choose host failed", name)
+			}
+			switch host.Hostname() {
+			case "e1", "e2", "e5":
+			default:
+				t.Fatalf("[%s] choose host not expected, get: %s", name, host)
+			}
 		}
 	}
 }
@@ -161,7 +165,7 @@ func TestNewLBCluster(t *testing.T) {
 	if c == nil || c.info == nil {
 		t.Fatal("create cluster failed")
 	}
-	if c.info.lbType != headerKey {
+	if c.info.LbType() != headerKey {
 		t.Fatal("create cluster lb type not expected")
 	}
 }
