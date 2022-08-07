@@ -1,0 +1,31 @@
+{
+    "name": "mosn",
+    "image": "docker.io/keqingyuan/mosn-dev:v1",
+    // "dockerFile": "./Dockerfile",
+    // "context": ".",
+    "extensions": [
+        "DavidAnson.vscode-markdownlint",
+        "golang.go",
+        "NathanRidley.autotrim",
+        "samverschueren.final-newline"
+    ],
+    "settings": {
+        "go.lintTool": "golangci-lint"
+    },
+    "runArgs": [
+        "--init",
+        // Limit container memory usage.
+        "--memory=6g",
+        "--memory-swap=6g",
+        // Use the host network so we can access k3d, etc.
+        "--net=host",
+        // For lldb
+        "--cap-add=SYS_PTRACE",
+        "--security-opt=seccomp=unconfined"
+    ],
+    "overrideCommand": false,
+    "remoteUser": "code",
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+    ]
+}
