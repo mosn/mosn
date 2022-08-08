@@ -110,9 +110,10 @@ RUN apt update && apt upgrade -y --autoremove \
         unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && locale-gen
+RUN sed -i 's/^# *\(zh_CN.UTF-8\)/\1/' /etc/locale.gen && locale-gen
 RUN (echo "LC_ALL=zh_CN.UTF-8" \
-    && echo "LANGUAGE=zh_CN.UTF-8") >/etc/default/locale
+    && echo "LANGUAGE=zh_CN.UTF-8") >/etc/default/locale \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 ARG MARKDOWNLINT_VERSION=0.4.0
 RUN npm install "markdownlint-cli2@${MARKDOWNLINT_VERSION}" --global
