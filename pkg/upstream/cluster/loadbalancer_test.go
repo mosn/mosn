@@ -393,16 +393,16 @@ func Test_maglevLoadBalancerFallback(t *testing.T) {
 	}
 
 	host, _ := mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-7", host.Hostname(), "host name should be 'host-7'") {
+	if !assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'") {
 		t.FailNow()
 	}
 
 	// set host-0, host1 unhealthy
-	hostSet.hosts[7].SetHealthFlag(api.FAILED_ACTIVE_HC)
-	hostSet.hosts[6].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[9].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
 
 	host, _ = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-5", host.Hostname(), "host name should be 'host-5'") {
+	if !assert.Equalf(t, "host-1", host.Hostname(), "host name should be 'host-1'") {
 		t.FailNow()
 	}
 
@@ -410,15 +410,15 @@ func Test_maglevLoadBalancerFallback(t *testing.T) {
 	// create a new host set first
 	hostSet = getMockHostSet(10)
 	// leave only host[9] healthy
-	for i := 0; i < 9; i++ {
+	for i := 2; i < 10; i++ {
 		hostSet.hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
 	}
 	mgv = newMaglevLoadBalancer(nil, hostSet)
-	host, _ = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	host, _ = mgv.(*maglevLoadBalancer).chooseHostFromHostList(2)
 	// host-9 will finally be chosen
-	assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'")
+	assert.Equalf(t, "host-1", host.Hostname(), "host name should be 'host-1'")
 	// assert other 9 hosts is checked healthy
-	assert.Equalf(t, 9, hostSet.healthCheckVisitedCount, "host name should be 'host-0'")
+	assert.Equalf(t, 10, hostSet.healthCheckVisitedCount, "host name should be 'host-1'")
 }
 func getMockClusterInfo() *mockClusterInfo {
 	return &mockClusterInfo{
