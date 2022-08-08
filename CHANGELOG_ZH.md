@@ -1,5 +1,33 @@
 # 更新日志
 
+## v1.1.0
+
+### 新功能
+
+- 新增 zipkin 支持 (#2014) [@fibbery](https://github.com/fibbery)
+- 支持 tunnel 连接 (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- TracerBuilder 插件 (#2047) [@YIDWang](https://github.com/YIDWang)
+
+### 变更
+
+- 优化 集群多节点时 创建 subset 的负载均衡 (#2010) [@dzdx](https://github.com/dzdx)
+- 增强集群更新主机资源 (#2048) [@nejisama](https://github.com/nejisama)
+- 参考 buffer.ConnReadTimeout 更改为 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- 添加 hostSet 和导出 NewClusterInfo 方法 (#2036) [@dzdx](https://gighub.com/dzdx)
+- 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+- 支持 xds 流连接 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- 添加 xds-server 案例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- 禁用 WriteLoop (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
+- 减少 http post 请求期间的内存使用量 (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
+
+### Bug 修复
+
+- wasm 示例 tinygo/tinygo-dev 镜像版本（#2033）[@antJack](https://github.com/antJack)
+- bolt 转 springcloud 场景 请求转换成功，服务painc 问题 (#2062) [@YIDWang](https://github.com/YIDWang)
+- 在 ac.element 设置后添加连接事件监听器以避免 paic (#2082) [@dengqian](https://github.com/dengqian)
+- 避免在 新建 ActiveConnection 连接之前发生关闭事件 [@dengqian](https://github.com/dengqian)
+
+
 ## v1.0.1
 
 ### 变更
