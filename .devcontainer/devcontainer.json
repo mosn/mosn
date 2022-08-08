@@ -17,7 +17,7 @@
         // Limit container memory usage.
         "--memory=6g",
         "--memory-swap=6g",
-        // Use the host network so we can access k3d, etc.
+        // Use the host network so we can access internal, etc.
         "--net=host",
         // For lldb
         "--cap-add=SYS_PTRACE",
