@@ -1208,6 +1208,15 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 		s.route.RouteRule().FinalizeResponseHeaders(s.context, headers, s.requestInfo)
 	}
 
+	// TODO: inject exit context to span
+	// if trace.IsEnabled() {
+	// 	span := trace.SpanFromContext(s.context)
+	// 	if span != nil {
+	// 		span.InjectExitContext(headers, s.requestInfo)
+	// 	}
+	// }
+
+
 	if endStream {
 		s.onUpstreamResponseRecvFinished()
 	}
