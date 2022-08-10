@@ -25,7 +25,9 @@
 - wasm 示例 tinygo/tinygo-dev 镜像版本（#2033）[@antJack](https://github.com/antJack)
 - bolt 转 springcloud 场景 请求转换成功，服务painc 问题 (#2062) [@YIDWang](https://github.com/YIDWang)
 - 在 ac.element 设置后添加连接事件监听器以避免 paic (#2082) [@dengqian](https://github.com/dengqian)
-- 避免在 新建 ActiveConnection 连接之前发生关闭事件 [@dengqian](https://github.com/dengqian)
+- 避免在 新建 ActiveConnection 连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
+- 应该在代理之前初始化下游 (#2035) [@yidwang](https://github.com/YIDWang)
+- 更新 xds 资源并发时避免竞争 (#2101)  [@yzj0911](https://github.com/yzj0911) 
 
 
 ## v1.0.1

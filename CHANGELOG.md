@@ -6,7 +6,7 @@
 
 - Added zipkin support (#2014) [@fibbery](https://github.com/fibbery)
 - Support tunnel connection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Tracerbuilder plug-in (# 2047) [@ yidwang]（ https://github.com/YIDWang )
+- Tracerbuilder plug-in (# 2047) [@yidwang](https://github.com/YIDWang)
 
 ### Changes
 
@@ -15,17 +15,19 @@
 - Reference buffer.ConnReadTimeout changed to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Add hostSet and export NewClusterInfo methods (#2036) [@dzdx](https://github.com/dzdx)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
-- Support XDS stream connection (\2095) [@bryce-huang]（ https://github.com/Bryce-huang )
+- Support XDS stream connection (#2095) [@bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server case (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Disable WriteLoop (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
 - Reduce memory usage during http post requests (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
 
 ### Bug fixes
 
-- Wasm example tinygo / tinygo dev image version (\2033) [@antjack]（ https://github.com/antJack )
-- Bolt to springcloud scenario request conversion succeeded, service painc problem (\2062) [@yidwang]（ https://github.com/YIDWang )
-- Add a connection event listener after the setting of ac.element to avoid PAIC (\2082) [@dengqian]（ https://github.com/dengqian )
-- Avoid close event before new ActiveConnection connection [@dengqian](https://github.com/dengqian)
+- Wasm example tinygo / tinygo dev image version (#2033) [@antjack](https://github.com/antJack)
+- Bolt to springcloud scenario request conversion succeeded, service painc problem (#2062) [@yidwang](https://github.com/YIDWang)
+- Add a connection event listener after the setting of ac.element to avoid PAIC (#2082) [@dengqian](https://github.com/dengqian)
+- Avoid close event before new ActiveConnection connection (#2098) [@dengqian](https://github.com/dengqian)
+- should init downstream ctx before proxy (#2035) [@yidwang](https://github.com/YIDWang)
+- avoid race when updating xds resource concurrency (#2101) [@yzj0911](https://github.com/yzj0911)
 
 
 ## v1.0.1
