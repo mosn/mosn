@@ -10,3 +10,4 @@ mosn.pid
 examples/codes/filter/dubbo/install/build/mosn
 configs/mosn_shm_metrics
 vendor/
+__debug_bin

@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.18
+ARG GO_VERSION=1.14
 ##
 ## Base
 ##
@@ -32,7 +32,7 @@ RUN url="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linu
 ##
 
 FROM docker.io/golang:${GO_VERSION} as go
-ENV GOPROXY="https://goproxy.cn"
+ENV GOPROXY="https://goproxy.cn,direct"
 RUN apt update && apt upgrade -y --autoremove \
     && apt install -y \
         curl \
@@ -53,7 +53,7 @@ RUN for p in \
     github.com/uudashr/gopkgs/v2/cmd/gopkgs@latest \
     golang.org/x/tools/gopls@latest \
     gotest.tools/gotestsum@v0.4.2 \
-    ; do go install -mod=readonly "$p" ; done \
+    ; do GO111MODULE=on go get "$p" ; done \
     && rm -rf /go/pkg/* /go/src/*
 COPY bin/scurl /usr/local/bin/scurl
 COPY --from=just /usr/local/bin/just /usr/local/bin/

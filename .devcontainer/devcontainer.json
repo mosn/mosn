@@ -1,6 +1,6 @@
 {
     "name": "mosn",
-    "image": "docker.io/keqingyuan/mosn-dev:v3",
+    "image": "docker.io/keqingyuan/mosn-dev:v4",
     // "dockerFile": "./Dockerfile",
     // "context": ".",
     "extensions": [
