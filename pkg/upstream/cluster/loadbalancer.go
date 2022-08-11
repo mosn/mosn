@@ -431,18 +431,17 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 	chosen := lb.hosts.Get(index)
 
 	// if retry, means request to last chose host failed, do not use it again
+	retrying := false
 	context := ctx.DownstreamContext()
 	if ind, err := variable.GetString(context, VarProxyUpstreamIndex); err == nil {
 		if i, err := strconv.Atoi(ind); err == nil {
-			index = i + 1
+			index = i
 		}
-		chosen, index = lb.chooseHostFromHostList(index)
-		variable.SetString(context, VarProxyUpstreamIndex, strconv.Itoa(index))
+		retrying = true
 	}
-
 	// fallback
-	if !chosen.Health() {
-		chosen, index = lb.chooseHostFromHostList(index)
+	if !chosen.Health() || retrying {
+		chosen, index = lb.chooseHostFromHostList(index + 1)
 	}
 
 	if chosen == nil {
