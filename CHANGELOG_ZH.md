@@ -5,35 +5,34 @@
 ### 新功能
 
 - 新增 zipkin 支持 (#2014) [@fibbery](https://github.com/fibbery)
-- 支持 tunnel 连接 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- 支持上游连接ID (#1810) [@songzhibin97](https://github.com/songzhibin97)
-- TracerBuilder 插件 (#2047) [@YIDWang](https://github.com/YIDWang)
-- 支持 xds 流过滤 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- 支持 mosn 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- Trace 插件化 (#2047) [@YIDWang](https://github.com/YIDWang)
 - makeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
 
 - 优化 集群多节点时 创建 subset 的负载均衡 (#2010) [@dzdx](https://github.com/dzdx)
 - 参考 buffer.ConnReadTimeout 更改为 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
-- 增强集群更新主机资源 (#2048) [@nejisama](https://github.com/nejisama)
-- 优化证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+- 增强 集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
+- 优化 证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 - 添加 hostSet 和导出 NewClusterInfo 方法 (#2036) [@dzdx](https://gighub.com/dzdx)
-- 修复文档错字 (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- 修复 文档错字 (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
-- 添加子集 lb 接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
+- 添加 子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
-- tcp proxy handle 写入超时 / 写入关闭事件 (#2080) [@dengqian](https://github.com/dengqian)
-- 修正判断上游地址 (#2093) [@dengqian](https://github.com/dengqian)
+- 修复 tcp proxy handle 写入超时 / 写入关闭事件 (#2080) [@dengqian](https://github.com/dengqian)
+- 修正 判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
 - 支持 xds 流连接 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - 添加 xds-server 案例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - 禁用 WriteLoop (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
 - 减少 http post 请求期间的内存使用量 (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
 - 添加 http request error 日志输出 (#2066) [@fibbery](https://github.com/fibbery)
+- 支持 获取 proxy 上游id (#1810) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug 修复
 
-- wasm 示例 tinygo/tinygo-dev 镜像版本（#2033）[@antJack](https://github.com/antJack)
-- logger.CloseAll 在 stm.SetState 之前 (#2034) [@doujiang24](https://github.com/doujiang24)
+- wasm 示例 tinygo/tinygo-dev 镜像版本 的 makefile 文件（#2033）[@antJack](https://github.com/antJack)
+- logger.CloseAll 在 stm.SetState 之前的问题 (#2034) [@doujiang24](https://github.com/doujiang24)
 - UseOriginalDst 添加 listener 判断返回 (#2058) [@threestoneliu](https://github.com/threestoneliu)
 - bolt 转 springCloud 场景 请求转换成功，panic 问题 (#2062) [@YIDWang](https://github.com/YIDWang)
 - 在 ac.element 设置后添加连接事件监听器以避免 panic (#2082) [@dengqian](https://github.com/dengqian)
