@@ -56,7 +56,7 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			LBSubSetConfig:       convertLbSubSetConfig(xdsCluster.GetLbSubsetConfig()),
 			MaxRequestPerConn:    xdsCluster.GetMaxRequestsPerConnection().GetValue(),
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
-			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
+			HealthCheck:          convertHealthChecks(xdsCluster.GetName(), xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			ConnectTimeout:       &api.DurationConfig{Duration: ConvertDuration(xdsCluster.GetConnectTimeout())},
 			// OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
@@ -312,13 +312,14 @@ func convertSubsetSelectors(xdsSubsetSelectors []*envoy_config_cluster_v3.Cluste
 	return subsetSelectors
 }
 
-func convertHealthChecks(xdsHealthChecks []*envoy_config_core_v3.HealthCheck) v2.HealthCheck {
+func convertHealthChecks(serviceName string, xdsHealthChecks []*envoy_config_core_v3.HealthCheck) v2.HealthCheck {
 	if xdsHealthChecks == nil || len(xdsHealthChecks) == 0 || xdsHealthChecks[0] == nil {
 		return v2.HealthCheck{}
 	}
 
 	return v2.HealthCheck{
 		HealthCheckConfig: v2.HealthCheckConfig{
+			ServiceName:        serviceName,
 			HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
 			UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
 		},
