@@ -4,41 +4,40 @@
 
 ### 新功能
 
-- 新增 zipkin 支持 (#2014) [@fibbery](https://github.com/fibbery)
+- tracelog 支持zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - 支持 mosn 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
 - Trace 插件化 (#2047) [@YIDWang](https://github.com/YIDWang)
 - makeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
 
-- 优化 集群多节点时 创建 subset 的负载均衡 (#2010) [@dzdx](https://github.com/dzdx)
-- 参考 buffer.ConnReadTimeout 更改为 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- 优化 创建Subset负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 调整 连接读超时从buffer.xxx 到types.xxx (#2051) [@fibbery](https://github.com/fibbery)
 - 增强 集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
 - 优化 证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- 添加 hostSet 和导出 NewClusterInfo 方法 (#2036) [@dzdx](https://gighub.com/dzdx)
+- 重构 HostSet的使用方式 (#2036) [@dzdx](https://gighub.com/dzdx)
 - 修复 文档错字 (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - 添加 子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
-- 修复 tcp proxy handle 写入超时 / 写入关闭事件 (#2080) [@dengqian](https://github.com/dengqian)
 - 修正 判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
-- 支持 xds 流连接 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- 添加 xds-server 案例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- 禁用 WriteLoop (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
-- 减少 http post 请求期间的内存使用量 (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
-- 添加 http request error 日志输出 (#2066) [@fibbery](https://github.com/fibbery)
+- 支持 xds 流连接  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- 更改 连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
+- 新增 HTTP请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
 - 支持 获取 proxy 上游id (#1810) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug 修复
 
 - wasm 示例 tinygo/tinygo-dev 镜像版本 的 makefile 文件（#2033）[@antJack](https://github.com/antJack)
 - logger.CloseAll 在 stm.SetState 之前的问题 (#2034) [@doujiang24](https://github.com/doujiang24)
-- UseOriginalDst 添加 listener 判断返回 (#2058) [@threestoneliu](https://github.com/threestoneliu)
-- bolt 转 springCloud 场景 请求转换成功，panic 问题 (#2062) [@YIDWang](https://github.com/YIDWang)
-- 在 ac.element 设置后添加连接事件监听器以避免 panic (#2082) [@dengqian](https://github.com/dengqian)
-- 避免在 新建 activeConnection 连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
-- 应该在代理之前初始化下游 (#2035) [@yidwang](https://github.com/YIDWang)
-- 更新 xds 资源并发时避免竞争 (#2101)  [@yzj0911](https://github.com/yzj0911)
+- 修复 OriginalDst匹配成功以后没有正确处理的问题 (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- 修复 协议转换场景没有正确处理异常情况的问题，新增协议转换实现规范 (#2062) [@YIDWang](https://github.com/YIDWang)
+- 修复 tcp proxy handle 写入超时 / 写入关闭事件 (#2080) [@dengqian](https://github.com/dengqian)
+- 修复 连接事件监听时机错误可能引发的panic问题 (#2082) [@dengqian](https://github.com/dengqian)
+- 避免 在事件监听连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
+- 修复 xds 推送时可能存在的并发问题 (#2101)  [@yzj0911](https://github.com/yzj0911)
 
 
 ## v1.0.1

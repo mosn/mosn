@@ -4,28 +4,26 @@
 
 ### New Features
 
-- Added zipkin support (#2014) [@fibbery](https://github.com/fibbery)
+- tracelog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - Support mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
 - Trace plugin (#2047) [@YIDWang](https://github.com/YIDWang)
 - add package tar command to makeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
-- Optimize the load balancing for creating subsets when the cluster has multiple nodes (#2010) [@dzdx](https://github.com/dzdx)
-- Reference buffer.ConnReadTimeout changed to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- Optimize the algorithm for creating Subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
+- Adjust connection read timeout from buffer.xxx to types.xxx (#2051) [@fibbery](https://github.com/fibbery)
 - Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
 - Optimized certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- Add hostSet and export NewClusterInfo methods (#2036) [@dzdx](https://gighub.com/dzdx)
+- Refactor how HostSet is used (#2036) [@dzdx](https://gighub.com/dzdx)
 - Fix documentation typo (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
-- Fix tcp proxy handle write timeout/write close event (#2080) [@dengqian](https://github.com/dengqian)
 - Fix the method of judging upstream address (#2093) [@dengqian](https://github.com/dengqian)
 - Support xds stream connection (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- Add xds-server case (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- Disable WriteLoop (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
-- Reduce memory usage during http post requests (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
-- Add http request error log output (#2066) [@fibbery](https://github.com/fibbery)
+- Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
+- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
 - Support get proxy upstream id (#1810) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug fixes
