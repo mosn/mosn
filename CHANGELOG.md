@@ -6,7 +6,7 @@
 
 - trace log support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - Support Mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace plugin,using SkyWalking as the tracking implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Trace supports plug-in extension in the form of driver,using SkyWalking as the tracking implementation (#2047) [@YIDWang](https://github.com/YIDWang)
 - Add package tar command to makeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
@@ -20,11 +20,12 @@
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
 - Fix the method of judging upstream address (#2093) [@dengqian](https://github.com/dengqian)
-- Support xds stream connection (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- xds supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess extension implements xds parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
-- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- Support get proxy upstream id (#1810) [@songzhibin97](https://github.com/songzhibin97)
+- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
+- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Support get proxy upstream id (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug fixes
 

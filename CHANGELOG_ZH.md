@@ -6,7 +6,7 @@
 
 - trace log 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - 支持 Mosn 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace 插件化,使用 SkyWalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
+- trace以driver的形式支持插件化扩展,使用 SkyWalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
 - makeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
@@ -21,11 +21,12 @@
 - 添加 子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
 - 修正 判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
-- 支持 xds 流连接  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- xds 支持 stream filter解析扩展  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess 扩展实现xds 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - 更改 连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
 - 新增 HTTP请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- 支持 获取 proxy 上游id (#1810) [@songzhibin97](https://github.com/songzhibin97)
+- 支持 获取 proxy 上游id (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug 修复
 
