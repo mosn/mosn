@@ -4,17 +4,17 @@
 
 ### New Features
 
-- tracelog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
-- Support mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace plugin (#2047) [@YIDWang](https://github.com/YIDWang)
-- add package tar command to makeFile (#1968) [@doujiang24](https://github.com/doujiang24)
+- trace log support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- Support Mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- Trace plugin,using SkyWalking as the tracking implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Add package tar command to makeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
 - Optimize the algorithm for creating Subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
-- Adjust connection read timeout from buffer.xxx to types.xxx (#2051) [@fibbery](https://github.com/fibbery)
+- Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
 - Optimized certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- Refactor how HostSet is used (#2036) [@dzdx](https://gighub.com/dzdx)
+- Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
 - Fix documentation typo (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
@@ -22,8 +22,8 @@
 - Fix the method of judging upstream address (#2093) [@dengqian](https://github.com/dengqian)
 - Support xds stream connection (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://cgithub.com/taoyuanyuan)
-- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://cgithub.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
 - Support get proxy upstream id (#1810) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug fixes

@@ -4,18 +4,18 @@
 
 ### 新功能
 
-- tracelog 支持zipkin (#2014) [@fibbery](https://github.com/fibbery)
-- 支持 mosn 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace 插件化 (#2047) [@YIDWang](https://github.com/YIDWang)
+- trace log 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- 支持 Mosn 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- Trace 插件化,使用 SkyWalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
 - makeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
 
 - 优化 创建Subset负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
-- 调整 连接读超时从buffer.xxx 到types.xxx (#2051) [@fibbery](https://github.com/fibbery)
+- 调整 连接读超时从 buffer.ConnReadTimeout 到 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - 增强 集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
 - 优化 证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- 重构 HostSet的使用方式 (#2036) [@dzdx](https://gighub.com/dzdx)
+- 重构 HostSet 的使用方式 (#2036) [@dzdx](https://github.com/dzdx)
 - 修复 文档错字 (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - 添加 子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
