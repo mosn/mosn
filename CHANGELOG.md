@@ -14,7 +14,7 @@
 ### Changes
 
 - Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
-- Fix typo in documentation (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- Fix typo in documentation (#2056) (#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
