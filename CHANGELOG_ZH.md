@@ -4,14 +4,14 @@
 
 ### 新功能
 
-- trace log 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - 支持 MOSN 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- trace 以 driver 的形式支持插件化扩展,使用 SkyWalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
+- Trace 以 Driver 的形式支持插件化扩展,使用 Skywalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
 - MakeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
 
-- 优化创建 Subset 负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 优化创建 subset 负载均衡的算法,降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
 - 调整连接读超时从 buffer.ConnReadTimeout 到 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - 增强集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
 - 优化证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
@@ -21,8 +21,8 @@
 - 添加子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
 - 修正判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
-- xds 支持 stream filter 解析扩展  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- stream filter: ipaccess 扩展实现 xds 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- xDS 支持 stream filter 解析扩展  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - 更改连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
@@ -38,7 +38,7 @@
 - 修复连接事件监听时机错误可能引发的 panic 问题 (#2082) [@dengqian](https://github.com/dengqian)
 - 避免在事件监听连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
 - HTTP/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
-- 修复 xds 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
+- 修复 xDS 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
 
 
 ## v1.0.1

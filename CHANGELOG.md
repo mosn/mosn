@@ -4,14 +4,14 @@
 
 ### New Features
 
-- trace log support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- TraceLog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - Support MOSN cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- trace supports plugin extension in the form of driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Trace supports plugin extension in the form of Driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
 - Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
 
-- Optimize the algorithm for creating Subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
+- Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
 - Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
 - Optimize certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
@@ -31,7 +31,7 @@
 ### Bug fixes
 
 - Fix the MakeFile for the wasm example tinygo/tinygo-dev mirror version (#2033) [@antJack](https://github.com/antJack)
-- Issue with logger.CloseAll before stm.SetState (#2034) [@doujiang24](https://github.com/doujiang24)
+- Fixed Issue with logger.CloseAll before stm.SetState (#2034) [@doujiang24](https://github.com/doujiang24)
 - Fixed the problem that OriginalDst was not properly processed after matching successfully (#2058) [@threestoneliu](https://github.com/threestoneliu)
 - Fix the problem that the protocol conversion scene does not handle exceptions correctly, and add the protocol conversion implementation specification (#2062) [@YIDWang](https://github.com/YIDWang)
 - Fix tcp proxy handle write timeout/write close event (#2080) [@dengqian](https://github.com/dengqian)
