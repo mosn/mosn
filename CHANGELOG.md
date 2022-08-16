@@ -21,8 +21,8 @@
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
 - Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
-- xds supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- stream filter: ipaccess extension implements xds parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- xDS supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
@@ -38,7 +38,7 @@
 - Fix the panic problem that may be caused by the wrong timing of connection event listening (#2082) [@dengqian](https://github.com/dengqian)
 - Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
 - HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
-- Fix possible concurrency issues when pushing xds (#2101) [@yzj0911](https://github.com/yzj0911)
+- Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
 
 ## v1.0.1
 
