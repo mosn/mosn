@@ -6,7 +6,7 @@
 
 - TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - 支持 MOSN 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace 以 Driver 的形式支持插件化扩展,使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
+- Trace 以 Driver 的形式支持插件化扩展，使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
 - xDS 支持 stream filter 解析扩展 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - MakeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
@@ -30,7 +30,7 @@
 
 ### 优化
 
-- 优化创建 subset 负载均衡的算法,降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 优化创建 subset 负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
 - 增强集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
 - 优化证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 
@@ -39,7 +39,7 @@
 - 修复 wasm 示例 tinygo/tinygo-dev 镜像版本的 MakeFile 文件（#2033）[@antJack](https://github.com/antJack)
 - logger.CloseAll 在 stm.SetState 之前的问题 (#2034) [@doujiang24](https://github.com/doujiang24)
 - 修复 OriginalDst 匹配成功以后没有正确处理的问题 (#2058) [@threestoneliu](https://github.com/threestoneliu)
-- 修复协议转换场景没有正确处理异常情况的问题,新增协议转换实现规范 (#2062) [@YIDWang](https://github.com/YIDWang)
+- 修复协议转换场景没有正确处理异常情况的问题，新增协议转换实现规范 (#2062) [@YIDWang](https://github.com/YIDWang)
 - 修复 tcp proxy handle 写入超时/写入关闭事件 (#2080) [@dengqian](https://github.com/dengqian)
 - 修复连接事件监听时机错误可能引发的 panic 问题 (#2082) [@dengqian](https://github.com/dengqian)
 - 避免在事件监听连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
