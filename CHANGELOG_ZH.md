@@ -31,7 +31,7 @@
 
 - 优化创建 subset 负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
 - 支持可扩展的集群更新方式操作 (#2048) [@nejisama](https://github.com/nejisama)
-- 优化多证书匹配逻辑：优先匹配servername，全部servername匹配不上以后才按照ALPN进行匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+- 优化多证书匹配逻辑：优先匹配 servername，全部 servername 匹配不上以后才按照 ALPN 进行匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 
 ### Bug 修复
 
