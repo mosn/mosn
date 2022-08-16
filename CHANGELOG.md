@@ -24,8 +24,8 @@
 - stream filter: ipaccess extension implements xds parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
-- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- Added upstream connection id to proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Add upstream connection id to proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug fixes
 
