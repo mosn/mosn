@@ -6,37 +6,39 @@
 
 - trace log support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - Support Mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace supports plug-in extension in the form of driver,using SkyWalking as the tracking implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- trace supports plug-in extension in the form of driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
 - Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
+
 - Optimize the algorithm for creating Subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
 - Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
-- Optimized certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+- Optimize certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 - Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
-- Fix documentation typo (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- Fix typo in documentation (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
-- Fix the method of judging upstream address (#2093) [@dengqian](https://github.com/dengqian)
+- Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
 - xds supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - stream filter: ipaccess extension implements xds parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- Change the connection write data adjustment to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
-- Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- Add upstream connection id to proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Added upstream connection id in proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Bug fixes
 
-- Makefile for the wasm example tinygo/tinygo-dev mirror version (#2033) [@antJack](https://github.com/antJack)
+- Fix the MakeFile for the wasm example tinygo/tinygo-dev mirror version (#2033) [@antJack](https://github.com/antJack)
 - Issue with logger.CloseAll before stm.SetState (#2034) [@doujiang24](https://github.com/doujiang24)
-- UseOriginalDst adds listener judgment return (#2058) [@threestoneliu](https://github.com/threestoneliu)
-- bolt to springCloud scene request conversion is successful, panic problem (#2062) [@YIDWang](https://github.com/YIDWang)
-- Add connection event listener after ac.element setup to avoid panic (#2082) [@dengqian](https://github.com/dengqian)
-- Avoid close event before new activeConnection connection (#2098) [@dengqian](https://github.com/dengqian)
-- Downstream should be initialized before proxy (#2035) [@yidwang](https://github.com/YIDWang)
-- Avoid races when updating xds resources concurrently (#2101) [@yzj0911](https://github.com/yzj0911)
+- Fixed the problem that OriginalDst was not properly processed after matching successfully (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- Fix the problem that the protocol conversion scene does not handle exceptions correctly, and add the protocol conversion implementation specification (#2062) [@YIDWang](https://github.com/YIDWang)
+- Fix tcp proxy handle write timeout/write close event (#2080) [@dengqian](https://github.com/dengqian)
+- Fix the panic problem that may be caused by the wrong timing of connection event listening (#2082) [@dengqian](https://github.com/dengqian)
+- Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
+- Fix possible concurrency issues when pushing xds (#2101) [@yzj0911](https://github.com/yzj0911)
 
 ## v1.0.1
 
