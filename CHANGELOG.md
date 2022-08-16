@@ -5,8 +5,8 @@
 ### New Features
 
 - trace log support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
-- Support Mosn cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- trace supports plug-in extension in the form of driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Support MOSN cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- trace supports plugin extension in the form of driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
 - Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
