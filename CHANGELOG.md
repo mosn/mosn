@@ -7,8 +7,8 @@
 - TraceLog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - Support MOSN cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
 - Trace supports plugin extension in the form of Driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
-- Add xDS supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- Add stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- Supports Parsing Extended xDS Stream Filter (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### Changes
@@ -16,12 +16,11 @@
 - Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Fix typo in documentation (#2056) (#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
-- Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
+- New interface for traversing SubsetLB (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
 - Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- Added upstream connection id in proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 ### Refactoring
 
@@ -31,20 +30,21 @@
 ### Optimization
 
 - Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
-- Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
-- Optimize certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+- Support scalable cluster update method operation (#2048) [@nejisama](https://github.com/nejisama)
+- Optimize multi-certificate matching logic: match servername first, and match ALPN only after all servernames are unmatched (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 
 ### Bug fixes
 
-- Fix the MakeFile for the wasm example tinygo/tinygo-dev mirror version (#2033) [@antJack](https://github.com/antJack)
-- Fixed Issue with logger.CloseAll before stm.SetState (#2034) [@doujiang24](https://github.com/doujiang24)
+- Fix the latest image version in the wasm example to be a fixed version (#2033) [@antJack](https://github.com/antJack)
+- Adjust the order of log closing execution when MOSN exits, and fix the problem that some exit logs cannot be output correctly (#2034) [@doujiang24](https://github.com/doujiang24)
 - Fixed the problem that OriginalDst was not properly processed after matching successfully (#2058) [@threestoneliu](https://github.com/threestoneliu)
 - Fix the problem that the protocol conversion scene does not handle exceptions correctly, and add the protocol conversion implementation specification (#2062) [@YIDWang](https://github.com/YIDWang)
-- Fix tcp proxy handle write timeout/write close event (#2080) [@dengqian](https://github.com/dengqian)
+- Fix stream proxy not properly handling exception events such as connection write timeout/disconnect (#2080) [@dengqian](https://github.com/dengqian)
 - Fix the panic problem that may be caused by the wrong timing of connection event listening (#2082) [@dengqian](https://github.com/dengqian)
 - Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
 - HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
 - Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
+- If the upstream address variable is not found, it no longer returns null and returns ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
 
 
 ## v1.0.1
