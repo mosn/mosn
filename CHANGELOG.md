@@ -11,22 +11,28 @@
 
 ### Changes
 
-- Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
 - Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - Enhanced cluster update host resource operation (#2048) [@nejisama](https://github.com/nejisama)
-- Optimize certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
 - Fix typo in documentation (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - Add subset interface (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
 - Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
-- xDS supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
-- stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add xDS supports stream filter parsing extension (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
 - Added upstream connection id in proxy log (#2049) [@songzhibin97](https://github.com/songzhibin97)
+
+### Refactoring
+
+- Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
+- Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Optimization
+
+- Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
+- Optimize certificate matching (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 
 ### Bug fixes
 
@@ -39,6 +45,7 @@
 - Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
 - HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
 - Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
+
 
 ## v1.0.1
 

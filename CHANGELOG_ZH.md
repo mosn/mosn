@@ -6,27 +6,33 @@
 
 - TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
 - 支持 MOSN 云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
-- Trace 以 Driver 的形式支持插件化扩展,使用 Skywalking 作为跟踪实现  (#2047) [@YIDWang](https://github.com/YIDWang)
+- Trace 以 Driver 的形式支持插件化扩展,使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
 - MakeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
 
 ### 变更
 
-- 优化创建 subset 负载均衡的算法,降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
 - 调整连接读超时从 buffer.ConnReadTimeout 到 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
 - 增强集群更新主机资源操作 (#2048) [@nejisama](https://github.com/nejisama)
-- 优化证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
-- 重构 HostSet 的使用方式 (#2036) [@dzdx](https://github.com/dzdx)
-- 修复文档错字 (#2056)(#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- 修复文档错字 (#2056)(#2057) [@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
 - 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - 添加子集接口 (#2059)(#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
 - 修正判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
-- xDS 支持 stream filter 解析扩展  (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- xDS 支持 stream filter 解析扩展 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
-- 更改连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- proxy 日志中新增上游连接 id(#2049) [@songzhibin97](https://github.com/songzhibin97)
+- proxy 日志中新增上游连接 id (#2049) [@songzhibin97](https://github.com/songzhibin97)
+
+### 重构
+
+- 重构 HostSet 的使用方式 (#2036) [@dzdx](https://github.com/dzdx)
+- 更改连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### 优化
+
+- 优化创建 subset 负载均衡的算法,降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 优化证书匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
 
 ### Bug 修复
 
