@@ -21,6 +21,8 @@
 - 修正判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
 - 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- 负载均衡在重试时跳过最后选择主机 (#2077) [@dengqian](https://github.com/dengqian)
+- 访问日志支持打印 traceID，connectionID 和 UpstreamConnectionID  (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ### 重构
 
@@ -45,6 +47,7 @@
 - HTTP/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
 - 修复 xDS 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
 - 找不到 upstream 地址变量时，不再返回空，返回 ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- 修复健康坚持不支持 xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
 
 
 ## v1.0.1

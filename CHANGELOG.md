@@ -21,6 +21,8 @@
 - Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
 - Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Added error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Load balancing skips last selected host on retry (#2077) [@dengqian](https://github.com/dengqian)
+- Access logs support printing traceID, connectionID and UpstreamConnectionID (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ### Refactoring
 
@@ -45,7 +47,7 @@
 - HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
 - Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
 - If the upstream address variable is not found, it no longer returns null and returns ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
-
+- Fix Health Persistence does not support xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ## v1.0.1
 
