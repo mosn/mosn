@@ -47,7 +47,7 @@
 - HTTP/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
 - 修复 xDS 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
 - 找不到 upstream 地址变量时，不再返回空，返回 ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
-- 修复健康坚持不支持 xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- 修复健康检查不支持 xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
 
 
 ## v1.0.1

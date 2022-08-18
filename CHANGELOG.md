@@ -47,7 +47,7 @@
 - HTTP/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
 - Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
 - If the upstream address variable is not found, it no longer returns null and returns ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
-- Fix Health Persistence does not support xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- Fix health check does not support xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ## v1.0.1
 
