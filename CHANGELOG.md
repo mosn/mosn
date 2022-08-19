@@ -18,7 +18,7 @@
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - New interface for traversing SubsetLB (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
-- Add Example of xds-server as a MOSN control surface (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add Example of xds-server as MOSN control plane (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
 - Load balancing skips the last selected host on retry  (#2077) [@dengqian](https://github.com/dengqian)
 - Access logs support printing traceID, connectionID and UpstreamConnectionID (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
