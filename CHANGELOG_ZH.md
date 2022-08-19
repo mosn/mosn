@@ -5,7 +5,7 @@
 ### 新功能
 
 - TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
-- 支持云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- 支持云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)，细节可以参考[博客](https://mosn.io/blog/posts/mosn-tunnel/)
 - Trace 以 Driver 的形式支持插件化扩展，使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
 - xDS 支持 stream filter 解析扩展 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
@@ -18,9 +18,9 @@
 - 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - 新增遍历 SubsetLB 的接口 (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
-- 添加 xds-server 示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- 添加 xds-server 作为 MOSN 控制面的示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- 负载均衡在重试时跳过最后选择主机 (#2077) [@dengqian](https://github.com/dengqian)
+- 负载均衡在重试时跳过上一次选择的主机 (#2077) [@dengqian](https://github.com/dengqian)
 - 访问日志支持打印 traceID，connectionID 和 UpstreamConnectionID  (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ### 重构

@@ -5,7 +5,7 @@
 ### New Features
 
 - TraceLog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
-- Support cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger)
+- Support cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger), details can be found in [blog](https://mosn.io/blog/posts/mosn-tunnel/)
 - Trace supports plugin extension in the form of Driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
 - Support Parsing Extended xDS Stream Filter (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
 - stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
@@ -18,9 +18,9 @@
 - Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
 - New interface for traversing SubsetLB (#2059) (#2061) [@nejisama](https://github.com/nejisama)
 - Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
-- Add xds-server example (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add Example of xds-server as a MOSN control surface (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
 - Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
-- Load balancing skips last selected host on retry (#2077) [@dengqian](https://github.com/dengqian)
+- Load balancing skips the last selected host on retry  (#2077) [@dengqian](https://github.com/dengqian)
 - Access logs support printing traceID, connectionID and UpstreamConnectionID (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
 
 ### Refactoring
