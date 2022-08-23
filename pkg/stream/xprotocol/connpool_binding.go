@@ -292,17 +292,17 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 		// LocalClose when there is a panic
 		// OnReadErrClose when read failed
 		ac.removeFromPool()
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) == 0
+		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		ac.codecClient.Close()
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) == 0
+		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) == 0
+		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
 	default:
 		// do nothing
 	}
@@ -313,13 +313,17 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 }
 
 // types.StreamEventListener
+var upperStreamGoAway = errors.New("upper stream go away and no active request exist")
+
 func (ac *activeClientBinding) OnDestroyStream() {
 	host := ac.pool.Host()
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
-	ac.Close(nil)
+	if atomic.LoadUint32(&ac.goaway) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.Close(upperStreamGoAway)
+	}
 }
 
 func (ac *activeClientBinding) OnResetStream(reason types.StreamResetReason) {
@@ -341,7 +345,11 @@ func (ac *activeClientBinding) OnResetStream(reason types.StreamResetReason) {
 // types.StreamConnectionEventListener
 func (ac *activeClientBinding) OnGoAway() {
 	ac.removeFromPool()
-	atomic.StoreUint32(&ac.goaway, 1)
+	atomic.StoreUint32(&ac.goaway, GoAway)
+
+	if ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.Close(upperStreamGoAway)
+	}
 }
 
 // SetHeartBeater set the heart beat for an active client
