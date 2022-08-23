@@ -292,23 +292,25 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 		// LocalClose when there is a panic
 		// OnReadErrClose when read failed
 		ac.removeFromPool()
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
+		needCloseDownStream = true
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		ac.codecClient.Close()
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
+		needCloseDownStream = true
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		needCloseDownStream = atomic.LoadUint32(&ac.goaway) != GoAway
+		needCloseDownStream = true
 	default:
 		// do nothing
 	}
 
 	if needCloseDownStream && ac.downstreamConn != nil {
-		ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
+		if atomic.LoadUint32(&ac.goaway) != GoAway || ac.codecClient.ActiveRequestsNum() > 0 {
+			ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
+		}
 	}
 }
 
