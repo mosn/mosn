@@ -78,6 +78,7 @@ func main() {
 	flag.Parse()
 	//
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+
 	// xprotocol action register
 	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()

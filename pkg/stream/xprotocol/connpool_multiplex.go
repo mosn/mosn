@@ -31,9 +31,9 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// poolMultiplex is used for multiplex protocols like sofa, dubbo, etc.
+// PoolMultiplex is used for multiplex protocols like sofa, dubbo, etc.
 // a single pool is connections which can be reused in a single host
-type poolMultiplex struct {
+type PoolMultiplex struct {
 	*connpool
 
 	clientMux              sync.Mutex
@@ -74,13 +74,28 @@ func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 		maxConns = uint64(defaultMaxConn)
 	}
 
-	return &poolMultiplex{
+	return &PoolMultiplex{
 		connpool:      p,
 		activeClients: make([]sync.Map, maxConns),
 	}
 }
 
-func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
+func (p *PoolMultiplex) NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
+	proto := codec.NewXProtocol(ctx)
+	c := &connpool{
+		tlsHash:  host.TLSHashValue(),
+		protocol: proto.Name(),
+		codec:    codec,
+	}
+	p.host.Store(host)
+	return NewPoolMultiplex(c)
+}
+
+func (p *PoolMultiplex) GetApiPoolMode() api.PoolMode {
+	return api.Multiplex
+}
+
+func (p *PoolMultiplex) init(sub types.ProtocolName, index int) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
@@ -106,7 +121,7 @@ func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
 }
 
 // CheckAndInit init the connection pool
-func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
+func (p *PoolMultiplex) CheckAndInit(ctx context.Context) bool {
 	var clientIdx int64 = 0 // most use cases, there will only be 1 connection
 	if len(p.activeClients) > 1 {
 		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
@@ -143,7 +158,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+func (p *PoolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	var (
 		ok        bool
 		clientIdx int64 = 0
@@ -199,7 +214,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 }
 
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
-func (p *poolMultiplex) Shutdown() {
+func (p *PoolMultiplex) Shutdown() {
 	utils.GoWithRecover(func() {
 		{
 			p.clientMux.Lock()
@@ -225,11 +240,11 @@ func (p *poolMultiplex) Shutdown() {
 	}, nil)
 }
 
-func (p *poolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
+func (p *PoolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
 	return stream.NewStreamClient(context, p.connpool.protocol, connData.Connection, connData.Host)
 }
 
-func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
+func (p *PoolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
 	ac := &activeClientMultiplex{
 		subProtocol: subProtocol,
 		pool:        p,
@@ -277,7 +292,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	return ac, ""
 }
 
-func (p *poolMultiplex) Close() {
+func (p *PoolMultiplex) Close() {
 	for i := 0; i < len(p.activeClients); i++ {
 		f := func(k, v interface{}) bool {
 			ac, _ := v.(*activeClientMultiplex)
@@ -291,7 +306,7 @@ func (p *poolMultiplex) Close() {
 	}
 }
 
-func (p *poolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.ConnectionEvent) {
+func (p *PoolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.ConnectionEvent) {
 	host := p.Host()
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
@@ -350,7 +365,7 @@ type activeClientMultiplex struct {
 	subProtocol        types.ProtocolName
 	keepAlive          *keepAliveListener
 	state              uint32 // for async connection
-	pool               *poolMultiplex
+	pool               *PoolMultiplex
 	indexInPool        int
 	codecClient        stream.Client
 	host               types.CreateConnectionData

@@ -90,6 +90,9 @@ func main() {
 	})
 	// xprotocol register
 	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolMultiplex{})
+	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolBinding{})
+	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolPingPong{})
 	// use bolt as example
 	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName, *t); client != nil {
 		for {

@@ -31,9 +31,9 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-// poolPingPong is used for ping pong protocol such as http
+// PoolPingPong is used for ping pong protocol such as http
 // which must keep reading connection, and wait for the upstream to response before sending the next request
-type poolPingPong struct {
+type PoolPingPong struct {
 	*connpool
 
 	totalClientCount atomicex.Uint64 // total clients
@@ -43,19 +43,34 @@ type poolPingPong struct {
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
 func NewPoolPingPong(p *connpool) types.ConnectionPool {
-	return &poolPingPong{
+	return &PoolPingPong{
 		connpool:    p,
 		idleClients: []*activeClientPingPong{},
 	}
 }
 
+func (p *PoolPingPong) NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
+	proto := codec.NewXProtocol(ctx)
+	c := &connpool{
+		tlsHash:  host.TLSHashValue(),
+		protocol: proto.Name(),
+		codec:    codec,
+	}
+	p.host.Store(host)
+	return NewPoolPingPong(c)
+}
+
+func (p *PoolPingPong) GetApiPoolMode() api.PoolMode {
+	return api.PingPong
+}
+
 // CheckAndInit init the connection pool
-func (p *poolPingPong) CheckAndInit(ctx context.Context) bool {
+func (p *PoolPingPong) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+func (p *PoolPingPong) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx)
@@ -83,7 +98,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 
 // GetActiveClient get a avail client
 // nolint: dupl
-func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPong, types.PoolFailureReason) {
+func (p *PoolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPong, types.PoolFailureReason) {
 
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -156,7 +171,7 @@ RET:
 	return c, reason
 }
 
-func (p *poolPingPong) Close() {
+func (p *PoolPingPong) Close() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -165,7 +180,7 @@ func (p *poolPingPong) Close() {
 	}
 }
 
-func (p *poolPingPong) Shutdown() {
+func (p *PoolPingPong) Shutdown() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -178,14 +193,14 @@ func (p *poolPingPong) Shutdown() {
 }
 
 // return client to pool
-func (p *poolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
+func (p *PoolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
 
 	if !client.closed {
 		p.idleClients = append(p.idleClients, client)
 	}
 }
 
-func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
+func (p *PoolPingPong) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
 	ac := &activeClientPingPong{
 		pool:        p,
 		subProtocol: subProtocol,
@@ -246,7 +261,7 @@ type activeClientPingPong struct {
 	keepAlive       *keepAliveListener
 	state           uint32 // for async connection
 
-	pool        *poolPingPong
+	pool        *PoolPingPong
 	codecClient stream.Client
 	host        types.CreateConnectionData
 }

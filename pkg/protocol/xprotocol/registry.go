@@ -73,3 +73,24 @@ func RegisterXProtocolCodec(codec api.XProtocolCodec) error {
 
 	return nil
 }
+
+type RegisterCoonPool interface {
+	NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool
+
+	GetApiPoolMode() api.PoolMode
+}
+
+// RegisterXProtocolConnPool register the XProtocolCodec to RegisterConnPoolMap.
+func RegisterXProtocolConnPool(xRegisterCoonPool RegisterCoonPool) error {
+
+	if xRegisterCoonPool == nil {
+		return errors.New("RegisterXProtocolConnPool  failed")
+	}
+	poolMode := xRegisterCoonPool.GetApiPoolMode()
+
+	if err := protocol.RegisterProtocConnPool(poolMode, xRegisterCoonPool); err != nil {
+		return err
+	}
+
+	return nil
+}

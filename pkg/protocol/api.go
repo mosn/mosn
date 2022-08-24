@@ -20,6 +20,7 @@ package protocol
 import (
 	"context"
 	"errors"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/internal/registry"
@@ -30,6 +31,7 @@ var (
 	protocolsSupported = map[api.ProtocolName]struct{}{
 		Auto: struct{}{}, // reserved protocol, support for Auto protocol config parsed
 	}
+	ProtocolsConnPool = map[api.PoolMode]struct{}{}
 )
 
 // A MOSN Protocol contains three parts:
@@ -51,11 +53,30 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 	return nil
 }
 
+func RegisterProtocConnPool(poolMode api.PoolMode, ConnPoolInterface xprotocol.RegisterCoonPool) error {
+	if _, ok := ProtocolsConnPool[poolMode]; ok {
+		return ErrDuplicateConnPool
+	}
+	if ConnPoolInterface == nil {
+		return ErrInvalidParameters
+	}
+	registry.RegisterProtocConnPool(poolMode, ConnPoolInterface)
+	ProtocolsConnPool[poolMode] = struct{}{}
+	return nil
+}
+
+func GetRegisterPoolFactory(protocol api.PoolMode) (xprotocol.RegisterCoonPool, bool) {
+	factory, ok := registry.ProtocolConnPool[protocol]
+	return factory, ok
+}
+
 // The api for get the registered info
 var (
-	ErrNoMapping         = errors.New("no mapping function found")
-	ErrInvalidParameters = errors.New("new connection pool or protocol stream factory cannot be nil")
-	ErrDuplicateProtocol = errors.New("duplicated protocol registered")
+	ErrNoMapping                         = errors.New("no mapping function found")
+	ErrInvalidParameters                 = errors.New("new connection pool or protocol stream factory cannot be nil")
+	ErrDuplicateProtocol                 = errors.New("duplicated protocol registered")
+	ErrDuplicateConnPool                 = errors.New("duplicated ConnPool registered")
+	ErrRegisterConnPoolInvalidParameters = errors.New("register ConnPoolInterface cannot be nil")
 )
 
 func ProtocolRegistered(name api.ProtocolName) bool {

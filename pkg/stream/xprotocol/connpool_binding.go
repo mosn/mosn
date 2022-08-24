@@ -30,12 +30,12 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-// poolBinding is a special purpose connection pool,
+// PoolBinding is a special purpose connection pool,
 // used to bind the downstream conn with the upstream conn, which satisfies following condition
 // 1. if upstream connection is closed, the corresponding downstream connection should also be closed, and vice versa
 // 2. the downstream data on a specific connection should always send to the same upstream connection
 // should not use it until you clearly understand what you are doing
-type poolBinding struct {
+type PoolBinding struct {
 	*connpool
 
 	clientMux   sync.Mutex
@@ -45,14 +45,29 @@ type poolBinding struct {
 // NewPoolBinding generates a binding connection pool
 // the upstream connection close will trigger the downstream connection to close and vice versa
 func NewPoolBinding(p *connpool) types.ConnectionPool {
-	return &poolBinding{
+	return &PoolBinding{
 		connpool:    p,
 		idleClients: make(map[uint64]*activeClientBinding),
 	}
 }
 
+func (p *PoolBinding) NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
+	proto := codec.NewXProtocol(ctx)
+	c := &connpool{
+		tlsHash:  host.TLSHashValue(),
+		protocol: proto.Name(),
+		codec:    codec,
+	}
+	p.host.Store(host)
+	return NewPoolBinding(c)
+}
+
+func (p *PoolBinding) GetApiPoolMode() api.PoolMode {
+	return api.TCP
+}
+
 // CheckAndInit init the connection pool
-func (p *poolBinding) CheckAndInit(ctx context.Context) bool {
+func (p *PoolBinding) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
@@ -69,7 +84,7 @@ func (d downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+func (p *PoolBinding) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx)
@@ -101,7 +116,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 // GetActiveClient get a avail client
 // nolint: dupl
-func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
+func (p *PoolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
 
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -132,7 +147,7 @@ func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding
 	return c, reason
 }
 
-func (p *poolBinding) Close() {
+func (p *PoolBinding) Close() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -141,7 +156,7 @@ func (p *poolBinding) Close() {
 	}
 }
 
-func (p *poolBinding) Shutdown() {
+func (p *PoolBinding) Shutdown() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -153,7 +168,7 @@ func (p *poolBinding) Shutdown() {
 	}
 }
 
-func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
+func (p *PoolBinding) newActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
 	connID := getConnID(ctx)
 	ac := &activeClientBinding{
 		protocol: p.connpool.codec.ProtocolName(),
@@ -215,7 +230,7 @@ type activeClientBinding struct {
 	goaway             uint32
 	protocol           types.ProtocolName
 	keepAlive          *keepAliveListener
-	pool               *poolBinding
+	pool               *PoolBinding
 	codecClient        stream.Client
 	host               types.CreateConnectionData
 	downstreamConn     api.Connection

@@ -57,7 +57,7 @@ func TestPingPong(t *testing.T) {
 	p.host.Store(host)
 
 	pMultiplex := NewPoolPingPong(&p)
-	pInst := pMultiplex.(*poolPingPong)
+	pInst := pMultiplex.(*PoolPingPong)
 	var xsList []*xStream
 	for i := 0; i < 10; i++ {
 		_, sender, failReason := pInst.NewStream(ctx, &receiver{})
@@ -126,7 +126,7 @@ func TestPingPongBoundary(t *testing.T) {
 
 	t.Run("test on reset stream", func(t *testing.T) {
 		atciveP := &activeClientPingPong{
-			pool: pp.(*poolPingPong),
+			pool: pp.(*PoolPingPong),
 		}
 		atciveP.OnResetStream(types.StreamConnectionTermination)
 		atciveP.OnResetStream(types.StreamLocalReset)

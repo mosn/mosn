@@ -67,7 +67,7 @@ func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	p.host.Store(host)
 
 	pMultiplex := NewPoolMultiplex(&p)
-	pInst := pMultiplex.(*poolMultiplex)
+	pInst := pMultiplex.(*PoolMultiplex)
 
 	assert.Equal(t, testClientNum, len(pInst.activeClients))
 	// set status for each client
@@ -116,7 +116,7 @@ func TestMultiplexParallelShutdown(t *testing.T) {
 	p.host.Store(host)
 
 	pMultiplex := NewPoolMultiplex(&p)
-	pInst := pMultiplex.(*poolMultiplex)
+	pInst := pMultiplex.(*PoolMultiplex)
 
 	// init the connection
 	pInst.CheckAndInit(ctx)

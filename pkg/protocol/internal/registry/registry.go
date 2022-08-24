@@ -20,6 +20,7 @@ package registry
 import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -30,6 +31,7 @@ var (
 	ConnNewPoolFactories = make(map[api.ProtocolName]types.NewConnPool)
 	StreamFactories      = make(map[api.ProtocolName]types.ProtocolStreamFactory)
 	HttpMappingFactory   = make(map[api.ProtocolName]api.HTTPMapping)
+	ProtocolConnPool     = make(map[api.PoolMode]xprotocol.RegisterCoonPool)
 )
 
 func RegisterNewPoolFactory(protocol api.ProtocolName, factory types.NewConnPool) {
@@ -46,6 +48,10 @@ func RegisterMapping(p api.ProtocolName, m api.HTTPMapping) {
 	if m != nil {
 		HttpMappingFactory[p] = m
 	}
+}
+
+func RegisterProtocConnPool(poolMode api.PoolMode, c xprotocol.RegisterCoonPool) {
+	ProtocolConnPool[poolMode] = c
 }
 
 // for test only

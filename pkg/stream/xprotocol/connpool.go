@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/protocol"
 	"sync/atomic"
 
 	"mosn.io/api"
@@ -47,21 +48,9 @@ type connpool struct {
 // NewConnPool init a connection pool
 func NewConnPool(ctx context.Context, codec api.XProtocolCodec, host types.Host) types.ConnectionPool {
 	proto := codec.NewXProtocol(ctx)
-	p := &connpool{
-		tlsHash:  host.TLSHashValue(),
-		protocol: proto.Name(),
-		codec:    codec,
-	}
-	p.host.Store(host)
-
-	switch proto.PoolMode() {
-	case api.Multiplex:
-		return NewPoolMultiplex(p)
-	case api.PingPong:
-		return NewPoolPingPong(p)
-	default:
-		return NewPoolBinding(p) // upstream && downstream connection binding proxy mode
-	}
+	//TODO !ok how to do
+	registerConnPool, _ := protocol.GetRegisterPoolFactory(proto.PoolMode())
+	return registerConnPool.NewConnPool(ctx, codec, host)
 }
 
 func (p *connpool) TLSHashValue() *types.HashValue {

@@ -107,7 +107,7 @@ func TestDownClose(t *testing.T) {
 	p.host.Store(host)
 
 	var pool = NewPoolBinding(p)
-	var pInst = pool.(*poolBinding)
+	var pInst = pool.(*PoolBinding)
 
 	sConn, err := net.Dial("tcp4", addr)
 	assert.Nil(t, err)
@@ -152,7 +152,7 @@ func TestUpperClose(t *testing.T) {
 	p.host.Store(host)
 
 	var pool = NewPoolBinding(p)
-	var pInst = pool.(*poolBinding)
+	var pInst = pool.(*PoolBinding)
 
 	sConn, err := net.Dial("tcp4", addr)
 	assert.Nil(t, err)
