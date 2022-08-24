@@ -276,10 +276,6 @@ func ExtensionsRegister(c *cli.Context) {
 	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&dubbothrift.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&tars.XCodec{})
-	//RegisterXProtocolConnPool
-	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolPingPong{})
-	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolMultiplex{})
-	_ = xprotocol.RegisterXProtocolConnPool(&xstream.PoolBinding{})
 	// trace register
 	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)

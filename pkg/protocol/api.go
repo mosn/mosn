@@ -20,8 +20,6 @@ package protocol
 import (
 	"context"
 	"errors"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/internal/registry"
 	"mosn.io/mosn/pkg/types"
@@ -53,7 +51,7 @@ func RegisterProtocol(name api.ProtocolName, newPool types.NewConnPool, streamFa
 	return nil
 }
 
-func RegisterProtocConnPool(poolMode api.PoolMode, ConnPoolInterface xprotocol.RegisterCoonPool) error {
+func RegisterProtocConnPool(poolMode api.PoolMode, ConnPoolInterface types.RegisterCoonPool) error {
 	if _, ok := ProtocolsConnPool[poolMode]; ok {
 		return ErrDuplicateConnPool
 	}
@@ -65,7 +63,7 @@ func RegisterProtocConnPool(poolMode api.PoolMode, ConnPoolInterface xprotocol.R
 	return nil
 }
 
-func GetRegisterPoolFactory(protocol api.PoolMode) (xprotocol.RegisterCoonPool, bool) {
+func GetRegisterPoolFactory(protocol api.PoolMode) (types.RegisterCoonPool, bool) {
 	factory, ok := registry.ProtocolConnPool[protocol]
 	return factory, ok
 }
