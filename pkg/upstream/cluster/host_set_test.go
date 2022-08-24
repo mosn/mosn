@@ -18,6 +18,8 @@
 package cluster
 
 import (
+	"github.com/stretchr/testify/require"
+	"strconv"
 	"testing"
 
 	"mosn.io/api"
@@ -49,7 +51,26 @@ func TestHostSetDistinct(t *testing.T) {
 		hosts = append(hosts, host)
 	}
 	hs.setFinalHost(hosts)
-	if len(hs.Hosts()) != 1 {
+	if hs.Size() != 1 {
 		t.Fatal("hostset distinct failed")
 	}
+}
+
+func TestHostSet(t *testing.T) {
+	var hosts []types.Host
+	for i := 1; i < 10; i++ {
+		host := &mockHost{
+			addr: "127.0.0." + strconv.Itoa(i),
+		}
+		hosts = append(hosts, host)
+	}
+	hs := &hostSet{allHosts: hosts}
+	require.Equal(t, hs.Size(), len(hosts))
+	require.Equal(t, hs.Get(1), hosts[1])
+	i := 0
+	hs.Range(func(host types.Host) bool {
+		i++
+		return true
+	})
+	require.Equal(t, i, 9)
 }

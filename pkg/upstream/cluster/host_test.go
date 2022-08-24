@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/types"
 	"net"
 	"testing"
 	"time"
@@ -27,7 +28,6 @@ import (
 	"go.uber.org/atomic"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -65,10 +65,10 @@ func TestCreateConnectionIdleTimeout(t *testing.T) {
 	defer server.stop()
 
 	// reset read timeout
-	oldConnReadTimeout := buffer.ConnReadTimeout
-	buffer.ConnReadTimeout = 300 * time.Millisecond
+	oldConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = 300 * time.Millisecond
 	defer func() {
-		buffer.ConnReadTimeout = oldConnReadTimeout
+		types.DefaultConnReadTimeout = oldConnReadTimeout
 	}()
 
 	// create connection

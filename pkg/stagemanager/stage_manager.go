@@ -61,19 +61,19 @@ type State int
 // 5. The after-start stage. In this stage, do some other init actions after startup.
 // 6. The running stage.
 // 7. The before-stop stage. In this stage, do actions depend on the "stop action" before stopping service actually,
-//    like: unpub from registry or checking the unpub status, make sure it safer for graceful stop.
+//    like: unpub from registry or checking the unpub status, make sure it's safer for graceful stop.
 // 8. The graceful stop stage. In this stage, stop listen and graceful stop the existing connections.
 // 9. The stop stage. In this stage, executing Application.Close.
 // 10. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
 // 11. The stopped stage. everything is closed.
 // The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
-// that used to startup applicaton.
+// that used to startup application.
 //
 // And, there are 2 additional stages:
 // 1. Starting a new server. It's for the old server only.
-//    The current server will fork a new server when the it receive the HUP signal.
+//    The current server will fork a new server when it receives the HUP signal.
 // 2. Upgrading. It's for the old server only too.
-//    It means the the new server already started, and the old server is tranferring the config
+//    It means that the new server already started, and the old server is transferring the config
 //    and existing connections to the new server.
 const (
 	Nil State = iota
@@ -335,7 +335,7 @@ func (stm *StageManager) AppendGracefulStopStage(f func(Application) error) *Sta
 	return stm
 }
 
-// graceful stop tage
+// graceful stop stage
 func (stm *StageManager) runGracefulStopStage() {
 	st := time.Now()
 	stm.SetState(GracefulStopping)
@@ -408,8 +408,8 @@ func (stm *StageManager) Stop() {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
 	}
 
-	logger.CloseAll()
 	stm.SetState(Stopped)
+	logger.CloseAll()
 
 	if stm.exitCode != 0 {
 		os.Exit(stm.exitCode)

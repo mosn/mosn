@@ -14,7 +14,6 @@ import (
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/pkg/utils"
 )
 
 type streamClient struct {
@@ -143,31 +142,26 @@ func (ads *AdsStreamClient) HandleResponse(resp interface{}) {
 		log.DefaultLogger.Errorf("invalid response type")
 		return
 	}
-	/*
-	 * If xDS resource too big, Istio may be have write timeout error when use sync, such as:
-	 *              2020-12-01T09:17:29.354132Z     info    ads     Timeout writing sidecar~10.49.18.38~no-project-aabb-gz01a-blue-67cb764fcb-8dq4t.dmall-inner~dmall-inner.svc.cluster.local-39
-	 * So, will use async
-	 */
-	utils.GoWithRecover(func() {
-		var err error
-		// Ads Handler, overwrite the AdsStreamClient to extends more ads or handle
-		switch dresp.TypeUrl {
-		case EnvoyCluster:
-			err = ads.handleCds(dresp)
-		case EnvoyEndpoint:
-			err = ads.handleEds(dresp)
-		case EnvoyListener:
-			err = ads.handleLds(dresp)
-		case EnvoyRoute:
-			err = ads.handleRds(dresp)
-		default:
-			err = errors.New("unsupport type url")
-		}
-		if err != nil {
-			log.DefaultLogger.Errorf("handle typeurl %s failed, error: %v", dresp.TypeUrl, err)
-		}
-
-	}, nil)
+	// TODO: optimise the efficiency of xDS.
+	// If xDS resource too big, Istio maybe have written timeout error when use sync, such as:
+	// 2020-12-01T09:17:29.354132Z info ads Timeout writing sidecar~10.49.18.38
+	var err error
+	// Ads Handler, overwrite the AdsStreamClient to extends more ads or handle
+	switch dresp.TypeUrl {
+	case EnvoyCluster:
+		err = ads.handleCds(dresp)
+	case EnvoyEndpoint:
+		err = ads.handleEds(dresp)
+	case EnvoyListener:
+		err = ads.handleLds(dresp)
+	case EnvoyRoute:
+		err = ads.handleRds(dresp)
+	default:
+		err = errors.New("unsupport type url")
+	}
+	if err != nil {
+		log.DefaultLogger.Errorf("handle typeurl %s failed, error: %v", dresp.TypeUrl, err)
+	}
 }
 
 func (ads *AdsStreamClient) AckResponse(resp *envoy_service_discovery_v3.DiscoveryResponse) {

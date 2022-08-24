@@ -50,6 +50,7 @@ import (
 	tracehttp "mosn.io/mosn/pkg/trace/sofa/http"
 	xtrace "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	tracebolt "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
+	"mosn.io/mosn/pkg/trace/zipkin"
 	"mosn.io/pkg/buffer"
 )
 
@@ -128,7 +129,7 @@ var (
 				Usage: "ip version, v4 or v6, currently useless",
 			}, cli.IntFlag{
 				Name:  "restart-epoch",
-				Usage: "eporch to restart, align to Istio startup params, currently useless",
+				Usage: "epoch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
 				Usage: "seconds to drain connections, default 600 seconds",
@@ -274,8 +275,9 @@ func DefaultParamsParsed(c *cli.Context) {
 func ExtensionsRegister(c *cli.Context) {
 	// tracer driver register
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
+	trace.RegisterDriver(zipkin.DriverName, zipkin.NewZipkinDriverImpl())
 	// xprotocol action register
-	xprotocol.ResgisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
+	xprotocol.RegisterXProtocolAction(xstream.NewConnPool, xstream.NewStreamFactory, func(codec api.XProtocolCodec) {
 		name := codec.ProtocolName()
 		trace.RegisterTracerBuilder("SOFATracer", name, xtrace.NewTracer)
 	})
@@ -289,6 +291,7 @@ func ExtensionsRegister(c *cli.Context) {
 	xtrace.RegisterDelegate(bolt.ProtocolName, tracebolt.Boltv1Delegate)
 	xtrace.RegisterDelegate(boltv2.ProtocolName, tracebolt.Boltv2Delegate)
 	trace.RegisterTracerBuilder("SOFATracer", protocol.HTTP1, tracehttp.NewTracer)
+	trace.RegisterTracerBuilder(zipkin.DriverName, protocol.HTTP1, zipkin.NewHttpTracer)
 
 	// register buffer logger
 	buffer.SetLogFunc(func(msg string) {

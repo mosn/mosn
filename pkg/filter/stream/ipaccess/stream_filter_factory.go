@@ -20,8 +20,11 @@ package ipaccess
 import (
 	"context"
 	"encoding/json"
+	"github.com/golang/protobuf/ptypes/any"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/filter/stream/ipaccess/pb"
+	"mosn.io/mosn/pkg/log"
 )
 
 const (
@@ -31,6 +34,31 @@ const (
 
 func init() {
 	api.RegisterStream(v2.IPAccess, CreateIPAccessFactory)
+	api.RegisterXDSConfigHandler(v2.IPAccess, func(s *any.Any) (map[string]interface{}, error) {
+		m := new(pb.IpAccess)
+		if err := s.UnmarshalTo(m); err != nil { // transform `any` back to Struct
+			log.DefaultLogger.Errorf("[IPACCESS] convert fault inject config error: %v", err)
+			return nil, err
+		}
+		newMap, err := StructToMap(m)
+		if err != nil {
+			log.DefaultLogger.Errorf("[IPACCESS] convert config to map error: %v", err)
+			return nil, err
+		}
+		return newMap, nil
+	})
+}
+
+//StructToMap Converts a struct to a map while maintaining the json alias as keys
+func StructToMap(obj interface{}) (newMap map[string]interface{}, err error) {
+	data, err := json.Marshal(obj) // Convert to a json string
+
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(data, &newMap) // Convert to a map
+	return
 }
 
 type Conf struct {

@@ -107,18 +107,19 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 		h := NewSimpleHost(host, cluster.Snapshot().ClusterInfo())
 		hosts = append(hosts, h)
 	}
-	cluster.UpdateHosts(hosts)
+	cluster.UpdateHosts(NewHostSet(hosts))
 	// The domain will be re-parsed when UpdateHosts, So need sleep more time
 	time.Sleep(3 * time.Second)
 	// verify
 	snap := cluster.Snapshot()
-	hostSet := snap.HostSet().Hosts()
-	assert.Equal(t, len(hostSet), 6)
-	for _, host := range hostSet {
+	hs := snap.HostSet()
+	assert.Equal(t, hs.Size(), 6)
+	snap.HostSet().Range(func(host types.Host) bool {
 		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	host := v2.Host{
 		HostConfig: v2.HostConfig{
@@ -131,15 +132,15 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	}
 	h := NewSimpleHost(host, cluster.Snapshot().ClusterInfo())
 	hosts = []types.Host{h}
-	cluster.UpdateHosts(hosts)
+	cluster.UpdateHosts(NewHostSet(hosts))
 	// The domain will be re-parsed when UpdateHosts, So need sleep more time
 	time.Sleep(3 * time.Second)
-	hostSet = cluster.Snapshot().HostSet().Hosts()
-	for _, host := range hostSet {
+	cluster.Snapshot().HostSet().Range(func(host types.Host) bool {
 		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	host = v2.Host{
 		HostConfig: v2.HostConfig{
@@ -153,13 +154,13 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 
 	h = NewSimpleHost(host, cluster.Snapshot().ClusterInfo())
 	hosts = []types.Host{h}
-	cluster.UpdateHosts(hosts)
-	hostSet = cluster.Snapshot().HostSet().Hosts()
-	for _, host := range hostSet {
+	cluster.UpdateHosts(NewHostSet(hosts))
+	cluster.Snapshot().HostSet().Range(func(host types.Host) bool {
 		if !strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
-	}
+		return true
+	})
 
 	ip1 := []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"}
 	ip2 := []string{"1.1.1.1", "2.2.2.2"}
@@ -186,16 +187,16 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 		}
 		host3 = append(host3, host)
 	}
-	if hostEqual(&host1, &host2) {
+	if hostEqual(&hostSet{ allHosts: host1}, NewHostSet(host2)) {
 		t.Errorf("[upstream][strict dns cluster] hosts should not be equal.")
 	}
-	if hostEqual(&host2, &host1) {
+	if hostEqual(&hostSet{allHosts: host2}, NewHostSet(host1)) {
 		t.Errorf("[upstream][strict dns cluster] hosts should not be equal.")
 	}
-	if hostEqual(&host2, &host3) {
+	if hostEqual(&hostSet{allHosts: host2}, NewHostSet(host3)) {
 		t.Errorf("[upstream][strict dns cluster] hosts should not be equal.")
 	}
-	if !hostEqual(&host2, &host2) {
+	if !hostEqual(&hostSet{allHosts: host2}, NewHostSet(host2)) {
 		t.Errorf("[upstream][strict dns cluster] hosts should be equal.")
 	}
 }
@@ -241,13 +242,12 @@ func TestMultipleDnsHostsInOneCluster(t *testing.T) {
 		hosts = append(hosts, h)
 	}
 
-	cluster.UpdateHosts(hosts)
+	cluster.UpdateHosts(NewHostSet(hosts))
 	// The domain will be re-parsed when UpdateHosts, So need sleep more time
 	time.Sleep(3 * time.Second)
 
 	// verify
 	snap := cluster.Snapshot()
-	hostSet := snap.HostSet().Hosts()
 
-	assert.Equal(t, len(hostSet), 4)
+	assert.Equal(t, snap.HostSet().Size(), 4)
 }

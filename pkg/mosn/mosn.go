@@ -36,7 +36,7 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// UpgradeData stores datas that are used to smooth upgrade
+// UpgradeData stores data that are used to smooth upgrade
 type UpgradeData struct {
 	InheritListeners  []net.Listener
 	InheritPacketConn []net.PacketConn
@@ -204,8 +204,6 @@ func (m *Mosn) initServer() {
 
 		// init default log
 		server.InitDefaultLogger(sc)
-		// set use optimize local write mode or not, default is false
-		network.SetOptimizeLocalWrite(serverConfig.OptimizeLocalWrite)
 
 		var srv server.Server
 		if mode == v2.Xds {
@@ -406,4 +404,8 @@ func (m *Mosn) InheritConnections() error {
 	// clean upgrade finish the smooth upgrade datas
 	m.CleanUpgrade()
 	return err
+}
+
+func (m *Mosn) GetServer() []server.Server {
+	return m.servers
 }

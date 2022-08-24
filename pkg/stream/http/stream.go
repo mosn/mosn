@@ -197,17 +197,14 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 
-	// TODO avoid copy
-	buf := buffer.GetIoBuffer(n)
-	buf.Write(p)
-
+	buf := buffer.NewIoBufferBytes(p)
 	err = conn.conn.Write(buf)
 	return
 }
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
-	// because streamConnection's Read will do some processing depends it.
+	// because streamConnection's Read will do some processing depends on it.
 	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
@@ -521,7 +518,7 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
 
 				// read request body
-				err = request.ContinueReadBody(conn.br, maxRequestBodySize)
+				err = request.ContinueReadBody(conn.br, maxRequestBodySize, false)
 
 				// remove 'Expect' header, so it would not be sent to the upstream
 				request.Header.Del("Expect")
@@ -535,6 +532,9 @@ func (conn *serverStreamConnection) serve() {
 			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
 			_, errNothingRead := err.(fasthttp.ErrNothingRead)
 			if err != errConnClose && err != io.EOF && !errNothingRead {
+				log.DefaultLogger.Errorf("[stream] [http] parse http request error. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+					conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), err)
+
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
@@ -548,6 +548,7 @@ func (conn *serverStreamConnection) serve() {
 		s := &buffers.serverStream
 
 		// 4. request processing
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 		s.stream = stream{
 			id:       id,
 			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
@@ -581,9 +582,9 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
-		// Currently Http1 protocol's workPool is enable
+		// Currently Http1 protocol's workPool is enabled
 		// ww can't use serverStream object, after handleRequest
-		// because it will be recycle in proxy
+		// because it will be recycled in proxy
 		// refer https://github.com/mosn/mosn/issues/1948
 		responseDoneChan := s.responseDoneChan
 
@@ -750,7 +751,8 @@ func (s *clientStream) handleResponse() {
 		variable.SetString(s.ctx, types.VarHeaderStatus, status)
 
 		hasData := true
-		if len(s.response.Body()) == 0 {
+		body := s.response.Body()
+		if len(body) == 0 {
 			hasData = false
 		}
 
@@ -760,7 +762,7 @@ func (s *clientStream) handleResponse() {
 
 		if s.receiver != nil {
 			if hasData {
-				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
+				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(body), nil)
 			} else {
 				s.receiver.OnReceive(s.ctx, header, nil, nil)
 			}
@@ -823,7 +825,6 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	// SetBodyRaw sets response body and could avoid copying it
-	// note: When it's actually sent to the network, it will copy the data once in Write func.
 	s.response.SetBodyRaw(data.Bytes())
 
 	if endStream {
@@ -905,12 +906,13 @@ func (s *serverStream) handleRequest(ctx context.Context) {
 		// set non-header info in request-line, like method, uri
 		injectCtxVarFromProtocolHeaders(ctx, s.header, s.request.URI())
 		hasData := true
-		if len(s.request.Body()) == 0 {
+		body := s.request.Body()
+		if len(body) == 0 {
 			hasData = false
 		}
 
 		if hasData {
-			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(s.request.Body()), nil)
+			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(body), nil)
 		} else {
 			s.receiver.OnReceive(s.ctx, s.header, nil, nil)
 		}

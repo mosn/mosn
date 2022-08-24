@@ -39,6 +39,9 @@ const (
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
 	VarProtocolConfig                 string = "protocol_config"
+	VarConnectionID                   string = "connection_id"
+	VarTraceID                        string = "trace_id"
+	VarUpstreamConnectionID           string = "upstream_connection_id"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"
@@ -67,9 +70,9 @@ const (
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 
 	// notice: read-only!!! do not modify the raw data!!!
-	VarRequestRawData        string = "x-mosn-req-raw-data"
+	VarRequestRawData string = "x-mosn-req-raw-data"
 	// notice: read-only!!! do not modify the raw data!!!
-	VarResponseRawData       string = "x-mosn-resp-raw-data"
+	VarResponseRawData string = "x-mosn-resp-raw-data"
 )
 
 // [server]: common

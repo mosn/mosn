@@ -42,10 +42,7 @@ func (ca *MngAdapter) TriggerClusterAddOrUpdate(cluster v2.Cluster) error {
 }
 
 func (ca *MngAdapter) TriggerClusterAndHostsAddOrUpdate(cluster v2.Cluster, hosts []v2.Host) error {
-	if err := ca.AddOrUpdatePrimaryCluster(cluster); err != nil {
-		return err
-	}
-	return ca.UpdateClusterHosts(cluster.Name, hosts)
+	return ca.AddOrUpdateClusterAndHost(cluster, hosts)
 }
 
 func (ca *MngAdapter) TriggerClusterDel(clusterNames ...string) error {

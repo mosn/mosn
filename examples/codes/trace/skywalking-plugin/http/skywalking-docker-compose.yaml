@@ -1,0 +1,38 @@
+#Licensed to the Apache Software Foundation (ASF) under one or more
+#contributor license agreements.  See the NOTICE file distributed with
+#this work for additional information regarding copyright ownership.
+#The ASF licenses this file to You under the Apache License, Version 2.0
+#(the "License"); you may not use this file except in compliance with
+#the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
+
+version: '3.3'
+services:
+  skywalking-oap:
+    image: apache/skywalking-oap-server:8.0.1-es7
+    container_name: skywalking-oap
+    restart: always
+    ports:
+      - 11800:11800
+      - 12800:12800
+    environment:
+      SW_STORAGE: h2
+  skywalking-ui:
+    image: apache/skywalking-ui:8.0.1
+    container_name: skywalking-ui
+    depends_on:
+      - skywalking-oap
+    links:
+      - skywalking-oap
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      SW_OAP_ADDRESS: skywalking-oap:12800

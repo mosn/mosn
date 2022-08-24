@@ -237,8 +237,8 @@ func equal(originHosts, targetHosts []types.Host) bool {
 
 func Test_findNewAndDeleteHost(t *testing.T) {
 	type args struct {
-		old []types.Host
-		new []types.Host
+		old types.HostSet
+		new types.HostSet
 	}
 	tests := []struct {
 		name            string
@@ -249,7 +249,7 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_delete_and_new",
 			args: args{
-				old: []types.Host{
+				old: newMockHostSet([]types.Host{
 					&mockHost{
 						addr: "addr1",
 					},
@@ -259,8 +259,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					&mockHost{
 						addr: "addr3",
 					},
-				},
-				new: []types.Host{
+				}),
+				new: newMockHostSet([]types.Host{
 					&mockHost{
 						addr: "addr3",
 					},
@@ -270,7 +270,7 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					&mockHost{
 						addr: "addr5",
 					},
-				},
+				}),
 			},
 			wantDeleteHosts: []types.Host{
 				&mockHost{
@@ -292,8 +292,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_delete",
 			args: args{
-				old: newMockHosts(0, 100),
-				new: []types.Host{},
+				old: newMockHostSet(newMockHosts(0, 100)),
+				new: newMockHostSet([]types.Host{}),
 			},
 			wantDeleteHosts: newMockHosts(0, 100),
 			wantNewHosts:    []types.Host{},
@@ -301,8 +301,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_new",
 			args: args{
-				old: []types.Host{},
-				new: newMockHosts(0, 100),
+				old: newMockHostSet([]types.Host{}),
+				new: newMockHostSet(newMockHosts(0, 100)),
 			},
 			wantDeleteHosts: []types.Host{},
 			wantNewHosts:    newMockHosts(0, 100),
@@ -333,8 +333,8 @@ func newMockHosts(from, to int) []types.Host {
 
 func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 	type args struct {
-		oldHostset []types.Host
-		newHostset []types.Host
+		oldHostset types.HostSet
+		newHostset types.HostSet
 	}
 	benchmarkCases := []struct {
 		name string
@@ -343,36 +343,36 @@ func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 		{
 			name: "find-1newHost-1deleteHost-from10hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 10),
-				newHostset: newMockHosts(1, 11),
+				oldHostset: newMockHostSet(newMockHosts(0, 10)),
+				newHostset: newMockHostSet(newMockHosts(1, 11)),
 			},
 		},
 		{
 			name: "find-10newHost-10deleteHost-from100hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 100),
-				newHostset: newMockHosts(10, 110),
+				oldHostset: newMockHostSet(newMockHosts(0, 100)),
+				newHostset: newMockHostSet(newMockHosts(10, 110)),
 			},
 		},
 		{
 			name: "find-10newHost-10deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(10, 1010),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(10, 1010)),
 			},
 		},
 		{
 			name: "find-100newHost-100deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(100, 1100),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(100, 1100)),
 			},
 		},
 		{
 			name: "find-500newHost-500deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(500, 1500),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(500, 1500)),
 			},
 		},
 	}

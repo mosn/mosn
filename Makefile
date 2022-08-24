@@ -27,6 +27,8 @@ RPM_TAR_NAME    = afe-${TARGET}
 RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
+ISTIO_TAR_FILE	= mosn.tar.gz
+
 TAGS			= ${tags}
 TAGS_OPT 		=
 
@@ -111,11 +113,27 @@ istio-1.5.2:
 
 istio-1.10.6:
 	@echo 1.10.6 > ISTIO_VERSION
-	@bash istio_ctrl.sh istio1100
-	@cp istio/istio1100/main/* ./cmd/mosn/main/
+	@bash istio_ctrl.sh istio1106
+	@cp istio/istio1106/main/* ./cmd/mosn/main/
 	@go mod edit -replace istio.io/api=istio.io/api@v0.0.0-20211103171850-665ed2b92d52
 	@go mod edit -replace github.com/envoyproxy/go-control-plane=github.com/envoyproxy/go-control-plane@v0.10.0
 	@go mod tidy
+
+istio-1.5.2-tar:
+	make istio-1.5.2
+	make build
+	mkdir -p build/tar/usr/local/bin/
+	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR} build/tar/usr/local/bin/
+	cd build/tar && tar czvf ${ISTIO_TAR_FILE} usr
+	cp build/tar/${ISTIO_TAR_FILE} .
+
+istio-1.10.6-tar:
+	make istio-1.10.6
+	make build
+	mkdir -p build/tar/usr/local/bin/
+	cp build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR} build/tar/usr/local/bin/
+	cd build/tar && tar czvf ${ISTIO_TAR_FILE} usr
+	cp build/tar/${ISTIO_TAR_FILE} .
 
 # istio test
 unit-test-istio:

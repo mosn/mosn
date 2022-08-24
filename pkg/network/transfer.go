@@ -89,7 +89,7 @@ func TransferServer(handler types.ConnectionHandler) {
 		}
 	}, nil)
 
-	<-time.After(2*TransferTimeout + 2*buffer.ConnReadTimeout + 10*time.Second)
+	<-time.After(2*TransferTimeout + 2*types.DefaultConnReadTimeout + 10*time.Second)
 	log.DefaultLogger.Infof("[network] [transfer] [server] TransferServer exit")
 }
 
@@ -548,7 +548,7 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	ch := make(chan api.Connection, 1)
 	// new connection
 	utils.GoWithRecover(func() {
-		listener.GetListenerCallbacks().OnAccept(conn, listener.UseOriginalDst(), nil, ch, dataBuf)
+		listener.GetListenerCallbacks().OnAccept(conn, listener.UseOriginalDst(), nil, ch, dataBuf, nil)
 	}, nil)
 
 	select {

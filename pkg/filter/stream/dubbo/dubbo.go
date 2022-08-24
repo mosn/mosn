@@ -73,7 +73,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 		return api.StreamFiltertermination
 	}
 
-	// adapte dubbo service to http host
+	// adapt dubbo service to http host
 	variable.SetString(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
 	variable.SetString(ctx, types.VarPath, "/")
