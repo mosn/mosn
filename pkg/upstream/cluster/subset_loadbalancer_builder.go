@@ -45,16 +45,18 @@ func NewSubsetLoadBalancerPreIndex(info types.ClusterInfo, hostSet types.HostSet
 }
 
 type subsetLoadBalancerBuilder struct {
-	info        types.ClusterInfo
-	indexer     map[string]map[string]*intsets.Sparse
-	hosts       types.HostSet
-	subSetCount int64
+	info          types.ClusterInfo
+	indexer       map[string]map[string]*intsets.Sparse
+	shareHostsMap map[string][]types.Host
+	hosts         types.HostSet
+	subSetCount   int64
 }
 
 func newSubsetLoadBalancerBuilder(info types.ClusterInfo, hs types.HostSet) *subsetLoadBalancerBuilder {
 	b := &subsetLoadBalancerBuilder{
 		hosts: hs,
 		info:  info,
+		shareHostsMap: make(map[string][]types.Host),
 	}
 	b.initIndex()
 	return b
@@ -124,12 +126,18 @@ func (b *subsetLoadBalancerBuilder) selectHosts(s *intsets.Sparse) []types.Host 
 	if s == nil {
 		return nil
 	}
+	key := s.BitString()
+	value, ok := b.shareHostsMap[key]
+	if ok {
+		return value
+	}
 	offsets := make([]int, 0, s.Len())
 	offsets = s.AppendTo(offsets)
 	ret := make([]types.Host, len(offsets))
 	for i, n := range offsets {
 		ret[i] = b.hosts.Get(n)
 	}
+	b.shareHostsMap[key] = ret
 	return ret
 }
 
