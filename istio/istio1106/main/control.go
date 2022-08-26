@@ -247,6 +247,7 @@ var (
 		Action: func(c *cli.Context) error {
 			app := mosn.NewMosn()
 			stm := stagemanager.InitStageManager(c, c.String("config"), app)
+			app.ReloadProcess = true
 			stm.AppendInitStage(mosn.InitDefaultPath)
 			return stm.ReloadMosnProcess()
 		},
