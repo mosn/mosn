@@ -169,6 +169,7 @@ fi
 # TEST 5. start with default then reload
 echo "TEST Case 5: start with default then reload"
 mkdir $default_config_dir
+
 cp $config_file $default_config_file_path
 exec_bg $mosn start
 if [ $PID = 0 ]; then
