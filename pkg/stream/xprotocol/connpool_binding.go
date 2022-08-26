@@ -73,11 +73,15 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx)
-
 	if reason != "" {
 		return host, nil, reason
 	}
 
+	if int64(host.ClusterInfo().MaxRequestsPerConn()) != 0 && int64(host.ClusterInfo().MaxRequestsPerConn()) < host.ClusterInfo().ResourceManager().Requests().Cur() {
+		c.removeFromPool()
+		return host, nil, reason
+	}
+	
 	c.addDownConnListenerOnce(ctx)
 
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.connID)
