@@ -178,12 +178,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	}
 
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, activeClient.codecClient.ConnID())
-	if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < activeClient.requestCount {
-		activeClient.closeWithActiveReq = true
-		p.activeClients[clientIdx].Store(subProtocol, &activeClientMultiplex{})
-		return host, nil, types.ConnectionFailure
-	}
-	atomic.AddUint32(&activeClient.requestCount, 1)
+
 	atomic.AddUint64(&activeClient.totalStream, 1)
 	host.HostStats().UpstreamRequestTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)

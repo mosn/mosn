@@ -65,7 +65,10 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 
 	if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < c.requestCount {
 		c.removeFromPool()
-		return host, nil, types.ConnectionFailure
+		c, reason = p.GetActiveClient(ctx)
+		if reason != "" {
+			return host, nil, reason
+		}
 	}
 
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.codecClient.ConnID())
