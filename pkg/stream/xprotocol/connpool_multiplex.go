@@ -354,8 +354,6 @@ type activeClientMultiplex struct {
 	indexInPool        int
 	codecClient        stream.Client
 	host               types.CreateConnectionData
-
-	requestCount uint32
 }
 
 // types.ConnectionEventListener
