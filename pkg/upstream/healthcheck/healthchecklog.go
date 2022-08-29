@@ -66,6 +66,10 @@ func (l *HealthCheckLogger) LogUpdate(host types.Host, changed bool, isHealthy b
 }
 
 func (l *HealthCheckLogger) Log(format string, args ...interface{}) {
+	if l.logger == nil {
+		return
+	}
+
 	s := fmt.Sprintf(format, args...)
 	buf := log.GetLogBuffer(len(s))
 	buf.WriteString(s)
@@ -73,7 +77,5 @@ func (l *HealthCheckLogger) Log(format string, args ...interface{}) {
 		buf.WriteString("\n")
 	}
 
-	if l.logger != nil {
-		l.logger.Print(buf, true)
-	}
+	l.logger.Print(buf, true)
 }
