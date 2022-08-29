@@ -62,10 +62,12 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 	if reason != "" {
 		return host, nil, reason
 	}
-	if int64(host.ClusterInfo().MaxRequestsPerConn()) != 0 && int64(host.ClusterInfo().MaxRequestsPerConn()) < host.ClusterInfo().ResourceManager().Requests().Cur() {
+
+	if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < c.requestCount {
 		c.removeFromPool()
-		return host, nil, reason
+		return host, nil, types.ConnectionFailure
 	}
+
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.codecClient.ConnID())
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
@@ -153,6 +155,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 RET:
 
 	if c != nil && reason == "" {
+		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 	}
@@ -253,6 +256,8 @@ type activeClientPingPong struct {
 	pool        *poolPingPong
 	codecClient stream.Client
 	host        types.CreateConnectionData
+
+	requestCount uint32
 }
 
 // Close return this client back to pool

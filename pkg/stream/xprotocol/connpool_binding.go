@@ -77,11 +77,11 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 		return host, nil, reason
 	}
 
-	if int64(host.ClusterInfo().MaxRequestsPerConn()) != 0 && int64(host.ClusterInfo().MaxRequestsPerConn()) < host.ClusterInfo().ResourceManager().Requests().Cur() {
+	if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < c.requestCount {
 		c.removeFromPool()
-		return host, nil, reason
+		return host, nil, types.ConnectionFailure
 	}
-	
+
 	c.addDownConnListenerOnce(ctx)
 
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.connID)
@@ -119,6 +119,7 @@ func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding
 
 	connID := getConnID(ctx)
 	if c, ok := p.idleClients[connID]; ok {
+		atomic.AddUint32(&c.requestCount, 1)
 		// the client was already initialized
 		return c, ""
 	}
@@ -225,6 +226,8 @@ type activeClientBinding struct {
 	downstreamConn     api.Connection
 
 	downConnOnce sync.Once
+
+	requestCount uint32
 }
 
 func (ac *activeClientBinding) addDownConnListenerOnce(ctx context.Context) {
