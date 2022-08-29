@@ -993,6 +993,8 @@ launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/api v1.0.0 h1:EK5jHRaqeszV3tKzgNKX1NZf1JdPU9QTF6E276xQHPk=
 mosn.io/api v1.0.0/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f h1:e6HrsFPhRkXbXQ+hDCoWbPLYsHyRCnrnLpEosF7EvLg=
+mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 mosn.io/holmes v1.0.1 h1:m59Gw+/DUA8t0DO4ZMro14web2Ct5Qg6xn5sAMnzqsk=
 mosn.io/holmes v1.0.1/go.mod h1:pZjPamcZk4Z16xlZySG1rU9psLUCOx6MVNuj/3bfkEk=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=

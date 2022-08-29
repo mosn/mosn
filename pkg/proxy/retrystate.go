@@ -108,15 +108,14 @@ func (r *retryState) doRetryCheck(ctx context.Context, headers types.HeaderMap, 
 			// default policy , mapping all headers to http status code
 			code, err := protocol.MappingHeaderStatusCode(ctx, r.upstreamProtocol, headers)
 			if err == nil {
-				// TODO: depends on https://github.com/mosn/api/pull/48
-				// if len(r.retryPolicy.RetryableStatusCodes()) > 0 {
-				// 	for _, it := range r.retryPolicy.RetryableStatusCodes() {
-				// 		if code == int(it) {
-				// 			return true
-				// 		}
-				// 	}
-				// 	return false
-				// }
+				if len(r.retryPolicy.RetryableStatusCodes()) > 0 {
+					for _, it := range r.retryPolicy.RetryableStatusCodes() {
+						if code == int(it) {
+							return true
+						}
+					}
+					return false
+				}
 				return code >= http.InternalServerError
 			}
 		}

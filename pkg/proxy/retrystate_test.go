@@ -135,3 +135,48 @@ func TestRetryConnetionFailed(t *testing.T) {
 		}
 	}
 }
+
+func TestRetryStateStatusCode(t *testing.T) {
+	rcfg := &v2.Router{}
+	pcfg := &v2.RetryPolicy{
+		RetryPolicyConfig: v2.RetryPolicyConfig{
+			RetryOn:    true,
+			NumRetries: 10,
+			StatusCodes: []uint32{404, 500},
+		},
+		RetryTimeout: time.Second,
+	}
+	rcfg.Route = v2.RouteAction{}
+	rcfg.Route.RetryPolicy = pcfg
+	r, _ := router.NewRouteRuleImplBase(nil, rcfg)
+	policy := r.Policy().RetryPolicy()
+	clusterInfo := &fakeClusterInfo{
+		mgr: &fakeResourceManager{},
+	}
+	rs := newRetryState(policy, nil, clusterInfo, protocol.HTTP1)
+	headerException1 := protocol.CommonHeader{
+		types.VarHeaderStatus : "404",
+	}
+	headerException2 := protocol.CommonHeader{
+		types.VarHeaderStatus : "500",
+	}
+	headerOK := protocol.CommonHeader{
+		types.VarHeaderStatus: "200",
+	}
+	testcases := []struct {
+		Header   types.HeaderMap
+		Reason   types.StreamResetReason
+		Expected api.RetryCheckStatus
+	}{
+		{nil, types.StreamConnectionFailed, api.ShouldRetry},
+		{headerException1, "", api.ShouldRetry},
+		{headerException2, "", api.ShouldRetry},
+		{headerOK, "", api.NoRetry},
+	}
+	for i, tc := range testcases {
+		if rs.retry(context.Background(), tc.Header, tc.Reason) != tc.Expected {
+			t.Errorf("#%d retry state failed", i)
+		}
+	}
+}
+
