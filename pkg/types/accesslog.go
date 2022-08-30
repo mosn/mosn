@@ -18,6 +18,6 @@
 package types
 
 // DefaultAccessLogFormat provides a pre-defined format
-const DefaultAccessLogFormat = "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
+const DefaultAccessLogFormat = "%start_time% %trace_id%  %connection_id% %upstream_connection_id% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
 	"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
 	"%downstream_local_address% %downstream_remote_address% %upstream_host%"
