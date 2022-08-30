@@ -103,9 +103,8 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
 	var (
-		c       *activeClientPingPong
-		reason  types.PoolFailureReason
-		lastIdx = n - 1
+		c      *activeClientPingPong
+		reason types.PoolFailureReason
 	)
 
 	if n == 0 { // nolint: nestif
@@ -131,6 +130,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	} else {
 		defer p.clientMux.Unlock()
 
+		var lastIdx = n - 1
 		// Only refuse extra connection, keepalive-connection is closed by timeout
 		usedConns := p.totalClientCount.Load() - uint64(n) + 1
 		if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
@@ -143,35 +143,41 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		c = p.idleClients[lastIdx]
 		p.idleClients[lastIdx] = nil
 		p.idleClients = p.idleClients[:lastIdx]
-
-		goto RET
+		c, reason = p.checkMaxRequestPerConn(c, ctx, proto)
 	}
 
 RET:
 
 	if c != nil && reason == "" {
 		atomic.AddUint32(&c.requestCount, 1)
-
-		if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < c.requestCount {
-			c.removeFromPool()
-			//Because the upper level has been judged, no more judgments will be made here
-			if lastIdx == 0 {
-				c, reason = p.newActiveClient(ctx, proto)
-				if c != nil && reason == "" {
-					p.totalClientCount.Inc()
-				}
-			} else {
-				c = p.idleClients[lastIdx-1]
-				p.idleClients[lastIdx-1] = nil
-				p.idleClients = p.idleClients[:lastIdx-1]
-			}
-		}
-
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 	}
 
 	return c, reason
+}
+
+func (p *poolPingPong) checkMaxRequestPerConn(c *activeClientPingPong, ctx context.Context, proto api.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
+	n := len(p.idleClients)
+	host := p.Host()
+	if host.ClusterInfo().MaxRequestsPerConn() != 0 && host.ClusterInfo().MaxRequestsPerConn() < c.requestCount {
+		//activeClientPingPong remove
+		p.totalClientCount.Dec()
+		c.closed = true
+		if n == 0 {
+			c, reason := p.newActiveClient(ctx, proto)
+			if c != nil && reason == "" {
+				p.totalClientCount.Inc()
+			}
+			return c, reason
+		} else {
+			c = p.idleClients[n-1]
+			p.idleClients[n-1] = nil
+			p.idleClients = p.idleClients[:n-1]
+			p.checkMaxRequestPerConn(c, ctx, proto)
+		}
+	}
+	return c, ""
 }
 
 func (p *poolPingPong) Close() {
