@@ -126,8 +126,6 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		if c != nil && reason == "" {
 			p.totalClientCount.Inc()
 		}
-		c.Mutex.Lock()
-		defer c.Mutex.Unlock()
 		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
@@ -158,8 +156,6 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	}
 
 	if c != nil && reason == "" {
-		c.Mutex.Lock()
-		defer c.Mutex.Unlock()
 		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
@@ -262,7 +258,6 @@ type activeClientPingPong struct {
 	codecClient stream.Client
 	host        types.CreateConnectionData
 
-	sync.Mutex
 	requestCount uint32
 }
 
