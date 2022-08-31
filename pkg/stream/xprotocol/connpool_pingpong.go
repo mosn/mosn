@@ -117,8 +117,14 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		if c != nil && reason == "" {
 			p.totalClientCount.Inc()
 		}
-		goto RET
+		c.Mutex.Lock()
+		defer c.Mutex.Unlock()
+		atomic.AddUint32(&c.requestCount, 1)
+		host.HostStats().UpstreamRequestTotal.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+		return c, reason
 	}
+
 	//2. Judgment MaxConn
 	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
 		p.clientMux.Unlock()
@@ -132,7 +138,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		c = p.idleClients[lastIdx-i]
 		p.idleClients[lastIdx-i] = nil
 		p.idleClients = p.idleClients[:lastIdx-i]
-
+		//Judgment maxRequestPerConn close failed connection
 		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
 			p.totalClientCount.Dec()
 			c.closed = true
@@ -152,7 +158,6 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		}
 	}
 
-RET:
 	if c != nil && reason == "" {
 		c.Mutex.Lock()
 		defer c.Mutex.Unlock()
