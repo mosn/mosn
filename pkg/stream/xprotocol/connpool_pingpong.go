@@ -141,11 +141,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		c = p.idleClients[lastIdx-i]
 		//Judgment maxRequestPerConn close failed connection
 		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
-			c.removeFromPool()
-			c.OnGoAway()
-			if c.keepAlive != nil {
-				c.keepAlive.keepAlive.Stop()
-			}
+			c.host.Connection.Close(api.NoFlush, api.ConnectFailed)
 		} else {
 			break
 		}
