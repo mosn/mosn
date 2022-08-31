@@ -111,28 +111,28 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		lastIdx = len(p.idleClients) - 1
 	)
 
-	if maxConns == 0 || p.totalClientCount.Load()-uint64(n)+1 <= maxConns {
-		//when len(p.idleClients)!=0 get activeClientPingPong
-		for i, _ := range p.idleClients {
-			//Start with the last one
-			c = p.idleClients[lastIdx-i]
-			p.idleClients[lastIdx-i] = nil
-			p.idleClients = p.idleClients[:lastIdx-i]
-
-			if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
-				p.totalClientCount.Dec()
-				c.closed = true
-			} else {
-				break
-			}
-		}
-		p.clientMux.Unlock()
-	} else { //maxConn !=0 && load - n > maxConn
+	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
 		p.clientMux.Unlock()
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 		return nil, types.Overflow
 	}
+
+	//when len(p.idleClients)!=0 get activeClientPingPong
+	for i, _ := range p.idleClients {
+		//Start with the last one
+		c = p.idleClients[lastIdx-i]
+		p.idleClients[lastIdx-i] = nil
+		p.idleClients = p.idleClients[:lastIdx-i]
+
+		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
+			p.totalClientCount.Dec()
+			c.closed = true
+		} else {
+			break
+		}
+	}
+	p.clientMux.Unlock()
 
 	if len(p.idleClients) == 0 && c.closed {
 		// connection not multiplex,
