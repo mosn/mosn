@@ -110,7 +110,16 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 
 		lastIdx = n - 1
 	)
-	//1. if len(p.idleClients)==0
+
+	//1. Judgment MaxConn
+	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
+		p.clientMux.Unlock()
+		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+		return nil, types.Overflow
+	}
+
+	//2. if len(p.idleClients)==0
 	if n == 0 {
 		p.clientMux.Unlock()
 		c, reason = p.newActiveClient(ctx, proto)
@@ -125,13 +134,6 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		return c, reason
 	}
 
-	//2. Judgment MaxConn
-	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
-		p.clientMux.Unlock()
-		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return nil, types.Overflow
-	}
 	//3. when len(p.idleClients) != 0 get activeClientPingPong
 	for i, _ := range p.idleClients {
 		//Start with the last one
@@ -148,6 +150,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		}
 	}
 	p.clientMux.Unlock()
+
 	//4. when all p.idleClients is failed
 	if len(p.idleClients) == 0 && c.closed {
 		// connection not multiplex,
