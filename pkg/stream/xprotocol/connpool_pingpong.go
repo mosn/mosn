@@ -103,22 +103,30 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 
 	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
-	// no available client
+
 	var (
-		c      = &activeClientPingPong{closed: true} //default create conn is closed=true
+		c      *activeClientPingPong
 		reason types.PoolFailureReason
 
-		lastIdx = len(p.idleClients) - 1
+		lastIdx = n - 1
 	)
-
+	//1. if len(p.idleClients)==0
+	if n == 0 {
+		p.clientMux.Unlock()
+		c, reason = p.newActiveClient(ctx, proto)
+		if c != nil && reason == "" {
+			p.totalClientCount.Inc()
+		}
+		goto RET
+	}
+	//2. Judgment MaxConn
 	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
 		p.clientMux.Unlock()
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 		return nil, types.Overflow
 	}
-
-	//when len(p.idleClients)!=0 get activeClientPingPong
+	//3. when len(p.idleClients) != 0 get activeClientPingPong
 	for i, _ := range p.idleClients {
 		//Start with the last one
 		c = p.idleClients[lastIdx-i]
@@ -128,12 +136,13 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
 			p.totalClientCount.Dec()
 			c.closed = true
+			c.host.Connection.Close(api.NoFlush, api.ConnectFailed)
 		} else {
 			break
 		}
 	}
 	p.clientMux.Unlock()
-
+	//4. when all p.idleClients is failed
 	if len(p.idleClients) == 0 && c.closed {
 		// connection not multiplex,
 		// so we can concurrently build connections here
@@ -143,6 +152,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		}
 	}
 
+RET:
 	if c != nil && reason == "" {
 		c.Mutex.Lock()
 		defer c.Mutex.Unlock()
