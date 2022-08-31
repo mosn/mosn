@@ -105,38 +105,14 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
 	// no available client
 	var (
-		c      *activeClientPingPong
+		c      = &activeClientPingPong{closed: true} //default create conn is closed=true
 		reason types.PoolFailureReason
 
 		lastIdx = len(p.idleClients) - 1
 	)
 
-	if n == 0 { // nolint: nestif
-		if maxConns == 0 || p.totalClientCount.Load() < maxConns {
-			// connection not multiplex,
-			// so we can concurrently build connections here
-			p.clientMux.Unlock()
-			c, reason = p.newActiveClient(ctx, proto)
-			if c != nil && reason == "" {
-				p.totalClientCount.Inc()
-			}
-		} else {
-			p.clientMux.Unlock()
-
-			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-			return nil, types.Overflow
-		}
-	} else {
-		// Only refuse extra connection, keepalive-connection is closed by timeout
-		usedConns := p.totalClientCount.Load() - uint64(n) + 1
-		if maxConns != 0 && usedConns > maxConns {
-			p.clientMux.Unlock()
-			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-			return nil, types.Overflow
-		}
-
+	if maxConns == 0 || p.totalClientCount.Load()-uint64(n)+1 <= maxConns {
+		//when len(p.idleClients)!=0 get activeClientPingPong
 		for i, _ := range p.idleClients {
 			//Start with the last one
 			c = p.idleClients[lastIdx-i]
@@ -151,12 +127,19 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 			}
 		}
 		p.clientMux.Unlock()
-		//When the last found conn is closed ，newActiveClient
-		if len(p.idleClients) == 0 && c.closed {
-			c, reason = p.newActiveClient(ctx, proto)
-			if c != nil && reason == "" {
-				p.totalClientCount.Inc()
-			}
+	} else { //maxConn !=0 && load - n > maxConn
+		p.clientMux.Unlock()
+		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+		return nil, types.Overflow
+	}
+
+	if len(p.idleClients) == 0 && c.closed {
+		// connection not multiplex,
+		// so we can concurrently build connections here
+		c, reason = p.newActiveClient(ctx, proto)
+		if c != nil && reason == "" {
+			p.totalClientCount.Inc()
 		}
 	}
 
