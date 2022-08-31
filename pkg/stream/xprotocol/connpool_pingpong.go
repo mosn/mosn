@@ -134,22 +134,18 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		return c, reason
 	}
 
+	p.clientMux.Unlock()
 	//3. when len(p.idleClients) != 0 get activeClientPingPong
 	for i, _ := range p.idleClients {
 		//Start with the last one
 		c = p.idleClients[lastIdx-i]
-		p.idleClients[lastIdx-i] = nil
-		p.idleClients = p.idleClients[:lastIdx-i]
 		//Judgment maxRequestPerConn close failed connection
 		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
-			p.totalClientCount.Dec()
-			c.closed = true
 			c.host.Connection.Close(api.NoFlush, api.ConnectFailed)
 		} else {
 			break
 		}
 	}
-	p.clientMux.Unlock()
 
 	//4. when all p.idleClients is failed
 	if len(p.idleClients) == 0 && c.closed {
