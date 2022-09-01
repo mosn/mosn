@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"errors"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
@@ -102,8 +103,6 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 	// max conns is 0 means no limit
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 
-	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
-
 	var (
 		c      *activeClientPingPong
 		reason types.PoolFailureReason
@@ -132,29 +131,12 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 		return c, reason
 	}
 
+	//3.get Last idleClients
+	c = p.idleClients[lastIdx]
+	p.idleClients[lastIdx] = nil
+	p.idleClients = p.idleClients[:lastIdx]
+
 	p.clientMux.Unlock()
-	//3. when len(p.idleClients) != 0 get activeClientPingPong
-	for i, _ := range p.idleClients {
-		//Start with the last one
-		c = p.idleClients[lastIdx-i]
-		//Judgment maxRequestPerConn close failed connection
-		if maxRequestPerConn != 0 && maxRequestPerConn < c.requestCount {
-			c.host.Connection.Close(api.NoFlush, api.ConnectFailed)
-		} else {
-			break
-		}
-	}
-
-	//4. when all p.idleClients is failed
-	if len(p.idleClients) == 0 && c.closed {
-		// connection not multiplex,
-		// so we can concurrently build connections here
-		c, reason = p.newActiveClient(ctx, proto)
-		if c != nil && reason == "" {
-			p.totalClientCount.Inc()
-		}
-	}
-
 	if c != nil && reason == "" {
 		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
@@ -358,6 +340,13 @@ func (ac *activeClientPingPong) OnDestroyStream() {
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
+	//Judgment maxRequestPerConn ,
+	//ac has been removed from pool
+	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
+	if maxRequestPerConn != 0 && maxRequestPerConn < ac.requestCount {
+		ac.Close(errors.New("requestCount More than maxRequestPerConn"))
+		return
+	}
 
 	ac.Close(nil)
 }
