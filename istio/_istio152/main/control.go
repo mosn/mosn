@@ -18,6 +18,7 @@
 package main
 
 import (
+	"fmt"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -208,8 +209,12 @@ var (
 		Action: func(c *cli.Context) error {
 			app := mosn.NewMosn()
 			stm := stagemanager.InitStageManager(c, c.String("config"), app)
-			app.ReloadProcess = true
 			stm.AppendInitStage(mosn.InitDefaultPath)
+			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
+				// disable upgrade option when mosn reloading
+				// avoiding trigger old mosn turn to state 13.
+				cfg.DisableUpgrade = true
+			})
 			return stm.ReloadMosnProcess()
 		},
 	}

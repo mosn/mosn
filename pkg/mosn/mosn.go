@@ -128,7 +128,7 @@ func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// default is graceful mode, turn graceful off by set it to false
-	if !m.ReloadProcess && !c.DisableUpgrade && server.IsReconfigure() {
+	if !c.DisableUpgrade && server.IsReconfigure() {
 		m.isFromUpgrade = true
 		if err = m.inheritHandler(); err != nil {
 			return
