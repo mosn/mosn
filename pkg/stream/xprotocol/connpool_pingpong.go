@@ -264,7 +264,7 @@ type activeClientPingPong struct {
 func (ac *activeClientPingPong) Close(err error) {
 	if err != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[ConnPool] [activeClientPingPong] activeClientPingPong close because err :%v", err)
+			log.DefaultLogger.Infof("[ConnPool] [activeClientPingPong] activeClientPingPong closed due to error :%v", err)
 		}
 		// if pool is not using multiplex mode
 		// this conn is not in the pool
