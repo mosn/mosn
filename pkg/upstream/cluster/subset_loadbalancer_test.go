@@ -617,7 +617,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 		Name:                 clusterName,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
+		MaxRequestPerConn:    v2.DefaultMaxRequestPerConn,
 		ConnBufferLimitBytes: 1024,
 		LBSubSetConfig: v2.LBSubsetConfig{
 			FallBackPolicy: uint8(types.AnyEndPoint),
@@ -773,7 +773,7 @@ func TestFallbackAny(t *testing.T) {
 		Name:                 clusterName,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		LbType:               v2.LB_RANDOM,
-		MaxRequestPerConn:    1024,
+		MaxRequestPerConn:    v2.DefaultMaxRequestPerConn,
 		ConnBufferLimitBytes: 1024,
 		LBSubSetConfig: v2.LBSubsetConfig{
 			FallBackPolicy: uint8(types.AnyEndPoint),
