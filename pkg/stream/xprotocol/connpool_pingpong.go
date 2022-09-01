@@ -102,41 +102,54 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 
 	// max conns is 0 means no limit
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
-
+	// no available client
 	var (
 		c      *activeClientPingPong
 		reason types.PoolFailureReason
-
-		lastIdx = n - 1
 	)
 
-	//1. Judgment MaxConn
-	if maxConns != 0 && p.totalClientCount.Load()-uint64(n)+1 > maxConns {
-		p.clientMux.Unlock()
-		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return nil, types.Overflow
-	}
+	if n == 0 { // nolint: nestif
+		if maxConns == 0 || p.totalClientCount.Load() < maxConns {
+			// connection not multiplex,
+			// so we can concurrently build connections here
+			p.clientMux.Unlock()
+			c, reason = p.newActiveClient(ctx, proto)
+			if c != nil && reason == "" {
+				p.totalClientCount.Inc()
+			}
 
-	//2. if len(p.idleClients)==0
-	if n == 0 {
-		p.clientMux.Unlock()
-		c, reason = p.newActiveClient(ctx, proto)
-		if c != nil && reason == "" {
-			p.totalClientCount.Inc()
+			goto RET
+		} else {
+			p.clientMux.Unlock()
+
+			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			c, reason = nil, types.Overflow
+
+			goto RET
 		}
-		atomic.AddUint32(&c.requestCount, 1)
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		return c, reason
+	} else {
+		defer p.clientMux.Unlock()
+
+		var lastIdx = n - 1
+		// Only refuse extra connection, keepalive-connection is closed by timeout
+		usedConns := p.totalClientCount.Load() - uint64(n) + 1
+		if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
+			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			c, reason = nil, types.Overflow
+			goto RET
+		}
+
+		c = p.idleClients[lastIdx]
+		p.idleClients[lastIdx] = nil
+		p.idleClients = p.idleClients[:lastIdx]
+
+		goto RET
 	}
 
-	//3.get Last idleClients
-	c = p.idleClients[lastIdx]
-	p.idleClients[lastIdx] = nil
-	p.idleClients = p.idleClients[:lastIdx]
+RET:
 
-	p.clientMux.Unlock()
 	if c != nil && reason == "" {
 		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
@@ -343,7 +356,7 @@ func (ac *activeClientPingPong) OnDestroyStream() {
 	//Judgment maxRequestPerConn ,
 	//ac has been removed from pool
 	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
-	if maxRequestPerConn != 0 && maxRequestPerConn < ac.requestCount {
+	if maxRequestPerConn != 0 && maxRequestPerConn == ac.requestCount {
 		ac.Close(errors.New("requestCount More than maxRequestPerConn"))
 		return
 	}
