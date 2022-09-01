@@ -263,7 +263,7 @@ type activeClientPingPong struct {
 // Close return this client back to pool
 func (ac *activeClientPingPong) Close(err error) {
 	if err != nil {
-		log.StartLogger.Errorf("[ConnPool] [activeClientPingPong] activeClientPingPong close because err :%v", err)
+		log.StartLogger.Infof("[ConnPool] [activeClientPingPong] activeClientPingPong close because err :%v", err)
 		// if pool is not using multiplex mode
 		// this conn is not in the pool
 		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
