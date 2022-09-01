@@ -42,6 +42,10 @@ type poolPingPong struct {
 	idleClients      []*activeClientPingPong
 }
 
+var (
+	ExceedsRequest = errors.New("requestCount More than ClusterInfo set maxRequestPerConn")
+)
+
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
 func NewPoolPingPong(p *connpool) types.ConnectionPool {
 	return &poolPingPong{
@@ -259,6 +263,7 @@ type activeClientPingPong struct {
 // Close return this client back to pool
 func (ac *activeClientPingPong) Close(err error) {
 	if err != nil {
+		log.StartLogger.Errorf("[ConnPool] [activeClientPingPong] activeClientPingPong close because err :%v", err)
 		// if pool is not using multiplex mode
 		// this conn is not in the pool
 		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
@@ -357,7 +362,7 @@ func (ac *activeClientPingPong) OnDestroyStream() {
 	//ac has been removed from pool
 	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
 	if maxRequestPerConn != 0 && maxRequestPerConn == ac.requestCount {
-		ac.Close(errors.New("requestCount More than maxRequestPerConn"))
+		ac.Close(ExceedsRequest)
 		return
 	}
 
