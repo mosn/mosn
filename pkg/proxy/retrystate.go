@@ -105,11 +105,11 @@ func (r *retryState) doRetryCheck(ctx context.Context, headers types.HeaderMap, 
 	if r.retryOn {
 		// TODO: add retry policy to decide retry or not. use default policy now
 		if ctx != nil {
-			// default policy , mapping all headers to http status code
 			code, err := protocol.MappingHeaderStatusCode(ctx, r.upstreamProtocol, headers)
 			if err == nil {
-				if len(r.retryPolicy.RetryableStatusCodes()) > 0 {
-					for _, it := range r.retryPolicy.RetryableStatusCodes() {
+				codes := r.retryPolicy.RetryableStatusCodes()
+				if len(codes) > 0 {
+					for _, it := range codes {
 						if code == int(it) {
 							return true
 						}
