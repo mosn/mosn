@@ -250,7 +250,7 @@ var (
 			stm.AppendInitStage(mosn.InitDefaultPath)
 			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
 				// disable upgrade option when mosn reloading
-				// avoiding trigger old mosn turn to state 13.
+				// avoiding trigger old mosn upgrading.
 				cfg.DisableUpgrade = true
 			})
 			return stm.ReloadMosnProcess()
