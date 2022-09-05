@@ -93,6 +93,7 @@ type retryPolicyImpl struct {
 	retryOn      bool
 	retryTimeout time.Duration
 	numRetries   uint32
+	statusCodes  []uint32
 }
 
 func (p *retryPolicyImpl) RetryOn() bool {
@@ -116,6 +117,13 @@ func (p *retryPolicyImpl) NumRetries() uint32 {
 	return p.numRetries
 }
 
+func (p *retryPolicyImpl) RetryableStatusCodes() []uint32 {
+	if p == nil {
+		return []uint32{}
+	}
+	return p.statusCodes
+}
+
 type shadowPolicyImpl struct {
 	cluster    string
 	runtimeKey string
@@ -132,7 +140,7 @@ func (spi *shadowPolicyImpl) RuntimeKey() string {
 // RouterRuleFactory creates a RouteBase
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
-// The reigister order, is a wrapper of registered factory
+// The register order, is a wrapper of registered factory
 // We register a factory with order, a new factory can replace old registered factory only if the register order
 // ig greater than the old one.
 type routerRuleFactoryOrder struct {

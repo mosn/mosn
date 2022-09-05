@@ -23,9 +23,9 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"mosn.io/mosn/istio/istio1106/mixer/v1"
 	"mosn.io/mosn/istio/istio1106/istio/control"
 	"mosn.io/mosn/istio/istio1106/istio/utils"
+	"mosn.io/mosn/istio/istio1106/mixer/v1"
 )
 
 type attributesBuilder struct {

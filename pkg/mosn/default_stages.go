@@ -55,7 +55,7 @@ func DefaultPreStartStage(mosn stagemanager.Application) {
 func DefaultStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 	// register admin server
-	// admin server should registered after all prepares action ready
+	// admin server should register after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
 }

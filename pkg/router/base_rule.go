@@ -112,6 +112,7 @@ func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleIm
 			retryOn:      route.Route.RetryPolicy.RetryOn,
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
+			statusCodes:  route.Route.RetryPolicy.StatusCodes,
 		}
 	}
 	// add hash policy

@@ -55,11 +55,11 @@ func TestClusterUpdateHosts(t *testing.T) {
 	for _, meta := range metas {
 		hosts = append(hosts, pool.MakeHosts(10, meta)...)
 	}
-	cluster.UpdateHosts(hosts)
+	cluster.UpdateHosts(NewHostSet(hosts))
 	// verify
 	snap := cluster.Snapshot()
 	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
-	if len(subLb.fallbackSubset.hostSet.Hosts()) != 40 {
+	if subLb.fallbackSubset.HostNum() != 40 {
 		t.Fatal("default fallback should be all hosts")
 	}
 	result := &subSetMapResult{
@@ -95,11 +95,11 @@ func TestClusterUpdateHosts(t *testing.T) {
 		"version": "3",
 		"ignore":  "true",
 	})...)
-	cluster.UpdateHosts(newHosts)
+	cluster.UpdateHosts(NewHostSet(newHosts))
 	newSnap := cluster.Snapshot()
 	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	// verify
-	if len(newSubLb.fallbackSubset.hostSet.Hosts()) != 60 {
+	if newSubLb.fallbackSubset.HostNum() != 60 {
 		t.Fatal("default fallback should be all hosts")
 	}
 	newResult := &subSetMapResult{
@@ -134,7 +134,7 @@ func TestUpdateHostLabels(t *testing.T) {
 			"version": "1",
 		},
 	}
-	cluster.UpdateHosts([]types.Host{host})
+	cluster.UpdateHosts(NewHostSet([]types.Host{host}))
 	snap := cluster.Snapshot()
 	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
 	result := &subSetMapResult{
@@ -161,7 +161,7 @@ func TestUpdateHostLabels(t *testing.T) {
 			"version": "2",
 		},
 	}
-	cluster.UpdateHosts([]types.Host{newHost})
+	cluster.UpdateHosts(NewHostSet([]types.Host{newHost}))
 	newSnap := cluster.Snapshot()
 	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	newResult := &subSetMapResult{

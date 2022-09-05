@@ -198,6 +198,11 @@ func convertMeta(xdsMeta *envoy_config_core_v3.Metadata) api.Metadata {
 	}
 	meta := make(map[string]string, len(xdsMeta.GetFilterMetadata()))
 	for key, value := range xdsMeta.GetFilterMetadata() {
+		if key == "envoy.lb" {
+			for eKey, eValue := range value.Fields {
+				meta[eKey] = eValue.GetStringValue()
+			}
+		}
 		meta[key] = value.String()
 	}
 	return meta

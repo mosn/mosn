@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -521,18 +522,12 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	for _, nfcf := range al.networkFiltersFactories {
 		nfcf.CreateFilterChain(ctx, filterManager)
 	}
-	filterManager.InitializeReadFilters()
 
-	if len(filterManager.ListReadFilter()) == 0 &&
-		len(filterManager.ListWriteFilters()) == 0 {
-		// no filter found, close connection
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
-		}
-		conn.Close(api.NoFlush, api.LocalClose)
-		return
-	}
 	ac := newActiveConnection(al, conn)
+
+	if conn.LocalAddr().Network() == "udp" {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	}
 
 	e := al.conns.PushBack(ac)
 	ac.element = e
@@ -543,8 +538,16 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
-		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	filterManager.InitializeReadFilters()
+
+	if len(filterManager.ListReadFilter()) == 0 &&
+		len(filterManager.ListWriteFilters()) == 0 {
+		// no filter found, close connection
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+		}
+		conn.Close(api.NoFlush, api.LocalClose)
+		return
 	}
 
 	// start conn loops first
@@ -741,6 +744,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
+		return
 	}
 
 	if localListener != nil {
@@ -751,7 +755,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		return
 	}
 
-	// If it can’t find any matching listeners and should using the self listener.
+	// If it can’t find any matching listeners and should use the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}

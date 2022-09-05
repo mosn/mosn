@@ -43,7 +43,7 @@ type routersImpl struct {
 	//key =>*     value => [{9,".test.com",index},{4,".com",index}]
 	portWildcardVirtualHost map[string][]WildcardVirtualHostWithPort
 
-	// stored all vritual host, same as the config order
+	// stored all virtual host, same as the config order
 	virtualHosts []types.VirtualHost
 }
 

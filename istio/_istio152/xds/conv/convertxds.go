@@ -461,6 +461,14 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 		filter.Type = name
 		filter.Config = m
 	default:
+		config, err := api.HandleXDSConfig(name, s)
+		if err != nil {
+			log.DefaultLogger.Infof("[xds] convertStreamFilter, unsupported filter config, name: %s,err=%v", name, err)
+			break
+		}
+		filter.Type = name
+		filter.Config = config
+
 	}
 
 	return filter

@@ -415,9 +415,9 @@ func TestAddRouter(t *testing.T) {
 	if err != nil {
 		t.Fatal("create routers failed")
 	}
-	macther := rm.(*routersImpl)
-	vh := macther.virtualHosts[0].(*VirtualHostImpl)
-	defaultVh := macther.virtualHosts[1].(*VirtualHostImpl)
+	matcher := rm.(*routersImpl)
+	vh := matcher.virtualHosts[0].(*VirtualHostImpl)
+	defaultVh := matcher.virtualHosts[1].(*VirtualHostImpl)
 	if len(vh.routes) != 0 || len(defaultVh.routes) != 0 {
 		t.Fatal("expected a no routes matcher")
 	}
@@ -481,9 +481,9 @@ func TestRemoveAllRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal("create routers failed")
 	}
-	macther := rm.(*routersImpl)
-	vh := macther.virtualHosts[0].(*VirtualHostImpl)
-	defaultVh := macther.virtualHosts[1].(*VirtualHostImpl)
+	matcher := rm.(*routersImpl)
+	vh := matcher.virtualHosts[0].(*VirtualHostImpl)
+	defaultVh := matcher.virtualHosts[1].(*VirtualHostImpl)
 	if len(vh.routes) != 1 || len(defaultVh.routes) != 1 {
 		t.Fatal("expected exists routes matcher")
 	}

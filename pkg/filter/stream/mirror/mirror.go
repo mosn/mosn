@@ -98,11 +98,12 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		amplification := m.amplification
 		if m.broadcast {
 			amplification = 0
-			for _, host := range snap.HostSet().Hosts() {
+			snap.HostSet().Range(func(host types.Host) bool {
 				if host.Health() {
 					amplification++
 				}
-			}
+				return true
+			})
 		}
 
 		for i := 0; i < amplification; i++ {

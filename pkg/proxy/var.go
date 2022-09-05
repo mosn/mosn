@@ -50,6 +50,9 @@ var (
 		variable.NewStringVariable(types.VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamTransportFailureReason, nil, upstreamTransportFailureReasonGetter, nil, 0),
 		variable.NewStringVariable(types.VarUpstreamCluster, nil, upstreamClusterGetter, nil, 0),
+		variable.NewStringVariable(types.VarConnectionID, nil, connectionIDGetter, nil, 0),
+		variable.NewStringVariable(types.VarTraceID, nil, traceIDGetter, nil, 0),
+		variable.NewStringVariable(types.VarUpstreamConnectionID, nil, upstreamConnectionIDGetter, nil, 0),
 
 		variable.NewVariable(types.VarProxyDisableRetry, nil, nil, variable.DefaultSetter, 0),
 		variable.NewStringVariable(types.VarProxyTryTimeout, nil, nil, variable.DefaultStringSetter, 0),
@@ -174,7 +177,11 @@ func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValu
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	return info.UpstreamLocalAddress(), nil
+	if info.UpstreamLocalAddress() != "" {
+		return info.UpstreamLocalAddress(), nil
+	}
+
+	return variable.ValueNotFound, nil
 }
 
 // DownstreamLocalAddressGetter
@@ -263,4 +270,35 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 	}
 
 	return string(headerValue), nil
+}
+
+// ConnectionIDGetter
+// get request's connection ID
+func connectionIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	if id, err := variable.GetVariable(ctx, types.VariableConnectionID); err == nil {
+		if uid, ok := id.(uint64); ok {
+			return strconv.FormatUint(uid, 10), nil
+		}
+	}
+	return variable.ValueNotFound, errors.New("not found connection id")
+}
+
+// TraceIDGetter
+// get request's trace ID
+func traceIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	if id, err := variable.GetVariable(ctx, types.VariableTraceId); err == nil {
+		return id.(string), nil
+	}
+	return variable.ValueNotFound, errors.New("not found traceID")
+}
+
+// UpstreamConnectionIDGetter
+// get request's upstream connection ID
+func upstreamConnectionIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	if id, err := variable.GetVariable(ctx, types.VariableUpstreamConnectionID); err == nil {
+		if uid, ok := id.(uint64); ok {
+			return strconv.FormatUint(uid, 10), nil
+		}
+	}
+	return variable.ValueNotFound, errors.New("not found UpstreamConnectionID")
 }

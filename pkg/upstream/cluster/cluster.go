@@ -55,21 +55,7 @@ func NewCluster(clusterConfig v2.Cluster) types.Cluster {
 	return clusterFactories[v2.SIMPLE_CLUSTER](clusterConfig)
 }
 
-// simpleCluster is an implementation of types.Cluster
-type simpleCluster struct {
-	info          *clusterInfo
-	mutex         sync.Mutex
-	healthChecker types.HealthChecker
-	lbInstance    types.LoadBalancer // load balancer used for this cluster
-	hostSet       *hostSet
-	snapshot      atomic.Value
-}
-
-func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
-	// TODO support original dst cluster
-	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
-		clusterConfig.LbType = v2.LB_ORIGINAL_DST
-	}
+func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
@@ -83,7 +69,6 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
 	}
-
 	// set ConnectTimeout
 	if clusterConfig.ConnectTimeout != nil {
 		info.connectTimeout = clusterConfig.ConnectTimeout.Duration
@@ -104,6 +89,25 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		}
 		info.tlsMng = mgr
 	}
+	return info
+}
+
+// simpleCluster is an implementation of types.Cluster
+type simpleCluster struct {
+	info          types.ClusterInfo
+	mutex         sync.Mutex
+	healthChecker types.HealthChecker
+	lbInstance    types.LoadBalancer // load balancer used for this cluster
+	hostSet       types.HostSet
+	snapshot      atomic.Value
+}
+
+func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
+	// TODO support original dst cluster
+	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
+		clusterConfig.LbType = v2.LB_ORIGINAL_DST
+	}
+	info := NewClusterInfo(clusterConfig)
 	cluster := &simpleCluster{
 		info: info,
 	}
@@ -123,13 +127,11 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	return cluster
 }
 
-func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
+func (sc *simpleCluster) UpdateHosts(hostSet types.HostSet) {
 	info := sc.info
-	hostSet := &hostSet{}
-	hostSet.setFinalHost(newHosts)
 	// load balance
 	var lb types.LoadBalancer
-	if info.lbSubsetInfo.IsEnabled() {
+	if info.LbSubsetInfo().IsEnabled() {
 		if getSubsetBuildMode() == SubsetPreIndexBuildMode {
 			lb = NewSubsetLoadBalancerPreIndex(info, hostSet)
 		} else {

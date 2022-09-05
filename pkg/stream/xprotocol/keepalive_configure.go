@@ -21,7 +21,7 @@ import (
 	"sync/atomic"
 )
 
-// KeepaliveConfig is the the config for xprotocol keepalive
+// KeepaliveConfig is the config for xprotocol keepalive
 // the config parameter can be set from the outside system
 type KeepaliveConfig struct {
 	// the next hb will be sent after tick_count_if_fail times of ConnReadTimeout if the current hb fails

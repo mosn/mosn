@@ -236,11 +236,11 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 			}
 			if entry.Initialized() {
 				e := entry.(*LBSubsetEntryImpl)
-				hosts := e.hostSet.Hosts()
 				hostsNode := []string{}
-				for _, h := range hosts {
-					hostsNode = append(hostsNode, h.Hostname())
-				}
+				e.hostSet.Range(func(host types.Host) bool {
+					hostsNode = append(hostsNode, host.Hostname())
+					return true
+				})
 				r.result[p] = hostsNode
 			}
 		}
@@ -248,7 +248,7 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 }
 func newSubsetLoadBalancers(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) map[string]*subsetLoadBalancer {
 	return map[string]*subsetLoadBalancer{
-		"default": newSubsetLoadBalancer(lbType, hosts, stats, subsets),
+		"default":  newSubsetLoadBalancer(lbType, hosts, stats, subsets),
 		"preIndex": newSubsetLoadBalancerPreIndex(lbType, hosts, stats, subsets),
 	}
 }
@@ -634,7 +634,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
 	// create a subset
 	{
-		cluster.UpdateHosts([]types.Host{hostA})
+		cluster.UpdateHosts(NewHostSet([]types.Host{hostA}))
 		expectedResult := map[string][]string{
 			"group->a->zone->zone0->": []string{"A"},
 			"zone->zone0->":           []string{"A"},
@@ -659,7 +659,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 	}
 	// remove a host
 	{
-		cluster.UpdateHosts([]types.Host{})
+		cluster.UpdateHosts(NewHostSet([]types.Host{}))
 		result := &subSetMapResult{
 			result: map[string][]string{},
 		}
@@ -688,7 +688,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 				"group": "b",
 			},
 		}
-		cluster.UpdateHosts([]types.Host{hostB})
+		cluster.UpdateHosts(NewHostSet([]types.Host{hostB}))
 		expectedResult := map[string][]string{
 			"zone->zone0->":           []string{"B"},
 			"group->b->zone->zone0->": []string{"B"},
@@ -733,7 +733,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 				"group": "a",
 			},
 		}
-		cluster.UpdateHosts([]types.Host{hostB})
+		cluster.UpdateHosts(NewHostSet([]types.Host{hostB}))
 		expectedResult := map[string][]string{
 			"zone->zone0->":           []string{"B"},
 			"group->a->zone->zone0->": []string{"B"},
@@ -784,7 +784,7 @@ func TestFallbackAny(t *testing.T) {
 		},
 	}
 	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
-	cluster.UpdateHosts([]types.Host{hostA, hostB})
+	cluster.UpdateHosts(NewHostSet([]types.Host{hostA, hostB}))
 	lb := cluster.lbInstance.(*subsetLoadBalancer)
 	ctx := newMockLbContext(map[string]string{
 		"zone":  "zone0",
@@ -839,6 +839,40 @@ func TestNoFallbackWithEmpty(t *testing.T) {
 		}
 	}
 
+}
+
+func TestSubsetLoadBalancers(t *testing.T) {
+	info := NewLBSubsetInfo(exampleSubsetConfig()).(*LBSubsetInfoImpl)
+	stats := newClusterStats("TestNewSubsetLoadBalancer")
+	ps := createHostset(exampleHostConfigs())
+	t.Run("test no fallback", func(t *testing.T) {
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+1, len(slb.LoadBalancers()))
+		}
+	})
+	t.Run("test with default fallback", func(t *testing.T) {
+		info.fallbackPolicy = types.DefaultSubset
+		info.defaultSubSet = types.SubsetMetadata(
+			[]types.Pair{
+				{
+					T1: "version",
+					T2: "1.0",
+				},
+			},
+		)
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+2, len(slb.LoadBalancers()))
+		}
+	})
+	t.Run("test with any fallback", func(t *testing.T) {
+		info.fallbackPolicy = types.AnyEndPoint
+		lbs := newSubsetLoadBalancers(types.RoundRobin, ps, stats, info)
+		for _, slb := range lbs {
+			require.Equal(t, len(exampleResult)+2, len(slb.LoadBalancers()))
+		}
+	})
 }
 
 func benchHostConfigs(hostCount int, keyValues int) []v2.Host {

@@ -29,14 +29,29 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+var _ types.HostSet = &mockHostSet{}
 type mockHostSet struct {
-	types.HostSet
 	hosts                   []types.Host
 	healthCheckVisitedCount int
 }
 
+func (hs *mockHostSet) Get(i int) types.Host {
+	return hs.hosts[i]
+}
+
+func (hs *mockHostSet) Range(f func(types.Host) bool) {
+	for _, h := range hs.hosts{
+		if !f(h){
+			break
+		}
+	}
+}
+
 func (hs *mockHostSet) Hosts() []types.Host {
 	return hs.hosts
+}
+func (hs *mockHostSet)Size()int{
+	return len(hs.hosts)
 }
 
 func getMockHostSet(count int) *mockHostSet {
