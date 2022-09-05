@@ -73,7 +73,6 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx)
-
 	if reason != "" {
 		return host, nil, reason
 	}

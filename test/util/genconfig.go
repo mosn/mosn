@@ -90,7 +90,7 @@ func NewBasicCluster(name string, hosts []string) v2.Cluster {
 		Name:                 name,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		LbType:               v2.LB_ROUNDROBIN,
-		MaxRequestPerConn:    1024,
+		MaxRequestPerConn:    v2.DefaultMaxRequestPerConn,
 		ConnBufferLimitBytes: 16 * 1026,
 		Hosts:                vhosts,
 	}
@@ -110,7 +110,7 @@ func NewWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
 		Name:                 name,
 		ClusterType:          v2.SIMPLE_CLUSTER,
 		LbType:               v2.LB_ROUNDROBIN,
-		MaxRequestPerConn:    1024,
+		MaxRequestPerConn:    v2.DefaultMaxRequestPerConn,
 		ConnBufferLimitBytes: 16 * 1026,
 		Hosts:                vhosts,
 	}

@@ -51,7 +51,7 @@ func (l *listener) Notify(event *registry.ServiceEvent) {
 					Name:                 clusterName,
 					ClusterType:          v2.SIMPLE_CLUSTER,
 					LbType:               v2.LB_RANDOM,
-					MaxRequestPerConn:    1024,
+					MaxRequestPerConn:    v2.DefaultMaxRequestPerConn,
 					ConnBufferLimitBytes: 32768,
 				},
 				[]v2.Host{

@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"errors"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
@@ -41,6 +42,10 @@ type poolPingPong struct {
 	idleClients      []*activeClientPingPong
 }
 
+var (
+	ExceedsRequest = errors.New("requestCount is equal to ClusterInfo set maxRequestPerConn")
+)
+
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
 func NewPoolPingPong(p *connpool) types.ConnectionPool {
 	return &poolPingPong{
@@ -62,6 +67,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 	if reason != "" {
 		return host, nil, reason
 	}
+
 	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.codecClient.ConnID())
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
@@ -149,6 +155,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context) (*activeClientPingPo
 RET:
 
 	if c != nil && reason == "" {
+		atomic.AddUint32(&c.requestCount, 1)
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 	}
@@ -249,11 +256,16 @@ type activeClientPingPong struct {
 	pool        *poolPingPong
 	codecClient stream.Client
 	host        types.CreateConnectionData
+
+	requestCount uint32
 }
 
 // Close return this client back to pool
 func (ac *activeClientPingPong) Close(err error) {
 	if err != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[ConnPool] [activeClientPingPong] activeClientPingPong closed due to error :%v", err)
+		}
 		// if pool is not using multiplex mode
 		// this conn is not in the pool
 		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
@@ -348,6 +360,12 @@ func (ac *activeClientPingPong) OnDestroyStream() {
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
+	// Judgment maxRequestPerConn, ac has been removed from pool
+	maxRequestPerConn := host.ClusterInfo().MaxRequestsPerConn()
+	if maxRequestPerConn != 0 && maxRequestPerConn == ac.requestCount {
+		ac.Close(ExceedsRequest)
+		return
+	}
 
 	ac.Close(nil)
 }
