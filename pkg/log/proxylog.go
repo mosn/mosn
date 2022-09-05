@@ -114,20 +114,20 @@ func traceInfo(ctx context.Context) string {
 	tid := "-"
 	uid := "-"
 
-	connId := variable.ContextGet(ctx, types.VarConnectionID) // uint64
-	if connId != nil {
+	connId, err := variable.GetVariable(ctx, types.VarConnectionID) // uint64
+	if err == nil && connId != nil {
 		uConnId, ok := connId.(uint64)
 		if ok {
 			cid = strconv.FormatUint(uConnId, 10)
 		}
 
 	}
-	traceId := variable.ContextGet(ctx, types.VarTraceId) // string
-	if traceId != nil {
+	traceId, err := variable.GetVariable(ctx, types.VarTraceId) // string
+	if err == nil && traceId != nil {
 		tid = traceId.(string)
 	}
-	upstreamConnectionId := variable.ContextGet(ctx, types.VarUpstreamConnectionID) // uint64
-	if upstreamConnectionId != nil {
+	upstreamConnectionId, err := variable.GetVariable(ctx, types.VarUpstreamConnectionID) // uint64
+	if err == nil && upstreamConnectionId != nil {
 		uConnId, ok := upstreamConnectionId.(uint64)
 		if ok {
 			uid = strconv.FormatUint(uConnId, 10)

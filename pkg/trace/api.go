@@ -38,7 +38,7 @@ var global = globalHolder{
 }
 
 func SpanFromContext(ctx context.Context) api.Span {
-	if val := variable.ContextGet(ctx, types.VarTraceSpan); val != nil {
+	if val, err := variable.GetVariable(ctx, types.VarTraceSpan); err == nil {
 		if sp, ok := val.(api.Span); ok {
 			return sp
 		}

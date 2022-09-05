@@ -79,7 +79,12 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	srcPro := variable.ContextGet(ctx, types.VarDownStreamProtocol).(api.ProtocolName)
+	sv, err := variable.GetVariable(ctx, types.VarDownStreamProtocol)
+	if err != nil {
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found downstream protocol")
+		return api.StreamFilterContinue
+	}
+	srcPro := sv.(api.ProtocolName)
 	//select transcoder
 	transcoderFactory := GetTranscoderFactory(ruleInfo.GetType(srcPro))
 	if transcoderFactory == nil {

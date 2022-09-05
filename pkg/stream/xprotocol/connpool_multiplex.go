@@ -112,7 +112,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
 			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
 			// set current client index to downstream context
-			variable.SetVariable(ctx, types.VarConnectionPoolIndex, clientIdx)
+			_ = variable.SetVariable(ctx, types.VarConnectionPoolIndex, clientIdx)
 		}
 	}
 
@@ -150,7 +150,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	)
 
 	if len(p.activeClients) > 1 {
-		clientIdxInter := variable.ContextGet(ctx, types.VarConnectionPoolIndex)
+		clientIdxInter, _ := variable.GetVariable(ctx, types.VarConnectionPoolIndex)
 		if clientIdx, ok = clientIdxInter.(int64); !ok {
 			// this client is not inited
 			return p.Host(), nil, types.ConnectionFailure
@@ -237,7 +237,8 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 
 	host := p.Host()
 	data := host.CreateConnection(ctx)
-	connCtx := variable.ContextSet(ctx, types.VarConnectionID, data.Connection.ID())
+	connCtx := ctx
+	_ = variable.SetVariable(ctx, types.VarConnectionID, data.Connection.ID())
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -402,7 +403,7 @@ func (ac *activeClientMultiplex) OnGoAway() {
 const invalidClientID = -1
 
 func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
-	clientIdxInter := variable.ContextGet(ctx, types.VarConnectionPoolIndex)
+	clientIdxInter, _ := variable.GetVariable(ctx, types.VarConnectionPoolIndex)
 	clientIdx, ok := clientIdxInter.(int64)
 	if !ok {
 		return invalidClientID

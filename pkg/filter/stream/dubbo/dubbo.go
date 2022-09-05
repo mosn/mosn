@@ -59,12 +59,16 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
-	proto := variable.ContextGet(ctx, types.VarDownStreamProtocol)
-	if proto == nil || dubbo.ProtocolName != proto {
+	proto, err := variable.GetVariable(ctx, types.VarDownStreamProtocol)
+	if err != nil || proto == nil || dubbo.ProtocolName != proto {
 		return api.StreamFilterContinue
 	}
 
-	listener := variable.ContextGet(ctx, types.VarListenerName).(string)
+	lv, err := variable.GetVariable(ctx, types.VarListenerName)
+	if err != nil || lv == nil {
+		return api.StreamFilterContinue
+	}
+	listener := lv.(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
@@ -98,7 +102,11 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	listener := variable.ContextGet(ctx, types.VarListenerName).(string)
+	lv, err := variable.GetVariable(ctx, types.VarListenerName)
+	if err != nil || lv == nil {
+		return api.StreamFilterContinue
+	}
+	listener := lv.(string)
 	service, err := variable.GetString(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)

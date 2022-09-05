@@ -123,8 +123,8 @@ type downStream struct {
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span api.Span) *downStream {
 	if span != nil && trace.IsEnabled() {
-		ctx = variable.ContextSet(ctx, types.VarTraceSpan, span)
-		ctx = variable.ContextSet(ctx, types.VarTraceSpankey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+		_ = variable.SetVariable(ctx, types.VarTraceSpan, span)
+		_ = variable.SetVariable(ctx, types.VarTraceSpankey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -133,7 +133,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
 
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, proto)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, proto)
 
 	stream := &proxyBuffers.stream
 	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
@@ -164,7 +164,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		requestID := variable.ContextGet(stream.context, types.VarStreamID)
+		requestID, _ := variable.GetVariable(stream.context, types.VarStreamID)
 		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestID, stream.oneway)
 	}
 	return stream
@@ -369,7 +369,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	s.context = variable.ContextSet(s.context, types.VarDownStreamReqHeaders, headers)
+	_ = variable.SetVariable(s.context, types.VarDownStreamReqHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 	s.tracks = track.TrackBufferByContext(ctx).Tracks
@@ -627,7 +627,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if s.downstreamRespHeaders != nil {
 				s.printPhaseInfo(phase, id)
 
-				s.context = variable.ContextSet(s.context, types.VarDownStreamRespHeaders, s.downstreamRespHeaders)
+				_ = variable.SetVariable(s.context, types.VarDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -719,8 +719,10 @@ func (s *downStream) getUpstreamProtocol() types.ProtocolName {
 	}
 
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
-	if p, ok := variable.ContextGet(s.context, types.VarUpstreamProtocol).(api.ProtocolName); ok {
-		proto = p
+	if pv, err := variable.GetVariable(s.context, types.VarUpstreamProtocol); err == nil {
+		if p, ok := pv.(api.ProtocolName); ok {
+			proto = p
+		}
 	}
 
 	// Auto means same as downstream protocol
@@ -1246,8 +1248,10 @@ func (s *downStream) finishTracing() {
 			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 
-			if variable.ContextGet(s.context, types.VarListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(variable.ContextGet(s.context, types.VarTraceSpankey).(*trace.SpanKey))
+			if ltype, _ := variable.GetVariable(s.context, types.VarListenerType); ltype == v2.INGRESS {
+				skv, _ := variable.GetVariable(s.context, types.VarTraceSpankey)
+				skey := skv.(*trace.SpanKey)
+				trace.DeleteSpanIdGenerator(skey)
 			}
 		} else {
 			if log.Proxy.GetLogLevel() >= log.WARN {

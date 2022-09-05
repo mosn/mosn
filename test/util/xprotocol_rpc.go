@@ -108,7 +108,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = variable.ContextSet(ctx, types.VarUpstreamProtocol, c.Protocol)
+	_ = variable.SetVariable(ctx, types.VarUpstreamProtocol, c.Protocol)
 	c.Codec = stream.NewStreamClient(ctx, c.Protocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", c.Protocol, cc)

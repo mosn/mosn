@@ -187,7 +187,8 @@ func TestXProtocol(t *testing.T) {
 	var magic []byte
 	var err error
 
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarStreamID, 1)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarStreamID, 1)
 
 	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic, nil)

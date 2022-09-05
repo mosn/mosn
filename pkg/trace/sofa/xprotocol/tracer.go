@@ -69,7 +69,14 @@ func (t *XTracer) Start(ctx context.Context, frame interface{}, startTime time.T
 	}
 
 	// the trace protocol is based on request (downstream)
-	proto := variable.ContextGet(ctx, types.VarDownStreamProtocol).(api.ProtocolName)
+	var proto api.ProtocolName
+	v, err := variable.GetVariable(ctx, types.VarDownStreamProtocol)
+	if err != nil {
+		return span
+	}
+	if proto, ok = v.(api.ProtocolName); !ok {
+		return span
+	}
 
 	if delegate := GetDelegate(proto); delegate != nil {
 		delegate(ctx, xframe, span)

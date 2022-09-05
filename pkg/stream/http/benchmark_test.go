@@ -29,7 +29,7 @@ import (
 
 func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 	ctx := prepareRequest(nil, getRequestBytes)
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
 
 	cookieName := "zone"
 
@@ -43,7 +43,7 @@ func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 
 func BenchmarkGetPrefixProtocolVarHeader(b *testing.B) {
 	ctx := prepareRequest(nil, getRequestBytes)
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
 
 	headerName := "Content-Type"
 

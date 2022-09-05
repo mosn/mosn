@@ -99,7 +99,7 @@ func TestChooseHost(t *testing.T) {
 	orihost := "127.0.0.1:8888"
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = variable.ContextSet(ctx, types.VarOriRemoteAddr, oriRemoteAddr)
+	_ = variable.SetVariable(ctx, types.VarOriRemoteAddr, oriRemoteAddr)
 	oriDstCfg := &v2.LBOriDstConfig{
 		UseHeader: false,
 	}

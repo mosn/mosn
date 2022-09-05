@@ -214,8 +214,10 @@ func (hp *cookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 type sourceIPHashPolicyImpl struct{}
 
 func (hp *sourceIPHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
-	if addr, ok := variable.ContextGet(ctx, types.VarOriRemoteAddr).(net.Addr); ok {
-		return getHashByAddr(addr)
+	if addrv, err := variable.GetVariable(ctx, types.VarOriRemoteAddr); err == nil {
+		if addr, ok := addrv.(net.Addr); ok {
+			return getHashByAddr(addr)
+		}
 	}
 	return 0
 }

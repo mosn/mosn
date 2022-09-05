@@ -34,8 +34,8 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestBuildUrlFromCtxVar(t *testing.T) {
@@ -445,7 +445,8 @@ func TestHeaderSize(t *testing.T) {
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP1] = streamConfigHandler(httpConfig)
 
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {

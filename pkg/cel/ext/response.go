@@ -26,7 +26,11 @@ import (
 )
 
 func addResponseheader(ctx context.Context, key, val string) bool {
-	headers, ok := variable.ContextGet(ctx, types.VarDownStreamRespHeaders).(api.HeaderMap)
+	headersv, err := variable.GetVariable(ctx, types.VarDownStreamRespHeaders)
+	if err != nil {
+		return false
+	}
+	headers, ok := headersv.(api.HeaderMap)
 	if !ok {
 		return false
 	}
@@ -37,11 +41,14 @@ func addResponseheader(ctx context.Context, key, val string) bool {
 }
 
 func delResponseheader(ctx context.Context, key string) bool {
-	headers, ok := variable.ContextGet(ctx, types.VarDownStreamRespHeaders).(api.HeaderMap)
+	headersv, err := variable.GetVariable(ctx, types.VarDownStreamRespHeaders)
+	if err != nil {
+		return false
+	}
+	headers, ok := headersv.(api.HeaderMap)
 	if !ok {
 		return false
 	}
-
 	headers.Del(key)
 	return true
 }

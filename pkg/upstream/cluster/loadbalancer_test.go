@@ -357,7 +357,8 @@ func Test_maglevLoadBalancer(t *testing.T) {
 			policy: policy,
 		},
 	}
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,

@@ -175,7 +175,7 @@ func BenchmarkDSL(b *testing.B) {
 	})
 
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariable(ctx, types.VarDownStreamReqHeaders, reqHeaders)
+	_ = variable.SetVariable(ctx, types.VarDownStreamReqHeaders, reqHeaders)
 	variable.SetString(ctx, types.VarPath, "/dsl")
 	variable.SetString(ctx, types.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter

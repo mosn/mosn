@@ -46,8 +46,8 @@ func Boltv1Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 	}
 
 	span.SetTag(sofa.TRACE_ID, traceId)
-	lType := variable.ContextGet(ctx, types.VarListenerType)
-	if lType == nil {
+	lType, err := variable.GetVariable(ctx, types.VarListenerType)
+	if err != nil {
 		return
 	}
 	spanId, ok := header.Get(sofa.RPC_ID_KEY)

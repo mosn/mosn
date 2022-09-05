@@ -487,27 +487,27 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// connection context support variables too
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = variable.ContextSet(ctx, types.VarListenerPort, al.listenPort)
-	ctx = variable.ContextSet(ctx, types.VarListenerType, al.listener.Config().Type)
-	ctx = variable.ContextSet(ctx, types.VarListenerName, al.listener.Name())
-	ctx = variable.ContextSet(ctx, types.VarNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = variable.ContextSet(ctx, types.VarAccessLogs, al.accessLogs)
+	_ = variable.SetVariable(ctx, types.VarListenerPort, al.listenPort)
+	_ = variable.SetVariable(ctx, types.VarListenerType, al.listener.Config().Type)
+	_ = variable.SetVariable(ctx, types.VarListenerName, al.listener.Name())
+	_ = variable.SetVariable(ctx, types.VarNetworkFilterChainFactories, al.networkFiltersFactories)
+	_ = variable.SetVariable(ctx, types.VarAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = variable.ContextSet(ctx, types.VarConnectionFd, rawf)
+		_ = variable.SetVariable(ctx, types.VarConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = variable.ContextSet(ctx, types.VarAcceptChan, ch)
-		ctx = variable.ContextSet(ctx, types.VarAcceptBuffer, buf)
+		_ = variable.SetVariable(ctx, types.VarAcceptChan, ch)
+		_ = variable.SetVariable(ctx, types.VarAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = variable.ContextSet(ctx, types.VarAcceptBuffer, buf)
+		_ = variable.SetVariable(ctx, types.VarAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = variable.ContextSet(ctx, types.VarOriRemoteAddr, oriRemoteAddr)
+		_ = variable.SetVariable(ctx, types.VarOriRemoteAddr, oriRemoteAddr)
 	}
 
 	if len(listeners) != 0 {
-		ctx = variable.ContextSet(ctx, types.VarConnectionEventListeners, listeners)
+		_ = variable.SetVariable(ctx, types.VarConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -648,18 +648,19 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := variable.ContextGet(ctx, types.VarOriRemoteAddr)
-	if oriRemoteAddr != nil {
+	oriRemoteAddr, err := variable.GetVariable(ctx, types.VarOriRemoteAddr)
+	if err == nil && oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	listeners := variable.ContextGet(ctx, types.VarConnectionEventListeners)
-	if listeners != nil {
+	listeners, err := variable.GetVariable(ctx, types.VarConnectionEventListeners)
+	if err == nil && listeners != nil {
 		for _, listener := range listeners.([]api.ConnectionEventListener) {
 			conn.AddConnectionEventListener(listener)
 		}
 	}
-	newCtx := variable.ContextSet(ctx, types.VarConnectionID, conn.ID())
-	newCtx = variable.ContextSet(ctx, types.VarConnection, conn)
+	newCtx := ctx
+	_ = variable.SetVariable(newCtx, types.VarConnectionID, conn.ID())
+	_ = variable.SetVariable(newCtx, types.VarConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -728,9 +729,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := variable.ContextGet(ctx, types.VarAcceptChan); val != nil {
+	if val, err := variable.GetVariable(ctx, types.VarAcceptChan); err == nil && val != nil {
 		ch = val.(chan api.Connection)
-		if val := variable.ContextGet(ctx, types.VarAcceptBuffer); val != nil {
+		if val, err := variable.GetVariable(ctx, types.VarAcceptBuffer); err == nil && val != nil {
 			buf = val.([]byte)
 		}
 	}

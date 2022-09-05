@@ -68,4 +68,4 @@ replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-contr
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
 
-replace mosn.io/pkg => github.com/nejisama/pkg v0.0.1
+replace mosn.io/pkg => github.com/nejisama/pkg v0.0.2

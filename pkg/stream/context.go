@@ -46,10 +46,12 @@ func (cm *ContextManager) Next() {
 
 func (cm *ContextManager) InjectTrace(ctx context.Context, span api.Span) context.Context {
 	if span != nil {
-		return variable.ContextSet(ctx, types.VarTraceId, span.TraceId())
+		_ = variable.SetVariable(ctx, types.VarTraceId, span.TraceId())
+		return ctx
 	}
 	// generate traceId
-	return variable.ContextSet(ctx, types.VarTraceId, trace.IdGen().GenerateTraceId())
+	_ = variable.SetVariable(ctx, types.VarTraceId, trace.IdGen().GenerateTraceId())
+	return ctx
 }
 
 func NewContextManager(base context.Context) *ContextManager {

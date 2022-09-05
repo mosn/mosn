@@ -108,13 +108,14 @@ type proxy struct {
 
 // NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
+	aclog, _ := variable.GetVariable(ctx, types.VarAccessLogs)
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     variable.ContextGet(ctx, types.VarAccessLogs).([]api.AccessLog),
+		accessLogs:     aclog.([]api.AccessLog),
 	}
 
 	if pi, err := variable.Get(ctx, types.VarProtocolConfig); err == nil {
@@ -129,7 +130,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	listenerName := variable.ContextGet(ctx, types.VarListenerName).(string)
+	lv, _ := variable.GetVariable(ctx, types.VarListenerName)
+	listenerName := lv.(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {

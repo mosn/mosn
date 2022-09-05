@@ -72,9 +72,12 @@ func (t *httpTracer) Start(ctx context.Context, request interface{}, startTime t
 
 // getLocalHostPort get host and port from context
 func getLocalHostPort(ctx context.Context) (string, uint16) {
-	if conn, ok := variable.ContextGet(ctx, types.VarConnection).(api.Connection); ok {
-		host, port, _ := ParseHostPort(conn.LocalAddr().String())
-		return host, port
+	v, err := variable.GetVariable(ctx, types.VarConnection)
+	if err == nil {
+		if conn, ok := v.(api.Connection); ok {
+			host, port, _ := ParseHostPort(conn.LocalAddr().String())
+			return host, port
+		}
 	}
 	return "", 0
 }

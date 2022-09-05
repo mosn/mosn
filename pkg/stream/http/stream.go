@@ -243,7 +243,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
-	if pgc := variable.ContextGet(ctx, types.VarProxyGeneralConfig); pgc != nil {
+	if pgc, err := variable.GetVariable(ctx, types.VarProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if config, ok := http1Config.(map[string]interface{}); ok {
@@ -333,8 +333,11 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	buffers := httpBuffersByContext(ctx)
 	s := &buffers.clientStream
 	s.stream = stream{
-		id:       id,
-		ctx:      variable.ContextSet(ctx, types.VarStreamID, id),
+		id: id,
+		ctx: func() context.Context {
+			_ = variable.SetVariable(ctx, types.VarStreamID, id)
+			return ctx
+		}(),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -422,7 +425,7 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	if pgc := variable.ContextGet(ctx, types.VarProxyGeneralConfig); pgc != nil {
+	if pgc, err := variable.GetVariable(ctx, types.VarProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if cfg, ok := http1Config.(StreamConfig); ok {
@@ -547,8 +550,11 @@ func (conn *serverStreamConnection) serve() {
 
 		// 4. request processing
 		s.stream = stream{
-			id:       id,
-			ctx:      variable.ContextSet(ctx, types.VarStreamID, id),
+			id: id,
+			ctx: func() context.Context {
+				_ = variable.SetVariable(ctx, types.VarStreamID, id)
+				return ctx
+			}(),
 			request:  request,
 			response: &buffers.serverResponse,
 		}

@@ -95,7 +95,7 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 
 func getDownstreamConn(ctx context.Context) api.Connection {
 	if ctx != nil {
-		if val := variable.ContextGet(ctx, types.VarConnection); val != nil {
+		if val, err := variable.GetVariable(ctx, types.VarConnection); err == nil {
 			if conn, ok := val.(api.Connection); ok {
 				return conn
 			}

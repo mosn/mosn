@@ -164,8 +164,10 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 
 	host := p.Host()
 
-	connCtx := variable.ContextSet(ctx, types.VarConnectionID, ac.host.Connection.ID())
-	connCtx = variable.ContextSet(connCtx, types.VarUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
+	connCtx := ctx
+
+	_ = variable.SetVariable(connCtx, types.VarConnectionID, ac.host.Connection.ID())
+	_ = variable.SetVariable(connCtx, types.VarUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -360,7 +362,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val := variable.ContextGet(ctx, types.VarConnectionID); val != nil {
+		if val, err := variable.GetVariable(ctx, types.VarConnectionID); err == nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

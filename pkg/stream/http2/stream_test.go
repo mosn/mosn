@@ -213,7 +213,8 @@ func TestServerH2ReqUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	serverCallbacks := mock.NewMockServerStreamConnectionEventListener(ctrl)
 
@@ -307,7 +308,8 @@ func TestClientH2ReqUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().AddConnectionEventListener(gomock.Any()).AnyTimes()
@@ -425,7 +427,8 @@ func TestClientH2RespUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	clientCallbacks := mock.NewMockStreamConnectionEventListener(ctrl)
 
@@ -502,7 +505,8 @@ func TestServerH2RespUseStream(t *testing.T) {
 	}
 	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
 	proxyGeneralExtendConfig[protocol.HTTP2] = streamConfigHandler(http2Config)
-	ctx := variable.ContextSet(variable.NewVariableContext(context.Background()), types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.SetVariable(ctx, types.VarProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	connection := mock.NewMockConnection(ctrl)
 	connection.EXPECT().SetTransferEventListener(gomock.Any()).AnyTimes()

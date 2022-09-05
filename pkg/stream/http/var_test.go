@@ -42,7 +42,7 @@ var (
 
 func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = variable.ContextSet(ctx, types.VarListenerPort, 80)
+	_ = variable.SetVariable(ctx, types.VarListenerPort, 80)
 	ctx = buffer.NewBufferPoolContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
@@ -182,7 +182,7 @@ func Test_get_allarg(t *testing.T) {
 func Test_get_protocolResource(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
 	actual, err := variable.GetProtocolResource(ctx, api.PATH)
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -213,7 +213,7 @@ func Test_get_protocolResource(t *testing.T) {
 
 func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
 
 	cookieName := "zone"
 	expect := "shanghai"
@@ -240,8 +240,8 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = variable.ContextSet(ctx, types.VarListenerPort, 80)
-	ctx = variable.ContextSet(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
+	_ = variable.SetVariable(ctx, types.VarListenerPort, 80)
+	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP1)
 
 	ctx = buffer.NewBufferPoolContext(ctx)
 
