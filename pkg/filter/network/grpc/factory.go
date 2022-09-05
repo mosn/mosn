@@ -122,8 +122,8 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 	}
 
 	ctx = variable.NewVariableContext(ctx)
-	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, api.ProtocolName(grpcName))
-	_ = variable.SetVariable(ctx, types.VarDownStreamReqHeaders, requestHeader)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, api.ProtocolName(grpcName))
+	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, requestHeader)
 
 	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)

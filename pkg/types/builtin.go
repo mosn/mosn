@@ -43,39 +43,39 @@ const (
 
 // built-in variables used in mosn context
 var (
-	VarStreamID                    = variable.NewVariable(keyStreamID, nil, nil, variable.DefaultSetter, 0)
-	VarConnection                  = variable.NewVariable(keyConnection, nil, nil, variable.DefaultSetter, 0)
-	VarConnectionID                = variable.NewVariable(keyConnectionID, nil, nil, variable.DefaultSetter, 0)
-	VarConnectionPoolIndex         = variable.NewVariable(keyConnectionPoolIndex, nil, nil, variable.DefaultSetter, 0)
-	VarListenerPort                = variable.NewVariable(keyListenerPort, nil, nil, variable.DefaultSetter, 0)
-	VarListenerName                = variable.NewVariable(keyListenerName, nil, nil, variable.DefaultSetter, 0)
-	VarListenerType                = variable.NewVariable(keyListenerType, nil, nil, variable.DefaultSetter, 0)
-	VarNetworkFilterChainFactories = variable.NewVariable(keyNetworkFilterChainFactories, nil, nil, variable.DefaultSetter, 0)
-	VarAccessLogs                  = variable.NewVariable(keyAccessLogs, nil, nil, variable.DefaultSetter, 0)
-	VarAcceptChan                  = variable.NewVariable(keyAcceptChan, nil, nil, variable.DefaultSetter, 0)
-	VarAcceptBuffer                = variable.NewVariable(keyAcceptBuffer, nil, nil, variable.DefaultSetter, 0)
-	VarConnectionFd                = variable.NewVariable(keyConnectionFd, nil, nil, variable.DefaultSetter, 0)
-	VarTraceSpankey                = variable.NewVariable(keyTraceSpankey, nil, nil, variable.DefaultSetter, 0)
-	VarTraceId                     = variable.NewVariable(keyTraceId, nil, nil, variable.DefaultSetter, 0)
-	VarProxyGeneralConfig          = variable.NewVariable(keyProxyGeneralConfig, nil, nil, variable.DefaultSetter, 0)
-	VarConnectionEventListeners    = variable.NewVariable(keyConnectionEventListeners, nil, nil, variable.DefaultSetter, 0)
-	VarUpstreamConnectionID        = variable.NewVariable(keyUpstreamConnectionID, nil, nil, variable.DefaultSetter, 0)
-	VarOriRemoteAddr               = variable.NewVariable(keyOriRemoteAddr, nil, nil, variable.DefaultSetter, 0)
+	VariableStreamID                    = variable.NewVariable(keyStreamID, nil, nil, variable.DefaultSetter, 0)
+	VariableConnection                  = variable.NewVariable(keyConnection, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionID                = variable.NewVariable(keyConnectionID, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionPoolIndex         = variable.NewVariable(keyConnectionPoolIndex, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerPort                = variable.NewVariable(keyListenerPort, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerName                = variable.NewVariable(keyListenerName, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerType                = variable.NewVariable(keyListenerType, nil, nil, variable.DefaultSetter, 0)
+	VariableNetworkFilterChainFactories = variable.NewVariable(keyNetworkFilterChainFactories, nil, nil, variable.DefaultSetter, 0)
+	VariableAccessLogs                  = variable.NewVariable(keyAccessLogs, nil, nil, variable.DefaultSetter, 0)
+	VariableAcceptChan                  = variable.NewVariable(keyAcceptChan, nil, nil, variable.DefaultSetter, 0)
+	VariableAcceptBuffer                = variable.NewVariable(keyAcceptBuffer, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionFd                = variable.NewVariable(keyConnectionFd, nil, nil, variable.DefaultSetter, 0)
+	VariableTraceSpankey                = variable.NewVariable(keyTraceSpankey, nil, nil, variable.DefaultSetter, 0)
+	VariableTraceId                     = variable.NewVariable(keyTraceId, nil, nil, variable.DefaultSetter, 0)
+	VariableProxyGeneralConfig          = variable.NewVariable(keyProxyGeneralConfig, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionEventListeners    = variable.NewVariable(keyConnectionEventListeners, nil, nil, variable.DefaultSetter, 0)
+	VariableUpstreamConnectionID        = variable.NewVariable(keyUpstreamConnectionID, nil, nil, variable.DefaultSetter, 0)
+	VariableOriRemoteAddr               = variable.NewVariable(keyOriRemoteAddr, nil, nil, variable.DefaultSetter, 0)
 	// alias from varaibles
-	VarDownStreamProtocol    = variable.VarDownStreamProtocol
-	VarUpstreamProtocol      = variable.VarUpstreamProtocol
-	VarDownStreamReqHeaders  = variable.VarDownStreamReqHeaders
-	VarDownStreamRespHeaders = variable.VarDownStreamRespHeaders
-	VarTraceSpan             = variable.VarTraceSpan
+	VariableDownStreamProtocol    = variable.VariableDownStreamProtocol
+	VariableUpstreamProtocol      = variable.VariableUpstreamProtocol
+	VariableDownStreamReqHeaders  = variable.VariableDownStreamReqHeaders
+	VariableDownStreamRespHeaders = variable.VariableDownStreamRespHeaders
+	VariableTraceSpan             = variable.VariableTraceSpan
 )
 
 func init() {
 	builtinVariables := []variable.Variable{
-		VarStreamID, VarConnection, VarConnectionID, VarConnectionPoolIndex,
-		VarListenerPort, VarListenerName, VarListenerType, VarNetworkFilterChainFactories,
-		VarAccessLogs, VarAcceptChan, VarAcceptBuffer, VarConnectionFd,
-		VarTraceSpankey, VarTraceId, VarProxyGeneralConfig, VarConnectionEventListeners,
-		VarUpstreamConnectionID, VarOriRemoteAddr,
+		VariableStreamID, VariableConnection, VariableConnectionID, VariableConnectionPoolIndex,
+		VariableListenerPort, VariableListenerName, VariableListenerType, VariableNetworkFilterChainFactories,
+		VariableAccessLogs, VariableAcceptChan, VariableAcceptBuffer, VariableConnectionFd,
+		VariableTraceSpankey, VariableTraceId, VariableProxyGeneralConfig, VariableConnectionEventListeners,
+		VariableUpstreamConnectionID, VariableOriRemoteAddr,
 	}
 	for _, v := range builtinVariables {
 		variable.Register(v)

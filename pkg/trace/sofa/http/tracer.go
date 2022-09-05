@@ -63,7 +63,7 @@ func (t *HTTPTracer) HTTPDelegate(ctx context.Context, header http.RequestHeader
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(sofa.TRACE_ID, traceId)
-	lType, _ := variable.GetVariable(ctx, types.VarListenerType)
+	lType, _ := variable.GetVariable(ctx, types.VariableListenerType)
 
 	spanId, ok := header.Get(sofa.HTTP_RPC_ID_KEY)
 	if !ok {

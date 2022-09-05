@@ -46,7 +46,7 @@ func Boltv1Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 	}
 
 	span.SetTag(sofa.TRACE_ID, traceId)
-	lType, err := variable.GetVariable(ctx, types.VarListenerType)
+	lType, err := variable.GetVariable(ctx, types.VariableListenerType)
 	if err != nil {
 		return
 	}

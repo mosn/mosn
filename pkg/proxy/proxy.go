@@ -108,7 +108,7 @@ type proxy struct {
 
 // NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
-	aclog, _ := variable.GetVariable(ctx, types.VarAccessLogs)
+	aclog, _ := variable.GetVariable(ctx, types.VariableAccessLogs)
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
@@ -130,7 +130,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	lv, _ := variable.GetVariable(ctx, types.VarListenerName)
+	lv, _ := variable.GetVariable(ctx, types.VariableListenerName)
 	listenerName := lv.(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 

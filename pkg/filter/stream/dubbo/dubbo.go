@@ -59,12 +59,12 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
-	proto, err := variable.GetVariable(ctx, types.VarDownStreamProtocol)
+	proto, err := variable.GetVariable(ctx, types.VariableDownStreamProtocol)
 	if err != nil || proto == nil || dubbo.ProtocolName != proto {
 		return api.StreamFilterContinue
 	}
 
-	lv, err := variable.GetVariable(ctx, types.VarListenerName)
+	lv, err := variable.GetVariable(ctx, types.VariableListenerName)
 	if err != nil || lv == nil {
 		return api.StreamFilterContinue
 	}
@@ -102,7 +102,7 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	lv, err := variable.GetVariable(ctx, types.VarListenerName)
+	lv, err := variable.GetVariable(ctx, types.VariableListenerName)
 	if err != nil || lv == nil {
 		return api.StreamFilterContinue
 	}

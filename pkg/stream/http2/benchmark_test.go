@@ -36,8 +36,8 @@ func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 	headers.Set("Cookie", "cookie_key=cookie_value; fake_cookie_key=fake_cookie_value;")
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VarDownStreamReqHeaders, headers)
-	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP2)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, headers)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -54,8 +54,8 @@ func BenchmarkGetPrefixProtocolVarHeader(b *testing.B) {
 	headers.Set(headerName, expect)
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VarDownStreamReqHeaders, headers)
-	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, protocol.HTTP2)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, headers)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
 
 	b.ResetTimer()
 	b.ReportAllocs()

@@ -53,7 +53,7 @@ type proxy struct {
 }
 
 func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
-	alv, _ := variable.GetVariable(ctx, types.VarAccessLogs)
+	alv, _ := variable.GetVariable(ctx, types.VariableAccessLogs)
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,

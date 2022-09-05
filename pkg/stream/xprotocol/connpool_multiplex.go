@@ -112,7 +112,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
 			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
 			// set current client index to downstream context
-			_ = variable.SetVariable(ctx, types.VarConnectionPoolIndex, clientIdx)
+			_ = variable.SetVariable(ctx, types.VariableConnectionPoolIndex, clientIdx)
 		}
 	}
 
@@ -150,7 +150,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	)
 
 	if len(p.activeClients) > 1 {
-		clientIdxInter, _ := variable.GetVariable(ctx, types.VarConnectionPoolIndex)
+		clientIdxInter, _ := variable.GetVariable(ctx, types.VariableConnectionPoolIndex)
 		if clientIdx, ok = clientIdxInter.(int64); !ok {
 			// this client is not inited
 			return p.Host(), nil, types.ConnectionFailure
@@ -177,7 +177,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		return host, nil, types.Overflow
 	}
 
-	_ = variable.SetVariable(ctx, types.VarUpstreamConnectionID, activeClient.codecClient.ConnID())
+	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, activeClient.codecClient.ConnID())
 
 	atomic.AddUint64(&activeClient.totalStream, 1)
 	host.HostStats().UpstreamRequestTotal.Inc(1)
@@ -238,7 +238,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	host := p.Host()
 	data := host.CreateConnection(ctx)
 	connCtx := ctx
-	_ = variable.SetVariable(ctx, types.VarConnectionID, data.Connection.ID())
+	_ = variable.SetVariable(ctx, types.VariableConnectionID, data.Connection.ID())
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -403,7 +403,7 @@ func (ac *activeClientMultiplex) OnGoAway() {
 const invalidClientID = -1
 
 func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
-	clientIdxInter, _ := variable.GetVariable(ctx, types.VarConnectionPoolIndex)
+	clientIdxInter, _ := variable.GetVariable(ctx, types.VariableConnectionPoolIndex)
 	clientIdx, ok := clientIdxInter.(int64)
 	if !ok {
 		return invalidClientID

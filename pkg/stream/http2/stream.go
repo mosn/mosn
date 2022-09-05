@@ -176,7 +176,7 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	if pgc, err := variable.GetVariable(ctx, types.VarProxyGeneralConfig); err == nil {
+	if pgc, err := variable.GetVariable(ctx, types.VariableProxyGeneralConfig); err == nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
 				if cfg, ok := http2Config.(StreamConfig); ok {
@@ -459,7 +459,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
-	_ = variable.SetVariable(ctx, types.VarStreamID, stream.id)
+	_ = variable.SetVariable(ctx, types.VariableStreamID, stream.id)
 	stream.ctx = ctx
 	stream.sc = conn
 	stream.h2s = h2s

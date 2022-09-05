@@ -370,8 +370,8 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xS
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
 	serverStream.ctx = ctx
-	_ = variable.SetVariable(serverStream.ctx, types.VarStreamID, serverStream.id)
-	_ = variable.SetVariable(serverStream.ctx, types.VarDownStreamProtocol, sc.protocol.Name())
+	_ = variable.SetVariable(serverStream.ctx, types.VariableStreamID, serverStream.id)
+	_ = variable.SetVariable(serverStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
 	serverStream.sc = sc
 
 	return serverStream
@@ -386,8 +386,8 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = ctx
-	_ = variable.SetVariable(clientStream.ctx, types.VarStreamID, clientStream.id)
-	_ = variable.SetVariable(clientStream.ctx, types.VarDownStreamProtocol, sc.protocol.Name())
+	_ = variable.SetVariable(clientStream.ctx, types.VariableStreamID, clientStream.id)
+	_ = variable.SetVariable(clientStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
 	clientStream.sc = sc
 
 	return clientStream

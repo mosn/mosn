@@ -70,7 +70,7 @@ func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interf
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	hv, err := variable.GetVariable(ctx, types.VarDownStreamReqHeaders)
+	hv, err := variable.GetVariable(ctx, types.VariableDownStreamReqHeaders)
 	if err != nil {
 		return variable.ValueNotFound, nil
 	}
@@ -92,7 +92,7 @@ func headerGetter(ctx context.Context, value *variable.IndexedValue, data interf
 }
 
 func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	hv, err := variable.GetVariable(ctx, types.VarDownStreamReqHeaders)
+	hv, err := variable.GetVariable(ctx, types.VariableDownStreamReqHeaders)
 	if err != nil {
 		return variable.ValueNotFound, nil
 	}

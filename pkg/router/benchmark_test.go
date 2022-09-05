@@ -30,7 +30,7 @@ import (
 func BenchmarkStringGenerateHash(b *testing.B) {
 	testProtocol := types.ProtocolName("SomeProtocol")
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VarDownStreamProtocol, testProtocol)
+	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, testProtocol)
 
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
@@ -51,7 +51,7 @@ func BenchmarkStringGenerateHash(b *testing.B) {
 
 func BenchmarkIPGenerateHash(b *testing.B) {
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VarOriRemoteAddr, &net.TCPAddr{
+	_ = variable.SetVariable(ctx, types.VariableOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})
