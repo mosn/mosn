@@ -111,6 +111,7 @@ func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.R
 				rp.EXPECT().RetryOn().Return(false).AnyTimes()
 				rp.EXPECT().TryTimeout().Return(time.Duration(0)).AnyTimes()
 				rp.EXPECT().NumRetries().Return(uint32(3)).AnyTimes()
+				rp.EXPECT().RetryableStatusCodes().Return([]uint32{500}).AnyTimes()
 				return rp
 			}).AnyTimes()
 			return p

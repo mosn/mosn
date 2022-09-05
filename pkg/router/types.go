@@ -95,6 +95,7 @@ type retryPolicyImpl struct {
 	retryOn      bool
 	retryTimeout time.Duration
 	numRetries   uint32
+	statusCodes  []uint32
 }
 
 func (p *retryPolicyImpl) RetryOn() bool {
@@ -116,6 +117,13 @@ func (p *retryPolicyImpl) NumRetries() uint32 {
 		return 0
 	}
 	return p.numRetries
+}
+
+func (p *retryPolicyImpl) RetryableStatusCodes() []uint32 {
+	if p == nil {
+		return []uint32{}
+	}
+	return p.statusCodes
 }
 
 type shadowPolicyImpl struct {
