@@ -58,6 +58,7 @@ type healthChecker struct {
 	unhealthyThreshold uint32
 	rander             *rand.Rand
 	hostCheckCallbacks []types.HealthCheckCb
+	logger             types.HealthCheckLog
 }
 
 func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
@@ -101,11 +102,7 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		sessionFactory:     f,
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
-	}
-
-	if cfg.EventLogPath != "" {
-		hcLog := NewHealthCheckLog(cfg.EventLogPath)
-		hc.AddHostCheckCompleteCb(hcLog.LogUpdate)
+		logger:             NewHealthCheckLog(cfg.EventLogPath),
 	}
 
 	// Add common callbacks when create
@@ -169,7 +166,7 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
 func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	newHostsMap := make(map[string]types.Host, new.Size())
-	if new != nil{
+	if new != nil {
 		new.Range(func(newHost types.Host) bool {
 			newHostsMap[newHost.AddressString()] = newHost
 			return true
@@ -177,7 +174,7 @@ func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	}
 	// find delete host
 	deleteHosts := make([]types.Host, 0)
-	if old != nil{
+	if old != nil {
 		old.Range(func(oldHost types.Host) bool {
 			_, ok := newHostsMap[oldHost.AddressString()]
 			if ok {
@@ -230,10 +227,10 @@ func (hc *healthChecker) stopCheck(host types.Host) {
 	}
 }
 
-func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool, info string) {
+func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy bool) {
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 	for _, cb := range hc.hostCheckCallbacks {
-		cb(host, changed, isHealthy, info)
+		cb(host, changed, isHealthy)
 	}
 }
 
@@ -246,7 +243,7 @@ func (hc *healthChecker) getCheckInterval() time.Duration {
 	return interval
 }
 
-func (hc *healthChecker) incHealthy(host types.Host, changed bool, info string) {
+func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
 	hc.stats.success.Inc(1)
 	if changed {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -254,10 +251,10 @@ func (hc *healthChecker) incHealthy(host types.Host, changed bool, info string) 
 		}
 		atomic.AddInt64(&hc.localProcessHealthy, 1)
 	}
-	hc.runCallbacks(host, changed, true, info)
+	hc.runCallbacks(host, changed, true)
 }
 
-func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool, info string) {
+func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, changed bool) {
 	hc.stats.failure.Inc(1)
 	if changed {
 		// hc.localProcessHealthy--
@@ -274,6 +271,13 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 	case types.FailurePassive: //TODO: not support yet
 		hc.stats.passiveFailure.Inc(1)
 	}
-	hc.runCallbacks(host, changed, false, info)
+	hc.runCallbacks(host, changed, false)
 
+}
+
+func (hc *healthChecker) log(host types.Host, current_status, changed bool, info string) {
+	if hc.logger == nil {
+		return
+	}
+	hc.logger.Log(defaultHealthCheckFormat, time.Now().Unix(), host.AddressString(), boolToInt(host.Health()), boolToInt(current_status), boolToInt(changed), info)
 }

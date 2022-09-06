@@ -33,7 +33,7 @@ func TestHealthCheckLog(t *testing.T) {
 	host := &mockHost{
 		addr: "localhost:5300",
 	}
-	hc.LogUpdate(host, false, false, "code:200")
+	hc.Log(defaultHealthCheckFormat, host, false, false, "code:200")
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("health check log file open failed, err:%v", err)

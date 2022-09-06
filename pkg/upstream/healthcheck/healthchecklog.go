@@ -18,8 +18,6 @@ package healthcheck
 
 import (
 	"fmt"
-	"time"
-
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
 )
@@ -29,13 +27,18 @@ type HealthCheckLogger struct {
 	logger *log.Logger
 }
 
-var (
+const (
 	// timestamp host health_status current_result status_changed additional info(current_code domain path)
 	defaultHealthCheckFormat = "time:%d host:%s health_status:%v current_result:%v status_changed:%v %s"
 )
 
+var _ types.HealthCheckLog =  &HealthCheckLogger{}
+
 // NewHealthCheckLog
-func NewHealthCheckLog(output string) *HealthCheckLogger {
+func NewHealthCheckLog(output string) types.HealthCheckLog {
+	if output == "" {
+		return nil
+	}
 	lg, err := log.GetOrCreateLogger(output, nil)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [health check] new health check log failed, %v", err)
@@ -54,15 +57,6 @@ func boolToInt(status bool) int {
 		return 1
 	}
 	return 0
-}
-
-func (l *HealthCheckLogger) LogUpdate(host types.Host, changed bool, isHealthy bool, info string) {
-	status := false
-	if host.Health() {
-		status = true
-	}
-
-	l.Log(defaultHealthCheckFormat, time.Now().Unix(), host.AddressString(), boolToInt(status), boolToInt(isHealthy), boolToInt(changed), info)
 }
 
 func (l *HealthCheckLogger) Log(format string, args ...interface{}) {
