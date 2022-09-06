@@ -26,7 +26,7 @@ import (
 )
 
 func addResponseheader(ctx context.Context, key, val string) bool {
-	headersv, err := variable.GetVariable(ctx, types.VariableDownStreamRespHeaders)
+	headersv, err := variable.Get(ctx, types.VariableDownStreamRespHeaders)
 	if err != nil {
 		return false
 	}
@@ -41,7 +41,7 @@ func addResponseheader(ctx context.Context, key, val string) bool {
 }
 
 func delResponseheader(ctx context.Context, key string) bool {
-	headersv, err := variable.GetVariable(ctx, types.VariableDownStreamRespHeaders)
+	headersv, err := variable.Get(ctx, types.VariableDownStreamRespHeaders)
 	if err != nil {
 		return false
 	}

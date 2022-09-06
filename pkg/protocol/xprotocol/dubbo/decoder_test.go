@@ -28,7 +28,7 @@ import (
 
 func newContextWithListenerName(name string) context.Context {
 	ctx := variable.NewVariableContext(context.TODO())
-	_ = variable.SetVariable(ctx, types.VariableListenerName, name)
+	_ = variable.Set(ctx, types.VariableListenerName, name)
 	return ctx
 }
 

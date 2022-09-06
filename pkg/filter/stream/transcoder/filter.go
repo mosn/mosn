@@ -79,7 +79,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	sv, err := variable.GetVariable(ctx, types.VariableDownStreamProtocol)
+	sv, err := variable.Get(ctx, types.VariableDownStreamProtocol)
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found downstream protocol")
 		return api.StreamFilterContinue
@@ -111,7 +111,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	//set upstream protocol
 	// if ruleInfo.UpstreamProtocol is empty, the ruleinfo maybe created by the old mode: config have type only
 	if ruleInfo.UpstreamProtocol != "" {
-		_ = variable.SetVariable(ctx, types.VariableUpstreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
+		_ = variable.Set(ctx, types.VariableUpstreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
 	}
 
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)

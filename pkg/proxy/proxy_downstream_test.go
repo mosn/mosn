@@ -61,8 +61,8 @@ func TestProxyWithFilters(t *testing.T) {
 
 	// mock context from connection
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableAccessLogs, []api.AccessLog{})
-	_ = variable.SetVariable(ctx, types.VariableListenerName, "test_listener")
+	_ = variable.Set(ctx, types.VariableAccessLogs, []api.AccessLog{})
+	_ = variable.Set(ctx, types.VariableListenerName, "test_listener")
 
 	// mock cluster manager
 	monkey.Patch(cluster.GetClusterMngAdapterInstance, func() *cluster.MngAdapter {

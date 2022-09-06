@@ -46,7 +46,7 @@ type genericProxyFilterConfigFactory struct {
 
 func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	if gfcf.extendConfig != nil {
-		_ = variable.SetVariable(ctx, types.VariableProxyGeneralConfig, gfcf.extendConfig)
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, gfcf.extendConfig)
 	}
 
 	// TODO: cache it, use varProtocolConfig instead search with Set API

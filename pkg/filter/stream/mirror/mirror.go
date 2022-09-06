@@ -150,7 +150,7 @@ func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 }
 
 func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
-	if dpv, err := variable.GetVariable(m.ctx, types.VariableDownStreamProtocol); err == nil {
+	if dpv, err := variable.Get(m.ctx, types.VariableDownStreamProtocol); err == nil {
 		if dp, ok := dpv.(types.ProtocolName); ok {
 			return dp
 		}
@@ -165,7 +165,7 @@ func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 		configProtocol = types.ProtocolName(m.receiveHandler.Route().RouteRule().UpstreamProtocol())
 	}
 
-	if protov, err := variable.GetVariable(m.ctx, types.VariableUpstreamProtocol); err == nil {
+	if protov, err := variable.Get(m.ctx, types.VariableUpstreamProtocol); err == nil {
 		if proto, ok := protov.(types.ProtocolName); ok {
 			configProtocol = proto
 		}

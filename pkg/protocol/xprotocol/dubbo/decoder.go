@@ -130,7 +130,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	)
 
 	if ctx != nil {
-		listener, _ = variable.GetVariable(ctx, types.VariableListenerName)
+		listener, _ = variable.Get(ctx, types.VariableListenerName)
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)

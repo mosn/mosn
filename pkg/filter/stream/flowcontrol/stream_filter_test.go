@@ -73,7 +73,7 @@ func TestStreamFilter(t *testing.T) {
 	assert.Equal(t, api.StreamFilterContinue, status)
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, HTTP1)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, HTTP1)
 
 	m := make(map[string]string)
 	m["Http1_request_path"] = "/http"

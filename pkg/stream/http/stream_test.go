@@ -446,7 +446,7 @@ func TestHeaderSize(t *testing.T) {
 	proxyGeneralExtendConfig[protocol.HTTP1] = streamConfigHandler(httpConfig)
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableProxyGeneralConfig, proxyGeneralExtendConfig)
+	_ = variable.Set(ctx, types.VariableProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {

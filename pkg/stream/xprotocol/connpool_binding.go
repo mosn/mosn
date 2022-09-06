@@ -80,7 +80,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	c.addDownConnListenerOnce(ctx)
 
-	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, c.connID)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.connID)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -166,8 +166,8 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 
 	connCtx := ctx
 
-	_ = variable.SetVariable(connCtx, types.VariableConnectionID, ac.host.Connection.ID())
-	_ = variable.SetVariable(connCtx, types.VariableUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
+	_ = variable.Set(connCtx, types.VariableConnectionID, ac.host.Connection.ID())
+	_ = variable.Set(connCtx, types.VariableUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -362,7 +362,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val, err := variable.GetVariable(ctx, types.VariableConnectionID); err == nil {
+		if val, err := variable.Get(ctx, types.VariableConnectionID); err == nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

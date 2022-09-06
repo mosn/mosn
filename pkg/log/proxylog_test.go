@@ -45,9 +45,9 @@ func TestProxyLog(t *testing.T) {
 	upstreamConnID := uint64(rand.Intn(10))
 	targetStr := fmt.Sprintf("[%v,%v,%v]", connId, upstreamConnID, traceId)
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableTraceId, traceId)
-	_ = variable.SetVariable(ctx, types.VariableConnectionID, connId)
-	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
+	_ = variable.Set(ctx, types.VariableTraceId, traceId)
+	_ = variable.Set(ctx, types.VariableConnectionID, connId)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
 
 	for i := 0; i < 10; i++ {
 		lg.Infof(ctx, "[unittest] test write, round %d", i)
@@ -79,9 +79,9 @@ func TestProxyLog2(t *testing.T) {
 	upstreamConnID := uint64(2)
 	proxyMsg := fmt.Sprintf("[%d,%d,%s]", connId, upstreamConnID, traceId)
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableTraceId, traceId)
-	_ = variable.SetVariable(ctx, types.VariableConnectionID, connId)
-	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
+	_ = variable.Set(ctx, types.VariableTraceId, traceId)
+	_ = variable.Set(ctx, types.VariableConnectionID, connId)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
 
 	funcs := []func(ctx context.Context, format string, args ...interface{}){
 		lg.Infof,
@@ -129,7 +129,7 @@ func BenchmarkProxyLog(b *testing.B) {
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
+	_ = variable.Set(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -145,7 +145,7 @@ func BenchmarkProxyLogParallel(b *testing.B) {
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
+	_ = variable.Set(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

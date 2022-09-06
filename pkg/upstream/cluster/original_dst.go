@@ -73,7 +73,7 @@ func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) t
 	}
 
 	if dstAdd == "" {
-		oriRemoteAddr, err := variable.GetVariable(ctx, types.VariableOriRemoteAddr)
+		oriRemoteAddr, err := variable.Get(ctx, types.VariableOriRemoteAddr)
 		if err != nil || oriRemoteAddr == nil {
 			return nil
 		}

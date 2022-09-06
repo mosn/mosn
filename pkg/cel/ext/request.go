@@ -32,7 +32,7 @@ func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
 }
 
 func addRequestheader(ctx context.Context, key, val string) bool {
-	headersv, err := variable.GetVariable(ctx, types.VariableDownStreamReqHeaders)
+	headersv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
 	if err != nil {
 		return false
 	}
@@ -47,7 +47,7 @@ func addRequestheader(ctx context.Context, key, val string) bool {
 }
 
 func delRequestheader(ctx context.Context, key string) bool {
-	headersv, err := variable.GetVariable(ctx, types.VariableDownStreamReqHeaders)
+	headersv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
 	if err != nil {
 		return false
 	}

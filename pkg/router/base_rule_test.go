@@ -825,7 +825,7 @@ func TestParseHashPolicy(t *testing.T) {
 func TestHashPolicy(t *testing.T) {
 	testProtocol := types.ProtocolName("SomeProtocol")
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, testProtocol)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 
 	// test header
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -856,7 +856,7 @@ func TestHashPolicy(t *testing.T) {
 	assert.Equalf(t, uint64(14068947270705736519), hash, "cookie value hash not match")
 
 	// test source IP
-	_ = variable.SetVariable(ctx, types.VariableOriRemoteAddr, &net.TCPAddr{
+	_ = variable.Set(ctx, types.VariableOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})

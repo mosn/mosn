@@ -61,7 +61,7 @@ type MakeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers ty
 func (factory MakeHandlerFunc) DoRouteHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
 	handler := factory(ctx, headers, routers)
 	if handler == nil {
-		lv, _ := variable.GetVariable(ctx, types.VariableListenerName)
+		lv, _ := variable.Get(ctx, types.VariableListenerName)
 		lname := lv.(string)
 		log.Proxy.Errorf(ctx, RouterLogFormat, "DoRouteHandler", "create handler failed", lname)
 		return nil, nil

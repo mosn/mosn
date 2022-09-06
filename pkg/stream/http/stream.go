@@ -240,7 +240,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
-	if pgc, err := variable.GetVariable(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if config, ok := http1Config.(map[string]interface{}); ok {
@@ -332,7 +332,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s.stream = stream{
 		id: id,
 		ctx: func() context.Context {
-			_ = variable.SetVariable(ctx, types.VariableStreamID, id)
+			_ = variable.Set(ctx, types.VariableStreamID, id)
 			return ctx
 		}(),
 		request:  &buffers.clientRequest,
@@ -422,7 +422,7 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	if pgc, err := variable.GetVariable(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
 				if cfg, ok := http1Config.(StreamConfig); ok {
@@ -549,11 +549,11 @@ func (conn *serverStreamConnection) serve() {
 		s := &buffers.serverStream
 
 		// 4. request processing
-		variable.SetVariable(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+		variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
 		s.stream = stream{
 			id: id,
 			ctx: func() context.Context {
-				_ = variable.SetVariable(ctx, types.VariableStreamID, id)
+				_ = variable.Set(ctx, types.VariableStreamID, id)
 				return ctx
 			}(),
 			request:  request,

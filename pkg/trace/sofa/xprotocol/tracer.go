@@ -70,7 +70,7 @@ func (t *XTracer) Start(ctx context.Context, frame interface{}, startTime time.T
 
 	// the trace protocol is based on request (downstream)
 	var proto api.ProtocolName
-	v, err := variable.GetVariable(ctx, types.VariableDownStreamProtocol)
+	v, err := variable.Get(ctx, types.VariableDownStreamProtocol)
 	if err != nil {
 		return span
 	}

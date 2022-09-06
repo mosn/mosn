@@ -275,7 +275,7 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 // ConnectionIDGetter
 // get request's connection ID
 func connectionIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	if id, err := variable.GetVariable(ctx, types.VariableConnectionID); err == nil {
+	if id, err := variable.Get(ctx, types.VariableConnectionID); err == nil {
 		if uid, ok := id.(uint64); ok {
 			return strconv.FormatUint(uid, 10), nil
 		}
@@ -286,7 +286,7 @@ func connectionIDGetter(ctx context.Context, value *variable.IndexedValue, data 
 // TraceIDGetter
 // get request's trace ID
 func traceIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	if id, err := variable.GetVariable(ctx, types.VariableTraceId); err == nil {
+	if id, err := variable.Get(ctx, types.VariableTraceId); err == nil {
 		return id.(string), nil
 	}
 	return variable.ValueNotFound, errors.New("not found traceID")
@@ -295,7 +295,7 @@ func traceIDGetter(ctx context.Context, value *variable.IndexedValue, data inter
 // UpstreamConnectionIDGetter
 // get request's upstream connection ID
 func upstreamConnectionIDGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	if id, err := variable.GetVariable(ctx, types.VariableUpstreamConnectionID); err == nil {
+	if id, err := variable.Get(ctx, types.VariableUpstreamConnectionID); err == nil {
 		if uid, ok := id.(uint64); ok {
 			return strconv.FormatUint(uid, 10), nil
 		}

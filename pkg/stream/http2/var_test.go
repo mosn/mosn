@@ -37,8 +37,8 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 	headers.Set(headerName, expect)
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, headers)
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, headers)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
 
 	actual, err := variable.GetProtocolResource(ctx, api.HEADER, headerName)
 	assert.NoErrorf(t, err, "get protocol header failed")
@@ -57,7 +57,7 @@ func Test_get_scheme(t *testing.T) {
 	expect := "https"
 	ctx := variable.NewVariableContext(context.Background())
 
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
 
 	variable.SetString(ctx, types.VarScheme, expect)
 	actual, err := variable.GetProtocolResource(ctx, api.SCHEME)

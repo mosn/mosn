@@ -46,11 +46,11 @@ func (cm *ContextManager) Next() {
 
 func (cm *ContextManager) InjectTrace(ctx context.Context, span api.Span) context.Context {
 	if span != nil {
-		_ = variable.SetVariable(ctx, types.VariableTraceId, span.TraceId())
+		_ = variable.Set(ctx, types.VariableTraceId, span.TraceId())
 		return ctx
 	}
 	// generate traceId
-	_ = variable.SetVariable(ctx, types.VariableTraceId, trace.IdGen().GenerateTraceId())
+	_ = variable.Set(ctx, types.VariableTraceId, trace.IdGen().GenerateTraceId())
 	return ctx
 }
 

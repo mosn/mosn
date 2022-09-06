@@ -47,7 +47,7 @@ func (f *IPAccessFilter) OnReceive(ctx context.Context, headers api.HeaderMap, b
 		addr, _ = headers.Get(f.header)
 	}
 	if addr == "" {
-		if cv, err := variable.GetVariable(ctx, types.VariableConnection); err == nil {
+		if cv, err := variable.Get(ctx, types.VariableConnection); err == nil {
 			if conn, ok := cv.(api.Connection); ok {
 				addr = conn.RemoteAddr().String()
 			}

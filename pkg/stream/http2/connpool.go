@@ -93,7 +93,7 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 		return host, nil, types.ConnectionFailure
 	}
 
-	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, activeClient.client.ConnID())
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, activeClient.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
@@ -202,7 +202,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	data := host.CreateConnection(ctx)
 	data.Connection.AddConnectionEventListener(ac)
 	connCtx := ctx
-	_ = variable.SetVariable(connCtx, types.VariableConnectionID, data.Connection.ID())
+	_ = variable.Set(connCtx, types.VariableConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.SetStreamConnectionEventListener(ac)
 

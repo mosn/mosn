@@ -64,7 +64,7 @@ func ConfigHandler(v interface{}) interface{} {
 func parseConfig(ctx context.Context) Config {
 	config := defaultConfig
 	// get extend config from ctx
-	if pgc, err := variable.GetVariable(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if boltConfig, ok := extendConfig[ProtocolName]; ok {
 				if cfg, ok := boltConfig.(Config); ok {

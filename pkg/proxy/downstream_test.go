@@ -65,7 +65,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 
 	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableTraceSpan, span)
+	_ = variable.Set(ctx, types.VariableTraceSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	header := protocol.CommonHeader{}
@@ -452,7 +452,7 @@ func TestGetUpstreamProtocol(t *testing.T) {
 		{
 			ctx: func() context.Context {
 				ctx := variable.NewVariableContext(context.Background())
-				_ = variable.SetVariable(ctx, types.VariableUpstreamProtocol, api.ProtocolName("bolt"))
+				_ = variable.Set(ctx, types.VariableUpstreamProtocol, api.ProtocolName("bolt"))
 				return ctx
 			}(),
 			route:            route,

@@ -58,7 +58,7 @@ func (t *http2Tohttp) TranscodingRequest(ctx context.Context, headers api.Header
 		return true
 	})
 
-	_ = variable.SetVariable(ctx, types.VariableUpstreamProtocol, protocol.HTTP1)
+	_ = variable.Set(ctx, types.VariableUpstreamProtocol, protocol.HTTP1)
 
 	return headerImpl, buf, trailers, nil
 }

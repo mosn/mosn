@@ -222,7 +222,7 @@ func (hp *cookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 type sourceIPHashPolicyImpl struct{}
 
 func (hp *sourceIPHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
-	if addrv, err := variable.GetVariable(ctx, types.VariableOriRemoteAddr); err == nil {
+	if addrv, err := variable.Get(ctx, types.VariableOriRemoteAddr); err == nil {
 		if addr, ok := addrv.(net.Addr); ok {
 			return getHashByAddr(addr)
 		}

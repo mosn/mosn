@@ -114,8 +114,8 @@ func TestDownClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	_ = variable.SetVariable(ctx, types.VariableConnection, sConnI)
-	_ = variable.SetVariable(ctx, types.VariableConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VariableConnection, sConnI)
+	_ = variable.Set(ctx, types.VariableConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -159,8 +159,8 @@ func TestUpperClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	_ = variable.SetVariable(ctx, types.VariableConnection, sConnI)
-	_ = variable.SetVariable(ctx, types.VariableConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VariableConnection, sConnI)
+	_ = variable.Set(ctx, types.VariableConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))

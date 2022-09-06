@@ -62,7 +62,7 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 	if reason != "" {
 		return host, nil, reason
 	}
-	_ = variable.SetVariable(ctx, types.VariableUpstreamConnectionID, c.codecClient.ConnID())
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.codecClient.ConnID())
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 

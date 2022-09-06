@@ -86,7 +86,7 @@ func TestDSLStreamFilter(t *testing.T) {
 	})
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, reqHeaders)
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, reqHeaders)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
 	variable.SetString(ctx, types.VarPath, "/dsl")
 	variable.SetString(ctx, types.VarHost, "dsl")
@@ -101,7 +101,7 @@ func TestDSLStreamFilter(t *testing.T) {
 	}
 
 	// add dsl1 respheader
-	_ = variable.SetVariable(ctx, types.VariableDownStreamRespHeaders, respHeaders)
+	_ = variable.Set(ctx, types.VariableDownStreamRespHeaders, respHeaders)
 	f.Append(ctx, respHeaders, nil, nil)
 	if _, ok := respHeaders.Get("dsl1"); !ok {
 		t.Error("DSL execute failed, at the Append phase")
@@ -175,7 +175,7 @@ func BenchmarkDSL(b *testing.B) {
 	})
 
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamReqHeaders, reqHeaders)
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, reqHeaders)
 	variable.SetString(ctx, types.VarPath, "/dsl")
 	variable.SetString(ctx, types.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter

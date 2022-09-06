@@ -382,7 +382,7 @@ func BenchmarkMaglevLB(b *testing.B) {
 		},
 	}
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, testProtocol)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -408,7 +408,7 @@ func BenchmarkMaglevLBParallel(b *testing.B) {
 		},
 	}
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, testProtocol)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -445,7 +445,7 @@ func BenchmarkMaglevLBFallback(b *testing.B) {
 		},
 	}
 	ctx := variable.NewVariableContext(context.Background())
-	_ = variable.SetVariable(ctx, types.VariableDownStreamProtocol, testProtocol)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
