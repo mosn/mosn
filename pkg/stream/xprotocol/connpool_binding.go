@@ -309,9 +309,11 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 
 	if communicationFailure && ac.downstreamConn != nil {
 		// if connection go away and all requests are handled ,we do not need to close the downstream
-		if atomic.LoadUint32(&ac.goaway) != GoAway || ac.codecClient.ActiveRequestsNum() > 0 {
-			ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
+		if atomic.LoadUint32(&ac.goaway) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+			return
 		}
+
+		ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
