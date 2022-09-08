@@ -82,6 +82,7 @@ type RetryPolicyConfig struct {
 	RetryOn            bool               `json:"retry_on,omitempty"`
 	RetryTimeoutConfig api.DurationConfig `json:"retry_timeout,omitempty"`
 	NumRetries         uint32             `json:"num_retries,omitempty"`
+	StatusCodes        []uint32           `json:"status_codes,omitempty"`
 }
 
 // RegexRewrite represents the regex rewrite parameters

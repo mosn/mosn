@@ -13,3 +13,4 @@ vendor/
 
 # istio tar file
 mosn.tar.gz
+__debug_bin

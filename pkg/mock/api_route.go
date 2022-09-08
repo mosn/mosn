@@ -524,6 +524,20 @@ func (mr *MockRetryPolicyMockRecorder) RetryOn() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryOn", reflect.TypeOf((*MockRetryPolicy)(nil).RetryOn))
 }
 
+// RetryableStatusCodes mocks base method.
+func (m *MockRetryPolicy) RetryableStatusCodes() []uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetryableStatusCodes")
+	ret0, _ := ret[0].([]uint32)
+	return ret0
+}
+
+// RetryableStatusCodes indicates an expected call of RetryableStatusCodes.
+func (mr *MockRetryPolicyMockRecorder) RetryableStatusCodes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryableStatusCodes", reflect.TypeOf((*MockRetryPolicy)(nil).RetryableStatusCodes))
+}
+
 // TryTimeout mocks base method.
 func (m *MockRetryPolicy) TryTimeout() time.Duration {
 	m.ctrl.T.Helper()
