@@ -107,14 +107,8 @@ func getFlushedValue(ctx context.Context, index uint32) (interface{}, error) {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			value := &values[index]
-			if value.Valid || value.NotFound {
-				if !value.noCacheable {
-					return value.data, nil
-				}
-
-				// clear flags
-				//value.Valid = false
-				//value.NotFound = false
+			if value.Valid {
+				return value.data, nil
 			}
 
 			return getIndexedValue(ctx, value, index)
@@ -127,10 +121,6 @@ func getFlushedValue(ctx context.Context, index uint32) (interface{}, error) {
 func getIndexedValue(ctx context.Context, value *IndexedValue, index uint32) (interface{}, error) {
 	variable := indexedVariables[index]
 
-	//if value.NotFound || value.Valid {
-	//	return value.data, nil
-	//}
-
 	getter := variable.Getter()
 	if getter == nil {
 		return "", errors.New(errGetterNotFound + variable.Name())
@@ -138,14 +128,10 @@ func getIndexedValue(ctx context.Context, value *IndexedValue, index uint32) (in
 	vdata, err := getter.Get(ctx, value, variable.Data())
 	if err != nil {
 		value.Valid = false
-		value.NotFound = true
 		return vdata, err
 	}
 
 	value.data = vdata
-	if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
-		value.noCacheable = true
-	}
 	return value.data, nil
 }
 
@@ -154,10 +140,6 @@ func setFlushedValue(ctx context.Context, index uint32, value interface{}) error
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
 			variableValue := &values[index]
-			// should check variable.Flags
-			if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
-				variableValue.noCacheable = true
-			}
 
 			setter := variable.Setter()
 			if setter == nil {

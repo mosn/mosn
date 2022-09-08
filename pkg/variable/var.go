@@ -84,10 +84,6 @@ func (bv *BasicVariable) Data() interface{} {
 	return bv.data
 }
 
-func (bv *BasicVariable) Flags() uint32 {
-	return bv.flags
-}
-
 func (bv *BasicVariable) Getter() Getter {
 	return bv.getter
 }

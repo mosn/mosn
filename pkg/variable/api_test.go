@@ -76,27 +76,6 @@ func TestGetVariableValue_normal(t *testing.T) {
 		t.Error("Check unknown variable failed")
 	}
 
-	//test variable noCacheable
-	name = "nocache"
-	value = "nocache Value"
-	Register(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
-		return value, nil
-	}, DefaultStringSetter, MOSN_VAR_FLAG_NOCACHEABLE))
-	ctx = NewVariableContext(context.Background())
-	err = SetString(ctx, name, value)
-	if err != nil {
-		t.Error(err)
-	}
-
-	vv, err = GetString(ctx, name)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if vv != value {
-		t.Errorf("get/set nocache variable value not equal, expected: %s, acutal: %s", value, vv)
-	}
-
 }
 
 func TestSetVariableValue_normal(t *testing.T) {
@@ -187,6 +166,8 @@ func TestVarNotGetterHint(t *testing.T) {
 
 	_, err := Get(ctx, name)
 	assert.Equal(t, err.Error(), errGetterNotFound+name)
+	_, err2 := Get(ctx, name)
+	assert.Equal(t, err2.Error(), errGetterNotFound+name)
 }
 
 func BenchmarkGetVariableValue2(b *testing.B) {

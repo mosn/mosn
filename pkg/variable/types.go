@@ -20,18 +20,11 @@ package variable
 import "context"
 
 const (
-	MOSN_VAR_FLAG_CHANGEABLE  = 1
-	MOSN_VAR_FLAG_NOCACHEABLE = 2
-	MOSN_VAR_FLAG_NOHASH      = 4
-
 	ValueNotFound = "-"
 )
 
 // StringGetterFunc used to get the value of string-typed variable, the implementation should handle the field
-// (Valid, NotFound) of IndexedValue if it was not nil, Valid means the value is valid; NotFound
-// means the value can not be found. It indicates that value can be cached for next-time get handle
-// if any one of (Valid, NotFound) is set to true.
-//
+// Valid of IndexedValue if it was not nil, Valid means the value is valid.
 // Function should return ValueNotFound("-") if target value not exists.
 // E.g. reference to the header which is not existed in current request.
 type StringGetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
@@ -59,8 +52,6 @@ type Variable interface {
 	Name() string
 	// variable data, which is useful for getter/setter
 	Data() interface{}
-	// variable flags
-	Flags() uint32
 	// value getter
 	Getter() Getter
 	// value setter
@@ -69,10 +60,7 @@ type Variable interface {
 
 // IndexedValue used to store result value
 type IndexedValue struct {
-	Valid       bool
-	NotFound    bool
-	noCacheable bool
-	//escape      bool
+	Valid bool
 
 	data interface{}
 }
