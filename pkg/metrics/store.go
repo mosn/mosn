@@ -25,8 +25,8 @@ import (
 	"sort"
 
 	gometrics "github.com/rcrowley/go-metrics"
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/metrics/shm"
+	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -66,10 +66,6 @@ func init() {
 		// TODO: default length configurable
 		metrics: make(map[string]types.Metrics, 100),
 	}
-	api.GetAll = GetAll
-	api.ResetAll = ResetAll
-	api.SetStatsMatcher = SetStatsMatcher
-	api.GetMetricsFilter = GetMetricsFilter
 }
 
 // SetStatsMatcher sets the exclusion labels and exclusion keys
@@ -116,7 +112,9 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	defaultStore.metrics[name] = stats
-
+	for _, sink := range sink.GetMetricsSink() {
+		sink.Notify(stats)
+	}
 	return stats, nil
 }
 

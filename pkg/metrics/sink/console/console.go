@@ -37,6 +37,9 @@ type NamespaceData map[string]string
 type consoleSink struct {
 }
 
+func (sink *consoleSink) Notify(ms types.Metrics) {
+}
+
 // ~ MetricsSink
 func (sink *consoleSink) Flush(writer io.Writer, ms []types.Metrics) {
 	// type -> namespace -> key -> value

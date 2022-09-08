@@ -88,6 +88,9 @@ func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.R
 	exporter.sink.Flush(rsp, metrics.GetAll())
 }
 
+func (psink *promSink) Notify(ms types.Metrics) {
+}
+
 // ~ MetricsSink
 func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	w := writer

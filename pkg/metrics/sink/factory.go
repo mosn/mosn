@@ -36,6 +36,17 @@ func init() {
 	metricsSinkFactory = make(map[string]MetricsSinkCreator)
 }
 
+// metrics object list
+var metricsSinkObjects []types.MetricsSink
+
+func GetMetricsSink() []types.MetricsSink {
+	return metricsSinkObjects
+}
+
+func AppendMetricsSink(sink types.MetricsSink) {
+	metricsSinkObjects = append(metricsSinkObjects, sink)
+}
+
 // RegisterSink registers the sinkType as MetricsSinkCreator
 func RegisterSink(sinkType string, creator MetricsSinkCreator) {
 	metricsSinkFactory[sinkType] = creator
