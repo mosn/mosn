@@ -132,6 +132,7 @@ func getIndexedValue(ctx context.Context, value *IndexedValue, index uint32) (in
 	}
 
 	value.data = vdata
+	value.Valid = true // set cache
 	return value.data, nil
 }
 

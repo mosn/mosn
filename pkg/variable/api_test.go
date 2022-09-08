@@ -170,6 +170,33 @@ func TestVarNotGetterHint(t *testing.T) {
 	assert.Equal(t, err2.Error(), errGetterNotFound+name)
 }
 
+func TestVariableGetSetCached(t *testing.T) {
+	name := "cache getter"
+	cacheValue := "cached"
+	getterCall := 0
+	Register(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+		getterCall++
+		return cacheValue, nil
+	}, DefaultStringSetter, 0))
+	ctx := NewVariableContext(context.Background())
+	value, err := GetString(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, cacheValue, value)
+	assert.Equal(t, 1, getterCall)
+	// get from cache
+	value, err = GetString(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, cacheValue, value)
+	assert.Equal(t, 1, getterCall)
+	// set will overwrite cache
+	SetString(ctx, name, "overwrite")
+	value, err = GetString(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, "overwrite", value)
+	assert.Equal(t, 1, getterCall)
+
+}
+
 func BenchmarkGetVariableValue2(b *testing.B) {
 	name := "benchmarkGet"
 	value := "someValue"
