@@ -30,10 +30,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/log"
+	"mosn.io/pkg/variable"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -278,6 +279,37 @@ func TestAccessLogManage(t *testing.T) {
 			t.Fatal("some access log is disabled")
 		}
 	}
+}
+
+func TestGetString(t *testing.T) {
+	strVar := "string"
+	variable.Register(variable.NewStringVariable(strVar, nil, func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (s string, err error) {
+		return "value", nil
+	}, nil, 0))
+	stringerVar := "stringer"
+	variable.Register(variable.NewVariable(stringerVar, nil, func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (interface{}, error) {
+		// net.IP is a fmt.Stringer
+		return net.ParseIP("127.0.0.1"), nil
+	}, nil, 0))
+	intVar := "int"
+	variable.Register(variable.NewVariable(intVar, nil, func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (interface{}, error) {
+		return 100, nil
+	}, nil, 0))
+
+	ctx := variable.NewVariableContext(context.Background())
+	// check
+	v, err := GetVariableValueAsString(ctx, strVar)
+	require.Nil(t, err)
+	require.Equal(t, "value", v)
+
+	v, err = GetVariableValueAsString(ctx, stringerVar)
+	require.Nil(t, err)
+	require.Equal(t, "127.0.0.1", v)
+
+	v, err = GetVariableValueAsString(ctx, intVar)
+	require.Nil(t, err)
+	require.Equal(t, "100", v)
+
 }
 
 func prepareLocalIpv4Ctx() context.Context {

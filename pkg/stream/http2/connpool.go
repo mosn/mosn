@@ -201,9 +201,8 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	host := pool.Host()
 	data := host.CreateConnection(ctx)
 	data.Connection.AddConnectionEventListener(ac)
-	connCtx := ctx
-	_ = variable.Set(connCtx, types.VariableConnectionID, data.Connection.ID())
-	codecClient := pool.createStreamClient(connCtx, data)
+	_ = variable.Set(ctx, types.VariableConnectionID, data.Connection.ID())
+	codecClient := pool.createStreamClient(ctx, data)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient

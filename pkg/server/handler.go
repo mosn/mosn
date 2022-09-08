@@ -661,13 +661,12 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.AddConnectionEventListener(listener)
 		}
 	}
-	newCtx := ctx
-	_ = variable.Set(newCtx, types.VariableConnectionID, conn.ID())
-	_ = variable.Set(newCtx, types.VariableConnection, conn)
+	_ = variable.Set(ctx, types.VariableConnectionID, conn.ID())
+	_ = variable.Set(ctx, types.VariableConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(newCtx, conn)
+	al.OnNewConnection(ctx, conn)
 }
 
 type activeRawConn struct {

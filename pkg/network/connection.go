@@ -182,12 +182,12 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// store fd
-	if val, err := variable.Get(ctx, types.VariableConnectionFd); err == nil {
+	if val, err := variable.Get(ctx, types.VariableConnectionFd); err == nil && val != nil {
 		conn.file = val.(*os.File)
 	}
 
 	if conn.network == "udp" {
-		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 			conn.readBuffer.Write(buf)
@@ -196,8 +196,8 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// transfer old mosn connection
-	if cval, err := variable.Get(ctx, types.VariableAcceptChan); err == nil {
-		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil {
+	if cval, err := variable.Get(ctx, types.VariableAcceptChan); err == nil && cval != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)

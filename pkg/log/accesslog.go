@@ -20,12 +20,13 @@ package log
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
+	"mosn.io/pkg/variable"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
@@ -72,11 +73,27 @@ type logEntry struct {
 	name string
 }
 
+// GetVariableValueAsString will convert the variable value to string if founded.
+func GetVariableValueAsString(ctx context.Context, name string) (string, error) {
+	v, err := variable.Get(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	switch s := v.(type) {
+	case string:
+		return s, nil
+	case fmt.Stringer:
+		return s.String(), nil
+	default:
+		return fmt.Sprintf("%v", s), nil
+	}
+}
+
 func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
-		value, err := variable.GetString(ctx, le.name)
+		value, err := GetVariableValueAsString(ctx, le.name)
 		if err != nil {
 			buf.WriteString(variable.ValueNotFound)
 		} else {

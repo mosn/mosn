@@ -329,12 +329,10 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	id := protocol.GenerateID()
 	buffers := httpBuffersByContext(ctx)
 	s := &buffers.clientStream
+	_ = variable.Set(ctx, types.VariableStreamID, id)
 	s.stream = stream{
-		id: id,
-		ctx: func() context.Context {
-			_ = variable.Set(ctx, types.VariableStreamID, id)
-			return ctx
-		}(),
+		id:       id,
+		ctx:      ctx,
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -549,13 +547,11 @@ func (conn *serverStreamConnection) serve() {
 		s := &buffers.serverStream
 
 		// 4. request processing
-		variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+		_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+		_ = variable.Set(ctx, types.VariableStreamID, id)
 		s.stream = stream{
-			id: id,
-			ctx: func() context.Context {
-				_ = variable.Set(ctx, types.VariableStreamID, id)
-				return ctx
-			}(),
+			id:       id,
+			ctx:      ctx,
 			request:  request,
 			response: &buffers.serverResponse,
 		}
