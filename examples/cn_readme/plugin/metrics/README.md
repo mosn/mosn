@@ -32,7 +32,7 @@ cd ${targetpath}
 
 ## 目录结构
 
-下面是 SkyWalking 的目录结构。
+下面是 Prometheus 的目录结构。
 
 ```bash
 * metrics
