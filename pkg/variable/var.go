@@ -144,5 +144,5 @@ func (g *getterImpl) Get(ctx context.Context, value *IndexedValue, data interfac
 		return g.getter(ctx, value, data)
 	}
 
-	return nil, errors.New(errGetterNotFound + g.name)
+	return nil, errors.New(errNoVariablesInContext + g.name)
 }

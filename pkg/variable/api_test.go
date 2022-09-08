@@ -165,9 +165,9 @@ func TestVarNotGetterHint(t *testing.T) {
 	ctx = NewVariableContext(ctx)
 
 	_, err := Get(ctx, name)
-	assert.Equal(t, err.Error(), errGetterNotFound+name)
+	assert.Equal(t, err.Error(), errNoVariablesInContext+name)
 	_, err2 := Get(ctx, name)
-	assert.Equal(t, err2.Error(), errGetterNotFound+name)
+	assert.Equal(t, err2.Error(), errNoVariablesInContext+name)
 }
 
 func TestVariableGetSetCached(t *testing.T) {

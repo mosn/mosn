@@ -49,13 +49,28 @@ func RegisterProtocolResource(protocol api.ProtocolName, resource api.ProtocolRe
 	return nil
 }
 
+var GetProtocol func(ctx context.Context) (api.ProtocolName, error)
+
+// 后续这个实现保留在mosn代码里, 会替换成变量方式
+func init() {
+	GetProtocol = func(ctx context.Context) (api.ProtocolName, error) {
+		p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
+		if !ok {
+			return api.ProtocolName(""), errors.New("get ContextKeyDownStreamProtocol failed.")
+		}
+		return p, nil
+	}
+}
+
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
 func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
-	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
-	if !ok {
-		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
+	if GetProtocol == nil {
+		return "", errors.New("no way to get protocol, cannot get protocol resource")
 	}
-
+	p, err := GetProtocol(ctx)
+	if err != nil {
+		return "", err
+	}
 	if v, ok := protocolVar[convert(p, name)]; ok {
 		// append data behind if data exists
 		if len(data) == 1 {

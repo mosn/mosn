@@ -61,7 +61,7 @@ func Get(ctx context.Context, name string) (interface{}, error) {
 		// 1.2 use variable.Getter() to get value
 		getter := variable.Getter()
 		if getter == nil {
-			return "", errors.New(errGetterNotFound + name)
+			return "", errors.New(errNoVariablesInContext + name)
 		}
 		return getter.Get(ctx, nil, variable.Data())
 	}
@@ -71,7 +71,7 @@ func Get(ctx context.Context, name string) (interface{}, error) {
 		if strings.HasPrefix(name, prefix) {
 			getter := variable.Getter()
 			if getter == nil {
-				return "", errors.New(errGetterNotFound + name)
+				return "", errors.New(errNoVariablesInContext + name)
 			}
 			return getter.Get(ctx, nil, name)
 		}
@@ -123,7 +123,7 @@ func getIndexedValue(ctx context.Context, value *IndexedValue, index uint32) (in
 
 	getter := variable.Getter()
 	if getter == nil {
-		return "", errors.New(errGetterNotFound + variable.Name())
+		return "", errors.New(errNoVariablesInContext + variable.Name())
 	}
 	vdata, err := getter.Get(ctx, value, variable.Data())
 	if err != nil {
