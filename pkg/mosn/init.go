@@ -88,8 +88,13 @@ func InitializeMetrics(m *Mosn) {
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
 	// create sinks
+	var err error
 	for _, cfg := range config.SinkConfigs {
-		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		if cfg.GoPluginConfig != nil {
+			_, err = sink.CreateMetricsSinkByPlugin(cfg.GoPluginConfig, cfg.Config)
+		} else {
+			_, err = sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		}
 		// abort
 		if err != nil {
 			log.StartLogger.Errorf("[mosn] [init metrics] %s. %v metrics sink is turned off", err, cfg.Type)
