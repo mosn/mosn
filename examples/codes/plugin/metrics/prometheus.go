@@ -94,7 +94,7 @@ func (psink *promSink) Flush(writer io.Writer, ms []api.Metrics) {
 	}
 }
 
-func (psink *promSink) flushHistogram(tracker map[string]bool, buf buffer.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
+func (psink *promSink) flushHistogram(tracker map[string]bool, buf api.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
 	// min
 	psink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
 	// max
@@ -111,7 +111,7 @@ func (psink *promSink) flushHistogram(tracker map[string]bool, buf buffer.IoBuff
 	}
 }
 
-func (psink *promSink) flushGauge(tracker map[string]bool, buf buffer.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushGauge(tracker map[string]bool, buf api.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -128,7 +128,7 @@ func (psink *promSink) flushGauge(tracker map[string]bool, buf buffer.IoBuffer, 
 	buf.WriteString("\n")
 }
 
-func (psink *promSink) flushCounter(tracker map[string]bool, buf buffer.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushCounter(tracker map[string]bool, buf api.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -147,7 +147,7 @@ func (psink *promSink) flushCounter(tracker map[string]bool, buf buffer.IoBuffer
 }
 
 // NewPromeSink returns a metrics sink that produces Prometheus metrics using store data
-func NewPromeSink(config *PromConfig) buffer.MetricsSink {
+func NewPromeSink(config *PromConfig) api.MetricsSink {
 	promReg := prometheus.NewRegistry()
 	// register process and  go metrics
 	if !config.DisableCollectProcess {
@@ -175,11 +175,12 @@ func NewPromeSink(config *PromConfig) buffer.MetricsSink {
 		Addr:    fmt.Sprintf("0.0.0.0:%d", config.Port),
 		Handler: srvMux,
 	}
+	go srv.ListenAndServe()
 	return promSink
 }
 
 // factory
-func PullerBuilder(cfg map[string]interface{}) (buffer.MetricsSink, error) {
+func CreateMetricsSink(cfg map[string]interface{}) (api.MetricsSink, error) {
 	// parse config
 	promCfg := &PromConfig{}
 	data, err := json.Marshal(cfg)
@@ -192,6 +193,9 @@ func PullerBuilder(cfg map[string]interface{}) (buffer.MetricsSink, error) {
 	// MONITOR_METRIC_PORT
 	if promCfg.Port == 0 {
 		return nil, errors.New("prometheus sink's port is not specified")
+	}
+	if len(promCfg.Endpoint) == 0 {
+		promCfg.Endpoint = defaultEndpoint
 	}
 	if !strings.HasPrefix(promCfg.Endpoint, "/") {
 		return nil, fmt.Errorf("invalid endpoint format:%s", promCfg.Endpoint)
@@ -236,7 +240,7 @@ func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {
 	return
 }
 
-func writeFloat(w buffer.IoBuffer, f float64) (int, error) {
+func writeFloat(w api.IoBuffer, f float64) (int, error) {
 	switch {
 	case f == 1:
 		return w.WriteString("1.0")

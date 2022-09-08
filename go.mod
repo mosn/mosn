@@ -11,6 +11,7 @@ require (
 	github.com/apache/thrift v0.13.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
 	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.10.0
@@ -66,6 +67,6 @@ require (
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
-replace mosn.io/api => github.com/YIDWang/api v0.0.0-20220908030607-e81bd6ee7697
+replace mosn.io/api => github.com/YIDWang/api v0.0.0-20220908030908-60cb9a00b3d1
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
