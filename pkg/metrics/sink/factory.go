@@ -18,12 +18,8 @@
 package sink
 
 import (
-	"errors"
 	"fmt"
-	"plugin"
 
-	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -34,17 +30,6 @@ var metricsSinkFactory map[string]MetricsSinkCreator
 
 func init() {
 	metricsSinkFactory = make(map[string]MetricsSinkCreator)
-}
-
-// metrics object list
-var metricsSinkObjects []types.MetricsSink
-
-func GetMetricsSink() []types.MetricsSink {
-	return metricsSinkObjects
-}
-
-func AppendMetricsSink(sink types.MetricsSink) {
-	metricsSinkObjects = append(metricsSinkObjects, sink)
 }
 
 // RegisterSink registers the sinkType as MetricsSinkCreator
@@ -62,26 +47,4 @@ func CreateMetricsSink(sinkType string, config map[string]interface{}) (types.Me
 		return sink, nil
 	}
 	return nil, fmt.Errorf("unsupported metrics sink type: %v", sinkType)
-}
-
-func CreateMetricsSinkByPlugin(pluginConfig *v2.StreamFilterGoPluginConfig, factoryConfig map[string]interface{}) (api.MetricsSink, error) {
-	if pluginConfig.SoPath == "" {
-		return nil, errors.New("so file path could not be found")
-	}
-	p, err := plugin.Open(pluginConfig.SoPath)
-	if err != nil {
-		return nil, err
-	}
-	if pluginConfig.FactoryMethod == "" {
-		pluginConfig.FactoryMethod = "CreateMetricsSink"
-	}
-	f, err := p.Lookup(pluginConfig.FactoryMethod)
-	if err != nil {
-		return nil, err
-	}
-	function, ok := f.(func(map[string]interface{}) (api.MetricsSink, error))
-	if !ok {
-		return nil, errors.New("failed to get correct factory method")
-	}
-	return function(factoryConfig)
 }

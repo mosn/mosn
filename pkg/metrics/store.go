@@ -26,7 +26,6 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
-	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -112,9 +111,6 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	defaultStore.metrics[name] = stats
-	for _, sink := range sink.GetMetricsSink() {
-		sink.Notify(stats)
-	}
 	return stats, nil
 }
 

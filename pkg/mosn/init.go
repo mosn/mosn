@@ -88,28 +88,14 @@ func InitializeMetrics(m *Mosn) {
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
 	// create sinks
-	var (
-		err   error
-		msink types.MetricsSink
-	)
 	for _, cfg := range config.SinkConfigs {
-		if cfg.GoPluginConfig != nil {
-			msink, err = sink.CreateMetricsSinkByPlugin(cfg.GoPluginConfig, cfg.Config)
-		} else {
-			msink, err = sink.CreateMetricsSink(cfg.Type, cfg.Config)
-		}
+		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
 		// abort
 		if err != nil {
 			log.StartLogger.Errorf("[mosn] [init metrics] %s. %v metrics sink is turned off", err, cfg.Type)
 			return
 		}
-		sink.AppendMetricsSink(msink)
 		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
-	}
-	for _, stats := range metrics.GetAll() {
-		for _, sink := range sink.GetMetricsSink() {
-			sink.Notify(stats)
-		}
 	}
 }
 
