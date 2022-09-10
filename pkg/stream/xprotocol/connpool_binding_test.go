@@ -206,8 +206,8 @@ func TestUpperGoAway(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VarConnection, sConnI)
+	_ = variable.Set(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -226,8 +226,8 @@ func TestUpperGoAway(t *testing.T) {
 
 	// after goaway , we can choose another upstream
 	ctx = variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VarConnection, sConnI)
+	_ = variable.Set(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason = pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
