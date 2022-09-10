@@ -176,3 +176,72 @@ func TestUpperClose(t *testing.T) {
 	// close the connpool should not panic
 	pInst.Close()
 }
+
+func TestUpperGoAway(t *testing.T) {
+
+	ctx := variable.NewVariableContext(context.Background())
+
+	var addr = "127.0.0.1:10086"
+	go server.start(t, addr)
+	defer server.stop(t)
+	// wait for server to start
+	time.Sleep(time.Second * 2)
+
+	cl := basicCluster(addr, []string{addr})
+	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
+
+	p := &connpool{
+		protocol: api.ProtocolName(dubbo.ProtocolName),
+		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
+	}
+	p.host.Store(host)
+
+	var pool = NewPoolBinding(p)
+	var pInst = pool.(*poolBinding)
+
+	sConn, err := net.Dial("tcp4", addr)
+	assert.Nil(t, err)
+
+	var sstopChan = make(chan struct{})
+	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
+
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+
+	host, _, failReason := pInst.NewStream(ctx, nil)
+	assert.Equal(t, failReason, types.PoolFailureReason(""))
+	assert.NotNil(t, pInst.idleClients[sConnI.ID()])
+
+	cb1 := pInst.idleClients[sConnI.ID()]
+
+	// upstream goaway and downstream should be active
+	pInst.idleClients[sConnI.ID()].OnGoAway()
+	assert.Nil(t, pInst.idleClients[sConnI.ID()])
+	assert.Equal(t, sConnI.State(), api.ConnActive)
+
+	// after goaway , upstream close will not affect the downstream
+	cb1.Close(errors.New("closeclose"))
+	assert.Equal(t, sConnI.State(), api.ConnActive)
+
+	// after goaway , we can choose another upstream
+	ctx = variable.NewVariableContext(context.Background())
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+
+	host, _, failReason = pInst.NewStream(ctx, nil)
+	assert.Equal(t, failReason, types.PoolFailureReason(""))
+	assert.NotNil(t, pInst.idleClients[sConnI.ID()])
+	cb2 := pInst.idleClients[sConnI.ID()]
+
+	assert.NotEqual(t, cb1.host.Connection.ID(), cb2.host.Connection.ID())
+
+	// upstream close should close the downstream conn
+	pInst.idleClients[sConnI.ID()].Close(errors.New("closeclose"))
+	assert.Nil(t, pInst.idleClients[sConnI.ID()])
+	assert.Equal(t, sConnI.State(), api.ConnClosed)
+
+	// client has already closed
+	// close the connpool should not panic
+	pInst.Close()
+}
