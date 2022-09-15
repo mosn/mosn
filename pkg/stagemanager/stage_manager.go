@@ -505,6 +505,10 @@ func GetState() State {
 	return stm.state
 }
 
+func GetStopAction() StopAction {
+	return stm.stopAction
+}
+
 // expose this method just make UT easier,
 // should not use it directly.
 func SetState(s State) {

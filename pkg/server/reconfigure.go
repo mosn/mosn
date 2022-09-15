@@ -141,6 +141,13 @@ func StopReconfigureHandler() {
 	if stagemanager.GetState() == stagemanager.Upgrading {
 		return
 	}
+
+	// When the old process stops after smooth upgrade, reconfig.sock is created by the new process.
+	// It should not be removed by the old process.
+	if stagemanager.GetStopAction() == stagemanager.Upgrade {
+		return
+	}
+
 	syscall.Unlink(types.ReconfigureDomainSocket)
 }
 
