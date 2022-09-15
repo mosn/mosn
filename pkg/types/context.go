@@ -17,41 +17,6 @@
 
 package types
 
-// ContextKey type
-type ContextKey int
-
-// Context key types(built-in), only used in mosn context package
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnection
-	ContextKeyConnectionID
-	ContextKeyConnectionPoolIndex
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyProxyGeneralConfig
-	ContextKeyDownStreamProtocol
-	ContextKeyUpStreamProtocol
-	ContextKeyDownStreamHeaders
-	ContextKeyDownStreamRespHeaders
-	ContextUpstreamConnectionID
-	ContextKeyConnectionEventListeners
-	ContextKeyEnd
-)
-
 // GlobalProxyName represents proxy name for metrics
 const (
 	GlobalProxyName       = "global"

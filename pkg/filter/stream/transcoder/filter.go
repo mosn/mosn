@@ -23,9 +23,9 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/api/extensions/transcoder"
+	"mosn.io/pkg/variable"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -79,7 +79,12 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	if !ok {
 		return api.StreamFilterContinue
 	}
-	srcPro := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
+	sv, err := variable.Get(ctx, types.VariableDownStreamProtocol)
+	if err != nil {
+		log.Proxy.Errorf(ctx, "[stream filter][transcoder] cloud not found downstream protocol")
+		return api.StreamFilterContinue
+	}
+	srcPro := sv.(api.ProtocolName)
 	//select transcoder
 	transcoderFactory := GetTranscoderFactory(ruleInfo.GetType(srcPro))
 	if transcoderFactory == nil {
@@ -106,7 +111,7 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	//set upstream protocol
 	// if ruleInfo.UpstreamProtocol is empty, the ruleinfo maybe created by the old mode: config have type only
 	if ruleInfo.UpstreamProtocol != "" {
-		mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
+		_ = variable.Set(ctx, types.VariableUpstreamProtocol, api.ProtocolName(ruleInfo.UpstreamProtocol))
 	}
 
 	outHeaders, outBuf, outTrailers, err := transcoder.TranscodingRequest(ctx, headers, buf, trailers)

@@ -20,8 +20,8 @@ package proxy
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {

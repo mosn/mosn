@@ -39,7 +39,6 @@ import (
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -47,8 +46,8 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // ConnectionHandler
@@ -489,27 +488,27 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// connection context support variables too
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	_ = variable.Set(ctx, types.VariableListenerPort, al.listenPort)
+	_ = variable.Set(ctx, types.VariableListenerType, al.listener.Config().Type)
+	_ = variable.Set(ctx, types.VariableListenerName, al.listener.Name())
+	_ = variable.Set(ctx, types.VariableNetworkFilterChainFactories, al.networkFiltersFactories)
+	_ = variable.Set(ctx, types.VariableAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		_ = variable.Set(ctx, types.VariableConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptChan, ch)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		_ = variable.Set(ctx, types.VariableOriRemoteAddr, oriRemoteAddr)
 	}
 
 	if len(listeners) != 0 {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionEventListeners, listeners)
+		_ = variable.Set(ctx, types.VariableConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -652,22 +651,22 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-	if oriRemoteAddr != nil {
+	oriRemoteAddr, err := variable.Get(ctx, types.VariableOriRemoteAddr)
+	if err == nil && oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	listeners := mosnctx.Get(ctx, types.ContextKeyConnectionEventListeners)
-	if listeners != nil {
+	listeners, err := variable.Get(ctx, types.VariableConnectionEventListeners)
+	if err == nil && listeners != nil {
 		for _, listener := range listeners.([]api.ConnectionEventListener) {
 			conn.AddConnectionEventListener(listener)
 		}
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
-	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
+	_ = variable.Set(ctx, types.VariableConnectionID, conn.ID())
+	_ = variable.Set(ctx, types.VariableConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(newCtx, conn)
+	al.OnNewConnection(ctx, conn)
 }
 
 type activeRawConn struct {
@@ -732,9 +731,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val, err := variable.Get(ctx, types.VariableAcceptChan); err == nil && val != nil {
 		ch = val.(chan api.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf = val.([]byte)
 		}
 	}

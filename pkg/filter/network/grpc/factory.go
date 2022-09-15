@@ -30,13 +30,12 @@ import (
 	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/header"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -121,9 +120,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, api.ProtocolName(grpcName))
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, requestHeader)
 
 	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)

@@ -30,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -93,6 +94,7 @@ func TestRunReiverFilters(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		s := &downStream{
+			context: variable.NewVariableContext(context.Background()),
 			proxy: &proxy{
 				config:              &v2.Proxy{},
 				routersWrapper:      &mockRouterWrapper{},
@@ -112,7 +114,7 @@ func TestRunReiverFilters(t *testing.T) {
 		s.downstreamReqHeaders = protocol.CommonHeader{}
 		s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
 		s.downstreamReqTrailers = protocol.CommonHeader{}
-		s.OnReceive(context.Background(), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+		s.OnReceive(s.context, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 		time.Sleep(100 * time.Millisecond)
 
@@ -144,6 +146,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		},
 	}
 	s := &downStream{
+		context: variable.NewVariableContext(context.Background()),
 		proxy: &proxy{
 			config:              &v2.Proxy{},
 			routersWrapper:      &mockRouterWrapper{},
@@ -163,7 +166,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 	s.downstreamReqHeaders = protocol.CommonHeader{}
 	s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
 	s.downstreamReqTrailers = protocol.CommonHeader{}
-	s.OnReceive(context.Background(), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+	s.OnReceive(s.context, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -192,7 +195,7 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 		},
 	}
 	s := &downStream{
-		context: context.Background(),
+		context: variable.NewVariableContext(context.Background()),
 		proxy: &proxy{
 			config: &v2.Proxy{},
 			routersWrapper: &mockRouterWrapper{
@@ -220,7 +223,7 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 	s.downstreamReqHeaders = protocol.CommonHeader{}
 	s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
 	s.downstreamReqTrailers = protocol.CommonHeader{}
-	s.OnReceive(context.Background(), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+	s.OnReceive(s.context, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -276,7 +279,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 		}
 		s.initStreamFilterChain()
 
-		s.context = context.Background()
+		s.context = variable.NewVariableContext(context.Background())
 		for _, f := range tc.filters {
 			f.s = s
 			s.streamFilterChain.AddStreamReceiverFilter(f, f.phase)
@@ -413,7 +416,7 @@ func TestRunSenderFiltersTermination(t *testing.T) {
 		},
 	}
 	s := &downStream{
-		context: context.Background(),
+		context: variable.NewVariableContext(context.Background()),
 		proxy: &proxy{
 			config: &v2.Proxy{},
 			routersWrapper: &mockRouterWrapper{

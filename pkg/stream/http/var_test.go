@@ -27,11 +27,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -42,9 +41,9 @@ var (
 )
 
 func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = mbuffer.NewBufferPoolContext(ctx)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableListenerPort, 80)
+	ctx = buffer.NewBufferPoolContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
@@ -183,7 +182,7 @@ func Test_get_allarg(t *testing.T) {
 func Test_get_protocolResource(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
 	actual, err := variable.GetProtocolResource(ctx, api.PATH)
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -214,7 +213,7 @@ func Test_get_protocolResource(t *testing.T) {
 
 func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
 
 	cookieName := "zone"
 	expect := "shanghai"
@@ -240,10 +239,11 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 }
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = mbuffer.NewBufferPoolContext(ctx)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableListenerPort, 80)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+
+	ctx = buffer.NewBufferPoolContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest

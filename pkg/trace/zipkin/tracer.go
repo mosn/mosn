@@ -22,21 +22,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/openzipkin/zipkin-go"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
-	mosnhttp "mosn.io/mosn/pkg/protocol/http"
-
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
-
+	zipkin "github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 type httpTracer struct {
@@ -74,9 +72,12 @@ func (t *httpTracer) Start(ctx context.Context, request interface{}, startTime t
 
 // getLocalHostPort get host and port from context
 func getLocalHostPort(ctx context.Context) (string, uint16) {
-	if conn, ok := mosnctx.Get(ctx, types.ContextKeyConnection).(api.Connection); ok {
-		host, port, _ := ParseHostPort(conn.LocalAddr().String())
-		return host, port
+	v, err := variable.Get(ctx, types.VariableConnection)
+	if err == nil {
+		if conn, ok := v.(api.Connection); ok {
+			host, port, _ := ParseHostPort(conn.LocalAddr().String())
+			return host, port
+		}
 	}
 	return "", 0
 }

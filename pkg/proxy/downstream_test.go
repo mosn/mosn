@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -34,8 +33,8 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -65,7 +64,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	}
 
 	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	header := protocol.CommonHeader{}
@@ -450,7 +450,11 @@ func TestGetUpstreamProtocol(t *testing.T) {
 		expectedProtocol types.ProtocolName
 	}{
 		{
-			ctx:              mosnctx.WithValue(context.Background(), types.ContextKeyUpStreamProtocol, api.ProtocolName("bolt")),
+			ctx: func() context.Context {
+				ctx := variable.NewVariableContext(context.Background())
+				_ = variable.Set(ctx, types.VariableUpstreamProtocol, api.ProtocolName("bolt"))
+				return ctx
+			}(),
 			route:            route,
 			expectedProtocol: api.ProtocolName("bolt"),
 		},

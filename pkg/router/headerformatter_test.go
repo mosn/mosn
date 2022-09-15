@@ -20,7 +20,7 @@ package router
 import (
 	"context"
 	"errors"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"reflect"
 	"testing"
 )

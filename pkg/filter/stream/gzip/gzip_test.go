@@ -26,7 +26,7 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/config/v2"
