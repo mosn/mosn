@@ -32,10 +32,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func TestNilMetadataMatchCriteria(t *testing.T) {
@@ -825,7 +824,8 @@ func TestParseHashPolicy(t *testing.T) {
 
 func TestHashPolicy(t *testing.T) {
 	testProtocol := types.ProtocolName("SomeProtocol")
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 
 	// test header
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -856,7 +856,7 @@ func TestHashPolicy(t *testing.T) {
 	assert.Equalf(t, uint64(14068947270705736519), hash, "cookie value hash not match")
 
 	// test source IP
-	ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, &net.TCPAddr{
+	_ = variable.Set(ctx, types.VariableOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})

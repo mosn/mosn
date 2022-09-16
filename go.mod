@@ -58,7 +58,7 @@ require (
 	k8s.io/klog v1.0.0
 	mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f
 	mosn.io/holmes v1.0.1
-	mosn.io/pkg v1.1.0
+	mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect

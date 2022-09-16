@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	_ "mosn.io/mosn/pkg/stream/http"
 	"mosn.io/mosn/pkg/types"

@@ -22,9 +22,9 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func TestResponseFlag(t *testing.T) {

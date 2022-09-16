@@ -33,7 +33,7 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 

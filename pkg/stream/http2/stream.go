@@ -31,8 +31,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls"
@@ -41,8 +39,8 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // TODO: move it to main
@@ -178,7 +176,7 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
 				if cfg, ok := http2Config.(StreamConfig); ok {
@@ -333,7 +331,8 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	var stream *serverStream
 	// header
 	if h2s != nil {
-		stream, err = conn.onNewStreamDetect(mosnctx.Clone(ctx), h2s, endStream)
+		// Check: context need clone?
+		stream, err = conn.onNewStreamDetect(ctx, h2s, endStream)
 		if err != nil {
 			conn.handleError(ctx, f, err)
 			return
@@ -460,8 +459,10 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = ctx
+	_ = variable.Set(stream.ctx, types.VariableStreamID, stream.id)
+	_ = variable.Set(stream.ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
+
 	stream.sc = conn
 	stream.h2s = h2s
 	stream.conn = conn.conn
@@ -803,7 +804,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		// set header-status into stream ctx
 		variable.SetString(stream.ctx, types.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
 
-		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
+		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(stream.ctx, "http2 client header: id = %d, headers = %+v", id, rsp.Header)

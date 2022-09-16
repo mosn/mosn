@@ -23,12 +23,19 @@ import (
 
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
+
+func newContextWithListenerName(name string) context.Context {
+	ctx := variable.NewVariableContext(context.TODO())
+	_ = variable.Set(ctx, types.VariableListenerName, name)
+	return ctx
+}
 
 func TestDecodeFramePanic(t *testing.T) {
 	data := buffer.NewIoBufferBytes(complexData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := newContextWithListenerName(IngressDubbo)
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -40,7 +47,7 @@ func TestDecodeFramePanic(t *testing.T) {
 func TestDecodeSkipCheap(t *testing.T) {
 	data := buffer.NewIoBufferBytes(benchmarkData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, "Cheap")
+	ctx := newContextWithListenerName("Cheap")
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -52,7 +59,7 @@ func TestDecodeSkipCheap(t *testing.T) {
 func TestDecodeSkip(t *testing.T) {
 	data := buffer.NewIoBufferBytes(benchmarkData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := newContextWithListenerName(IngressDubbo)
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -62,7 +69,7 @@ func TestDecodeSkip(t *testing.T) {
 }
 
 func BenchmarkDecodeSkipCheap(t *testing.B) {
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, "Cheap")
+	ctx := newContextWithListenerName("Cheap")
 	for i := 0; i < t.N; i++ {
 		data := buffer.NewIoBufferBytes(benchmarkData)
 		_, err := decodeFrame(ctx, data)
@@ -73,7 +80,7 @@ func BenchmarkDecodeSkipCheap(t *testing.B) {
 }
 
 func BenchmarkDecodeSkip(t *testing.B) {
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := newContextWithListenerName(IngressDubbo)
 	for i := 0; i < t.N; i++ {
 		data := buffer.NewIoBufferBytes(benchmarkData)
 		_, err := decodeFrame(ctx, data)

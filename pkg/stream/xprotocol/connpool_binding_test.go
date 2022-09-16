@@ -27,12 +27,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 type serverType struct {
@@ -115,8 +114,8 @@ func TestDownClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VariableConnection, sConnI)
+	_ = variable.Set(ctx, types.VariableConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -160,8 +159,8 @@ func TestUpperClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VariableConnection, sConnI)
+	_ = variable.Set(ctx, types.VariableConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -207,8 +206,8 @@ func TestUpperGoAway(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VarConnection, sConnI)
+	_ = variable.Set(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -227,8 +226,8 @@ func TestUpperGoAway(t *testing.T) {
 
 	// after goaway , we can choose another upstream
 	ctx = variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	_ = variable.Set(ctx, types.VarConnection, sConnI)
+	_ = variable.Set(ctx, types.VarConnectionID, sConnI.ID())
 
 	host, _, failReason = pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))

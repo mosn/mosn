@@ -25,7 +25,7 @@ import (
 	"mosn.io/api"
 
 	"mosn.io/mosn/pkg/filter/network/grpc"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/pkg/header"
 )

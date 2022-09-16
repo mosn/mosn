@@ -20,7 +20,6 @@ package bolt
 import (
 	"context"
 
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
 )
@@ -28,11 +27,11 @@ import (
 var ins boltBufferCtx
 
 func init() {
-	mbuffer.RegisterBuffer(&ins)
+	buffer.RegisterBuffer(&ins)
 }
 
 type boltBufferCtx struct {
-	mbuffer.TempBufferCtx
+	buffer.TempBufferCtx
 }
 
 func (ctx boltBufferCtx) New() interface{} {
@@ -64,6 +63,6 @@ type boltBuffer struct {
 }
 
 func bufferByContext(ctx context.Context) *boltBuffer {
-	poolCtx := mbuffer.PoolContext(ctx)
+	poolCtx := buffer.PoolContext(ctx)
 	return poolCtx.Find(&ins, nil).(*boltBuffer)
 }

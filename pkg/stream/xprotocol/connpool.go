@@ -22,9 +22,8 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // for xprotocol
@@ -96,7 +95,7 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 
 func getDownstreamConn(ctx context.Context) api.Connection {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnection); val != nil {
+		if val, err := variable.Get(ctx, types.VariableConnection); err == nil && val != nil {
 			if conn, ok := val.(api.Connection); ok {
 				return conn
 			}
