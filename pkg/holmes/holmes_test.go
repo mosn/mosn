@@ -22,6 +22,7 @@ import (
 
 	"mosn.io/holmes"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestNotInit(t *testing.T) {
@@ -33,6 +34,13 @@ func TestNotInit(t *testing.T) {
 }
 
 func TestSetOptions(t *testing.T) {
+	// set for unit test
+	origPath := types.MosnBasePath
+	types.MosnBasePath = "/tmp"
+	defer func() {
+		types.MosnBasePath = origPath
+	}()
+
 	var options []holmes.Option
 	err := SetOptions(options)
 	if err == nil {

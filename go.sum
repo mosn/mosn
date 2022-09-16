@@ -991,13 +991,13 @@ k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd/go.mod h1:WOJ3KddDSol4tAG
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/api v1.0.1-0.20220727021759-9bf17e6cecba h1:q4iwUJTMyj5XrqCwf4U/BGPQFwTH1NOfUpJeB6V6Zec=
-mosn.io/api v1.0.1-0.20220727021759-9bf17e6cecba/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
+mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f h1:e6HrsFPhRkXbXQ+hDCoWbPLYsHyRCnrnLpEosF7EvLg=
+mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 mosn.io/holmes v1.0.1 h1:m59Gw+/DUA8t0DO4ZMro14web2Ct5Qg6xn5sAMnzqsk=
 mosn.io/holmes v1.0.1/go.mod h1:pZjPamcZk4Z16xlZySG1rU9psLUCOx6MVNuj/3bfkEk=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
-mosn.io/pkg v1.0.0 h1:zmvPVfk5zZ5il7lEwa9hdtt77vWVtpioKD1DHTQ/PcI=
-mosn.io/pkg v1.0.0/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
+mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9 h1:E+yAbvKzC1x7/8jbk4B1NH/+6nRldwHgt9sll1BHOdI=
+mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6 h1:6aWdJ5db4OHFhSnSDvZcrAfsJSglbuZNW3DdBPt6PGg=
 mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=

@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // poolBinding is a special purpose connection pool,
@@ -80,7 +80,7 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	c.addDownConnListenerOnce(ctx)
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.connID)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.connID)
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
@@ -164,9 +164,10 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 
 	host := p.Host()
 
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
+	connCtx := ctx
 
-	connCtx = mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, ac.protocol) // TODO: make sure we need it?
+	_ = variable.Set(connCtx, types.VariableConnectionID, ac.host.Connection.ID())
+	_ = variable.Set(connCtx, types.VariableUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -269,7 +270,7 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 		}
 	}
 
-	var needCloseDownStream = false
+	var communicationFailure = false
 	switch {
 	case event.IsClose():
 		host.HostStats().UpstreamConnectionClose.Inc(1)
@@ -292,34 +293,43 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 		// LocalClose when there is a panic
 		// OnReadErrClose when read failed
 		ac.removeFromPool()
-		needCloseDownStream = true
+		communicationFailure = true
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		ac.codecClient.Close()
-		needCloseDownStream = true
+		communicationFailure = true
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		needCloseDownStream = true
+		communicationFailure = true
 	default:
 		// do nothing
 	}
 
-	if needCloseDownStream && ac.downstreamConn != nil {
+	if communicationFailure && ac.downstreamConn != nil {
+		// if connection go away and all requests are handled ,we do not need to close the downstream
+		if atomic.LoadUint32(&ac.goaway) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+			return
+		}
+
 		ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
 // types.StreamEventListener
+var upperStreamGoAway = errors.New("upper stream go away and no active request exist")
+
 func (ac *activeClientBinding) OnDestroyStream() {
 	host := ac.pool.Host()
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
-	ac.Close(nil)
+	if atomic.LoadUint32(&ac.goaway) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.Close(upperStreamGoAway)
+	}
 }
 
 func (ac *activeClientBinding) OnResetStream(reason types.StreamResetReason) {
@@ -340,7 +350,12 @@ func (ac *activeClientBinding) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamConnectionEventListener
 func (ac *activeClientBinding) OnGoAway() {
-	atomic.StoreUint32(&ac.goaway, 1)
+	ac.removeFromPool()
+	atomic.StoreUint32(&ac.goaway, GoAway)
+
+	if ac.codecClient.ActiveRequestsNum() == 0 {
+		ac.Close(upperStreamGoAway)
+	}
 }
 
 // SetHeartBeater set the heart beat for an active client
@@ -361,7 +376,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnectionID); val != nil {
+		if val, err := variable.Get(ctx, types.VariableConnectionID); err == nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

@@ -121,7 +121,7 @@ func genHolmesOptions(cfg *holmesConfig) ([]holmes.Option, error) {
 
 	// use MosnBasePath/holmes as default dump path
 	dumpPath := cfg.DumpPath
-	if dumpPath != "" {
+	if dumpPath == "" {
 		dumpPath = types.MosnBasePath + string(os.PathSeparator) + "holmes"
 	}
 	options = append(options, holmes.WithDumpPath(dumpPath))

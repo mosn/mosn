@@ -19,7 +19,7 @@ package grpc
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 const (
