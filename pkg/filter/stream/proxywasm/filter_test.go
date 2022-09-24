@@ -1,3 +1,4 @@
+//go:build wasmer
 // +build wasmer
 
 /*
@@ -30,7 +31,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/mock"
 	_ "mosn.io/mosn/pkg/stream/http"
-	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	"mosn.io/pkg/buffer"
 )
@@ -202,45 +202,4 @@ func TestProxyWasmStreamFilterHttpCallout(t *testing.T) {
 	rFilter.SetReceiveFilterHandler(receiverHandler)
 	rFilter.OnReceive(context.TODO(), reqHeaderMap, reqBody, nil)
 	rFilter.OnDestroy()
-}
-
-func TestFilterHandler(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	f := &Filter{}
-	assert.Nil(t, f.GetHttpRequestHeader())
-	assert.Nil(t, f.GetHttpRequestBody())
-	assert.Nil(t, f.GetHttpRequestTrailer())
-	assert.Nil(t, f.GetHttpResponseHeader())
-	assert.Nil(t, f.GetHttpResponseBody())
-	assert.Nil(t, f.GetHttpResponseTrailer())
-
-	reqHeader := mockHeaderMap(ctrl)
-	reqBody := buffer.NewIoBufferString("request body")
-	reqTrailer := mockHeaderMap(ctrl)
-
-	receiverHandler := mock.NewMockStreamReceiverFilterHandler(ctrl)
-	receiverHandler.EXPECT().GetRequestHeaders().AnyTimes().Return(reqHeader)
-	receiverHandler.EXPECT().GetRequestData().AnyTimes().Return(reqBody)
-	receiverHandler.EXPECT().GetRequestTrailers().AnyTimes().Return(reqTrailer)
-
-	respHeader := mockHeaderMap(ctrl)
-	respBody := buffer.NewIoBufferString("response body")
-	respTrailer := mockHeaderMap(ctrl)
-
-	senderHandler := mock.NewMockStreamSenderFilterHandler(ctrl)
-	senderHandler.EXPECT().GetResponseHeaders().AnyTimes().Return(respHeader)
-	senderHandler.EXPECT().GetResponseData().AnyTimes().Return(respBody)
-	senderHandler.EXPECT().GetResponseTrailers().AnyTimes().Return(respTrailer)
-
-	f.SetReceiveFilterHandler(receiverHandler)
-	f.SetSenderFilterHandler(senderHandler)
-
-	assert.Equal(t, f.GetHttpRequestHeader().(*proxywasm010.HeaderMapWrapper).HeaderMap, reqHeader)
-	assert.Equal(t, f.GetHttpRequestBody().(*proxywasm010.IoBufferWrapper).IoBuffer, reqBody)
-	assert.Equal(t, f.GetHttpRequestTrailer().(*proxywasm010.HeaderMapWrapper).HeaderMap, reqTrailer)
-	assert.Equal(t, f.GetHttpResponseHeader().(*proxywasm010.HeaderMapWrapper).HeaderMap, respHeader)
-	assert.Equal(t, f.GetHttpResponseBody().(*proxywasm010.IoBufferWrapper).IoBuffer, respBody)
-	assert.Equal(t, f.GetHttpResponseTrailer().(*proxywasm010.HeaderMapWrapper).HeaderMap, respTrailer)
 }
