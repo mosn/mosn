@@ -177,8 +177,7 @@ func (e *exportAdapter) ProxyOnContextCreate(contextID int32, parentContextID in
 	if e.v1 != nil {
 		return e.v1.ProxyOnContextCreate(contextID, parentContextID)
 	} else {
-		_, err := e.v2.ProxyOnContextCreate(contextID, parentContextID, v2Host.ContextTypeHttpContext)
-		return err
+		return e.v2.ProxyOnContextCreate(contextID, parentContextID, v2Host.ContextTypeHttpContext)
 	}
 }
 
