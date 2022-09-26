@@ -376,6 +376,7 @@ type activeListener struct {
 	networkFiltersFactories  []api.NetworkFilterChainFactory
 	listenIP                 string
 	listenPort               int
+	defaultReadBufferSize    int
 	conns                    *utils.SyncList
 	handler                  *connHandler
 	stopChan                 chan struct{}
@@ -392,6 +393,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
+		defaultReadBufferSize:    lc.DefaultReadBufferSize,
 		conns:                    utils.NewSyncList(),
 		handler:                  handler,
 		stopChan:                 stopChan,
@@ -491,6 +493,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	_ = variable.Set(ctx, types.VariableListenerPort, al.listenPort)
 	_ = variable.Set(ctx, types.VariableListenerType, al.listener.Config().Type)
 	_ = variable.Set(ctx, types.VariableListenerName, al.listener.Name())
+	_ = variable.Set(ctx, types.VariableConnDefaultReadBufferSize, al.defaultReadBufferSize)
 	_ = variable.Set(ctx, types.VariableNetworkFilterChainFactories, al.networkFiltersFactories)
 	_ = variable.Set(ctx, types.VariableAccessLogs, al.accessLogs)
 	if rawf != nil {
