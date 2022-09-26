@@ -15,7 +15,6 @@ filter-go.go    // Wasm 扩展程序的 go 源码文件
 filter-c.cc     // Wasm 扩展程序的 c 源码文件
 makefile        // 用于编译 wasm 文件
 server.go       // 模拟的外部 http 服务器
-v2              // Proxy Wasm v2 配置
 ```
 
 ## 运行说明

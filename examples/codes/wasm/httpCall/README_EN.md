@@ -15,7 +15,6 @@ filter-go.go    // Wasm source file written in go
 filter-c.cc     // Wasm source file written in c
 makefile        // makefile to compile wasm source file into wasm extension
 server.go       // mocked external http server
-v2              // Proxy Wasm v2 config files
 ```
 
 ## Instructions
