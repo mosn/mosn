@@ -1,3 +1,4 @@
+//go:build wasmer
 // +build wasmer
 
 /*
