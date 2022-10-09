@@ -65,7 +65,7 @@ type mockCbServer struct {
 	ToHealthy   uint32
 }
 
-func (s *mockCbServer) Record(host types.Host, changed bool, isHealthy bool, info string) {
+func (s *mockCbServer) Record(host types.Host, changed bool, isHealthy bool) {
 	if changed {
 		if isHealthy {
 			atomic.AddUint32(&s.ToHealthy, 1)
