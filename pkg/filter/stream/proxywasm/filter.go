@@ -98,7 +98,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 		filter.abi.SetABIImports(imports)
 		filter.exports = &exportAdapter{v2: filter.abi.GetABIExports().(v2Host.Exports)}
 	} else {
-		log.DefaultLogger.Errorf("[proxywasm][filter] unknown abi list: %v")
+		log.DefaultLogger.Errorf("[proxywasm][filter] unknown abi list: %v", filter.abi)
 		return nil
 	}
 

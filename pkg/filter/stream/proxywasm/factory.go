@@ -171,7 +171,7 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 			abi.SetABIImports(imports)
 			exports = &exportAdapter{v2: abi.GetABIExports().(v2Host.Exports)}
 		} else {
-			log.DefaultLogger.Errorf("[proxywasm][factory] unknown abi list: %v")
+			log.DefaultLogger.Errorf("[proxywasm][factory] unknown abi list: %v", abi)
 			return false
 		}
 
