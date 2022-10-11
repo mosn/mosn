@@ -1,6 +1,7 @@
 // How to use conditional compilation with the go build tool:
 // https://dave.cheney.net/2013/10/12/how-to-use-conditional-compilation-with-the-go-build-tool
 
+//go:build wasmer
 // +build wasmer
 
 // The default WASM module is not compiled,
