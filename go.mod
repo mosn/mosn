@@ -35,14 +35,14 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/fasthttp v1.14.1-0.20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
-	github.com/wasmerio/wasmer-go v1.0.3
+	github.com/wasmerio/wasmer-go v1.0.4
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
@@ -59,7 +59,7 @@ require (
 	mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f
 	mosn.io/holmes v1.0.1
 	mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9
-	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
+	mosn.io/proxy-wasm-go-host v0.2.0
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
 )

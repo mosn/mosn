@@ -43,7 +43,7 @@ import (
 
 // Network related const
 const (
-	DefaultBufferReadCapacity = 1 << 7
+	DefaultReadBufferSize = 1 << 7
 
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
@@ -115,13 +115,14 @@ type connection struct {
 	filterManager        api.FilterManager
 	network              string
 
-	stopChan           chan struct{}
-	curWriteBufferData []buffer.IoBuffer
-	readBuffer         buffer.IoBuffer
-	writeBuffers       net.Buffers
-	ioBuffers          []buffer.IoBuffer
-	writeBufferChan    chan *[]buffer.IoBuffer
-	transferChan       chan uint64
+	stopChan              chan struct{}
+	curWriteBufferData    []buffer.IoBuffer
+	readBuffer            buffer.IoBuffer
+	defaultReadBufferSize int
+	writeBuffers          net.Buffers
+	ioBuffers             []buffer.IoBuffer
+	writeBufferChan       chan *[]buffer.IoBuffer
+	transferChan          chan uint64
 
 	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
@@ -179,6 +180,14 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		readCollector:  metrics.NilCounter{},
 		writeCollector: metrics.NilCounter{},
 		tryMutex:       utils.NewMutex(),
+	}
+
+	conn.defaultReadBufferSize = DefaultReadBufferSize
+	if val, err := variable.Get(ctx, types.VariableConnDefaultReadBufferSize); err == nil && val != nil {
+		size := val.(int)
+		if size > 0 {
+			conn.defaultReadBufferSize = size
+		}
 	}
 
 	// store fd
@@ -263,9 +272,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		// shrink read buffer
 		// this shrink logic may happen concurrent with read callback,
 		// so we should protect this under readBufferMux
-		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 			c.readBuffer.Free()
-			c.readBuffer.Alloc(DefaultBufferReadCapacity)
+			c.readBuffer.Alloc(c.defaultReadBufferSize)
 		}
 
 		// if connection is not closed, timer should be reset
@@ -310,9 +319,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				// err != nil
 				if te, ok := err.(net.Error); ok && te.Timeout() {
-					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 						c.readBuffer.Free()
-						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+						c.readBuffer.Alloc(c.defaultReadBufferSize)
 					}
 
 					// should reset timer
@@ -452,9 +461,9 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 							c.readBuffer.Free()
-							c.readBuffer.Alloc(DefaultBufferReadCapacity)
+							c.readBuffer.Alloc(c.defaultReadBufferSize)
 						}
 						continue
 					}
@@ -538,7 +547,7 @@ func (c *connection) doRead() (err error) {
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 		default: // unix or tcp
-			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
+			c.readBuffer = buffer.GetIoBuffer(c.defaultReadBufferSize)
 		}
 	}
 

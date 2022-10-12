@@ -125,13 +125,25 @@ func Test_get_cookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
 	actual, err := variable.GetString(ctx,
-		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolCookie, "zone"))
+		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "zone"))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
 
 	if actual != "shanghai" {
 		t.Error("request cookie assert failed, expected: shanghai, actual is: ", actual)
+	}
+
+	_, err = variable.GetString(
+		ctx,
+		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "env"),
+	)
+
+	if err == nil {
+		t.Error("request cookie assert failed, should get an err, actually get a nil")
+	}
+	if err.Error() != "not found cookie value" {
+		t.Error(`request cookie assert failed, the err message should be "not found cookie value"`)
 	}
 }
 

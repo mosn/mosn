@@ -149,6 +149,7 @@ const (
 	VarListenerPort                = "listener_port"
 	VarListenerName                = "listener_name"
 	VarListenerType                = "listener_type"
+	VarConnDefaultReadBufferSize   = "conn_default_read_buffer_size"
 	VarNetworkFilterChainFactories = "network_filterchain_factories"
 	VarAccessLogs                  = "access_logs"
 	VarAcceptChan                  = "accept_chan"
@@ -175,6 +176,7 @@ var (
 	VariableListenerPort                = variable.NewVariable(VarListenerPort, nil, nil, variable.DefaultSetter, 0)
 	VariableListenerName                = variable.NewVariable(VarListenerName, nil, nil, variable.DefaultSetter, 0)
 	VariableListenerType                = variable.NewVariable(VarListenerType, nil, nil, variable.DefaultSetter, 0)
+	VariableConnDefaultReadBufferSize   = variable.NewVariable(VarConnDefaultReadBufferSize, nil, nil, variable.DefaultSetter, 0)
 	VariableNetworkFilterChainFactories = variable.NewVariable(VarNetworkFilterChainFactories, nil, nil, variable.DefaultSetter, 0)
 	VariableAccessLogs                  = variable.NewVariable(VarAccessLogs, nil, nil, variable.DefaultSetter, 0)
 	VariableAcceptChan                  = variable.NewVariable(VarAcceptChan, nil, nil, variable.DefaultSetter, 0)
@@ -196,7 +198,7 @@ var (
 func init() {
 	builtinVariables := []variable.Variable{
 		VariableStreamID, VariableConnection, VariableConnectionID, VariableConnectionPoolIndex,
-		VariableListenerPort, VariableListenerName, VariableListenerType, VariableNetworkFilterChainFactories,
+		VariableListenerPort, VariableListenerName, VariableListenerType, VariableConnDefaultReadBufferSize, VariableNetworkFilterChainFactories,
 		VariableAccessLogs, VariableAcceptChan, VariableAcceptBuffer, VariableConnectionFd,
 		VariableTraceSpankey, VariableTraceId, VariableProxyGeneralConfig, VariableConnectionEventListeners,
 		VariableUpstreamConnectionID, VariableOriRemoteAddr,

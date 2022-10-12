@@ -19,6 +19,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"mosn.io/api"
@@ -159,9 +160,9 @@ func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data in
 
 	cookieName := data.(string)
 	cookieValue := request.Header.Cookie(cookieName[cookieIndex:])
-	// nil means no kv exists, "" means kv exists, but value is ""
+	// error not nil means that no kv exists
 	if cookieValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, errors.New("not found cookie value")
 	}
 
 	return string(cookieValue), nil
