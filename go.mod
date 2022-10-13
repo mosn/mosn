@@ -56,7 +56,7 @@ require (
 	istio.io/api v0.0.0-20211103171850-665ed2b92d52
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
-	mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f
+	mosn.io/api v1.1.1-0.20221013030110-4e70b56483a5
 	mosn.io/holmes v1.0.1
 	mosn.io/pkg v1.1.0
 	mosn.io/proxy-wasm-go-host v0.1.1-0.20210524020952-3fb13ba763a6
@@ -65,7 +65,5 @@ require (
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
-
-replace mosn.io/api => github.com/YIDWang/api v0.0.0-20220908081956-a3179a1bb03e
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
