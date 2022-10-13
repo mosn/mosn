@@ -2,6 +2,7 @@
 	"servers":[
 		{
 			"default_log_path":"stdout",
+			"default_log_level":"DEBUG",
 			"routers":[
 				{
 					"router_config_name":"server_router",
@@ -15,23 +16,45 @@
 							}
 						]
 					}]
+				},
+				{
+					"router_config_name":"proxy_router",
+					"virtual_hosts":[{
+						"name":"serverHost",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"prefix":"/"},
+								"route":{"cluster_name":"proxyCluster"}
+							}
+						]
+					}]
 				}
 			],
 			"listeners":[
 				{
 					"name":"Listener_16000",
-					"address": "127.0.0.1:16000",
+					"address": "172.18.0.2:16000",
                     "bind_port": true,
-					"transparent": true,
+					"use_original_dst": true,
 					"listener_filters": [
 						{
 							"type": "transparent_proxy",
 							"config":{}
 						}
 					],
-					"filter_chains": [
-                        {}
-                    ]
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
+									"router_config_name":"proxy_router"
+								}
+							}
+						]
+					}]
 				},
 				{
 					"name":"Listener_80",
@@ -80,7 +103,18 @@
                 "mark": 68,
 				"conn_buffer_limit_bytes":32768,
 				"hosts":[
-					{"address":"180.101.49.11:80"}
+					{"address":"127.0.0.1:80"}
+				]
+			},
+			{
+				"name":"proxyCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+                "max_request_per_conn": 1024,
+                "mark": 69,
+				"conn_buffer_limit_bytes":32768,
+				"hosts":[
+					{"address":"172.18.0.3:80"}
 				]
 			}
 		]

@@ -19,7 +19,7 @@ package transparent
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -40,6 +40,10 @@ func CreateTransparentProxyFactory(conf map[string]interface{}) (api.ListenerFil
 
 // OnAccept called when connection accept
 func (filter *transparentProxy) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) api.FilterStatus {
+	if !cb.GetUseOriginalDst() {
+		return api.Continue
+	}
+
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
 		log.DefaultLogger.Errorf("[transparentProxy] get original addr failed: %v", err)

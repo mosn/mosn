@@ -26,7 +26,7 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 //
@@ -113,7 +113,7 @@ type Listener interface {
 	SetUseOriginalDst(use bool)
 
 	// Get if listener should use original dst
-	UseOriginalDst() bool
+	GetUseOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)

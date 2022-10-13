@@ -28,7 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
@@ -72,7 +72,7 @@ type listener struct {
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	useOriginalDst          bool
-	transparent             bool
+	originalDstType         string
 	network                 string
 	cb                      types.ListenerEventListener
 	packetConn              net.PacketConn
@@ -92,7 +92,6 @@ func NewListener(lc *v2.Listener) types.Listener {
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		useOriginalDst:          lc.UseOriginalDst,
-		transparent:             lc.Transparent,
 		network:                 lc.Network,
 		config:                  lc,
 	}
@@ -104,6 +103,10 @@ func NewListener(lc *v2.Listener) types.Listener {
 
 	if lc.InheritPacketConn != nil {
 		l.packetConn = *lc.InheritPacketConn
+	}
+
+	if lc.ListenerFilters != nil && len(lc.ListenerFilters) > 0 {
+		l.originalDstType = lc.ListenerFilters[0].Type
 	}
 
 	if lc.Network == "" {
@@ -327,7 +330,7 @@ func (l *listener) SetUseOriginalDst(use bool) {
 	l.useOriginalDst = use
 }
 
-func (l *listener) UseOriginalDst() bool {
+func (l *listener) GetUseOriginalDst() bool {
 	return l.useOriginalDst
 }
 
@@ -380,7 +383,7 @@ func (l *listener) listen(lctx context.Context) error {
 		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
 			return err
 		}
-		if l.transparent {
+		if l.originalDstType == v2.TRANSPARENT_LISTENER_FILTER {
 			rawConn, err := rawl.(*net.TCPListener).SyscallConn()
 			if err != nil {
 				return err

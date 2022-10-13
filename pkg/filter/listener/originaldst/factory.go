@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
@@ -30,7 +30,7 @@ import (
 
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
-	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
+	api.RegisterListener(v2.REDIRECT_LISTENER_FILTER, CreateOriginalDstFactory)
 }
 
 type OriginalDstConfig struct {

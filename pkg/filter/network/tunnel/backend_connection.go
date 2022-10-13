@@ -50,3 +50,7 @@ func CreateAgentBackendConnection(conn api.Connection) *agentBackendConnection {
 		Connection: conn,
 	}
 }
+
+func (cc *agentBackendConnection) SetMark(mark uint32) {
+
+}

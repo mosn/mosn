@@ -177,7 +177,7 @@ func (a *connection) initConnection() error {
 	// Hosting new connection
 	utils.GoWithRecover(func() {
 		ch := make(chan api.Connection, 1)
-		a.listener.GetListenerCallbacks().OnAccept(a.rawc, a.listener.UseOriginalDst(), nil, ch, a.readBuffer.Bytes(), []api.ConnectionEventListener{a})
+		a.listener.GetListenerCallbacks().OnAccept(a.rawc, a.listener.GetUseOriginalDst(), nil, ch, a.readBuffer.Bytes(), []api.ConnectionEventListener{a})
 	}, nil)
 
 	return nil
