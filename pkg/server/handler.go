@@ -163,7 +163,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.UseOriginalDst = lc.UseOriginalDst
 		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
-
 		al.listener.SetConfig(rawConfig)
 
 		// set update label to true, do not start the listener again
@@ -729,7 +728,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
-
 	}
 
 	var ch chan api.Connection

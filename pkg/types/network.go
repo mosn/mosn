@@ -185,6 +185,9 @@ type ClientConnection interface {
 
 	// connect to server in a async way
 	Connect() error
+
+	// set SO_MARK with this client Connection
+	SetMark(uint32)
 }
 
 // Default connection arguments

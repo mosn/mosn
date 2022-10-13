@@ -20,6 +20,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -71,6 +72,7 @@ type listener struct {
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	useOriginalDst          bool
+	transparent             bool
 	network                 string
 	cb                      types.ListenerEventListener
 	packetConn              net.PacketConn
@@ -90,6 +92,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		useOriginalDst:          lc.UseOriginalDst,
+		transparent:             lc.Transparent,
 		network:                 lc.Network,
 		config:                  lc,
 	}
@@ -376,6 +379,28 @@ func (l *listener) listen(lctx context.Context) error {
 	case "tcp":
 		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
 			return err
+		}
+		if l.transparent {
+			rawConn, err := rawl.(*net.TCPListener).SyscallConn()
+			if err != nil {
+				return err
+			}
+			var controlError error
+			if err := rawConn.Control(func(fd uintptr) {
+				if err = syscall.SetsockoptInt(int(fd), SOL_IP, IP_TRANSPARENT, 1); err != nil {
+					controlError = fmt.Errorf(
+						"failed to set socket opt IP_TRANSPARENT for listener %s: %s",
+						l.localAddress.String(), err.Error(),
+					)
+					log.DefaultLogger.Errorf(controlError.Error())
+				}
+			}); err != nil {
+				return err
+			}
+
+			if controlError != nil {
+				return controlError
+			}
 		}
 		l.rawl = rawl
 	}

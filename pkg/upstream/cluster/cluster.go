@@ -61,6 +61,7 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 		clusterType:          clusterConfig.ClusterType,
 		subType:              clusterConfig.SubType,
 		maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
+		mark:                 clusterConfig.Mark,
 		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 		stats:                newClusterStats(clusterConfig.Name),
 		lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
@@ -185,6 +186,7 @@ type clusterInfo struct {
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
 	connBufferLimitBytes uint32
 	maxRequestsPerConn   uint32
+	mark                 uint32
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
@@ -214,6 +216,10 @@ func (ci *clusterInfo) ConnBufferLimitBytes() uint32 {
 
 func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
 	return ci.maxRequestsPerConn
+}
+
+func (ci *clusterInfo) Mark() uint32 {
+	return ci.mark
 }
 
 func (ci *clusterInfo) Stats() types.ClusterStats {

@@ -59,6 +59,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
 	h.clusterInfo.Store(clusterInfo)
+	network.GetOrCreateAddrMark(config.Address, clusterInfo.Mark())
 	return h
 }
 
@@ -138,6 +139,10 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	}
 	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
+
+	if sh.ClusterInfo().Mark() != 0 {
+		clientConn.SetMark(sh.ClusterInfo().Mark())
+	}
 
 	if sh.ClusterInfo().IdleTimeout() > 0 {
 		clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())

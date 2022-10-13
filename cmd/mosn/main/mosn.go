@@ -34,6 +34,7 @@ import (
 	_ "mosn.io/mosn/istio/istio1106/xds"
 	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
+	_ "mosn.io/mosn/pkg/filter/listener/transparent"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/grpc"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"

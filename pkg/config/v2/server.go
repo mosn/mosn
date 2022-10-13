@@ -59,6 +59,7 @@ type ListenerConfig struct {
 	BindToPort            bool                `json:"bind_port,omitempty"`
 	Network               string              `json:"network,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
+	Transparent           bool                `json:"transparent,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
 	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
 	FilterChains          []FilterChain       `json:"filter_chains,omitempty"` // only one filterchains at this time
