@@ -147,7 +147,7 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	}
 
 	retryTime := clusterSnapshot.HostSet().Size()
-	if retryTime > defaultConnectRetryTimes {
+	if retryTime < 1 || retryTime > defaultConnectRetryTimes {
 		retryTime = defaultConnectRetryTimes
 	}
 	var connectionData types.CreateConnectionData
