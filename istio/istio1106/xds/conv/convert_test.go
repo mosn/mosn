@@ -540,6 +540,7 @@ func Test_convertRedirectAction(t *testing.T) {
 			},
 			expected: &v2.RedirectAction{
 				HostRedirect: "example.com",
+				ResponseCode: http.StatusMovedPermanently,
 			},
 		},
 		{
@@ -551,6 +552,7 @@ func Test_convertRedirectAction(t *testing.T) {
 			},
 			expected: &v2.RedirectAction{
 				PathRedirect: "/foo",
+				ResponseCode: http.StatusMovedPermanently,
 			},
 		},
 		{
@@ -562,13 +564,14 @@ func Test_convertRedirectAction(t *testing.T) {
 			},
 			expected: &v2.RedirectAction{
 				SchemeRedirect: "https",
+				ResponseCode:   http.StatusMovedPermanently,
 			},
 		},
 		{
 			name: "set redirect code",
 			in: &envoy_config_route_v3.RedirectAction{
-				ResponseCode: http.StatusTemporaryRedirect,
 				HostRedirect: "example.com",
+				ResponseCode: envoy_config_route_v3.RedirectAction_TEMPORARY_REDIRECT,
 			},
 			expected: &v2.RedirectAction{
 				HostRedirect: "example.com",
@@ -582,6 +585,54 @@ func Test_convertRedirectAction(t *testing.T) {
 			got := convertRedirectAction(tc.in)
 			if !reflect.DeepEqual(got, tc.expected) {
 				t.Errorf("Unexpected redirect action\nExpected: %#v\nGot: %#v\n", tc.expected, got)
+			}
+		})
+	}
+}
+
+func Test_convertRedirectResponseCode(t *testing.T) {
+	testCases := []struct {
+		name     string
+		in       envoy_config_route_v3.RedirectAction_RedirectResponseCode
+		expected int
+	}{
+		{
+			name:     "redirect code 301",
+			in:       envoy_config_route_v3.RedirectAction_MOVED_PERMANENTLY,
+			expected: http.StatusMovedPermanently,
+		},
+		{
+			name:     "redirect code 302",
+			in:       envoy_config_route_v3.RedirectAction_FOUND,
+			expected: http.StatusFound,
+		},
+		{
+			name:     "redirect code 303",
+			in:       envoy_config_route_v3.RedirectAction_SEE_OTHER,
+			expected: http.StatusSeeOther,
+		},
+		{
+			name:     "redirect code 307",
+			in:       envoy_config_route_v3.RedirectAction_TEMPORARY_REDIRECT,
+			expected: http.StatusTemporaryRedirect,
+		},
+		{
+			name:     "redirect code 308",
+			in:       envoy_config_route_v3.RedirectAction_PERMANENT_REDIRECT,
+			expected: http.StatusPermanentRedirect,
+		},
+		{
+			name:     "default redirect code",
+			in:       306,
+			expected: http.StatusMovedPermanently,
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			got := convertRedirectResponseCode(tc.in)
+			if got != tc.expected {
+				t.Errorf("Unexpected redirect code\nExpected: %d\nGot: %d\n", tc.expected, got)
 			}
 		})
 	}

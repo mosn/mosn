@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"net/http"
 	"strings"
 
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3" // some config contains this protobuf, mosn does not parse it yet.
@@ -274,7 +275,24 @@ func convertRedirectAction(xdsRedirectAction *envoy_config_route_v3.RedirectActi
 		SchemeRedirect: xdsRedirectAction.GetSchemeRedirect(),
 		HostRedirect:   xdsRedirectAction.GetHostRedirect(),
 		PathRedirect:   xdsRedirectAction.GetPathRedirect(),
-		ResponseCode:   int(xdsRedirectAction.GetResponseCode()),
+		ResponseCode:   convertRedirectResponseCode(xdsRedirectAction.GetResponseCode()),
+	}
+}
+
+func convertRedirectResponseCode(responseCode envoy_config_route_v3.RedirectAction_RedirectResponseCode) int {
+	switch responseCode {
+	case envoy_config_route_v3.RedirectAction_MOVED_PERMANENTLY:
+		return http.StatusMovedPermanently
+	case envoy_config_route_v3.RedirectAction_FOUND:
+		return http.StatusFound
+	case envoy_config_route_v3.RedirectAction_SEE_OTHER:
+		return http.StatusSeeOther
+	case envoy_config_route_v3.RedirectAction_TEMPORARY_REDIRECT:
+		return http.StatusTemporaryRedirect
+	case envoy_config_route_v3.RedirectAction_PERMANENT_REDIRECT:
+		return http.StatusPermanentRedirect
+	default:
+		return http.StatusMovedPermanently
 	}
 }
 
