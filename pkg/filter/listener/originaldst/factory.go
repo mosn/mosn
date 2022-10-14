@@ -19,7 +19,6 @@ package originaldst
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -30,17 +29,19 @@ import (
 
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
-	api.RegisterListener(v2.REDIRECT_LISTENER_FILTER, CreateOriginalDstFactory)
+	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
 }
 
 type OriginalDstConfig struct {
 	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
 	// any (0.0.0.0). usually used in ingress listener.
-	FallbackToLocal bool `json:"fallback_to_local"`
+	FallbackToLocal  bool `json:"fallback_to_local"`
+	TransparentProxy bool `json:"transparent_proxy"`
 }
 
 type originalDst struct {
-	fallbackToLocal bool
+	fallbackToLocal  bool
+	transparentProxy bool
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
@@ -56,7 +57,8 @@ func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterCh
 		return nil, err
 	}
 	return &originalDst{
-		fallbackToLocal: cfg.FallbackToLocal,
+		fallbackToLocal:  cfg.FallbackToLocal,
+		transparentProxy: cfg.TransparentProxy,
 	}, nil
 }
 
@@ -68,23 +70,35 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 		return api.Continue
 	}
 
-	ip, port, err := getOriginalAddr(cb.Conn())
+	var ip string
+	var port int
+	var err error
+	var logTag string
+
+	if filter.transparentProxy {
+		ip, port, err = getTransparentProxyAddr(cb.Conn())
+		logTag = "transparentProxy"
+
+	} else {
+		ip, port, err = getRedirectAddr(cb.Conn())
+		logTag = "redirect"
+	}
+
 	if err != nil {
-		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
+		log.DefaultLogger.Errorf("[%s] get original addr failed: %v", logTag, err)
 		return api.Continue
 	}
 
-	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
-
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("originalDst remote addr: %s:%d", ips, port)
+		log.DefaultLogger.Debugf("%s remote addr: %s:%d", logTag, ip, port)
 	}
+
 	if filter.fallbackToLocal {
 		ctx := cb.GetOriContext()
 		variable.SetString(ctx, types.VarListenerMatchFallbackIP, localHost)
 	}
 
-	cb.SetOriginalAddr(ips, port)
+	cb.SetOriginalAddr(ip, port)
 	cb.UseOriginalDst(cb.GetOriContext())
 
 	return api.Stop

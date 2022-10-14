@@ -59,10 +59,7 @@ type StreamDSL struct {
 
 // Listener Filter's Type
 const (
-	// TODO replace 'ORIGINALDST_LISTENER_FILTER = "original_dst"' with 'ORIGINALDST = "original_dst"' as xds LISTENER_FILTER type judgment
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
-	REDIRECT_LISTENER_FILTER    = "redirect"
-	TRANSPARENT_LISTENER_FILTER = "transparent_proxy"
 )
 
 type FaultToleranceFilterConfig struct {
