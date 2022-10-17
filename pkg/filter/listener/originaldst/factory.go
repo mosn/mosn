@@ -30,6 +30,7 @@ import (
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
+
 }
 
 type OriginalDstConfig struct {
@@ -37,6 +38,15 @@ type OriginalDstConfig struct {
 	// any (0.0.0.0). usually used in ingress listener.
 	FallbackToLocal  bool `json:"fallback_to_local"`
 	TransparentProxy bool `json:"transparent_proxy"`
+}
+
+func CreateOriginalDstConfig(conf map[string]interface{}) (OriginalDstConfig, error) {
+	b, _ := json.Marshal(conf)
+	cfg := OriginalDstConfig{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
 }
 
 type originalDst struct {
@@ -51,9 +61,8 @@ func NewOriginalDst() api.ListenerFilterChainFactory {
 }
 
 func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
-	b, _ := json.Marshal(conf)
-	cfg := OriginalDstConfig{}
-	if err := json.Unmarshal(b, &cfg); err != nil {
+	cfg, err := CreateOriginalDstConfig(conf)
+	if err != nil {
 		return nil, err
 	}
 	return &originalDst{

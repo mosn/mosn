@@ -1,0 +1,101 @@
+{
+	"servers":[
+		{
+			"default_log_path":"stdout",
+			"default_log_level":"DEBUG",
+			"routers":[
+				{
+					"router_config_name":"server_router",
+					"virtual_hosts":[{
+						"name":"serverHost",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"prefix":"/"},
+								"route":{"cluster_name":"serverCluster"}
+							}
+						]
+					}]
+				}
+			],
+			"listeners":[
+				{
+					"name":"Listener_16000",
+					"address": "172.18.0.2:16000",
+                    "bind_port": true,
+					"use_original_dst": true,
+					"listener_filters": [
+						{
+							"type": "original_dst",
+							"config":{
+								"transparent_proxy": true
+							}
+						}
+					],
+					"filter_chains": [{
+						"filters": [
+							{}
+						]
+					}]
+				},
+				{
+					"name":"Listener_80",
+					"address": "0.0.0.0:80",
+					"bind_port": false,
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
+									"router_config_name":"server_router"
+								}
+							}
+						]
+					}]
+                },
+                {
+					"name":"Listener_443",
+					"address": "0.0.0.0:443",
+					"bind_port": false,
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
+									"router_config_name":"server_router"
+								}
+							}
+						]
+					}]
+				}
+			]
+		}
+	],
+	"cluster_manager":{
+		"clusters":[
+			{
+				"name":"serverCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+                "max_request_per_conn": 1024,
+                "mark": 68,
+				"conn_buffer_limit_bytes":32768,
+				"hosts":[
+					{"address":"127.0.0.1:8080"}
+				]
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34901
+			}
+		}
+	}
+}

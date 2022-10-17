@@ -39,8 +39,10 @@
 					"use_original_dst": true,
 					"listener_filters": [
 						{
-							"type": "transparent_proxy",
-							"config":{}
+							"type": "original_dst",
+							"config":{
+								"transparent_proxy": true
+							}
 						}
 					],
 					"filter_chains": [{
