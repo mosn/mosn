@@ -54,24 +54,7 @@
 							}
 						]
 					}]
-                },
-                {
-					"name":"Listener_443",
-					"address": "0.0.0.0:443",
-					"bind_port": false,
-					"filter_chains": [{
-						"filters": [
-							{
-								"type": "proxy",
-								"config": {
-									"downstream_protocol": "Auto",
-									"upstream_protocol": "Auto",
-									"router_config_name":"server_router"
-								}
-							}
-						]
-					}]
-				}
+                }
 			]
 		}
 	],
