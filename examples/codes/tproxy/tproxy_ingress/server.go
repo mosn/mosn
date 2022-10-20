@@ -1,43 +1,44 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
-	"time"
+	"net/http"
+	"os"
 )
 
-func main() {
-	listen, _ := net.Listen("tcp", "0.0.0.0:8080")
-
-	for {
-		conn, err := listen.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		go handle(conn)
-	}
+func param(res http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	addr, _ := ctx.Value("addr").(string)
+	fmt.Fprintln(res, addr)
 }
 
-func handle(conn net.Conn) {
-	defer conn.Close()
-
-	go func() {
-		response := make([]byte, 2048)
-		conn.Read(response)
-		//response, _ := ioutil.ReadAll(conn)
-		fmt.Println(string(response))
-	}()
-
+func connContext(ctx context.Context, conn net.Conn) context.Context {
 	local := conn.LocalAddr()
 	romote := conn.RemoteAddr()
 
-	stream := fmt.Sprintf("[server] server ip: %s; client ip: %s", local.String(), romote.String())
-	fmt.Println(string(stream))
+	addr := fmt.Sprintf("[server] server ip: %s; client ip: %s", local.String(), romote.String())
+	fmt.Println(addr)
 
-	write := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n")
-	conn.Write([]byte(write))
+	c := context.WithValue(ctx, "addr", addr)
+	return c
+}
 
-	time.Sleep(time.Millisecond * 100)
+func main() {
+
+	args := os.Args
+
+	addr := "localhost:8080"
+	if len(args) > 1 {
+		addr = args[1]
+	}
+
+	server := http.Server{
+		Addr:        addr,
+		ConnContext: connContext,
+	}
+
+	http.HandleFunc("/", param)
+	server.ListenAndServe()
 }

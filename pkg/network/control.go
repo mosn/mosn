@@ -8,23 +8,24 @@ import (
 )
 
 const (
-	SO_MARK              = 0x24
-	SOL_IP               = 0x0
-	IP_TRANSPARENT       = 0x13
+	SO_MARK        = 0x24
+	SOL_IP         = 0x0
+	IP_TRANSPARENT = 0x13
 )
 
 var sockMarkStore sync.Map
 
 func GetOrCreateAddrMark(address string, mark uint32) {
+	m := int(mark)
 	if v, ok := sockMarkStore.Load(address); ok {
 		if mark == 0 {
 			sockMarkStore.Delete(address)
-		} else if (v.(uint32) != mark) {
-			sockMarkStore.Store(address, int(mark))
+		} else if v.(int) != m {
+			sockMarkStore.Store(address, m)
 		}
 	} else {
 		if mark > 0 {
-			sockMarkStore.Store(address, int(mark))
+			sockMarkStore.Store(address, m)
 		}
 	}
 }
@@ -44,7 +45,8 @@ func SockMarkControl(network, address string, c syscall.RawConn) error {
 			if err != nil {
 				return
 			}
-	}}); cerr != nil {
+		}
+	}); cerr != nil {
 		return cerr
 	}
 

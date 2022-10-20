@@ -1,0 +1,60 @@
+{
+	"servers":[
+		{
+			"default_log_path":"stdout",
+			"default_log_level":"DEBUG",
+			"listeners":[
+				{
+					"name":"Listener_16000",
+					"address": "0.0.0.0:16000",
+                    "bind_port": true,
+					"use_original_dst": true,
+					"listener_filters": [
+						{
+							"type": "original_dst",
+							"config":{
+								"transparent_proxy": true
+							}
+						}
+					],
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "tcp_proxy",
+								"config": {
+									"cluster": "server_tcp_cluster"
+								}
+							}
+						]
+					}]
+				}
+			]
+		}
+	],
+	"cluster_manager":{
+		"clusters":[
+			{
+				"name":"server_tcp_cluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_ORIGINAL_DST",
+                "max_request_per_conn": 1024,
+                "mark": 68,
+				"conn_buffer_limit_bytes":32768,
+				"hosts":[
+					{"address":"127.0.0.1:80"}
+				],
+				"original_dst_lb_config": {
+					"replace_local": true
+				}
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34901
+			}
+		}
+	}
+}
