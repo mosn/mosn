@@ -6,7 +6,7 @@
 			"listeners":[
 				{
 					"name":"Listener_16000",
-					"address": "172.18.0.2:16000",
+					"address": "0.0.0.0:16000",
                     "bind_port": true,
 					"use_original_dst": true,
 					"listener_filters": [
