@@ -108,7 +108,7 @@ const ConfigTProxy = `{
 						{
 							"type": "original_dst",
 							"config":{
-								"transparent_proxy": true
+								"type": "tproxy"
 							}
 						}
 					],
@@ -157,4 +157,5 @@ const ConfigTProxy = `{
 			}
 		}
 	}
-}`
+}
+`
