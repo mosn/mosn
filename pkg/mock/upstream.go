@@ -823,7 +823,7 @@ func (m *MockClusterInfo) EXPECT() *MockClusterInfoMockRecorder {
 	return m.recorder
 }
 
-// Name mocks base method.
+// Mark mocks base method.
 func (m *MockClusterInfo) Mark() uint32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Mark")
@@ -831,6 +831,7 @@ func (m *MockClusterInfo) Mark() uint32 {
 	return ret0
 }
 
+// Mark indicates an expected call of Mark
 func (mr *MockClusterInfoMockRecorder) Mark() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mark", reflect.TypeOf((*MockClusterInfo)(nil).Mark))

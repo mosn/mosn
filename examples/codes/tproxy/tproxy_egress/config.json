@@ -2,10 +2,49 @@
 	"servers":[
 		{
 			"default_log_path":"stdout",
-			"default_log_level":"DEBUG",
+			"routers": [
+				{
+                    "router_config_name": "tproxy_router",
+                    "virtual_hosts": [
+						{
+							"name": "tproxy_server",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"direct_response": {
+										"status": 200,
+										"body": "this is tproxy_server"
+									}
+								}
+							]
+						}
+                    ]
+                },
+				{
+                    "router_config_name": "general_router",
+                    "virtual_hosts": [
+						{
+							"name": "general_server",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"direct_response": {
+										"status": 200,
+										"body": "this is general_server"
+									}
+								}
+							]
+						}
+                    ]
+                }
+			],
 			"listeners":[
 				{
-					"name":"Listener_16000",
+					"name":"tproxy_listener",
 					"address": "0.0.0.0:16000",
                     "bind_port": true,
 					"use_original_dst": true,
@@ -17,35 +56,43 @@
 							}
 						}
 					],
-					"filter_chains": [{
-						"filters": [
-							{
-								"type": "tcp_proxy",
-								"config": {
-									"cluster": "server_tcp_cluster"
-								}
-							}
-						]
-					}]
+					"filter_chains": [
+                        {
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "tproxy_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+				},
+				{
+					"name": "general_listener",
+                    "address": "0.0.0.0:80",
+                    "bind_port": false,
+                    "filter_chains": [
+                        {
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "general_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
 				}
 			]
 		}
 	],
-	"cluster_manager":{
-		"clusters":[
-			{
-				"name":"server_tcp_cluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_ORIGINAL_DST",
-                "max_request_per_conn": 1024,
-                "mark": 68,
-				"conn_buffer_limit_bytes":32768,
-				"hosts":[
-					{"address":"127.0.0.1:8090"}
-				]
-			}
-		]
-	},
 	"admin": {
 		"address": {
 			"socket_address": {
