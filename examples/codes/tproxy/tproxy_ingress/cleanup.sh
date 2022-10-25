@@ -1,8 +1,11 @@
 #!/usr/bin/sudo /bin/bash
 
-TPROXY_PORT=16000
-LO_MARK=1
+source ./iptables_config.sh
 
-ip rule del from all fwmark $LO_MARK lookup 100
+ip rule del from all fwmark $mark lookup 100
 ip route del local 0.0.0.0/0 dev lo table 100
-iptables -t mangle -D PREROUTING ! -s localhost -p tcp -j TPROXY --on-port $TPROXY_PORT --tproxy-mark $LO_MARK 
+
+for port in ${dports[@]}
+    do
+    iptables -t mangle -D PREROUTING ! -s localhost -p tcp --dport $port -j TPROXY --on-port $tproxy_port --tproxy-mark $mark 
+    done

@@ -1,16 +1,16 @@
-## 使用 MOSN 作为TProxy 代理
+## 使用 MOSN 作为 TProxy 代理
 
 ## 简介
 
-+ 该样例工程演示了如何配置使得MOSN作egress模式Transparent Proxy代理
-+ 配置iptables使MOSN代理所有向外发送的请求
-+ 首先选择MOSN监听的其余listener，匹配规则：优先ip、prot都命中，其次port命中
-+ 没有匹配的listener则用TProxy代理配置的cluster
++ 该样例工程演示了如何配置使得 MOSN 作 egress 模式 TProxy 代理
++ 配置 iptables 使 MOSN 代理发往指定目标端口的请求（可以在 iptables_config.sh 中配置）
++ 首先选择 MOSN 监听的其余 listener，匹配规则：优先 ip、prot 都命中，其次 port 命中
++ 没有匹配的 listener 则用 TProxy 代理配置的 cluster
 
 
 ## 准备
 
-需要一个编译好的MOSN程序
+需要一个编译好的 MOSN 程序
 ```
 cd ${projectpath}/cmd/mosn/main
 go build
@@ -33,22 +33,23 @@ cd ${targetpath}
 ## 目录结构
 
 ```
-main          // 编译完成的MOSN程序
-setup.sh      // iptables以及路由表配置脚本
-cleanup.sh    // 清除setup.sh的修改
-config.json   // MOSN配置
+main               // 编译完成的 MOSN 程序
+config.json        // MOSN 配置
+iptables_config.sh // 设置 iptables 代理端口和 mark 标记值
+setup.sh           // iptables 以及路由表配置脚本
+cleanup.sh         // 清除 setup.sh 的修改
 ```
 
 ## 运行说明
 
 
-### 配置iptables
+### 配置 iptables
 
 ```
 sh setup.sh
 ```
 
-### 启动MOSN
+### 启动 MOSN
 
 ```
 ./main start -c config.json

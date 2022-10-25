@@ -108,7 +108,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 
 	if lc.ListenerFilters != nil && len(lc.ListenerFilters) > 0 {
 		cfg, _ := originaldst.CreateOriginalDstConfig(l.config.ListenerFilters[0].Config)
-		if cfg.TransparentProxy {
+		if cfg.Type == originaldst.TProxy {
 			l.originalTProxy = true
 		}
 	}

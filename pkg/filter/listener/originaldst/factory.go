@@ -27,6 +27,11 @@ import (
 	"mosn.io/pkg/variable"
 )
 
+const (
+	TProxy   = "tproxy"
+	Redirect = "redirect"
+)
+
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
@@ -36,8 +41,8 @@ func init() {
 type OriginalDstConfig struct {
 	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
 	// any (0.0.0.0). usually used in ingress listener.
-	FallbackToLocal  bool `json:"fallback_to_local"`
-	TransparentProxy bool `json:"transparent_proxy"`
+	FallbackToLocal bool   `json:"fallback_to_local"`
+	Type            string `json:"type"`
 }
 
 func CreateOriginalDstConfig(conf map[string]interface{}) (OriginalDstConfig, error) {
@@ -46,12 +51,17 @@ func CreateOriginalDstConfig(conf map[string]interface{}) (OriginalDstConfig, er
 	if err := json.Unmarshal(b, &cfg); err != nil {
 		return cfg, err
 	}
+
+	if cfg.Type == "" {
+		cfg.Type = Redirect
+	}
+
 	return cfg, nil
 }
 
 type originalDst struct {
-	fallbackToLocal  bool
-	transparentProxy bool
+	FallbackToLocal bool
+	Type            string
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
@@ -66,8 +76,8 @@ func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterCh
 		return nil, err
 	}
 	return &originalDst{
-		fallbackToLocal:  cfg.FallbackToLocal,
-		transparentProxy: cfg.TransparentProxy,
+		FallbackToLocal: cfg.FallbackToLocal,
+		Type:            cfg.Type,
 	}, nil
 }
 
@@ -84,13 +94,15 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 	var err error
 	var logTag string
 
-	if filter.transparentProxy {
-		ip, port, err = getTransparentProxyAddr(cb.Conn())
-		logTag = "transparentProxy"
+	if filter.Type == TProxy {
+		ip, port, err = getTProxyAddr(cb.Conn())
+		logTag = TProxy
 
-	} else {
+	} else if filter.Type == Redirect {
 		ip, port, err = getRedirectAddr(cb.Conn())
-		logTag = "redirect"
+		logTag = Redirect
+	} else {
+		log.DefaultLogger.Errorf("listenerFifter type error: not %d or %d", TProxy, Redirect)
 	}
 
 	if err != nil {
@@ -102,7 +114,7 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 		log.DefaultLogger.Debugf("%s remote addr: %s:%d", logTag, ip, port)
 	}
 
-	if filter.fallbackToLocal {
+	if filter.FallbackToLocal {
 		ctx := cb.GetOriContext()
 		variable.SetString(ctx, types.VarListenerMatchFallbackIP, localHost)
 	}

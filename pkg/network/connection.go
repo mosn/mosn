@@ -29,9 +29,11 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/rcrowley/go-metrics"
+	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
@@ -49,6 +51,12 @@ const (
 	NetBufferDefaultCapacity = 1 << 4
 
 	DefaultConnectTimeout = 10 * time.Second
+)
+
+const (
+	SO_MARK        = 0x24
+	SOL_IP         = 0x0
+	IP_TRANSPARENT = 0x13
 )
 
 // Factory function for creating server side connection.
@@ -1136,11 +1144,26 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	}
 
 	dialer := &net.Dialer{
-		Timeout:   timeout,
+		Timeout: timeout,
 	}
 
 	if cc.mark != 0 {
-		dialer.Control = SockMarkControl
+		dialer.Control = func(network, address string, c syscall.RawConn) error {
+			var err error
+			if cerr := c.Control(func(fd uintptr) {
+				err = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, SO_MARK, int(cc.mark))
+				if err != nil {
+					return
+				}
+			}); cerr != nil {
+				return cerr
+			}
+
+			if err != nil {
+				return err
+			}
+			return nil
+		}
 	}
 
 	cc.rawConnection, err = dialer.Dial(cc.network, cc.RemoteAddr().String())

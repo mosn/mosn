@@ -32,6 +32,7 @@ func testEnvScript(path string) error {
 	return nil
 }
 
+// TODO Execute this test using a docker image containing iptables and sudo
 func TestTerminateRequest(t *testing.T) {
 
 	err := testEnvScript("./setup.sh")

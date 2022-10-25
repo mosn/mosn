@@ -33,11 +33,15 @@ const (
 )
 
 func getRedirectAddr(conn net.Conn) (string, int, error) {
-	tc := conn.(*net.TCPConn)
+	tc, ok := conn.(*net.TCPConn)
+
+	if !ok {
+		return "", 0, fmt.Errorf("redirect proxy only support tcp")
+	}
 
 	f, err := tc.File()
 	if err != nil {
-		log.DefaultLogger.Errorf("[originaldst] get conn file error, err: %v", err)
+		log.DefaultLogger.Errorf("[redirect] get conn file error, err: %v", err)
 		return "", 0, errors.New("conn has error")
 	}
 	defer f.Close()
@@ -63,7 +67,7 @@ func getRedirectAddr(conn net.Conn) (string, int, error) {
 	return ip, port, nil
 }
 
-func getTransparentProxyAddr(conn net.Conn) (string, int, error) {
+func getTProxyAddr(conn net.Conn) (string, int, error) {
 	tc, ok := conn.(*net.TCPConn)
 	if !ok {
 		return "", 0, fmt.Errorf("transport proxy only support tcp")
