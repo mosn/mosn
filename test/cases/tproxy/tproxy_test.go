@@ -1,5 +1,5 @@
-//go:build MOSNTest
-// +build MOSNTest
+//go:build Skip
+// +build Skip
 
 package tproxy
 
@@ -33,7 +33,7 @@ func testEnvScript(path string) error {
 }
 
 // TODO Execute this test using a docker image containing iptables and sudo
-func TestTerminateRequest(t *testing.T) {
+func TestSimpleTProxy(t *testing.T) {
 
 	err := testEnvScript("./setup.sh")
 
