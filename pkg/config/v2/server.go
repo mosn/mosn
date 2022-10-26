@@ -131,7 +131,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (l *Listener) GetUseOriginalDst() bool {
+func (l *Listener) IsOriginalDst() bool {
 	if l.OriginalDst == TPROXY || l.OriginalDst == REDIRECT {
 		return true
 	}

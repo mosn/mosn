@@ -321,11 +321,15 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener) SetUseOriginalDst(use v2.OriginalDstType) {
-	l.OriginalDst = use
+func (l *listener) SetOriginalDstType(t v2.OriginalDstType) {
+	l.OriginalDst = t
 }
 
-func (l *listener) GetUseOriginalDst() bool {
+func (l *listener) GetOriginalDstType() v2.OriginalDstType {
+	return l.OriginalDst
+}
+
+func (l *listener) IsOriginalDst() bool {
 	if l.OriginalDst == v2.REDIRECT || l.OriginalDst == v2.TPROXY {
 		return true
 	} else {
@@ -421,7 +425,7 @@ func (l *listener) accept(lctx context.Context) error {
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
 		if l.cb != nil {
-			l.cb.OnAccept(rawc, l.GetUseOriginalDst(), nil, nil, nil, nil)
+			l.cb.OnAccept(rawc, l.IsOriginalDst(), nil, nil, nil, nil)
 		}
 	}, nil)
 

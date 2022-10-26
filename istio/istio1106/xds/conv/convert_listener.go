@@ -151,7 +151,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	// use virtual listeners instead of multi filter chain.
 	// TODO: support multi filter chain
 	var virtualListeners []*v2.Listener
-	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.GetUseOriginalDst(), rh)
+	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.IsOriginalDst(), rh)
 	mosnListeners := []*v2.Listener{listenerConfig}
 	mosnListeners = append(mosnListeners, virtualListeners...)
 	return mosnListeners

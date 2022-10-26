@@ -109,11 +109,14 @@ type Listener interface {
 	// Set limit bytes per connection
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	// Set if listener should use original dst
-	SetUseOriginalDst(use v2.OriginalDstType)
+	// Set listener original dst type
+	SetOriginalDstType(use v2.OriginalDstType)
+
+	// Get listener original dst type
+	GetOriginalDstType() v2.OriginalDstType
 
 	// Get if listener should use original dst
-	GetUseOriginalDst() bool
+	IsOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)

@@ -161,7 +161,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
 		rawConfig.OriginalDst = lc.OriginalDst
-		al.listener.SetUseOriginalDst(lc.OriginalDst)
+		al.listener.SetOriginalDstType(lc.OriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
 		al.listener.SetConfig(rawConfig)
 
