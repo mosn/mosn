@@ -160,8 +160,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
-		rawConfig.UseOriginalDst = lc.UseOriginalDst
-		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
+		rawConfig.OriginalDst = lc.OriginalDst
+		al.listener.SetUseOriginalDst(lc.OriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
 		al.listener.SetConfig(rawConfig)
 

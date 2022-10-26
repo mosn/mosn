@@ -1148,10 +1148,11 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	}
 
 	if cc.mark != 0 {
+		mark := int(cc.mark)
 		dialer.Control = func(network, address string, c syscall.RawConn) error {
 			var err error
 			if cerr := c.Control(func(fd uintptr) {
-				err = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, SO_MARK, int(cc.mark))
+				err = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, SO_MARK, mark)
 				if err != nil {
 					return
 				}

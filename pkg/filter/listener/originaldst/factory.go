@@ -28,11 +28,6 @@ import (
 	"mosn.io/pkg/variable"
 )
 
-const (
-	TProxy   = "tproxy"
-	Redirect = "redirect"
-)
-
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
@@ -42,29 +37,13 @@ func init() {
 type OriginalDstConfig struct {
 	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
 	// any (0.0.0.0). usually used in ingress listener.
-	FallbackToLocal bool   `json:"fallback_to_local"`
-	Type            string `json:"type"`
-}
-
-func CreateOriginalDstConfig(conf map[string]interface{}) (OriginalDstConfig, error) {
-	b, _ := json.Marshal(conf)
-	cfg := OriginalDstConfig{}
-	if err := json.Unmarshal(b, &cfg); err != nil {
-		return cfg, err
-	}
-
-	if cfg.Type == "" {
-		cfg.Type = Redirect
-	} else if cfg.Type != Redirect && cfg.Type != TProxy {
-		return cfg, errors.New("listener filter type unrecognized")
-	}
-
-	return cfg, nil
+	FallbackToLocal bool               `json:"fallback_to_local"`
+	Type            v2.OriginalDstType `json:"type"`
 }
 
 type originalDst struct {
 	FallbackToLocal bool
-	Type            string
+	Type            v2.OriginalDstType
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
@@ -74,10 +53,19 @@ func NewOriginalDst() api.ListenerFilterChainFactory {
 }
 
 func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
-	cfg, err := CreateOriginalDstConfig(conf)
-	if err != nil {
+
+	b, _ := json.Marshal(conf)
+	cfg := OriginalDstConfig{}
+	if err := json.Unmarshal(b, &cfg); err != nil {
 		return nil, err
 	}
+
+	if cfg.Type == "" {
+		cfg.Type = v2.REDIRECT
+	} else if cfg.Type != v2.REDIRECT && cfg.Type != v2.TPROXY {
+		return nil, errors.New("listener filter type unrecognized")
+	}
+
 	return &originalDst{
 		FallbackToLocal: cfg.FallbackToLocal,
 		Type:            cfg.Type,
@@ -97,15 +85,15 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 	var err error
 	var logTag string
 
-	if filter.Type == TProxy {
+	if filter.Type == v2.TPROXY {
 		ip, port, err = getTProxyAddr(cb.Conn())
-		logTag = TProxy
+		logTag = string(v2.TPROXY)
 
-	} else if filter.Type == Redirect {
+	} else if filter.Type == v2.REDIRECT {
 		ip, port, err = getRedirectAddr(cb.Conn())
-		logTag = Redirect
+		logTag = string(v2.REDIRECT)
 	} else {
-		log.DefaultLogger.Errorf("listenerFifter type error: not %d or %d", TProxy, Redirect)
+		log.DefaultLogger.Errorf("listenerFifter type error: not %d or %d", v2.TPROXY, v2.REDIRECT)
 	}
 
 	if err != nil {

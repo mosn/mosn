@@ -110,7 +110,7 @@ type Listener interface {
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
 	// Set if listener should use original dst
-	SetUseOriginalDst(use bool)
+	SetUseOriginalDst(use v2.OriginalDstType)
 
 	// Get if listener should use original dst
 	GetUseOriginalDst() bool

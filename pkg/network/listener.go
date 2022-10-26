@@ -29,7 +29,6 @@ import (
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
@@ -72,8 +71,7 @@ type listener struct {
 	bindToPort              bool
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
-	useOriginalDst          bool
-	originalTProxy          bool
+	OriginalDst             v2.OriginalDstType
 	network                 string
 	cb                      types.ListenerEventListener
 	packetConn              net.PacketConn
@@ -92,7 +90,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		bindToPort:              lc.BindToPort,
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
-		useOriginalDst:          lc.UseOriginalDst,
+		OriginalDst:             lc.OriginalDst,
 		network:                 lc.Network,
 		config:                  lc,
 	}
@@ -104,13 +102,6 @@ func NewListener(lc *v2.Listener) types.Listener {
 
 	if lc.InheritPacketConn != nil {
 		l.packetConn = *lc.InheritPacketConn
-	}
-
-	if lc.ListenerFilters != nil && len(lc.ListenerFilters) > 0 {
-		cfg, _ := originaldst.CreateOriginalDstConfig(l.config.ListenerFilters[0].Config)
-		if cfg.Type == originaldst.TProxy {
-			l.originalTProxy = true
-		}
 	}
 
 	if lc.Network == "" {
@@ -330,12 +321,16 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener) SetUseOriginalDst(use bool) {
-	l.useOriginalDst = use
+func (l *listener) SetUseOriginalDst(use v2.OriginalDstType) {
+	l.OriginalDst = use
 }
 
 func (l *listener) GetUseOriginalDst() bool {
-	return l.useOriginalDst
+	if l.OriginalDst == v2.REDIRECT || l.OriginalDst == v2.TPROXY {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (l *listener) Close(lctx context.Context) error {
@@ -388,7 +383,7 @@ func (l *listener) listen(lctx context.Context) error {
 			return err
 		}
 
-		if l.originalTProxy {
+		if l.OriginalDst == v2.TPROXY {
 			rawConn, err := rawl.(*net.TCPListener).SyscallConn()
 			if err != nil {
 				return err
@@ -426,7 +421,7 @@ func (l *listener) accept(lctx context.Context) error {
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
 		if l.cb != nil {
-			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil, nil)
+			l.cb.OnAccept(rawc, l.GetUseOriginalDst(), nil, nil, nil, nil)
 		}
 	}, nil)
 
