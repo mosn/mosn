@@ -103,8 +103,8 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 	}
 
 	for _, xl := range xdsListener.GetListenerFilters() {
-		if xl.Name == xdswellknown.OriginalDestination {
-			listenerConfig.UseOriginalDst = true
+		if xl.Name == xdswellknown.OriginalDestination && listenerConfig.OriginalDst != v2.TPROXY {
+			listenerConfig.OriginalDst = v2.REDIRECT
 		}
 	}
 
