@@ -111,7 +111,6 @@ func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
 	}
 
 	defaultStore.metrics[name] = stats
-
 	return stats, nil
 }
 
