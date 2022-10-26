@@ -34,6 +34,8 @@ github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrU
 github.com/TarsCloud/TarsGo v1.1.4 h1:h8Hch0oWX4hahh/ZWD2gVdKq5KbkbaE5PO2nQtq/hGI=
 github.com/TarsCloud/TarsGo v1.1.4/go.mod h1:jkslu43B0kZitq9ztCH6ZM6l4rCKGkMjdqEPjHoOdjc=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
+github.com/YIDWang/api v0.0.0-20220908081956-a3179a1bb03e h1:rFJDfNbp+jjgmaKILcIfIKB+fQjpdT5ert42k0PTUJQ=
+github.com/YIDWang/api v0.0.0-20220908081956-a3179a1bb03e/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -992,8 +994,8 @@ k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd/go.mod h1:WOJ3KddDSol4tAG
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f h1:e6HrsFPhRkXbXQ+hDCoWbPLYsHyRCnrnLpEosF7EvLg=
-mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
+mosn.io/api v1.1.1-0.20221013030110-4e70b56483a5 h1:bXwhGGrK3y91ne+i5lkVv7CJJJ2UUmOz2L4GfvW6Glk=
+mosn.io/api v1.1.1-0.20221013030110-4e70b56483a5/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 mosn.io/holmes v1.0.1 h1:m59Gw+/DUA8t0DO4ZMro14web2Ct5Qg6xn5sAMnzqsk=
 mosn.io/holmes v1.0.1/go.mod h1:pZjPamcZk4Z16xlZySG1rU9psLUCOx6MVNuj/3bfkEk=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
