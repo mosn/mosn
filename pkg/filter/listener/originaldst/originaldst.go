@@ -34,7 +34,6 @@ const (
 
 func getRedirectAddr(conn net.Conn) (string, int, error) {
 	tc, ok := conn.(*net.TCPConn)
-
 	if !ok {
 		return "", 0, fmt.Errorf("redirect proxy only support tcp")
 	}

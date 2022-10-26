@@ -19,6 +19,7 @@ package originaldst
 
 import (
 	"encoding/json"
+	"errors"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -54,6 +55,8 @@ func CreateOriginalDstConfig(conf map[string]interface{}) (OriginalDstConfig, er
 
 	if cfg.Type == "" {
 		cfg.Type = Redirect
+	} else if cfg.Type != Redirect && cfg.Type != TProxy {
+		return cfg, errors.New("listener filter type unrecognized")
 	}
 
 	return cfg, nil
