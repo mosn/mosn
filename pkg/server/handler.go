@@ -484,7 +484,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if useOriginalDst {
 		arc.useOriginalDst = true
 		// TODO remove it when Istio deprecate UseOriginalDst.
-		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst(arc.activeListener.listener.GetOriginalDstType()))
 	}
 
 	// connection context support variables too
