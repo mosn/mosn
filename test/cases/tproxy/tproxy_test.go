@@ -103,7 +103,7 @@ const ConfigTProxy = `{
 					"name":"tproxy_listener",
 					"address": "0.0.0.0:16000",
                     "bind_port": true,
-					"use_original_dst": true,
+					"use_original_dst": "tproxy",
 					"listener_filters": [
 						{
 							"type": "original_dst",
