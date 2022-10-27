@@ -14,7 +14,7 @@ MAJOR_VERSION   = $(shell cat VERSION)
 GIT_VERSION     = $(shell git log -1 --pretty=format:%h)
 GIT_NOTES       = $(shell git log -1 --oneline)
 
-BUILD_IMAGE     = golang:1.14.13
+BUILD_IMAGE     = golang:1.18.7
 
 WASM_IMAGE      = mosn-wasm
 
