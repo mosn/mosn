@@ -26,7 +26,7 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 //
@@ -109,11 +109,14 @@ type Listener interface {
 	// Set limit bytes per connection
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	// Set if listener should use original dst
-	SetUseOriginalDst(use bool)
+	// Set listener original dst type
+	SetOriginalDstType(use v2.OriginalDstType)
+
+	// Get listener original dst type
+	GetOriginalDstType() v2.OriginalDstType
 
 	// Get if listener should use original dst
-	UseOriginalDst() bool
+	IsOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
@@ -185,6 +188,9 @@ type ClientConnection interface {
 
 	// connect to server in a async way
 	Connect() error
+
+	// set SO_MARK with this client Connection
+	SetMark(uint32)
 }
 
 // Default connection arguments

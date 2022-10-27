@@ -160,10 +160,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
-		rawConfig.UseOriginalDst = lc.UseOriginalDst
-		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
+		rawConfig.OriginalDst = lc.OriginalDst
+		al.listener.SetOriginalDstType(lc.OriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
-
 		al.listener.SetConfig(rawConfig)
 
 		// set update label to true, do not start the listener again
@@ -485,7 +484,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if useOriginalDst {
 		arc.useOriginalDst = true
 		// TODO remove it when Istio deprecate UseOriginalDst.
-		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst(arc.activeListener.listener.GetOriginalDstType()))
 	}
 
 	// connection context support variables too
@@ -729,7 +728,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
-
 	}
 
 	var ch chan api.Connection
