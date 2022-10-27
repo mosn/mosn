@@ -11,6 +11,11 @@
 - 支持 proxy-wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
 - 支持基于 iptables tproxy 的透明代理 (#2142) [@3062](https://github.com/3062)
 
+### 变更
+
+- 删除 vendoring 并升级 go 版本至 1.18 (#2145) [@codefromthecrypt](https://github.com/codefromthecrypt)
+- 迁移 metrics 接口到 mosn.io/api 中 (#2124) [@YIDWang](https://github.com/YIDWang)
+
 ### 重构
 
 - 删除 MOSN 扩展的 context 框架，使用变量机制代替。将 MOSN 中的变量机制(variable)和内存复用框架(buffer)迁移到 mosn.io/pkg 中 (#2055) [@nejisama](https://github.com/nejisama)
