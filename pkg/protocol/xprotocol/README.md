@@ -166,7 +166,7 @@ But in MOSN its kind different, you cannot directly read from the connection, bu
 2. ReadGoroutine: read as much as possible, and fill it into the I/O buffer
 3. ReadGoroutine: notify the listeners and pass the I/O buffer to them.
 
-In conclusion, your codec codes is running at the `read goroutine`, and you cannot directly read from `net.Conn`, which means no netpoll works here. So if your code has blocking part to wait for more data available, the whole `read goroutine` is blocked and no more data would fill into the I/O buffer, which causes the dead lock.
+In conclusion, your codec codes is running at the `read goroutine`, and you cannot directly read from `net.Conn`. So if your code has blocking part to wait for more data available, the whole `read goroutine` is blocked and no more data would fill into the I/O buffer, which causes the dead lock.
 
 ## Buffer management for I/O multiplexing
 

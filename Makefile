@@ -53,15 +53,8 @@ coverage:
 integrate-local:
 	GO111MODULE=on go test -p 1 -v ./test/integrate/...
 
-integrate-local-netpoll:
-	GO111MODULE=on NETPOLL=on go test -p 1 -v ./test/integrate/...
-
 integrate:
 	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local
-
-
-integrate-netpoll:
-	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-local-netpoll
 
 integrate-framework:
 	@cd ./test/cases && bash run_all.sh

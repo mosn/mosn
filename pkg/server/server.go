@@ -24,7 +24,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mlog "mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
 )
@@ -55,7 +54,6 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		LogLevel:        configmanager.ParseLogLevel(c.DefaultLogLevel),
 		LogRoller:       c.GlobalLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
-		UseNetpollMode:  c.UseNetpollMode,
 	}
 }
 
@@ -65,11 +63,6 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		//graceful timeout setting
 		if config.GracefulTimeout != 0 {
 			GracefulTimeout = config.GracefulTimeout
-		}
-
-		if config.UseNetpollMode {
-			network.UseNetpollMode = config.UseNetpollMode
-			log.DefaultLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
 		}
 	}
 

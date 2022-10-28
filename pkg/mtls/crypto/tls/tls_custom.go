@@ -245,8 +245,6 @@ func (c *Conn) SetALPN(alpn string) {
 }
 
 // HasMoreData means the tls connection buffer has more data to read
-// it's useful in netpoll mode, because user can safely
-// reregister the fd to netpoll without worrying unread data in tls buffer
 func (c *Conn) HasMoreData() bool {
 	return c.rawInput.Len() > 0 || c.input.Len() > 0 || c.hand.Len() > 0
 }

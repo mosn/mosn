@@ -442,24 +442,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// only store fd and tls conn handshake in final working listener
 	if !useOriginalDst {
-		if network.UseNetpollMode {
-			// store fd for further usage
-
-			switch rawc.LocalAddr().Network() {
-			case "udp":
-				if tc, ok := rawc.(*net.UDPConn); ok {
-					rawf, _ = tc.File()
-				}
-			case "unix":
-				if tc, ok := rawc.(*net.UnixConn); ok {
-					rawf, _ = tc.File()
-				}
-			default:
-				if tc, ok := rawc.(*net.TCPConn); ok {
-					rawf, _ = tc.File()
-				}
-			}
-		}
 		// if ch is not nil, the conn has been initialized in func transferNewConn
 		if al.tlsMng != nil && ch == nil {
 			conn, err := al.tlsMng.Conn(rawc)
