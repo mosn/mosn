@@ -11,10 +11,6 @@
 - Support Proxy-Wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
 - Support transparent proxy based on iptables tproxy (#2142) [@3062](https://github.com/3062)
 
-### Changes
-
-- Removes vendoring and updates to Go 1.18 (#2145) [@codefromthecrypt](https://github.com/codefromthecrypt)
-
 ### Refactoring
 
 - Remove MOSN's extended context framework and use the variable mechanism instead. Migrate the variable mechanism and memory reuse framework to mosn.io/pkg (#2055) [@nejisama](https://github.com/nejisama)
