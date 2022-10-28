@@ -5,7 +5,7 @@
 ### New Features
 
 - Support for configuring HTTP retry status codes (#2097) [@dengqian](https://github.com/dengqian)
-- New dev container build configuration and instructions (#2108) [@keqingyuan](https://github.com/keqingyuan)
+- Add dev container build configuration and instructions (#2108) [@keqingyuan](https://github.com/keqingyuan)
 - Support connpool_binding GoAway (#2115) [@EraserTime](https://github.com/EraserTime)
 - Support for configuring the listener defaultReadBufferSize (#2133) [@3062](https://github.com/3062)
 - Support Proxy-Wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
@@ -14,11 +14,11 @@
 ### Changes
 
 - Removes vendoring and updates to Go 1.18 (#2145) [@codefromthecrypt](https://github.com/codefromthecrypt)
-- Migrating the metrics interface to mosn.io/api (#2124) [@YIDWang](https://github.com/YIDWang)
 
 ### Refactoring
 
 - Remove MOSN's extended context framework and use the variable mechanism instead. Migrate the variable mechanism and memory reuse framework to mosn.io/pkg (#2055) [@nejisama](https://github.com/nejisama)
+- Migrating the metrics interface to mosn.io/api (#2124) [@YIDWang](https://github.com/YIDWang)
 
 ### Bug fixes
 
