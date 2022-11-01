@@ -202,6 +202,6 @@ func TestNewMosn(t *testing.T) {
 		m.Start()
 		time.Sleep(time.Second * 3)
 		// stop mosn
-		m.Close()
+		m.Close(false)
 	})
 }

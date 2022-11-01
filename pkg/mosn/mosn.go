@@ -19,6 +19,7 @@ package mosn
 
 import (
 	"errors"
+	"mosn.io/mosn/pkg/server/pid"
 	"net"
 	"time"
 
@@ -375,14 +376,20 @@ func (m *Mosn) Shutdown() error {
 	return nil
 }
 
-func (m *Mosn) Close() {
+func (m *Mosn) Close(isUpgrade bool) {
 	log.StartLogger.Infof("[mosn close] mosn stop server")
+
+	// do not remove the pid file,
+	// since the new started server may have the same pid file
+	if !isUpgrade {
+		pid.RemovePidFile()
+		// stop reconfigure domain socket
+		server.StopReconfigureHandler()
+
+	}
 
 	// close service
 	store.CloseService()
-
-	// stop reconfigure domain socket
-	server.StopReconfigureHandler()
 
 	// stop mosn server
 	for _, srv := range m.servers {
