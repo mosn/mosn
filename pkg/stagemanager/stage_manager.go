@@ -105,7 +105,8 @@ type Application interface {
 	InheritConnections() error
 	// Shutdown means graceful stop
 	Shutdown() error
-	// Close means stop working immediately when not is upgrade,otherwise will not stop reconfigure domain socket
+	// Close means stop working immediately
+	// It will skip stop reconfigure domain socket when is not upgrading
 	Close(bool)
 	// IsFromUpgrade application start from upgrade mode,
 	// means inherit connections and configuration(if enabled) from old application.
