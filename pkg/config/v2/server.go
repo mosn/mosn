@@ -34,7 +34,6 @@ type ServerConfig struct {
 	DefaultLogLevel string `json:"default_log_level,omitempty"`
 	GlobalLogRoller string `json:"global_log_roller,omitempty"`
 
-	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
 	// int go processor number

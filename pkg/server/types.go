@@ -31,7 +31,6 @@ type Config struct {
 	LogLevel        log.Level
 	LogRoller       string
 	GracefulTimeout time.Duration
-	UseNetpollMode  bool
 }
 
 type Server interface {
