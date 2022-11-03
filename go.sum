@@ -712,6 +712,7 @@ golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee/go.mod h1:QqPTAvyqsEbceGzB
 golang.org/x/mod v0.1.1-0.20191107180719-034126e5016b/go.mod h1:QqPTAvyqsEbceGzBzNggFXnrqF1CaUcvgkdR5Ot7KZg=
 golang.org/x/mod v0.2.0/go.mod h1:s0Qsj1ACt9ePp/hMypM3fl4fZqREWJwdYDEqhRiZZUA=
 golang.org/x/mod v0.3.0/go.mod h1:s0Qsj1ACt9ePp/hMypM3fl4fZqREWJwdYDEqhRiZZUA=
+golang.org/x/mod v0.4.2 h1:Gz96sIWK3OalVv/I/qNygP42zyoKp3xptRVCWRFEBvo=
 golang.org/x/mod v0.4.2/go.mod h1:s0Qsj1ACt9ePp/hMypM3fl4fZqREWJwdYDEqhRiZZUA=
 golang.org/x/net v0.0.0-20180406214816-61147c48b25b/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
@@ -992,13 +993,13 @@ k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd/go.mod h1:WOJ3KddDSol4tAG
 launchpad.net/gocheck v0.0.0-20140225173054-000000000087/go.mod h1:hj7XX3B/0A+80Vse0e+BUHsHMTEhd0O4cpUHr/e/BUM=
 launchpad.net/xmlpath v0.0.0-20130614043138-000000000004/go.mod h1:vqyExLOM3qBx7mvYRkoxjSCF945s0mbe7YynlKYXtsA=
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f h1:e6HrsFPhRkXbXQ+hDCoWbPLYsHyRCnrnLpEosF7EvLg=
-mosn.io/api v1.1.1-0.20220815024116-24aa5cd93c5f/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
+mosn.io/api v1.2.1 h1:zgLl/mnZHPe1qq/zru8UhOHp2gRFaF8YTeKHng0Uy0w=
+mosn.io/api v1.2.1/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 mosn.io/holmes v1.0.1 h1:m59Gw+/DUA8t0DO4ZMro14web2Ct5Qg6xn5sAMnzqsk=
 mosn.io/holmes v1.0.1/go.mod h1:pZjPamcZk4Z16xlZySG1rU9psLUCOx6MVNuj/3bfkEk=
 mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
-mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9 h1:E+yAbvKzC1x7/8jbk4B1NH/+6nRldwHgt9sll1BHOdI=
-mosn.io/pkg v1.1.1-0.20220909034506-4d6d91026cb9/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
+mosn.io/pkg v1.2.1 h1:35++kDkWAM17JT/KwlZ0LTry8EOsLuQd4EPBw3voiAc=
+mosn.io/pkg v1.2.1/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
 mosn.io/proxy-wasm-go-host v0.2.0 h1:v76IiYnqEHBJdLw+vloM/vBHEKg5Z2f3ghTHKfDdECA=
 mosn.io/proxy-wasm-go-host v0.2.0/go.mod h1:eTEPLCYncJ60dRh/n7E4GVRQELa0BsRr6TJ8RzE0Jkc=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=

@@ -149,6 +149,10 @@ func (ci *mockClusterInfo) Name() string {
 	return ci.name
 }
 
+func (ci *mockClusterInfo) Mark() uint32 {
+	return 0
+}
+
 func (ci *mockClusterInfo) ConnBufferLimitBytes() uint32 {
 	return ci.limit
 }

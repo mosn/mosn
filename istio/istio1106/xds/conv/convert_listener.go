@@ -41,7 +41,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	iv2 "mosn.io/mosn/istio/istio1106/config/v2"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/extensions/sni"
@@ -110,15 +110,20 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	}
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           listenerName,
-			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:      false,
-			AccessLogs:     convertAccessLogs(xdsListener),
-			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
-			Type:           convertTrafficDirection(xdsListener),
+			Name:       listenerName,
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:  false,
+			AccessLogs: convertAccessLogs(xdsListener),
+			Type:       convertTrafficDirection(xdsListener),
 		},
 		Addr:                    addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
+	}
+
+	if xdsListener.GetUseOriginalDst().GetValue() {
+		listenerConfig.OriginalDst = v2.REDIRECT
+	} else if xdsListener.GetTransparent().GetValue() {
+		listenerConfig.OriginalDst = v2.TPROXY
 	}
 
 	// convert listener filters.
@@ -137,8 +142,8 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			listenerFilters = append(listenerFilters, lnf)
 		}
 		// set use original dst flag if original dst filter is exists
-		if lnf.Type == v2.ORIGINALDST_LISTENER_FILTER {
-			listenerConfig.UseOriginalDst = true
+		if lnf.Type == v2.ORIGINALDST_LISTENER_FILTER && listenerConfig.OriginalDst != v2.TPROXY {
+			listenerConfig.OriginalDst = v2.REDIRECT
 		}
 	}
 	listenerConfig.ListenerFilters = listenerFilters
@@ -146,7 +151,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	// use virtual listeners instead of multi filter chain.
 	// TODO: support multi filter chain
 	var virtualListeners []*v2.Listener
-	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.UseOriginalDst, rh)
+	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.IsOriginalDst(), rh)
 	mosnListeners := []*v2.Listener{listenerConfig}
 	mosnListeners = append(mosnListeners, virtualListeners...)
 	return mosnListeners

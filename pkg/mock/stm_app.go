@@ -35,15 +35,15 @@ func (m *MockApplication) EXPECT() *MockApplicationMockRecorder {
 }
 
 // Close mocks base method.
-func (m *MockApplication) Close() {
+func (m *MockApplication) Close(arg0 bool) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Close")
+	m.ctrl.Call(m, "Close", arg0)
 }
 
 // Close indicates an expected call of Close.
-func (mr *MockApplicationMockRecorder) Close() *gomock.Call {
+func (mr *MockApplicationMockRecorder) Close(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockApplication)(nil).Close))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockApplication)(nil).Close), arg0)
 }
 
 // InheritConnections mocks base method.
