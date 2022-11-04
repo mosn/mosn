@@ -23,6 +23,7 @@ require (
 	github.com/golang/protobuf v1.5.0
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
+	github.com/http-wasm/http-wasm-host-go v0.3.5
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/errors v1.0.0
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
@@ -36,6 +37,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.8.0
 	github.com/tetratelabs/wabin v0.0.0-20220927005300-3b0fbf39a46a
+	github.com/tetratelabs/wazero v1.0.2
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/urfave/cli v1.22.1
@@ -113,7 +115,6 @@ require (
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.20.11 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/tetratelabs/wazero v1.0.0-rc.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
