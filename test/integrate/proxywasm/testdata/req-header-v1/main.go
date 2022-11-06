@@ -24,7 +24,7 @@ import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 )
 
-// build main like below with proxy-wasm-go-sdk v0.0.13 which works with
+// build main like below with proxy-wasm-go-sdk v0.0.14 which works with
 // TinyGo 0.19.0 (which works with Go 1.16).
 //
 //	tinygo build -o main.wasm -scheduler=none -target=wasi --no-debug -wasm-abi=generic -tags 'abi_010' ./main.go
