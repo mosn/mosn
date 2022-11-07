@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -147,7 +147,7 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	}
 
 	retryTime := clusterSnapshot.HostSet().Size()
-	if retryTime > defaultConnectRetryTimes {
+	if retryTime > defaultConnectRetryTimes || (clusterSnapshot.ClusterInfo().LbType() == types.ORIGINAL_DST && retryTime == 0) {
 		retryTime = defaultConnectRetryTimes
 	}
 	var connectionData types.CreateConnectionData
