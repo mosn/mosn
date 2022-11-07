@@ -9,9 +9,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/tetratelabs/wabin/binary"
+	"github.com/tetratelabs/wabin/wasm"
 
 	config "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
@@ -31,6 +35,9 @@ type testMosn struct {
 const pathResponseHeaderV1 = "testdata/req-header-v1/main.wasm"
 
 func Test_ProxyWasmV1(t *testing.T) {
+	// Ensure the module was compiled with the correct ABI as this is hard to verify at runtime.
+	requireModuleExport(t, pathResponseHeaderV1, "proxy_abi_version_0_1_0")
+
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Wasm-Context") == "" {
 			t.Fatalf("expected to see request header from wasm: %v", r.Header)
@@ -210,4 +217,20 @@ func freePort() int {
 	l, _ := net.Listen("tcp", ":0")
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
+}
+
+func requireModuleExport(t *testing.T, wasmPath, want string) {
+	bin, err := os.ReadFile(wasmPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mod, err := binary.DecodeModule(bin, wasm.CoreFeaturesV2)
+	var exports []string
+	for _, e := range mod.ExportSection {
+		if e.Name == want {
+			return
+		}
+		exports = append(exports, e.Name)
+	}
+	t.Errorf("export not found, want: %v, have: %v", want, exports)
 }
