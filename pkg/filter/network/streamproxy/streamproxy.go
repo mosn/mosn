@@ -146,16 +146,9 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 		cluster: clusterInfo,
 	}
 
-	retryTime := clusterSnapshot.HostSet().Size()
+	retryTime := clusterSnapshot.LoadBalancer().HostNum(nil)
 	if retryTime > defaultConnectRetryTimes {
 		retryTime = defaultConnectRetryTimes
-	}
-	if retryTime == 0 {
-		if clusterSnapshot.ClusterInfo().LbType() == types.ORIGINAL_DST {
-			retryTime = defaultConnectRetryTimes
-		} else {
-			log.DefaultLogger.Errorf("%s cluster: %s proxy connect retryTime is 0", p.network, clusterSnapshot.ClusterInfo().Name())
-		}
 	}
 	var connectionData types.CreateConnectionData
 	connected := false
