@@ -449,17 +449,17 @@ func (mr *MockWasmInstanceMockRecorder) PutUint32(arg0, arg1 interface{}) *gomoc
 }
 
 // RegisterFunc mocks base method.
-func (m *MockWasmInstance) RegisterFunc(arg0, arg1 string, arg2 interface{}) error {
+func (m *MockWasmInstance) RegisterImports(arg0 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterFunc", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "RegisterImports", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RegisterFunc indicates an expected call of RegisterFunc.
-func (mr *MockWasmInstanceMockRecorder) RegisterFunc(arg0, arg1, arg2 interface{}) *gomock.Call {
+// RegisterImports indicates an expected call of RegisterImports.
+func (mr *MockWasmInstanceMockRecorder) RegisterImports(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterFunc", reflect.TypeOf((*MockWasmInstance)(nil).RegisterFunc), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterImports", reflect.TypeOf((*MockWasmInstance)(nil).RegisterImports), arg0)
 }
 
 // Release mocks base method.
@@ -648,6 +648,20 @@ func (m *MockWasmVM) NewModule(arg0 []byte) common.WasmModule {
 func (mr *MockWasmVMMockRecorder) NewModule(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewModule", reflect.TypeOf((*MockWasmVM)(nil).NewModule), arg0)
+}
+
+// Close mocks base method.
+func (m *MockWasmVM) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockWasmVMMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockWasmVM)(nil).Close))
 }
 
 // MockWasmPlugin is a mock of WasmPlugin interface.
