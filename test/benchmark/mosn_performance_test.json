@@ -1,8 +1,11 @@
 {
-  "pprof": { "debug": true,"port_value": 34902 },
+  "pprof": {
+    "debug": true,
+    "port_value": 34902
+  },
   "servers": [
     {
-      "mosn_server_name":"mosn_server_1",
+      "mosn_server_name": "mosn_server_1",
       "default_log_path": "./logs/default.log",
       "default_log_level": "WARN",
       "global_log_roller": "time=1",
@@ -20,23 +23,22 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "downstream_protocol": "X",
+                    "downstream_protocol": "Auto",
                     "name": "proxy_config",
-                    "upstream_protocol": "X",
-		    "extend_config": {
-			"sub_protocol": "bolt,boltv2"
-		    },
-                    "router_config_name":"test_router"
+                    "extend_config": {
+                      "sub_protocol": "bolt,boltv2"
+                    },
+                    "router_config_name": "test_router"
                   }
                 },
                 {
-                  "type":"connection_manager",
-                  "config":{
-                    "router_config_name":"test_router",
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "test_router",
                     "virtual_hosts": [
                       {
                         "name": "sofa",
-                        "domains":[
+                        "domains": [
                           "*"
                         ],
                         "routers": [
@@ -46,18 +48,20 @@
                                 {
                                   "name": "service",
                                   "value": "com.alipay.test.TestService:1.0",
-                                  "regex":false
+                                  "regex": false
                                 }
                               ]
                             },
                             "route": {
                               "cluster_name": "test_cpp",
-                              "retry_policy":{"retry_on":false},
+                              "retry_policy": {
+                                "retry_on": false
+                              },
                               "metadata_match": {
                                 "filter_metadata": {
                                   "mosn.lb": {
-                                    "version":"1.1",
-                                    "stage":"pre-release",
+                                    "version": "1.1",
+                                    "stage": "pre-release",
                                     "label": "gray"
                                   }
                                 }
@@ -72,8 +76,7 @@
               ]
             }
           ],
-          "stream_filters": [
-          ]
+          "stream_filters": []
         }
       ]
     }
@@ -93,10 +96,10 @@
             "metadata": {
               "filter_metadata": {
                 "mosn.lb": {
-              "stage": "pre-release",
-              "version": "1.1",
-              "label": "gray"
-            }
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
               }
             }
           },
@@ -107,10 +110,10 @@
             "metadata": {
               "filter_metadata": {
                 "mosn.lb": {
-              "stage": "pre-release",
-              "version": "1.1",
-              "label": "gray"
-            }
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
               }
             }
           },
@@ -121,10 +124,10 @@
             "metadata": {
               "filter_metadata": {
                 "mosn.lb": {
-              "stage": "pre-release",
-              "version": "1.1",
-              "label": "gray"
-            }
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
               }
             }
           },
@@ -135,10 +138,10 @@
             "metadata": {
               "filter_metadata": {
                 "mosn.lb": {
-              "stage": "pre-release",
-              "version": "1.1",
-              "label": "gray"
-            }
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
               }
             }
           },
@@ -149,10 +152,10 @@
             "metadata": {
               "filter_metadata": {
                 "mosn.lb": {
-              "stage": "pre-release",
-              "version": "1.1",
-              "label": "gray"
-            }
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
               }
             }
           }
@@ -166,16 +169,20 @@
           },
           "subset_selectors": [
             [
-               "stage", "type"
+              "stage",
+              "type"
             ],
             [
-              "stage", "label","version"
+              "stage",
+              "label",
+              "version"
             ],
-            ["version"]
+            [
+              "version"
+            ]
           ]
         }
       }
     ]
   }
 }
-

@@ -96,11 +96,8 @@ test-shell-local:
 test-shell:
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make test-shell-local
 
-test-performance-local:
-	bash test/performance-test-shell.sh build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
-
 test-performance:
-	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${PERFORMANCE} make test-performance-local
+	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${PERFORMANCE} bash test/benchmark/performance-test-shell.sh build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
 
 image:
 	@rm -rf IMAGEBUILD
