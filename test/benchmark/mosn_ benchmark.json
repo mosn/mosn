@@ -25,9 +25,6 @@
                   "config": {
                     "downstream_protocol": "Auto",
                     "name": "proxy_config",
-                    "extend_config": {
-                      "sub_protocol": "bolt,boltv2"
-                    },
                     "router_config_name": "test_router"
                   }
                 },
