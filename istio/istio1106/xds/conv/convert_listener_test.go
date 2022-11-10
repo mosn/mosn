@@ -171,3 +171,77 @@ func TestConvertListener_VirtualInbound(t *testing.T) {
 	require.False(t, listeners[1].BindToPort)
 	require.Equal(t, "127.0.0.1:9080", listeners[1].Addr.String())
 }
+
+func TestConvertListener_UseOriginalDst(t *testing.T) {
+	virtualInboundListenerPb := &envoy_config_listener_v3.Listener{
+		Name: "virtualInbound",
+		Address: &envoy_config_core_v3.Address{
+			Address: &envoy_config_core_v3.Address_SocketAddress{
+				SocketAddress: &envoy_config_core_v3.SocketAddress{
+					Address: "0.0.0.0",
+					PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+						PortValue: 15006,
+					},
+				},
+			},
+		},
+		ListenerFilters: []*envoy_config_listener_v3.ListenerFilter{
+			{
+				Name: "envoy.filters.listener.original_dst",
+				ConfigType: &envoy_config_listener_v3.ListenerFilter_TypedConfig{
+					TypedConfig: messageToAny(t, &envoy_extensions_filters_listener_original_dst_v3.OriginalDst{}),
+				},
+			},
+		},
+		TrafficDirection: envoy_config_core_v3.TrafficDirection_INBOUND,
+		FilterChains:     []*envoy_config_listener_v3.FilterChain{},
+	}
+
+	listeners := ConvertListenerConfig(virtualInboundListenerPb, nil)
+	require.Len(t, listeners, 1)
+	require.Len(t, listeners[0].ListenerFilters, 1)
+	require.True(t, listeners[0].BindToPort)
+	b, err := json.Marshal(listeners[0].ListenerFilters[0].Config)
+	require.Nil(t, err)
+	cfg := originaldst.OriginalDstConfig{}
+	err = json.Unmarshal(b, &cfg)
+	require.Nil(t, err)
+	require.True(t, cfg.FallbackToLocal)
+	require.Equal(t, "tcp_proxy", listeners[0].FilterChains[0].Filters[0].Type)
+	require.Equal(t, INGRESS_CLUSTER, listeners[0].FilterChains[0].Filters[0].Config["cluster"])
+
+	virtualOutboundListenerPb := &envoy_config_listener_v3.Listener{
+		Name: "virtualOutbound",
+		Address: &envoy_config_core_v3.Address{
+			Address: &envoy_config_core_v3.Address_SocketAddress{
+				SocketAddress: &envoy_config_core_v3.SocketAddress{
+					Address: "0.0.0.0",
+					PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+						PortValue: 15006,
+					},
+				},
+			},
+		},
+		ListenerFilters: []*envoy_config_listener_v3.ListenerFilter{
+			{
+				Name: "envoy.filters.listener.original_dst",
+				ConfigType: &envoy_config_listener_v3.ListenerFilter_TypedConfig{
+					TypedConfig: messageToAny(t, &envoy_extensions_filters_listener_original_dst_v3.OriginalDst{}),
+				},
+			},
+		},
+		TrafficDirection: envoy_config_core_v3.TrafficDirection_OUTBOUND,
+		FilterChains:     []*envoy_config_listener_v3.FilterChain{},
+	}
+
+	listeners = ConvertListenerConfig(virtualOutboundListenerPb, nil)
+	b, err = json.Marshal(listeners[0].ListenerFilters[0].Config)
+	require.Nil(t, err)
+	cfg = originaldst.OriginalDstConfig{}
+	err = json.Unmarshal(b, &cfg)
+	require.Nil(t, err)
+	require.False(t, cfg.FallbackToLocal)
+	require.Equal(t, "tcp_proxy", listeners[0].FilterChains[0].Filters[0].Type)
+	require.Equal(t, EGRESS_CLUSTER, listeners[0].FilterChains[0].Filters[0].Config["cluster"])
+
+}
