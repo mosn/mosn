@@ -19,10 +19,13 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -109,6 +112,7 @@ type Cluster struct {
 	DnsResolverConfig    DnsResolverConfig   `json:"dns_resolvers,omitempty"`
 	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
 	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
+	SlowStart            SlowStartConfig     `json:"slow_start,omitempty"`
 }
 
 type DnsResolverConfig struct {
@@ -118,6 +122,13 @@ type DnsResolverConfig struct {
 	Ndots    int      `json:"ndots,omitempty"`
 	Timeout  int      `json:"timeout,omitempty"`
 	Attempts int      `json:"attempts,omitempty"`
+}
+
+type SlowStartConfig struct {
+	Mode              string              `json:"mode,omitempty"`
+	SlowStartDuration *api.DurationConfig `json:"slow_start_duration,omitempty"`
+	Aggression        float64             `json:"aggression,omitempty"`
+	MinWeightPercent  *Percent            `json:"min_weight_percent,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -306,4 +317,34 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		os.Remove(path.Join(cc.ClusterConfigPath, f))
 	}
 	return json.Marshal(cc.ClusterManagerConfigJson)
+}
+
+// Percent TODO(jizhuozhi): should move to "mosn.io/api"
+type Percent struct {
+	Percent float64
+}
+
+var NotPercentError = errors.New("not a percent")
+
+func (p Percent) String() string {
+	return fmt.Sprintf("%s%%", strconv.FormatFloat(p.Percent*100, 'f', -1, 64))
+}
+
+func (p Percent) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, p)), nil
+}
+
+func (p *Percent) UnmarshalJSON(bytes []byte) error {
+	str := string(bytes)
+	l := len(str)
+	if l < 3 || str[0] != '"' || str[l-1] != '"' || str[l-2] != '%' {
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(p)}
+	}
+	str = str[1 : l-2]
+	f, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(p)}
+	}
+	p.Percent = f / 100
+	return nil
 }

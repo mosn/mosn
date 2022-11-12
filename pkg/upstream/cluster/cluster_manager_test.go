@@ -20,9 +20,11 @@ package cluster
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestClusterUpdateAndHosts(t *testing.T) {
@@ -49,6 +51,13 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 	snap1.ClusterInfo().ResourceManager().Connections().Increase()
 	require.Equal(t, uint64(100), snap1.ClusterInfo().ResourceManager().Connections().Max())
 	require.Equal(t, 1, snap1.HostNum(nil))
+
+	oldStartTimes := make(map[string]time.Time)
+	snap1.HostSet().Range(func(host types.Host) bool {
+		oldStartTimes[host.AddressString()] = host.StartTime()
+		return true
+	})
+
 	newConfig := v2.Cluster{
 		Name:        "test",
 		ClusterType: v2.SIMPLE_CLUSTER,
@@ -68,4 +77,10 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 	require.Equal(t, int64(1), snap2.ClusterInfo().ResourceManager().Connections().Cur())
 	require.Equal(t, uint64(20), snap2.ClusterInfo().ResourceManager().Connections().Max())
 
+	// start time of hosts are transferred
+	snap2.HostSet().Range(func(host types.Host) bool {
+		st := oldStartTimes[host.AddressString()]
+		require.Equal(t, st, host.StartTime())
+		return true
+	})
 }

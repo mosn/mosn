@@ -27,6 +27,7 @@ import (
 	"mosn.io/pkg/buffer"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestCreateIPAccessFactory(t *testing.T) {
@@ -263,6 +264,14 @@ func (m *MockHost) Config() v2.Host {
 
 func (m *MockHost) SupportTLS() bool {
 	return false
+}
+
+func (m *MockHost) StartTime() time.Time {
+	return time.Now()
+}
+
+func (m *MockHost) SetStartTime(st time.Time) {
+	// do nothing
 }
 
 type mockConnection struct {

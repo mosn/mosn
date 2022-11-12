@@ -19,16 +19,17 @@ package cluster
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 )
 
 // load should be balanced when node fails
@@ -187,6 +188,136 @@ func TestWRRLB(t *testing.T) {
 		})
 	}
 }
+
+func Test_slowStartDurationFactorFuncWithNowFunc(t *testing.T) {
+	startTime := time.Now()
+	host := &simpleHost{
+		hostname:      "localhost",
+		addressString: "127.0.0.1:8080",
+		weight:        100,
+		startTime:     startTime,
+	}
+
+	check := func(slowStart types.SlowStart, now time.Time, excepted float64) {
+		nowFunc := func() time.Time {
+			return now
+		}
+		f := slowStartDurationFactorFuncWithNowFunc(&clusterInfo{slowStart: slowStart}, host, nowFunc)
+		assert.Equal(t, excepted, f)
+	}
+
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime, 0.1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(5*time.Second), 0.5)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(10*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(20*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 20 * time.Second}, startTime.Add(5*time.Second), 0.25)
+
+	// always return 1.0 if given non-positive duration
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, startTime, 1)
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, startTime.Add(5*time.Second), 1)
+
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, startTime, 1)
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, startTime.Add(5*time.Second), 1)
+}
+
+type notHostWeightItem struct {
+	weight uint32
+}
+
+func (item notHostWeightItem) Weight() uint32 {
+	return item.weight
+}
+
+func Test_slowStartHostWeightFunc(t *testing.T) {
+	f := 1.0
+	RegisterSlowStartMode("test", func(info types.ClusterInfo, host types.Host) float64 {
+		return f
+	})
+
+	host := &simpleHost{
+		hostname:      "localhost",
+		addressString: "127.0.0.1:8080",
+		weight:        100,
+	}
+	wi := notHostWeightItem{weight: 100}
+
+	hostWeightFunc := func(host WeightItem) float64 {
+		return float64(host.Weight())
+	}
+
+	check := func(host WeightItem, info types.ClusterInfo, except float64, funcShouldBeSame bool) {
+		slowStartHostWeightFunc := slowStartHostWeightFunc(info, hostWeightFunc)
+		if funcShouldBeSame {
+			assert.Equal(t, reflect.ValueOf(hostWeightFunc).Pointer(), reflect.ValueOf(slowStartHostWeightFunc).Pointer())
+		}
+		w := slowStartHostWeightFunc(host)
+		assert.Equal(t, except, w)
+	}
+
+	f = 0
+	// host is not types.host, return directly
+	check(wi, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.1
+	check(host, nil, 100, true)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, true)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "not exists",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, true)
+
+	f = 1
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.01
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       0.1,
+		MinWeightPercent: 0.1,
+	}}, 10, false)
+
+	f = 10
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       1.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.1
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       1.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 10, false)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       2.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 31.622776601683793, false)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       3.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 46.4158883361278, false)
+}
+
 func BenchmarkWRRLbSimple(b *testing.B) {
 	pool := makePool(4)
 	hosts := []types.Host{}

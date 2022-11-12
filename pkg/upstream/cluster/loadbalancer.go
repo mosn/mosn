@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -42,6 +43,18 @@ func RegisterLBType(lbType types.LoadBalancerType, f func(types.ClusterInfo, typ
 	lbFactories[lbType] = f
 }
 
+type SlowStartFactorFunc func(info types.ClusterInfo, host types.Host) float64
+
+var slowStartFuncFactories map[types.SlowStartMode]SlowStartFactorFunc
+
+// RegisterSlowStartMode can register self defined modes
+func RegisterSlowStartMode(mode types.SlowStartMode, factorFunc SlowStartFactorFunc) {
+	if slowStartFuncFactories == nil {
+		slowStartFuncFactories = make(map[types.SlowStartMode]SlowStartFactorFunc)
+	}
+	slowStartFuncFactories[mode] = factorFunc
+}
+
 var rrFactory *roundRobinLoadBalancerFactory
 
 func init() {
@@ -54,6 +67,8 @@ func init() {
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
+
+	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
 	registerVariables()
 }
@@ -196,7 +211,7 @@ type WRRLoadBalancer struct {
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	wrrLB := &WRRLoadBalancer{}
-	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
+	wrrLB.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
 	wrrLB.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	return wrrLB
 }
@@ -234,7 +249,7 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 	} else {
 		lb.choice = default_choice
 	}
-	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost, lb.hostWeight)
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
 }
 
@@ -319,20 +334,93 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
 }
 
-func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
+func newEdfLoadBalancer(info types.ClusterInfo, hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
+	hostWeightFunc = slowStartHostWeightFunc(info, hostWeightFunc)
 	lb := &EdfLoadBalancer{
 		hosts:                  hosts,
 		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
-	lb.refresh(hosts)
+	lb.refresh(info, hosts)
 	return lb
 }
 
-func (lb *EdfLoadBalancer) refresh(hosts types.HostSet) {
-	// Check if the original host weights are equal and skip EDF creation if they are
-	if hostWeightsAreEqual(hosts) {
+func slowStartDurationFactorFunc(info types.ClusterInfo, host types.Host) float64 {
+	return slowStartDurationFactorFuncWithNowFunc(info, host, time.Now)
+}
+
+//slowStartDurationFactorFuncWithNowFunc with nowFunc parameter for testing
+func slowStartDurationFactorFuncWithNowFunc(info types.ClusterInfo, host types.Host, nowFunc func() time.Time) float64 {
+	slowStart := info.SlowStart()
+
+	if slowStart.SlowStartDuration <= 0 {
+		return 1.0
+	}
+
+	// always using the first start time, unaware of restarts
+	duration := nowFunc().Sub(host.StartTime())
+	window := slowStart.SlowStartDuration
+	if duration >= window {
+		return 1.0
+	}
+
+	return math.Max(1.0, duration.Seconds()) / window.Seconds()
+}
+
+// slowStartHostWeightFunc progressively increases amount of traffic for newly added upstream hosts
+func slowStartHostWeightFunc(info types.ClusterInfo, hostWeightFunc func(host WeightItem) float64) func(host WeightItem) float64 {
+	if info == nil {
+		return hostWeightFunc
+	}
+
+	slowStart := info.SlowStart()
+
+	mode := slowStart.Mode
+	if mode == "" {
+		return hostWeightFunc
+	}
+
+	factorFunc := slowStartFuncFactories[mode]
+	if factorFunc == nil {
+		log.DefaultLogger.Warnf("[lb][slow_start] Unregistered slow start mode: %s, slow start will not be performed",
+			mode)
+		return hostWeightFunc
+	}
+
+	return func(host WeightItem) float64 {
+		w := hostWeightFunc(host)
+		h, ok := host.(types.Host)
+		if !ok {
+			return w
+		}
+
+		a := slowStart.Aggression
+
+		f := factorFunc(info, h)
+		if f >= 1.0 {
+			return w
+		}
+
+		if a != 1.0 {
+			f = math.Pow(f, 1/a)
+		}
+
+		if f < slowStart.MinWeightPercent {
+			f = slowStart.MinWeightPercent
+		}
+
+		return w * f
+	}
+}
+
+func (lb *EdfLoadBalancer) refresh(info types.ClusterInfo, hosts types.HostSet) {
+	var slowStart types.SlowStart
+	if info != nil {
+		slowStart = info.SlowStart()
+	}
+	// Check if the slow-start not configured and original host weights are equal and skip EDF creation if they are
+	if slowStart.Mode == "" && hostWeightsAreEqual(hosts) {
 		return
 	}
 

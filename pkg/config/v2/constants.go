@@ -23,3 +23,9 @@ const (
 	DefaultMaxRequestPerConn    = uint32(1024)
 	DefaultConnBufferLimitBytes = uint32(16 * 1024)
 )
+
+// Slow Start
+const (
+	SlowStartDefaultAggression       = 1.0
+	SlowStartDefaultMinWeightPercent = 0.10 // 10%
+)

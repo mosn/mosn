@@ -25,8 +25,10 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -157,7 +159,7 @@ func TestClusterConfigWithSep(t *testing.T) {
 			ClusterConfigPath: testClusterPath,
 		},
 		Clusters: []Cluster{
-			Cluster{
+			{
 				Name: clusterName,
 			},
 		},
@@ -267,6 +269,66 @@ func TestMosnMixMode(t *testing.T) {
 	if cfg.Mode() != Mix {
 		t.Fatalf("config mode is %d", cfg.Mode())
 	}
+}
+
+func TestSlowStartConfigParse(t *testing.T) {
+	mosnConfig := `{
+		"cluster_manager": {
+			"clusters": [
+				{
+					"name": "cluster0",
+					"slow_start": {
+						"mode": "duration",
+						"slow_start_duration": "10s",
+						"aggression": 2.0,
+						"min_weight_percent": "12.5%"
+					}
+				},
+				{
+					"name": "cluster1"
+				}
+			]
+		}
+	}`
+	testConfig := &MOSNConfig{}
+	if err := json.Unmarshal([]byte(mosnConfig), testConfig); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	clusters := testConfig.ClusterManager.Clusters
+	assert.Equal(t, "duration", clusters[0].SlowStart.Mode)
+	assert.Equal(t, 10*time.Second, clusters[0].SlowStart.SlowStartDuration.Duration)
+	assert.Equal(t, 2.0, clusters[0].SlowStart.Aggression)
+	assert.Equal(t, Percent{0.125}, *clusters[0].SlowStart.MinWeightPercent)
+	assert.Empty(t, clusters[1].SlowStart.Mode)
+	assert.Nil(t, clusters[1].SlowStart.SlowStartDuration)
+	assert.Zero(t, clusters[1].SlowStart.Aggression)
+	assert.Zero(t, clusters[1].SlowStart.MinWeightPercent)
+}
+
+func TestPercent_MarshalJSON(t *testing.T) {
+	check := func(p Percent, s string) {
+		b, err := json.Marshal(p)
+		assert.NoError(t, err)
+		assert.Equal(t, s, string(b))
+	}
+	check(Percent{1}, `"100%"`)
+	check(Percent{0}, `"0%"`)
+	check(Percent{0.5}, `"50%"`)
+	check(Percent{0.1250}, `"12.5%"`)
+}
+
+func TestPercent_UnmarshalJSON(t *testing.T) {
+	check := func(p Percent, s string) {
+		var v Percent
+		err := json.Unmarshal([]byte(s), &v)
+		assert.NoError(t, err)
+		assert.Equal(t, v, p)
+	}
+	check(Percent{1}, `"100%"`)
+	check(Percent{0}, `"0%"`)
+	check(Percent{0.5}, `"50%"`)
+	check(Percent{0.1250}, `"12.5%"`)
 }
 
 var _iterJson = jsoniter.ConfigCompatibleWithStandardLibrary

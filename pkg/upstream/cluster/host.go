@@ -43,6 +43,7 @@ type simpleHost struct {
 	tlsDisable    bool
 	weight        uint32
 	healthFlags   *uint64
+	startTime     time.Time
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -57,6 +58,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
 		healthFlags:   GetHealthFlagPointer(config.Address),
+		startTime:     time.Now(),
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h
@@ -183,9 +185,17 @@ func (sh *simpleHost) Health() bool {
 	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
+func (sh *simpleHost) StartTime() time.Time {
+	return sh.startTime
+}
+
+func (sh *simpleHost) SetStartTime(startTime time.Time) {
+	sh.startTime = startTime
+}
+
 // net.Addr reuse for same address, valid in simple type
 // Update DNS cache using asynchronous mode
-var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var AddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveTCPAddr("tcp", key.(string))
 		if err == nil {
@@ -243,7 +253,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 }
 
 // store resolved UDP addr
-var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var UDPAddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveUDPAddr("udp", key.(string))
 		if err == nil {

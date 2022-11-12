@@ -61,11 +61,11 @@ const globalTLSMetrics = "global"
 
 // types.ClusterManager
 type clusterManager struct {
-	clustersMap          sync.Map
-	protocolConnPool     sync.Map // protocolname: { address : connpool }
-	tlsMetrics           *mtls.TLSStats
-	tlsMng               atomic.Value // store types.TLSClientContextManager
-	mux                  sync.Mutex
+	clustersMap      sync.Map
+	protocolConnPool sync.Map // protocolname: { address : connpool }
+	tlsMetrics       *mtls.TLSStats
+	tlsMng           atomic.Value // store types.TLSClientContextManager
+	mux              sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -157,6 +157,34 @@ func InheritClusterHostsHandler(oc, nc types.Cluster) {
 	nc.UpdateHosts(oc.Snapshot().HostSet())
 }
 
+func transferHostSetStates(os, ns types.HostSet) {
+	if ns.Size() == 0 {
+		return
+	}
+
+	oldStartTimes := make(map[string]types.Host, os.Size())
+
+	os.Range(func(host types.Host) bool {
+		oldStartTimes[host.AddressString()] = host
+		return true
+	})
+
+	ns.Range(func(host types.Host) bool {
+		if h, ok := oldStartTimes[host.AddressString()]; ok {
+			host.SetStartTime(h.StartTime())
+		}
+		return true
+	})
+}
+
+func TransferClusterHostStatesHandler(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+
+	transferHostSetStates(oc.Snapshot().HostSet(), nc.Snapshot().HostSet())
+}
+
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
 // if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
@@ -173,6 +201,7 @@ func (cm *clusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hostConf
 		UpdateClusterResourceManagerHandler(oc, nc)
 		CleanOldClusterHandler(oc, nc)
 		NewSimpleHostHandler(nc, hostConfigs)
+		TransferClusterHostStatesHandler(oc, nc)
 	})
 }
 
@@ -257,7 +286,11 @@ func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	c.UpdateHosts(NewHostSet(hosts))
+
+	ns := NewHostSet(hosts)
+	transferHostSetStates(snap.HostSet(), ns)
+
+	c.UpdateHosts(ns)
 
 }
 
@@ -271,8 +304,11 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 		hosts = append(hosts, host)
 		return true
 	})
-	c.UpdateHosts(NewHostSet(hosts))
 
+	ns := NewHostSet(hosts)
+	transferHostSetStates(snap.HostSet(), ns)
+
+	c.UpdateHosts(ns)
 }
 
 // UpdateClusterHosts update all hosts in the cluster
@@ -290,7 +326,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 	return cm.UpdateHosts(clusterName, nil,
 		func(c types.Cluster, _ []v2.Host) {
 			snap := c.Snapshot()
-			newHosts := make([]types.Host,0, snap.HostSet().Size())
+			newHosts := make([]types.Host, 0, snap.HostSet().Size())
 			snap.HostSet().Range(func(host types.Host) bool {
 				newHosts = append(newHosts, host)
 				return true
