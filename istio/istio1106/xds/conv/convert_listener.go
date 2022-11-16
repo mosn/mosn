@@ -119,7 +119,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			Name:       listenerName,
 			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
 			Inspector:  false,
-			AccessLogs: convertAccessLogs(xdsListener),
+			AccessLogs: convertAccessLogsFromListener(xdsListener),
 			Type:       convertTrafficDirection(xdsListener),
 		},
 		Addr:                    addr,
@@ -184,50 +184,83 @@ func convertBindToPort(xdsDeprecatedV1 *envoy_config_listener_v3.Listener_Deprec
 	return xdsDeprecatedV1.BindToPort.GetValue()
 }
 
-func convertAccessLogs(xdsListener *envoy_config_listener_v3.Listener) []v2.AccessLog {
+func convertAccessLogsFromListener(xdsListener *envoy_config_listener_v3.Listener) []v2.AccessLog {
 	if xdsListener == nil {
 		return nil
 	}
 
 	accessLogs := make([]v2.AccessLog, 0)
-	for _, xdsFilterChain := range xdsListener.GetFilterChains() {
-		for _, xdsFilter := range xdsFilterChain.GetFilters() {
-			if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
-				filterConfig := GetHTTPConnectionManager(xdsFilter)
-
-				for _, accConfig := range filterConfig.GetAccessLog() {
-					if accConfig.Name == wellknown.FileAccessLog {
-						als, err := GetAccessLog(accConfig)
-						if err != nil {
-							log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
-							continue
-						}
-						accessLog := v2.AccessLog{
-							Path:   als.GetPath(),
-							Format: als.GetFormat(),
-						}
-						accessLogs = append(accessLogs, accessLog)
-					}
-				}
-			} else if xdsFilter.GetName() == wellknown.TCPProxy {
-				filterConfig := GetTcpProxy(xdsFilter)
-				for _, accConfig := range filterConfig.GetAccessLog() {
-					if accConfig.Name == wellknown.FileAccessLog {
-						als, err := GetAccessLog(accConfig)
-						if err != nil {
-							log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
-							continue
-						}
-						accessLog := v2.AccessLog{
-							Path:   als.GetPath(),
-							Format: als.GetFormat(),
-						}
-						accessLogs = append(accessLogs, accessLog)
-					}
-				}
-			} else {
-				log.DefaultLogger.Infof("[xds] unsupported filter config type, filter name: %s", xdsFilter.GetName())
+	for _, accConfig := range xdsListener.GetAccessLog() {
+		if accConfig.Name == wellknown.FileAccessLog {
+			als, err := GetAccessLog(accConfig)
+			if err != nil {
+				log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
+				continue
 			}
+			accessLog := v2.AccessLog{
+				Path:   als.GetPath(),
+				Format: als.GetFormat(),
+			}
+			accessLogs = append(accessLogs, accessLog)
+		}
+	}
+
+	if len(accessLogs) > 0 {
+		return accessLogs
+	}
+
+	for _, xdsFilterChain := range xdsListener.GetFilterChains() {
+		accessLogs = append(accessLogs, convertAccessLogsFromFilterChain(xdsFilterChain)...)
+		if len(accessLogs) > 0 {
+			return accessLogs
+		}
+	}
+
+	return accessLogs
+}
+
+func convertAccessLogsFromFilterChain(xdsFilterChain *envoy_config_listener_v3.FilterChain) []v2.AccessLog {
+	if xdsFilterChain == nil {
+		return nil
+	}
+
+	accessLogs := make([]v2.AccessLog, 0)
+	for _, xdsFilter := range xdsFilterChain.GetFilters() {
+		if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
+			filterConfig := GetHTTPConnectionManager(xdsFilter)
+
+			for _, accConfig := range filterConfig.GetAccessLog() {
+				if accConfig.Name == wellknown.FileAccessLog {
+					als, err := GetAccessLog(accConfig)
+					if err != nil {
+						log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
+						continue
+					}
+					accessLog := v2.AccessLog{
+						Path:   als.GetPath(),
+						Format: als.GetFormat(),
+					}
+					accessLogs = append(accessLogs, accessLog)
+				}
+			}
+		} else if xdsFilter.GetName() == wellknown.TCPProxy {
+			filterConfig := GetTcpProxy(xdsFilter)
+			for _, accConfig := range filterConfig.GetAccessLog() {
+				if accConfig.Name == wellknown.FileAccessLog {
+					als, err := GetAccessLog(accConfig)
+					if err != nil {
+						log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
+						continue
+					}
+					accessLog := v2.AccessLog{
+						Path:   als.GetPath(),
+						Format: als.GetFormat(),
+					}
+					accessLogs = append(accessLogs, accessLog)
+				}
+			}
+		} else {
+			log.DefaultLogger.Infof("[xds] unsupported filter config type, filter name: %s", xdsFilter.GetName())
 		}
 	}
 	return accessLogs
@@ -551,6 +584,7 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 							},
 						},
 						StreamFilters: streamFilters,
+						AccessLogs:    convertAccessLogsFromFilterChain(xdsFilterChain),
 					},
 					PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 				})
