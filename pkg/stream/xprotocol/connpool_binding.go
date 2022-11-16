@@ -298,7 +298,9 @@ func (ac *activeClientBinding) OnEvent(event api.ConnectionEvent) {
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		ac.codecClient.Close()
+		if ac.codecClient != nil {
+			ac.codecClient.Close()
+		}
 		communicationFailure = true
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
