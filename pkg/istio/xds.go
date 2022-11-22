@@ -18,6 +18,7 @@
 package istio
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -163,7 +164,6 @@ func (adsClient *ADSClient) reconnect() {
 		time.Sleep(interval + time.Duration(rand.Intn(1000))*time.Millisecond)
 		interval = computeInterval(interval)
 	}
-
 }
 
 func (adsClient *ADSClient) stopStreamClient() {
@@ -193,4 +193,25 @@ func (adsClient *ADSClient) connect() error {
 
 func (adsClient *ADSClient) Stop() {
 	close(adsClient.stopChan)
+}
+
+func (adsClient *ADSClient) ReconnectOnce() error {
+	adsClient.stopStreamClient()
+	log.DefaultLogger.Infof("[xds] [ads client] close stream client")
+
+	if !disableReconnect {
+		err := adsClient.connect()
+		if err == nil {
+			if c := adsClient.GetStreamClient(); c != nil {
+				err := c.Send(adsClient.config.InitAdsRequest())
+				if err != nil {
+					log.DefaultLogger.Infof("[xds] [ads client] reconnectOnce and send request failed")
+					return fmt.Errorf("send request failed:%v", err)
+				}
+			}
+			log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
+		}
+		return err
+	}
+	return nil
 }
