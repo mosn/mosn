@@ -199,19 +199,22 @@ func (adsClient *ADSClient) ReconnectOnce() error {
 	adsClient.stopStreamClient()
 	log.DefaultLogger.Infof("[xds] [ads client] close stream client")
 
-	if !disableReconnect {
-		err := adsClient.connect()
-		if err == nil {
-			if c := adsClient.GetStreamClient(); c != nil {
-				err := c.Send(adsClient.config.InitAdsRequest())
-				if err != nil {
-					log.DefaultLogger.Infof("[xds] [ads client] reconnectOnce and send request failed")
-					return fmt.Errorf("send request failed:%v", err)
-				}
-			}
-			log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
-		}
-		return err
+	if disableReconnect {
+		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect disabled")
+		return nil
 	}
-	return nil
+
+	err := adsClient.connect()
+	if err == nil {
+		if c := adsClient.GetStreamClient(); c != nil {
+			err := c.Send(adsClient.config.InitAdsRequest())
+			if err != nil {
+				log.DefaultLogger.Infof("[xds] [ads client] reconnectOnce and send request failed")
+				return fmt.Errorf("send request failed:%v", err)
+			}
+		}
+		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
+	}
+
+	return err
 }
