@@ -54,6 +54,7 @@ func init() {
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
+	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
 
 	registerVariables()
 }
@@ -528,4 +529,40 @@ func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCri
 
 func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
+}
+
+// leastActiveConnectiontLoadBalancer choose the host with the least active connection
+type leastActiveConnectionLoadBalancer struct {
+	*EdfLoadBalancer
+}
+
+func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	lb := &leastActiveConnectionLoadBalancer{}
+	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost, lb.hostWeight)
+	return lb
+}
+
+func (lb *leastActiveConnectionLoadBalancer) hostWeight(item WeightItem) float64 {
+	host := item.(types.Host)
+	return float64(host.Weight()) / float64(host.HostStats().UpstreamConnectionActive.Count()+1)
+}
+
+func (lb *leastActiveConnectionLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+	allHosts := lb.hosts
+	total := allHosts.Size()
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+	var candicate types.Host
+	randIdx := lb.rand.Intn(total)
+	for cur := 0; cur < total; cur++ {
+		tempHost := allHosts.Get((randIdx+cur)%total)
+		if candicate == nil {
+			candicate = tempHost
+			continue
+		}
+		if candicate.HostStats().UpstreamConnectionActive.Count() > tempHost.HostStats().UpstreamConnectionActive.Count() {
+			candicate = tempHost
+		}
+	}
+	return candicate
 }
