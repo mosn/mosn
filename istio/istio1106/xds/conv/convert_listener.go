@@ -48,6 +48,12 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 )
 
+// DefaultPassthroughCluster: EGRESS_CLUSTER or INGRESS_CLUSTER, counterpart of v2.ListenerType
+type DefaultPassthroughCluster string
+
+const EGRESS_CLUSTER DefaultPassthroughCluster = "PassthroughCluster"
+const INGRESS_CLUSTER DefaultPassthroughCluster = "InboundPassthroughClusterIpv4"
+
 // support network filter list
 var supportFilter = map[string]bool{
 	wellknown.HTTPConnectionManager: true,
@@ -565,11 +571,27 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 		}
 	}
 	if useOriginalDst {
-		// TODO support passthrough and blackhole
+		// TODO support blackhole
+
+		var cluster DefaultPassthroughCluster
+		if convertTrafficDirection(xdsListener) == v2.INGRESS {
+			cluster = INGRESS_CLUSTER
+		} else {
+			cluster = EGRESS_CLUSTER
+		}
 		filterChains = []v2.FilterChain{
 			{
-				FilterChainConfig: v2.FilterChainConfig{},
-				TLSContexts:       []v2.TLSConfig{{}},
+				FilterChainConfig: v2.FilterChainConfig{
+					Filters: []v2.Filter{
+						{
+							Type: v2.TCP_PROXY,
+							Config: map[string]interface{}{
+								"cluster": cluster,
+							},
+						},
+					},
+				},
+				TLSContexts: []v2.TLSConfig{{}},
 			},
 		}
 		streamFilters = nil
