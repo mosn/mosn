@@ -1,0 +1,185 @@
+{
+  "pprof": {
+    "debug": true,
+    "port_value": 34902
+  },
+  "servers": [
+    {
+      "mosn_server_name": "mosn_server_1",
+      "default_log_path": "./logs/default.log",
+      "default_log_level": "WARN",
+      "global_log_roller": "time=1",
+      "graceful_timeout": "10s",
+      "processor": 1,
+      "listeners": [
+        {
+          "name": "egress_sofa",
+          "address": "0.0.0.0:12200",
+          "bind_port": true,
+          "type": "ingress",
+          "filter_chains": [
+            {
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "downstream_protocol": "Auto",
+                    "name": "proxy_config",
+                    "router_config_name": "test_router"
+                  }
+                },
+                {
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "test_router",
+                    "virtual_hosts": [
+                      {
+                        "name": "sofa",
+                        "domains": [
+                          "*"
+                        ],
+                        "routers": [
+                          {
+                            "match": {
+                              "headers": [
+                                {
+                                  "name": "service",
+                                  "value": "com.alipay.test.TestService:1.0",
+                                  "regex": false
+                                }
+                              ]
+                            },
+                            "route": {
+                              "cluster_name": "test_cpp",
+                              "retry_policy": {
+                                "retry_on": false
+                              },
+                              "metadata_match": {
+                                "filter_metadata": {
+                                  "mosn.lb": {
+                                    "version": "1.1",
+                                    "stage": "pre-release",
+                                    "label": "gray"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "stream_filters": []
+        }
+      ]
+    }
+  ],
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "test_cpp",
+        "type": "SIMPLE",
+        "lb_type": "LB_ROUNDROBIN",
+        "spec": {},
+        "hosts": [
+          {
+            "address": "127.0.0.1:12222",
+            "hostname": "downstream_machine1",
+            "weight": 1,
+            "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
+              }
+            }
+          },
+          {
+            "address": "127.0.0.1:12223",
+            "hostname": "downstream_machine1",
+            "weight": 1,
+            "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
+              }
+            }
+          },
+          {
+            "address": "127.0.0.1:12224",
+            "hostname": "downstream_machine1",
+            "weight": 1,
+            "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
+              }
+            }
+          },
+          {
+            "address": "127.0.0.1:12226",
+            "hostname": "downstream_machine1",
+            "weight": 1,
+            "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
+              }
+            }
+          },
+          {
+            "address": "127.0.0.1:12227",
+            "hostname": "downstream_machine1",
+            "weight": 1,
+            "metadata": {
+              "filter_metadata": {
+                "mosn.lb": {
+                  "stage": "pre-release",
+                  "version": "1.1",
+                  "label": "gray"
+                }
+              }
+            }
+          }
+        ],
+        "lb_subset_config": {
+          "fall_back_policy": 2,
+          "default_subset": {
+            "stage": "pre-release",
+            "version": "1.1",
+            "label": "gray"
+          },
+          "subset_selectors": [
+            [
+              "stage",
+              "type"
+            ],
+            [
+              "stage",
+              "label",
+              "version"
+            ],
+            [
+              "version"
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

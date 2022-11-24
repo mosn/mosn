@@ -20,6 +20,7 @@ WASM_IMAGE      = mosn-wasm
 
 IMAGE_NAME      = mosn
 REPOSITORY      = mosnio/${IMAGE_NAME}
+PERFORMANCE     = mosnio/performance:v1
 
 RPM_BUILD_IMAGE = afenp-rpm-builder
 RPM_VERSION     = $(shell cat VERSION | tr -d '-')
@@ -97,6 +98,13 @@ test-shell-local:
 
 test-shell:
 	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make test-shell-local
+
+benchmark-test:
+	docker run --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${PERFORMANCE} bash test/benchmark/benchmark-shell.sh build/bundles/${MAJOR_VERSION}/binary/${TARGET_SIDECAR}
+
+benchmark:
+	make build
+	make benchmark-test
 
 image:
 	@rm -rf IMAGEBUILD
