@@ -75,6 +75,7 @@ import (
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm020"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
+	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 	_ "mosn.io/pkg/buffer"
 )
 

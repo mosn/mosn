@@ -77,6 +77,9 @@ build-wasm-image:
 
 binary: build
 
+build-local-wasmer:
+	@$(MAKE) build-local TAGS=wasmer
+
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	GO111MODULE=on CGO_ENABLED=1 go build ${TAGS_OPT} \
@@ -141,4 +144,4 @@ unit-test-istio:
 
 	
 
-.PHONY: unit-test build image rpm upload shell
+.PHONY: unit-test build image rpm upload shell build-local build-local-wasmer
