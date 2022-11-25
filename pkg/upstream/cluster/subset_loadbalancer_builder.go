@@ -286,12 +286,12 @@ type hostsCache interface {
 
 func newMapHostsCache() *mapHostsCache {
 	return &mapHostsCache{
-		entries: make(map[int][]sparseEntry, 16),
+		entries: make(map[int64][]sparseEntry, 16),
 	}
 }
 
 type mapHostsCache struct {
-	entries map[int][]sparseEntry
+	entries map[int64][]sparseEntry
 }
 
 func (c *mapHostsCache) get(key *intsets.Sparse) interface{} {
@@ -316,11 +316,11 @@ type sparseEntry struct {
 	value interface{}
 }
 
-func (e sparseEntry) HashCode() int {
+func (e sparseEntry) HashCode() int64 {
 	min := e.key.Min()
 	max := e.key.Max()
 	length := e.key.Len()
-	return min<<44 | max<<22 | length
+	return int64(min<<44 | max<<22 | length)
 }
 
 func (e sparseEntry) Equals(e1 sparseEntry) bool {
