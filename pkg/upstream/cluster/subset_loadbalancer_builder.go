@@ -29,6 +29,7 @@ const (
 	SubsetPreIndexBuildMode SubsetBuildMode = iota
 	SubsetFilterBuildMode
 )
+const initCap = 16
 
 var subsetBuildMode = SubsetPreIndexBuildMode
 
@@ -286,7 +287,7 @@ type hostsCache interface {
 
 func newMapHostsCache() *mapHostsCache {
 	return &mapHostsCache{
-		entries: make(map[int64][]sparseEntry, 16),
+		entries: make(map[int64][]sparseEntry, initCap),
 	}
 }
 
@@ -320,7 +321,7 @@ func (e sparseEntry) HashCode() int64 {
 	min := e.key.Min()
 	max := e.key.Max()
 	length := e.key.Len()
-	return int64(min<<44 | max<<22 | length)
+	return int64(min)<<44 | int64(max)<<22 | int64(length)
 }
 
 func (e sparseEntry) Equals(e1 sparseEntry) bool {
