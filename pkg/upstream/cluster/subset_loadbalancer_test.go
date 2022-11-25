@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -875,19 +874,16 @@ func TestSubsetLoadBalancers(t *testing.T) {
 	})
 }
 
-func benchHostConfigs(hostCount int, keyValues int) []v2.Host {
+func benchHostConfigs(hostCount int, zones int) []v2.Host {
 	ret := make([]v2.Host, 0, hostCount)
-	keyValues = int(math.Max(float64(keyValues), 1))
 	rand.Seed(time.Now().UnixNano())
-	keys := []string{"zone", "physics", "mosn_aig", "mosn_version"}
+	keys := []string{"physics", "mosn_aig", "mosn_version"}
 	for i := 0; i < hostCount; i++ {
-
 		metadata := make(map[string]string)
+		r := rand.Intn(zones)
+		metadata["zone"] = fmt.Sprintf("zone-%d", r)
 		for _, key := range keys {
-			r := rand.Intn(keyValues + 1)
-			if r < keyValues {
-				metadata[key] = fmt.Sprintf("%s-%d", key, r)
-			}
+			metadata[key] = key
 		}
 		host := v2.Host{
 			HostConfig: v2.HostConfig{
