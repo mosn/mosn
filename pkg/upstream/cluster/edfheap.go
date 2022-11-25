@@ -29,7 +29,7 @@ type edfHeap struct {
 
 func edfEntryLess(a, b *edfEntry) bool {
 	if a.deadline == b.deadline {
-		return a.queuedTime.Before(b.queuedTime)
+		return a.queuedTime < b.queuedTime
 	}
 	return a.deadline < b.deadline
 }

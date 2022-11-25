@@ -187,6 +187,42 @@ func TestWRRLB(t *testing.T) {
 		})
 	}
 }
+
+func TestWRRLBStable(t *testing.T) {
+	testCases := []struct {
+		name        string
+		hosts       []types.Host
+		invokeTimes int
+		totalWeight int
+	}{
+		{
+			name: "130-invokes",
+			hosts: []types.Host{
+				&mockHost{addr: "192.168.1.1", w: 1, name: "A"},
+				&mockHost{addr: "192.168.1.2", w: 4, name: "B"},
+				&mockHost{addr: "192.168.1.3", w: 4, name: "C"},
+				&mockHost{addr: "192.168.1.4", w: 4, name: "D"},
+			},
+			invokeTimes: 130,
+			totalWeight: 13,
+		},
+	}
+
+	for _, tc := range testCases {
+		hs := &hostSet{}
+		hs.setFinalHost(tc.hosts)
+		lb := newWRRLoadBalancer(nil, hs)
+		for i := 0; i < tc.invokeTimes; i++ {
+			if (i % tc.totalWeight) == 0 {
+				t.Logf("--------------------------")
+			}
+			h := lb.ChooseHost(nil)
+			t.Logf("selected host: %s, hostName: %s", h.AddressString(), h.Hostname())
+
+		}
+	}
+}
+
 func BenchmarkWRRLbSimple(b *testing.B) {
 	pool := makePool(4)
 	hosts := []types.Host{}
