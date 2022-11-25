@@ -205,17 +205,6 @@ func convertAccessLogsFromListener(xdsListener *envoy_config_listener_v3.Listene
 		}
 	}
 
-	if len(accessLogs) > 0 {
-		return accessLogs
-	}
-
-	for _, xdsFilterChain := range xdsListener.GetFilterChains() {
-		accessLogs = append(accessLogs, convertAccessLogsFromFilterChain(xdsFilterChain)...)
-		if len(accessLogs) > 0 {
-			return accessLogs
-		}
-	}
-
 	return accessLogs
 }
 

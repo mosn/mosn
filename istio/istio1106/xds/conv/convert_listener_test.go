@@ -329,14 +329,6 @@ func TestConvertListener_AccessLogs(t *testing.T) {
 											}),
 										},
 									},
-									{
-										Name: wellknown.FileAccessLog,
-										ConfigType: &envoy_config_accesslog_v3.AccessLog_TypedConfig{
-											TypedConfig: messageToAny(t, &envoy_extensions_access_loggers_file_v3.FileAccessLog{
-												Path: "/http_connection_manager/log_path",
-											}),
-										},
-									},
 								},
 							}),
 						},
@@ -360,7 +352,6 @@ func TestConvertListener_AccessLogs(t *testing.T) {
 	require.Len(t, listeners, 2)
 	require.Len(t, listeners[0].AccessLogs, 1)
 	require.Equal(t, "/Listener/log_path", listeners[0].AccessLogs[0].Path)
-	require.Len(t, listeners[1].AccessLogs, 2)
+	require.Len(t, listeners[1].AccessLogs, 1)
 	require.Equal(t, "/http_connection_manager/log_path", listeners[1].AccessLogs[0].Path)
-	require.Equal(t, "/http_connection_manager/log_path", listeners[1].AccessLogs[1].Path)
 }
