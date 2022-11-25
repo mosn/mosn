@@ -23,14 +23,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -41,15 +44,15 @@ func TestPingPong(t *testing.T) {
 	// wait for server to start
 	time.Sleep(time.Second * 2)
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := variable.NewVariableContext(context.Background())
 
 	cl := basicCluster(addr, []string{addr})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	p := connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
 	}
 	p.host.Store(host)
 
@@ -73,7 +76,63 @@ func TestPingPong(t *testing.T) {
 		}}, true)
 	}
 
-	assert.Equal(t, len(xsList), len(pInst.idleClients[api.ProtocolName("dubbo")]))
+	assert.Equal(t, len(xsList), len(pInst.idleClients))
+
+}
+
+func TestPingPongBoundary(t *testing.T) {
+	p := connpool{
+		protocol: api.ProtocolName(dubbo.ProtocolName),
+		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
+	}
+	// mock a host
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	host := mock.NewMockHost(ctrl)
+	p.host.Store(host)
+	// set mock host info
+	mockClusterInfo := mock.NewMockClusterInfo(ctrl)
+	s1 := metrics.NewClusterStats("test_clustername")
+	mockClusterInfo.EXPECT().Stats().Return(types.ClusterStats{
+		UpstreamRequestPendingOverflow: s1.Counter(metrics.UpstreamRequestPendingOverflow),
+		UpstreamRequestFailureEject:    s1.Counter(metrics.UpstreamRequestFailureEject),
+		UpstreamRequestLocalReset:      s1.Counter(metrics.UpstreamRequestLocalReset),
+		UpstreamRequestRemoteReset:     s1.Counter(metrics.UpstreamRequestRemoteReset),
+	}).AnyTimes()
+	host.EXPECT().ClusterInfo().Return(mockClusterInfo).AnyTimes()
+	s := metrics.NewHostStats("test_clustername", "test_host_addr")
+	host.EXPECT().HostStats().Return(types.HostStats{
+		UpstreamRequestPendingOverflow: s.Counter(metrics.UpstreamRequestPendingOverflow),
+		UpstreamRequestFailureEject:    s.Counter(metrics.UpstreamRequestFailureEject),
+		UpstreamRequestLocalReset:      s.Counter(metrics.UpstreamRequestLocalReset),
+		UpstreamRequestRemoteReset:     s.Counter(metrics.UpstreamRequestRemoteReset),
+	}).AnyTimes()
+
+	// test
+	pp := NewPoolPingPong(&p)
+	require.True(t, pp.CheckAndInit(context.Background()))
+	// set mock call
+	t.Run("test overflow", func(t *testing.T) {
+		mockResourceMng := mock.NewMockResourceManager(ctrl)
+		mockResource := mock.NewMockResource(ctrl)
+		mockResourceMng.EXPECT().Requests().Return(mockResource)
+		mockResource.EXPECT().CanCreate().Return(false)
+		mockClusterInfo.EXPECT().ResourceManager().Return(mockResourceMng)
+
+		_, _, reason := pp.NewStream(context.Background(), &receiver{})
+		require.Equal(t, types.Overflow, reason)
+	})
+
+	t.Run("test on reset stream", func(t *testing.T) {
+		atciveP := &activeClientPingPong{
+			pool: pp.(*poolPingPong),
+		}
+		atciveP.OnResetStream(types.StreamConnectionTermination)
+		atciveP.OnResetStream(types.StreamLocalReset)
+		atciveP.OnResetStream(types.StreamRemoteReset)
+	})
+
 }
 
 type receiver struct{}

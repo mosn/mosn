@@ -9,29 +9,64 @@
 
 [中文](README_ZH.md)
 
-MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh which support xDS API. It also can be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
+MOSN (Modular Open Smart Network) is a cloud-native network proxy written in Go language. It is open sourced by Ant Group and verified by hundreds of thousands of production containers in 11.11 global shopping festival. MOSN provides the capabilities of multiple protocol, modularity, intelligent and security. It integrates a large number of cloud-native components, and also integrates a Envoy network library, which is high-performance and easy to expand. MOSN and Istio can be integrated to build Service Mesh, and can also be used as independent L4/L7 load balancers, API gateways, cloud native Ingress, and etc.
 
-## Features
+## Core capabilities
 
-As an open source network proxy, MOSN has the following core functions:
-
-+ Support full dynamic resource configuration through xDS API integrated with Service Mesh.
-+ Support proxy with TCP, HTTP, and RPC protocols.
-+ Support rich routing features.
-+ Support reliable upstream management and load balancing capabilities.
-+ Support network and protocol layer observability.
-+ Support mTLS and protocols on TLS.
-+ Support rich extension mechanism to provide highly customizable expansion capabilities.
-+ Support process smooth upgrade.
+- Istio integration
+   - Integrates Istio 1.10 to run in full dynamic resource configuration mode
+- Core forwarding
+   - Supports a self-contained server
+   - Supports the TCP proxy
+   - Supports the UDP proxy
+   - Supports transparent traffic hijack mode
+- Multi-protocol
+   - Supports HTTP/1.1 and HTTP/2
+   - Supports protocol extension based on XProtocol framework
+   - Supports protocol automatic identification
+   - Supports gRPC
+- Core routing
+   - Supports virtual host-based routing
+   - Supports headers/URL/prefix/variable/dsl routing
+   - Supports redirect/direct response/traffic mirror routing
+   - Supports host metadata-based subset routing
+   - Supports weighted routing.
+   - Supports retries and timeout configuration
+   - Supports request and response headers to add/remove
+- Back-end management & load balancing
+   - Supports connection pools
+   - Supports persistent connection's heart beat handling
+   - Supports circuit breaker
+   - Supports active back-end health check
+   - Supports load balancing policies: random/rr/wrr/edf
+   - Supports host metadata-based subset load balancing policies
+   - Supports different cluster types: original dst/dns/simple
+   - Supports cluster type extension
+- Observability
+   - Support trace module extension
+   - Integrates jaeger/skywalking
+   - Support metrics with prometheus style
+   - Support configurable access log
+   - Support admin API extension
+   - Integrates [Holmes](https://github.com/mosn/holmes) to automatic trigger pprof
+- TLS
+   - Support multiple certificates matches, and TLS inspector mode.
+   - Support SDS for certificate get and update
+   - Support extensible certificate get, update and verify
+   - Support CGo-based cipher suites: SM3/SM4
+- Process management
+   - Supports hot upgrades
+   - Supports graceful shutdown
+- Extension capabilities
+   - Supports go-plugin based extension
+   - Supports process based extension
+   - Supports WASM based extension
+   - Supports custom extensions configuration
+   - Supports custom extensions at the TCP I/O layer and protocol layer
   
 ## Download&Install
 
 Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/src/mosn.io/mosn`.
-
-**Notice**
-
-- If you need to use code before 0.8.1, you may needs to run the script `transfer_path.sh` to fix the import path.
-- If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
 
 ## Documentation
 
@@ -199,7 +234,7 @@ Visit the [MOSN website](https://mosn.io/docs/community/) for more information o
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
+<img src="https://github.com/mosn/mosn.io/blob/master/assets/img/dingtalk.jpg?raw=true" width="200">
 </p>
 
 ## Community meeting

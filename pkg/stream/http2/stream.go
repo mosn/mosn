@@ -31,8 +31,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls"
@@ -41,34 +39,35 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
+// TODO: move it to main
 func init() {
-	str.Register(protocol.HTTP2, &streamConnFactory{})
 	protocol.RegisterProtocolConfigHandler(protocol.HTTP2, streamConfigHandler)
+	protocol.RegisterProtocol(protocol.HTTP2, NewConnPool, &StreamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
-type streamConnFactory struct{}
+type StreamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, clientCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
+func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, serverCallbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	var size int
 	var again bool
 	if len(magic) >= len(http2.ClientPreface) {
@@ -109,10 +108,6 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 
 func (conn *streamConnection) EnableWorkerPool() bool {
 	return true
-}
-
-func (conn *streamConnection) GoAway() {
-	// todo
 }
 
 // types.Stream
@@ -181,9 +176,14 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if cfg, ok := pgc.(StreamConfig); ok {
-		streamConfig = cfg
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil {
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+				if cfg, ok := http2Config.(StreamConfig); ok {
+					streamConfig = cfg
+				}
+			}
+		}
 	}
 	return streamConfig
 }
@@ -196,6 +196,10 @@ type serverStreamConnection struct {
 	config  StreamConfig
 
 	serverCallbacks types.ServerStreamConnectionEventListener
+}
+
+func (conn *serverStreamConnection) GoAway() {
+	conn.sc.GracefulShutdown()
 }
 
 func newServerStreamConnection(ctx context.Context, connection api.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
@@ -216,11 +220,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 		serverCallbacks: serverCallbacks,
 	}
 
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(StreamConfig); ok {
-			sc.useStream = extendConfig.Http2UseStream
-		}
-	}
+	sc.useStream = sc.config.Http2UseStream
 
 	// init first context
 	sc.cm.Next()
@@ -331,7 +331,8 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	var stream *serverStream
 	// header
 	if h2s != nil {
-		stream, err = conn.onNewStreamDetect(mosnctx.Clone(ctx), h2s, endStream)
+		// Check: context need clone?
+		stream, err = conn.onNewStreamDetect(ctx, h2s, endStream)
 		if err != nil {
 			conn.handleError(ctx, f, err)
 			return
@@ -371,7 +372,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	if stream == nil {
 		stream = conn.onStreamRecv(ctx, id, endStream)
 		if stream == nil {
-			log.Proxy.Errorf(ctx, "http2 server OnStreamRecv error, invaild id = %d", id)
+			log.Proxy.Errorf(ctx, "http2 server OnStreamRecv error, invalid id = %d", id)
 			return
 		}
 	}
@@ -458,7 +459,10 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = ctx
+	_ = variable.Set(stream.ctx, types.VariableStreamID, stream.id)
+	_ = variable.Set(stream.ctx, types.VariableDownStreamProtocol, protocol.HTTP2)
+
 	stream.sc = conn
 	stream.h2s = h2s
 	stream.conn = conn.conn
@@ -471,7 +475,6 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	if trace.IsEnabled() {
 		// try build trace span
 		tracer := trace.Tracer(protocol.HTTP2)
-
 		if tracer != nil {
 			span = tracer.Start(ctx, h2s.Request, time.Now())
 		}
@@ -633,6 +636,10 @@ type clientStreamConnection struct {
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
+func (conn *clientStreamConnection) GoAway() {
+	// todo
+}
+
 func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	clientCallbacks types.StreamConnectionEventListener) types.ClientStreamConnection {
 
@@ -650,11 +657,7 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 		streamConnectionEventListener: clientCallbacks,
 	}
 
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(StreamConfig); ok {
-			sc.useStream = extendConfig.Http2UseStream
-		}
-	}
+	sc.useStream = parseStreamConfig(ctx).Http2UseStream
 
 	// init first context
 	sc.cm.Next()
@@ -779,7 +782,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		conn.lastStream = lastStream
 		conn.streamConnectionEventListener.OnGoAway()
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("http2 client recevice goaway lastStremID = %d", conn.lastStream)
+			log.DefaultLogger.Debugf("http2 client receive goaway lastStreamID = %d", conn.lastStream)
 		}
 		return
 	}
@@ -791,7 +794,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	conn.mutex.Unlock()
 
 	if stream == nil {
-		log.Proxy.Errorf(ctx, "http2 client invaild steamID :%v", f)
+		log.Proxy.Errorf(ctx, "http2 client invalid steamID :%v", f)
 		return
 	}
 
@@ -801,7 +804,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		// set header-status into stream ctx
 		variable.SetString(stream.ctx, types.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
 
-		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
+		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(stream.ctx, "http2 client header: id = %d, headers = %+v", id, rsp.Header)
@@ -1065,6 +1068,12 @@ reset:
 	}
 	// fix: https://github.com/mosn/mosn/issues/1672
 	if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "connection reset by peer") {
+		s.ResetStream(types.StreamConnectionFailed)
+		return
+	}
+	// fix: https://github.com/mosn/mosn/issues/1900
+	if err == http2.ErrStreamID || err == http2.ErrDepStreamID {
+		s.sc.streamConnectionEventListener.OnGoAway()
 		s.ResetStream(types.StreamConnectionFailed)
 		return
 	}

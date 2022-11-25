@@ -27,7 +27,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 // types.ListenerEventListener
@@ -35,15 +34,18 @@ type mockHandler struct {
 	stopChan chan struct{}
 }
 
-func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
+func (h *mockHandler) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte, listeners []api.ConnectionEventListener) {
 	ctx := context.Background()
 	conn := NewServerConnection(ctx, rawc, h.stopChan)
-	conn.SetIdleTimeout(buffer.ConnReadTimeout, 3*time.Second)
+	conn.SetIdleTimeout(types.DefaultConnReadTimeout, 3*time.Second)
 	h.OnNewConnection(ctx, conn)
 }
 
 func (h *mockHandler) OnNewConnection(ctx context.Context, conn api.Connection) {
 	conn.Start(ctx)
+}
+
+func (h *mockHandler) OnShutdown() {
 }
 
 func (h *mockHandler) OnClose() {
@@ -64,15 +66,16 @@ func _createListener(address string) types.Listener {
 			BindToPort: true,
 		},
 	}
-	return NewListener(lc)
+	return GetListenerFactory()(lc)
 }
 
 func TestIdleChecker(t *testing.T) {
 	// setup
-	buffer.ConnReadTimeout = time.Second
+	oldDefaultConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = time.Second
 	// tear down
 	defer func() {
-		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+		types.DefaultConnReadTimeout = oldDefaultConnReadTimeout
 	}()
 	ln := _createListener(testAddress)
 	defer func() {
@@ -102,8 +105,8 @@ func TestIdleChecker(t *testing.T) {
 			t.Fatal("expected a closed connection error, but got: ", err)
 		}
 		duration := time.Now().Sub(start)
-		if duration < time.Duration(3)*buffer.ConnReadTimeout ||
-			duration > time.Duration(4)*buffer.ConnReadTimeout {
+		if duration < time.Duration(3)*types.DefaultConnReadTimeout ||
+			duration > time.Duration(4)*types.DefaultConnReadTimeout {
 			t.Fatalf("expected close connection when idle max, but close at %v", duration)
 		}
 	case <-time.After(5 * time.Second):
@@ -113,10 +116,11 @@ func TestIdleChecker(t *testing.T) {
 
 func TestIdleCheckerWithData(t *testing.T) {
 	// setup
-	buffer.ConnReadTimeout = time.Second
+	oldDefaultConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = time.Second
 	// tear down
 	defer func() {
-		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+		types.DefaultConnReadTimeout = oldDefaultConnReadTimeout
 	}()
 
 	ln := _createListener(testAddress)
@@ -137,7 +141,7 @@ func TestIdleCheckerWithData(t *testing.T) {
 	// 2s send a data, clean the counter, never close the connection
 	// no data response, conn.Read never get data
 	go func() {
-		ticker := time.NewTicker(2 * buffer.ConnReadTimeout)
+		ticker := time.NewTicker(2 * types.DefaultConnReadTimeout)
 		for _ = range ticker.C {
 			conn.Write([]byte{0x01})
 		}
@@ -160,13 +164,13 @@ func TestIdleCheckerWithData(t *testing.T) {
 
 func TestGetIdleCount(t *testing.T) {
 	// teardown
-	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 100*time.Second); maxIdleCount != 7 {
+	if maxIdleCount := getIdleCount(types.DefaultConnReadTimeout, 100*time.Second); maxIdleCount != 7 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
-	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 90*time.Second); maxIdleCount != 6 {
+	if maxIdleCount := getIdleCount(types.DefaultConnReadTimeout, 90*time.Second); maxIdleCount != 6 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
-	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 0); maxIdleCount != 0 {
+	if maxIdleCount := getIdleCount(types.DefaultConnReadTimeout, 0); maxIdleCount != 0 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
 }

@@ -28,6 +28,11 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+const (
+	serverContextPrefix = "server_"
+	clientContextPrefix = "client_"
+)
+
 type serverContextManager struct {
 	// providers stored the certificates
 	providers []types.TLSProvider
@@ -48,7 +53,7 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 	}
 	for _, c := range cfg.FilterChains {
 		for _, tlsCfg := range c.TLSContexts {
-			provider, err := NewProvider(&tlsCfg)
+			provider, err := NewProvider(serverContextPrefix+cfg.Name, &tlsCfg)
 			if err != nil {
 				return nil, err
 			}
@@ -70,7 +75,10 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 }
 
 func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	var defaultProvider types.TLSProvider
+	var (
+		defaultProvider          types.TLSProvider
+		firstALPNMatchedProvider types.TLSProvider
+	)
 	for _, provider := range mng.providers {
 		if !provider.Ready() {
 			continue
@@ -82,9 +90,13 @@ func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (
 		if provider.MatchedServerName(info.ServerName) {
 			return provider.GetTLSConfigContext(false).Config(), nil
 		}
-		if provider.MatchedALPN(info.SupportedProtos) {
-			return provider.GetTLSConfigContext(false).Config(), nil
+		if firstALPNMatchedProvider == nil && provider.MatchedALPN(info.SupportedProtos) {
+			firstALPNMatchedProvider = provider
 		}
+	}
+	// use first ALPN matched provider when all provider can't match serverName
+	if firstALPNMatchedProvider != nil {
+		return firstALPNMatchedProvider.GetTLSConfigContext(false).Config(), nil
 	}
 	if defaultProvider == nil {
 		return nil, ErrorNoCertConfigure
@@ -141,8 +153,8 @@ type clientContextManager struct {
 }
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
-func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
-	provider, err := NewProvider(cfg)
+func NewTLSClientContextManager(name string, cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
+	provider, err := NewProvider(clientContextPrefix+name, cfg)
 	if err != nil {
 		return nil, err
 	}

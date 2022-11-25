@@ -96,6 +96,12 @@ func (proto *Proto) Reply(context context.Context, request api.XFrame) api.XResp
 	return nil
 }
 
+func (proto *Proto) GoAway(ctx context.Context) api.XFrame {
+	return &Request{
+		Type: TypeGoAway,
+	}
+}
+
 // Hijacker
 func (proto *Proto) Hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	// not supported for poc demo

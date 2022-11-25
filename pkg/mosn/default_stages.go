@@ -18,38 +18,33 @@
 package mosn
 
 import (
-	"syscall"
-
 	admin "mosn.io/mosn/pkg/admin/server"
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/server/keeper"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
-// modify it in main function
+// modify it in main function.
+// before inherit config from old mosn.
 func DefaultInitStage(c *v2.MOSNConfig) {
-	types.InitDefaultPath(configmanager.GetConfigPath())
+	InitDefaultPath(c)
 	InitDebugServe(c)
 	InitializePidFile(c)
 	InitializeTracing(c)
 	InitializePlugin(c)
 	InitializeWasm(c)
 	InitializeThirdPartCodec(c)
-	InitializeMetrics(c)
 }
 
 // Default Pre-start Stage wrappers
-func DefaultPreStartStage(m *Mosn) {
-	// the signals SIGKILL and SIGSTOP may not be caught by a program,
-	// so we need other ways to ensure that resources are safely cleaned up
-	keeper.AddSignalCallback(func() {
-		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
-		m.Close()
-	}, syscall.SIGINT, syscall.SIGTERM)
+func DefaultPreStartStage(mosn stagemanager.Application) {
+	m := mosn.(*Mosn)
+
+	// after inherit config,
+	// since metrics need the isFromUpgrade flag in Mosn
+	InitializeMetrics(m)
+
 	// start xds client
 	_ = m.StartXdsClient()
 	featuregate.FinallyInitFunc()
@@ -57,13 +52,10 @@ func DefaultPreStartStage(m *Mosn) {
 }
 
 // Default Start Stage wrappers
-func DefaultStartStage(m *Mosn) {
+func DefaultStartStage(mosn stagemanager.Application) {
+	m := mosn.(*Mosn)
 	// register admin server
-	// admin server should registered after all prepares action ready
+	// admin server should register after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
-	//  transfer connection used in smooth upgrade in mosn
-	m.TransferConnection()
-	// clean upgrade finish the smooth upgrade datas
-	m.CleanUpgrade()
 }

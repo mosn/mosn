@@ -23,10 +23,9 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -71,7 +70,11 @@ func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interf
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	hv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
+	if err != nil {
+		return variable.ValueNotFound, nil
+	}
+	headers, ok := hv.(api.HeaderMap)
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
@@ -89,7 +92,11 @@ func headerGetter(ctx context.Context, value *variable.IndexedValue, data interf
 }
 
 func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	hv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
+	if err != nil {
+		return variable.ValueNotFound, nil
+	}
+	headers, ok := hv.(api.HeaderMap)
 	if !ok {
 		return variable.ValueNotFound, nil
 	}

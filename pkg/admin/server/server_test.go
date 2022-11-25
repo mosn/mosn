@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/stagemanager"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -152,7 +153,7 @@ func postToggleLogger(port uint32, logger string, disable bool) (string, error) 
 
 }
 
-func getMosnState(port uint32) (pid int, state store.State, err error) {
+func getMosnState(port uint32) (pid int, state stagemanager.State, err error) {
 	url := fmt.Sprintf("http://localhost:%d/api/v1/states", port)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -172,7 +173,7 @@ func getMosnState(port uint32) (pid int, state store.State, err error) {
 	stateStr := strings.Split(p[1], "=")[1]
 	pid, _ = strconv.Atoi(pidStr)
 	stateInt, _ := strconv.Atoi(stateStr)
-	state = store.State(stateInt)
+	state = stagemanager.State(stateInt)
 	return pid, state, nil
 }
 
@@ -417,46 +418,47 @@ func TestGetState(t *testing.T) {
 
 	time.Sleep(time.Second) //wait server start
 
-	// init
-	pid, state, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
+	verifyState := func(expectedState stagemanager.State, expectedPid int) {
+		pid, state, err := getMosnState(config.Port)
+		if err != nil {
+			t.Fatalf("get mosn states failed: %v", err)
+		}
+
+		// verify
+		if pid != expectedPid {
+			t.Error("mosn pid is not expected", pid, expectedPid)
+		}
+		if state != expectedState {
+			t.Error("mosn state is not expected", state, expectedState)
+		}
 	}
 
-	// reconfiguring
-	store.SetMosnState(store.Passive_Reconfiguring)
-	pid2, state2, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
+	allStates := []stagemanager.State{
+		stagemanager.Nil,
+		stagemanager.ParamsParsed,
+		stagemanager.Initing,
+		stagemanager.PreStart,
+		stagemanager.Starting,
+		stagemanager.AfterStart,
+		stagemanager.Running,
+		stagemanager.GracefulStopping,
+		stagemanager.Stopping,
+		stagemanager.AfterStop,
+		stagemanager.Stopped,
+		stagemanager.StartingNewServer,
+		stagemanager.Upgrading,
 	}
 
-	// running
-	store.SetMosnState(store.Running)
-	pid3, state3, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// active reconfiguring
-	store.SetMosnState(store.Active_Reconfiguring)
-	pid4, state4, err := getMosnState(config.Port)
-	if err != nil {
-		t.Fatal("get mosn states failed")
-	}
-
-	// verify
 	curPid := os.Getpid()
-	if !(pid == curPid &&
-		pid2 == curPid &&
-		pid3 == curPid &&
-		pid4 == curPid) {
-		t.Error("mosn pid is not expected", pid, pid2, pid3, pid4)
-	}
-	if !(state == store.Init &&
-		state2 == store.Passive_Reconfiguring &&
-		state3 == store.Running &&
-		state4 == store.Active_Reconfiguring) {
-		t.Error("mosn state is not expected", state, state2, state3, state4)
+
+	// verify init
+	verifyState(stagemanager.Nil, curPid)
+
+	// verify set state
+	stm := stagemanager.InitStageManager(nil, "", nil)
+	for _, state := range allStates {
+		stm.SetState(state)
+		verifyState(state, curPid)
 	}
 }
 
@@ -490,17 +492,61 @@ func TestRegisterNewAPI(t *testing.T) {
 	}
 }
 
+func TestRegisterAPIHandler(t *testing.T) {
+	handler := NewAPIHandler(func(w http.ResponseWriter, r *http.Request) {
+	}, NewAuth(func(r *http.Request) bool {
+		return r.FormValue("pass") == "true"
+	}, nil))
+	pattern := "/api/handler/auth"
+	RegisterAdminHandler(pattern, handler)
+	//
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Address: "127.0.0.1",
+		Port:    8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+	t.Run("request success", func(t *testing.T) {
+		url := fmt.Sprintf("http://localhost:%d%s?pass=true", config.Port, pattern)
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+	})
+	t.Run("request failed", func(t *testing.T) {
+		url := fmt.Sprintf("http://localhost:%d%s", config.Port, pattern)
+		resp, err := http.Get(url)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+	})
+}
+
 func TestHelpAPI(t *testing.T) {
 	// reset
-	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/":                       help,
-		"/api/v1/config_dump":     configDump,
-		"/api/v1/stats":           statsDump,
-		"/api/v1/update_loglevel": updateLogLevel,
-		"/api/v1/get_loglevel":    getLoggerInfo,
-		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disable_log":     disableLogger,
-		"/api/v1/states":          getState,
+	apiHandlerStore = map[string]*APIHandler{
+		"/api/v1/test_deleted":    NewAPIHandler(ConfigDump), // will be deleted
+		"/api/v1/config_dump":     NewAPIHandler(ConfigDump),
+		"/api/v1/stats":           NewAPIHandler(StatsDump),
+		"/api/v1/update_loglevel": NewAPIHandler(UpdateLogLevel),
+		"/api/v1/get_loglevel":    NewAPIHandler(GetLoggerInfo),
+		"/api/v1/enable_log":      NewAPIHandler(EnableLogger),
+		"/api/v1/disable_log":     NewAPIHandler(DisableLogger),
+		"/api/v1/states":          NewAPIHandler(GetState),
+		"/":                       NewAPIHandler(Help),
 	}
 	time.Sleep(time.Second)
 	server := Server{}
@@ -508,6 +554,8 @@ func TestHelpAPI(t *testing.T) {
 		Address: "127.0.0.1",
 		Port:    8889,
 	}
+	// delete
+	DeleteRegisteredAdminHandler("/api/v1/test_deleted")
 	server.Start(config)
 	store.StartService(nil)
 	defer store.StopService()
@@ -532,7 +580,7 @@ func TestHelpAPI(t *testing.T) {
 	for _, addr := range []string{"/", "/not_exists"} {
 		s := query(t, addr)
 		s = strings.TrimSuffix(s, "\n")
-		apis := strings.Split(s, "\n")[1:] // the first line is "support apis:"
+		apis := strings.Split(s, "\n")[1:] // the first line is "supported APIs:"
 		if len(apis) != 7 {                // exclued "/"
 			t.Errorf("apis count is not expected: %v, length is %d", apis, len(apis))
 		}

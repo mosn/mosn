@@ -22,13 +22,13 @@ import (
 	"net"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 type mirror struct {
@@ -41,9 +41,6 @@ type mirror struct {
 	headers        api.HeaderMap
 	data           buffer.IoBuffer
 	trailers       api.HeaderMap
-	cHeaders       api.HeaderMap
-	cData          buffer.IoBuffer
-	cTrailers      api.HeaderMap
 	clusterName    string
 	cluster        types.ClusterInfo
 	sender         types.StreamSender
@@ -70,13 +67,13 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	utils.GoWithRecover(func() {
 		clusterAdapter := cluster.GetClusterMngAdapterInstance()
 
-		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
+		m.ctx = buffer.CleanBufferPoolContext(ctx)
 		if headers != nil {
 			// ! xprotocol should reimplement Clone function, not use default, trans protocol.CommonHeader
 			h := headers.Clone()
 			// nolint
 			if _, ok := h.(protocol.CommonHeader); ok {
-				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
+				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", m.getDownStreamProtocol())
 				return
 			}
 			m.headers = h
@@ -98,17 +95,15 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		m.cluster = snap.ClusterInfo()
 		m.clusterName = clusterName
 
-		// cover once
-		m.cover()
-
 		amplification := m.amplification
 		if m.broadcast {
 			amplification = 0
-			for _, host := range snap.HostSet().Hosts() {
+			snap.HostSet().Range(func(host types.Host) bool {
 				if host.Health() {
 					amplification++
 				}
-			}
+				return true
+			})
 		}
 
 		for i := 0; i < amplification; i++ {
@@ -155,26 +150,29 @@ func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 }
 
 func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
-	if dp, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigDownStreamProtocol).(string); ok {
-		return types.ProtocolName(dp)
+	if dpv, err := variable.Get(m.ctx, types.VariableDownStreamProtocol); err == nil {
+		if dp, ok := dpv.(types.ProtocolName); ok {
+			return dp
+		}
 	}
 	return m.receiveHandler.RequestInfo().Protocol()
 }
 
 func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigUpStreamProtocol).(string)
-	if !ok {
-		configProtocol = string(protocol.Xprotocol)
-	}
+	configProtocol := protocol.Auto
 
 	if m.receiveHandler.Route() != nil && m.receiveHandler.Route().RouteRule() != nil && m.receiveHandler.Route().RouteRule().UpstreamProtocol() != "" {
-		configProtocol = m.receiveHandler.Route().RouteRule().UpstreamProtocol()
+		configProtocol = types.ProtocolName(m.receiveHandler.Route().RouteRule().UpstreamProtocol())
 	}
 
-	if configProtocol == string(protocol.Auto) {
+	if protov, err := variable.Get(m.ctx, types.VariableUpstreamProtocol); err == nil {
+		if proto, ok := protov.(types.ProtocolName); ok {
+			configProtocol = proto
+		}
+	}
+
+	if configProtocol == protocol.Auto {
 		currentProtocol = m.getDownStreamProtocol()
-	} else {
-		currentProtocol = types.ProtocolName(configProtocol)
 	}
 	return currentProtocol
 }
@@ -215,58 +213,18 @@ func (m *mirror) OnReady(sender types.StreamSender, host types.Host) {
 func (m *mirror) sendDataOnce() {
 	endStream := m.data == nil && m.trailers == nil
 
-	m.sender.AppendHeaders(m.ctx, m.cHeaders, endStream)
+	m.sender.AppendHeaders(m.ctx, m.headers, endStream)
 
 	if endStream {
 		return
 	}
 
 	endStream = m.trailers == nil
-	m.sender.AppendData(m.ctx, m.cData, endStream)
+	m.sender.AppendData(m.ctx, m.data, endStream)
 
 	if endStream {
 		return
 	}
 
-	m.sender.AppendTrailers(m.ctx, m.cTrailers)
-}
-
-func (m *mirror) cover() {
-	if m.dp == m.up {
-		m.cHeaders = m.headers
-		m.cData = m.data
-		m.cTrailers = m.trailers
-		return
-	}
-
-	m.cHeaders = m.coverHeader()
-	m.cData = m.converData()
-	m.cTrailers = m.convertTrailer()
-}
-
-func (m *mirror) coverHeader() types.HeaderMap {
-	convHeader, err := protocol.ConvertHeader(m.ctx, m.dp, m.up, m.headers)
-	if err == nil {
-		return convHeader
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.headers
-}
-
-func (m *mirror) converData() types.IoBuffer {
-	convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
-	if err == nil {
-		return convData
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.data
-}
-
-func (m *mirror) convertTrailer() types.HeaderMap {
-	convTrailers, err := protocol.ConvertTrailer(m.ctx, m.dp, m.up, m.trailers)
-	if err == nil {
-		return convTrailers
-	}
-	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", m.dp, m.up, err.Error())
-	return m.trailers
+	m.sender.AppendTrailers(m.ctx, m.trailers)
 }

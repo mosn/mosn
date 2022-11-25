@@ -28,11 +28,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 const (
@@ -73,8 +72,8 @@ func TestStreamFilter(t *testing.T) {
 	status = sf.OnReceive(context.Background(), nil, nil, nil)
 	assert.Equal(t, api.StreamFilterContinue, status)
 
-	ctx := context.Background()
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, HTTP1)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, HTTP1)
 
 	m := make(map[string]string)
 	m["Http1_request_path"] = "/http"
@@ -100,7 +99,14 @@ func TestStreamFilter(t *testing.T) {
 }
 
 func BenchmarkStreamFilter_OnReceive(b *testing.B) {
-	cb := &DefaultCallbacks{}
+	mockConfig := &Config{
+		GlobalSwitch: true,
+		Monitor:      false,
+		KeyType:      "PATH",
+	}
+	cb := &DefaultCallbacks{
+		config: mockConfig,
+	}
 	filter := NewStreamFilter(cb, base.Inbound)
 
 	filter.SetReceiveFilterHandler(&mockStreamReceiverFilterHandler{})
@@ -115,7 +121,14 @@ func BenchmarkStreamFilter_OnReceive(b *testing.B) {
 }
 
 func BenchmarkStreamFilter_OnReceive_SwitchOn(b *testing.B) {
-	cb := &DefaultCallbacks{}
+	mockConfig := &Config{
+		GlobalSwitch: true,
+		Monitor:      false,
+		KeyType:      "PATH",
+	}
+	cb := &DefaultCallbacks{
+		config: mockConfig,
+	}
 	filter := NewStreamFilter(cb, base.Inbound)
 
 	filter.SetReceiveFilterHandler(&mockStreamReceiverFilterHandler{})

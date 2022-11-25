@@ -31,12 +31,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
@@ -45,15 +41,17 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
+// TODO: move it to main
 func init() {
-	str.Register(protocol.HTTP1, &streamConnFactory{})
 	protocol.RegisterProtocolConfigHandler(protocol.HTTP1, streamConfigHandler)
+	protocol.RegisterProtocol(protocol.HTTP1, NewConnPool, &StreamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
-const defaultMaxHeaderSize = 4 * 1024
+const defaultMaxHeaderSize = 8 * 1024
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -75,28 +73,32 @@ var (
 		"DELETE":  {},
 		"TRACE":   {},
 		"CONNECT": {},
+		// See https://datatracker.ietf.org/doc/html/rfc2068#section-19.6.1
+		"PATCH":  {},
+		"LINK":   {},
+		"UNLINK": {},
 	}
 )
 
-type streamConnFactory struct{}
+type StreamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, streamConnCallbacks, connCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
+func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, callbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	if len(magic) < minMethodLengh {
 		return str.EAGAIN
 	}
@@ -193,19 +195,18 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 func (conn *streamConnection) Write(p []byte) (n int, err error) {
 	n = len(p)
 
-	// TODO avoid copy
-	buf := buffer.GetIoBuffer(n)
-	buf.Write(p)
-
+	buf := buffer.NewIoBufferBytes(p)
 	err = conn.conn.Write(buf)
 	return
 }
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	// We need to set 'conn.resetReason' before 'close(conn.bufChan)'
+	// because streamConnection's Read will do some processing depends on it.
+	conn.resetReason = reason
 	close(conn.bufChan)
 	close(conn.endRead)
 	close(conn.connClosed)
-	conn.resetReason = reason
 }
 
 // types.ClientStreamConnection
@@ -237,15 +238,19 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	}
 
 	// Per-connection buffer size for responses' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
-		if extendConfig, ok := pgc.(map[string]interface{}); ok {
-			if v, ok := extendConfig["max_header_size"]; ok {
-				// json.Unmarshal stores float64 for JSON numbers in the interface{}
-				// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
-				if fv, ok := v.(float64); ok {
-					maxResponseHeaderSize = int(fv)
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+				if config, ok := http1Config.(map[string]interface{}); ok {
+					if v, ok := config["max_header_size"]; ok {
+						// json.Unmarshal stores float64 for JSON numbers in the interface{}
+						// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+						if fv, ok := v.(float64); ok {
+							maxResponseHeaderSize = int(fv)
+						}
+					}
 				}
 			}
 		}
@@ -324,9 +329,10 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	id := protocol.GenerateID()
 	buffers := httpBuffersByContext(ctx)
 	s := &buffers.clientStream
+	_ = variable.Set(ctx, types.VariableStreamID, id)
 	s.stream = stream{
 		id:       id,
-		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+		ctx:      ctx,
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -374,10 +380,18 @@ type StreamConfig struct {
 
 var defaultStreamConfig = StreamConfig{
 	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size, default 4096.
+	// This also limits the maximum header size, default 8192.
 	MaxHeaderSize: defaultMaxHeaderSize,
 	// 0 is means no limit request body size
 	MaxRequestBodySize: 0,
+}
+
+// SetDefaultStreamConfig can change the default config for http.
+// Call this function before mosn service start.
+// DONOT call it when mosn is serving.
+func SetDefaultStreamConfig(c StreamConfig) {
+	defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
+	defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
 }
 
 func streamConfigHandler(v interface{}) interface{} {
@@ -406,9 +420,14 @@ func streamConfigHandler(v interface{}) interface{} {
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	streamConfig := defaultStreamConfig
 	// get extend config from ctx
-	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if cfg, ok := pgc.(StreamConfig); ok {
-		streamConfig = cfg
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
+		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+				if cfg, ok := http1Config.(StreamConfig); ok {
+					streamConfig = cfg
+				}
+			}
+		}
 	}
 	return streamConfig
 }
@@ -498,7 +517,7 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
 
 				// read request body
-				err = request.ContinueReadBody(conn.br, maxRequestBodySize)
+				err = request.ContinueReadBody(conn.br, maxRequestBodySize, false)
 
 				// remove 'Expect' header, so it would not be sent to the upstream
 				request.Header.Del("Expect")
@@ -512,6 +531,9 @@ func (conn *serverStreamConnection) serve() {
 			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
 			_, errNothingRead := err.(fasthttp.ErrNothingRead)
 			if err != errConnClose && err != io.EOF && !errNothingRead {
+				log.DefaultLogger.Errorf("[stream] [http] parse http request error. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+					conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), err)
+
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
@@ -525,9 +547,11 @@ func (conn *serverStreamConnection) serve() {
 		s := &buffers.serverStream
 
 		// 4. request processing
+		_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+		_ = variable.Set(ctx, types.VariableStreamID, id)
 		s.stream = stream{
 			id:       id,
-			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      ctx,
 			request:  request,
 			response: &buffers.serverResponse,
 		}
@@ -558,6 +582,11 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Lock()
 		conn.stream = s
 		conn.mutex.Unlock()
+		// Currently Http1 protocol's workPool is enabled
+		// ww can't use serverStream object, after handleRequest
+		// because it will be recycled in proxy
+		// refer https://github.com/mosn/mosn/issues/1948
+		responseDoneChan := s.responseDoneChan
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
 			s.handleRequest(s.stream.ctx)
@@ -565,7 +594,7 @@ func (conn *serverStreamConnection) serve() {
 
 		// 5. wait for proxy done
 		select {
-		case <-s.responseDoneChan:
+		case <-responseDoneChan:
 		case <-conn.connClosed:
 			return
 		}
@@ -722,7 +751,8 @@ func (s *clientStream) handleResponse() {
 		variable.SetString(s.ctx, types.VarHeaderStatus, status)
 
 		hasData := true
-		if len(s.response.Body()) == 0 {
+		body := s.response.Body()
+		if len(body) == 0 {
 			hasData = false
 		}
 
@@ -732,15 +762,11 @@ func (s *clientStream) handleResponse() {
 
 		if s.receiver != nil {
 			if hasData {
-				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
+				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(body), nil)
 			} else {
 				s.receiver.OnReceive(s.ctx, header, nil, nil)
 			}
 		}
-
-		//TODO cannot recycle immediately, headers might be used by proxy logic
-		s.request = nil
-		s.response = nil
 	}
 }
 
@@ -799,7 +825,6 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	// SetBodyRaw sets response body and could avoid copying it
-	// note: When it's actually sent to the network, it will copy the data once in Write func.
 	s.response.SetBodyRaw(data.Bytes())
 
 	if endStream {
@@ -881,12 +906,13 @@ func (s *serverStream) handleRequest(ctx context.Context) {
 		// set non-header info in request-line, like method, uri
 		injectCtxVarFromProtocolHeaders(ctx, s.header, s.request.URI())
 		hasData := true
-		if len(s.request.Body()) == 0 {
+		body := s.request.Body()
+		if len(body) == 0 {
 			hasData = false
 		}
 
 		if hasData {
-			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(s.request.Body()), nil)
+			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(body), nil)
 		} else {
 			s.receiver.OnReceive(s.ctx, s.header, nil, nil)
 		}
@@ -987,7 +1013,7 @@ type contextManager struct {
 
 func (cm *contextManager) next() {
 	// new stream-level context based on connection-level's
-	cm.curr = mbuffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+	cm.curr = buffer.NewBufferPoolContext(cm.base)
 }
 
 func fasthttpPath(pathOriginal string) []byte {

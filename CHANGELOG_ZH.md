@@ -1,5 +1,215 @@
 # 更新日志
 
+## v1.2.0
+
+### 新功能
+
+- 支持配置 HTTP 重试状态码 (#2097) [@dengqian](https://github.com/dengqian)
+- 新增 dev 容器构建配置与说明 (#2108) [@keqingyuan](https://github.com/keqingyuan)
+- 支持 connpool_binding GoAway (#2115) [@EraserTime](https://github.com/EraserTime)
+- 支持配置 listener 默认读缓存大小 (#2133) [@3062](https://github.com/3062)
+- 支持 proxy-wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
+- 支持基于 iptables tproxy 的透明代理 (#2142) [@3062](https://github.com/3062)
+
+### 重构
+
+- 删除 MOSN 扩展的 context 框架，使用变量机制代替。将 MOSN 中的变量机制(variable)和内存复用框架(buffer)迁移到 mosn.io/pkg 中 (#2055) [@nejisama](https://github.com/nejisama)
+- 迁移 metrics 接口到 mosn.io/api 中 (#2124) [@YIDWang](https://github.com/YIDWang)
+
+### Bug 修复
+
+- 修复部分日志参数缺失 (#2141) [@lawrshen](https://github.com/lawrshen)
+- 通过 error 判断获取的 cookie 是否存在 (#2136) [@greedying](https://github.com/greedying)
+
+## v1.1.0
+
+### 新功能
+
+- TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- 支持云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)，细节可以参考[博客](https://mosn.io/blog/posts/mosn-tunnel/)
+- Trace 以 Driver 的形式支持插件化扩展，使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
+- xDS 支持 stream filter 解析扩展 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- MakeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
+
+### 变更
+
+- 调整连接读超时从 buffer.ConnReadTimeout 到 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- 修复文档错字 (#2056) (#2057) [@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+- 新增遍历 SubsetLB 的接口 (#2059) (#2061) [@nejisama](https://github.com/nejisama)
+- 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
+- 添加 xds-server 作为 MOSN 控制面的示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- 负载均衡在重试时跳过上一次选择的主机 (#2077) [@dengqian](https://github.com/dengqian)
+- 访问日志支持打印 traceID，connectionID 和 UpstreamConnectionID  (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
+
+### 重构
+
+- 重构 HostSet 的使用方式 (#2036) [@dzdx](https://github.com/dzdx)
+- 更改连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### 优化
+
+- 优化创建 subset 负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 支持可扩展的集群更新方式操作 (#2048) [@nejisama](https://github.com/nejisama)
+- 优化多证书匹配逻辑：优先匹配 servername，全部 servername 匹配不上以后才按照 ALPN 进行匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+
+### Bug 修复
+
+- 修复 wasm 示例中的 latest 镜像版本为固定的版本（#2033）[@antJack](https://github.com/antJack)
+- 调整 MOSN 退出时日志关闭执行顺序，修复部分退出日志无法正确输出的问题 (#2034) [@doujiang24](https://github.com/doujiang24)
+- 修复 OriginalDst 匹配成功以后没有正确处理的问题 (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- 修复协议转换场景没有正确处理异常情况的问题，新增协议转换实现规范 (#2062) [@YIDWang](https://github.com/YIDWang)
+- 修复 stream proxy 没有正确处理连接写超时/断开等异常事件 (#2080) [@dengqian](https://github.com/dengqian)
+- 修复连接事件监听时机错误可能引发的 panic 问题 (#2082) [@dengqian](https://github.com/dengqian)
+- 避免在事件监听连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP1/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
+- 修复 xDS 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
+- 找不到 upstream 地址变量时，不再返回空，返回 ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- 修复健康检查不支持 xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- 修正判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
+
+
+## v1.0.1
+
+### 变更
+
+- 协议： Bolt v1 v2 将状态码 `api.NoHealthUpstreamCode` 映射为 `ResponseStatusNoProcessor` (#2018) [@antJack](https://github.com/antJack).
+
+### Bug 修复
+
+- MOSN 启动时和运行时，应该还是允许 `AppendGracefulStopStage` 和 `AppendBeforeStopStage` 注册回调 (#2029) [@rayowang](https://github.com/rayowang).
+- 协程池 panic 时，错误日志中的变量使用错误 (#2019) [@antJack](https://github.com/antJack).
+
+## v1.0.0
+
+### 变更
+
+- Bolt 协议新增 GoAway 实现，可通过 proxy 配置开启 (#1993) [@z2z23n0](https://github.com/z2z23n0)
+- HTTP 协议健康检查支持更多的配置模式 (#1999) [@dengqian](https://github.com/dengqian)
+- 新增查看版本号的 Admin API 实现 (#2002) [@songzhibin97](https://github.com/songzhibin97)
+- 调整热升级失败时的返回码 (#2006) [@doujiang24](https://github.com/doujiang24)
+- 新增是否出于主动热升级的状态 (#2003) [@doujiang24](https://github.com/doujiang24)
+- 新增 Stop 命令支持 (#1990) [@Jun10ng](https://github.com/Jun10ng)
+
+### Bug 修复
+
+- 修复 StrictDnsCluster 在存在多个 DNS 域名时，域名更新结果错误的问题 (#1994) [@Jun10ng](https://github.com/Jun10ng)
+- 修复使用共享内存进行热升级场景，错误清空共享内存的问题 (#2011) [@nejisama](https://github.com/nejisama)
+
+
+## v0.27.0
+
+### 新功能
+
+- MOSN 默认支持 istio v1.10.6 版本，可通过 make 命令快速切换 istio 支持版本，目前还支持 istio v1.5.2 (#1910) [@nejisama](https://github.com/nejisama)
+- 路由规则新增、修改请求头、响应头时，支持使用变量动态设置 (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
+- Upstream 健康检查支持配置第一次健康检查间隔 (#1942) [@rickey17](https://github.com/rickey17)
+- 新增基于 HTTP 协议的健康检查方式 (#1942) [@rickey17](https://github.com/rickey17)
+- 新增创建 TLS Context 时的回调扩展能力 (#1877) [@antJack](https://github.com/antJack)
+- Listener 创建函数和连接创建函数支持扩展 (#1877) [@antJack](https://github.com/antJack)
+- XProtocol 协议框架支持优雅退出的能力，MOSN 支持优雅关闭的能力 (#1922) [@doujiang24](https://github.com/doujiang24)
+- 集成 [Holmes](https://github.com/mosn/holmes) 自动 pprof 能力 (#1978) [@doujiang24](https://github.com/doujiang24)
+- SDS 接口新增同步获取证书、主动更新证书的能力 (#1945) [@nejisama](https://github.com/nejisama)
+- 支持 TLS 校验的 SNI 扩展配置 (#1910) [@nejisama](https://github.com/nejisama)
+
+
+### 变更
+
+- 更新 dubbo-go-hessian 版本到 v1.10.2 版本 (#1896) [@wongoo](https://github.com/wongoo)
+- Upstream cluster 新增 IdleTimeout 配置 (#1914) [hui-cha](https://github.com/hui-cha)
+- Cluster 权重配置、默认连接配置调整到`config/v2` 包 (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- XProtocol 实现的协议解析中新增 RawData 的变量设置 (#1972) [@antJack](https://github.com/antJack)
+- OriginalDst Filter 新增配置项：可在 Listener 转发匹配时配置使用 local 地址进行兜底 (#1972) [@nejisama](https://github.com/nejisama)
+- OriginalDst Cluster 新增配置项：可在请求转发时将目标地址修改为 localhost (#1972) [@nejisama](https://github.com/nejisama)
+- 放弃了原有的 vendor 模式，默认使用 go.mod 进行管理 (#1997) [@nejisama](https://github.com/nejisama)
+
+
+### 重构
+
+- 重构 MOSN 状态管理和期待阶段管理逻辑，统一由 StageManager 模块进行管理 (#1859) [@doujiang24](https://github.com/doujiang24)
+- 屏蔽信号处理扩展相关接口，不对开发者暴露信号量，修改为针对收到信号后行为的可扩展 (#1859) [@doujiang24](https://github.com/doujiang24)
+- 日志模块使用独立的 IoBuffer，避免因日志问题影响请求内存复用 (#1936) [@nejisama](https://github.com/nejisama)
+- 重构 SDS 模块复用逻辑，支持同一张证书可生成不同的 TLS 配置 (#1958) [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- 优化 Example 中 module 模块命名不规范的问题 (#1913) [@scaat](https://github.com/scaat)
+- 删除部分连接结构中未使用的字段 (#1811) [@doujiang24](https://github.com/doujiang24)
+- 优化 Edf 负载均衡的堆管理策略 (#1920) [@jizhuozhi](https://github.com/jizhuozhi)
+- 变量获取错误时返回更详细的信息 (#1952) [@antJack](https://github.com/antJack)
+- 优化内存复用场景：当请求正常响应后再触发 reset 异常不再影响内存复用 (#1956) [@wangfakang](https://github.com/wangfakang)
+- 优化 maglev 负载均衡内存分配 (#1964) [@baerwang](https://github.com/baerwang)
+- 优化日志行为，支持统一输出 iobuffer 的错误信息，支持日志轮转出现错误时的异常处理 (#1996) [@nejisama](https://github.com/nejisama)
+
+
+### Bug 修复
+
+- 修复：当 HTTP2 协议中 StreamID 过大时，未关闭连接并持续使用导致问题 (#1900) [@jayantxie](https://github.com/jayantxie)
+- 修复：RPC 路由错误日志输出格式异常 (#1915) [@scaat](https://github.com/scaat)
+- 修复：Example 中 xprotocol go plugin 相关示例编译错误的问题 (#1899) [@nearmeng](https://github.com/nearmeng)
+- 修复：OriginalDst 拦截器未能正确获取 IP 处理错误的问题 (#1931) [@alpha-baby](https://github.com/alpha-baby)
+- 修复：HTTP 连接在并发场景下，有概率触发连接卡死的问题 (#1949) [@alpha-baby](https://github.com/alpha-baby)
+- 修复：istio 配置解析扩展接口拼写错误 (#1927) [LemmyHuang](https://github.com/LemmyHuang)
+- 修复：proxy 部分变量获取接口可能触发空指针异常 (#1953) [@doujiang24](https://github.com/doujiang24)
+- 修复：HTTP 连接关闭时无法正确获取连接关闭的原因 (#1772) [@wangfakang](https://github.com/wangfakang)
+- 修复：通过 Stop 关闭的 Listener 无法正常 ReStart 的问题 (#1883) [@lemonlinger](https://github.com/lemonlinger)
+- 修复：StrictDNS 在解析过程中 DEBUG 日志输出格式错误的问题 (#1963) [@wangfakang](https://github.com/wangfakang)
+- 修复：Edf 负载均衡计算权重可能导致除 0 错误的问题 (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- 修复：Listener 在调用 setDeadline 时可能导致空指针异常 (#1981)  [@antJack](https://github.com/antJack)
+- 修复：typo 错误修复 [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
+- 修复：单元测试因为 goroutine 过多导致无法执行 race 测试的问题 (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
+
+## v0.26.0
+
+### 不兼容变更
+
+为了更自然的添加扩展协议，新版对 XProtocol 进行了重构，XProtocol 不再是一种协议，而是便于协议扩展实现的框架。
+扩展协议的实现需要一些调整，具体请见 [XProtocol 协议改造适配指南](reports/xprotocol_0.26.0.md)
+
+### 新功能
+
+- 新增 ip_access filter，基于来源 IP 的 ACL 控制器 (#1797) [@Bryce-huang](https://github.com/Bryce-huang)
+- 允许 Admin Api 扩展验证方法 (#1834) [@nejisama](https://github.com/nejisama)
+- transcoder filter：支持通过配置指定阶段，取代固定的阶段 (#1815) [@YIDWang](https://github.com/YIDWang)
+- 为 tls connection 增加 SetConnectionState 方法，在 pkg/mtls/crypto/tls.Conn 中 (#1804) [@antJack](https://github.com/antJack)
+- 增加了 after-start 和 after-stop 这两个新的执行阶段，并允许在这两个阶段注册处理函数 [@doujiang24](https://github.com/doujiang24)
+- 新增 uds_dir 配置项，用于指定 unix domain socket 的目录 (#1829) [@dengqian](https://github.com/dengqian)
+- 支持 go plugin 加载协议转化插件，并支持动态选择协议转换插件 [@Tanc010](https://github.com/Tanc010)
+- 增加更多的 HTTP 协议方法，使动态协议匹配更加精准 (#1870) [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 支持动态设置上游协议 (#1808) [@YIDWang](https://github.com/YIDWang)
+- 支持动态设置 HTTP 默认最大值配置 #1886 [@nejisama](https://github.com/nejisama)
+
+### 变更
+
+- 将 HTTP 协议的默认最大请求头大小调整到 8KB (#1837) [@nejisama](https://github.com/nejisama)
+- 重构默认的 HTTP1 和 HTTP2 的协议转换，删除了 proxy 中的转换，使用 transcoder filter 来代替 [@nejisama](https://github.com/nejisama)
+- transcoder filter：使用注册转换器工厂来替代注册转换器 (#1879) [@YIDWang](https://github.com/YIDWang)
+
+### Bug 修复
+
+- 修复：HTTP buffer 复用在高并发场景下可能导致 nil panic [@nejisama](https://github.com/nejisama)
+- 修复：response_flag 变量值获取错误 (#1814) [@lemonlinger](https://github.com/lemonlinger)
+- 修复：prefix_write 在 "/" 的场景下不能正常工作 [@Bryce-huang](https://github.com/Bryce-huang)
+- 修复：在热升级过程中，手动 kill 老的 MOSN，可能会导致新 MOSN 的 reconfig.sock 会被错误的删除 (#1820) [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复：请求上游失败时，在 doretry 中不应该直接设置 setupRetry (#1807) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复：热升级中继承了老 MOSN 的配置之后，应该将配置设置到新的 MOSN 结构体中 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复：当取消客户端的 grpc 的时候，没有发送 resetStreamFrame 到上游，使得 server 端没有及时结束 [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复：应该在关闭 stream connection 之前设置 resetReason，否则可能导致获取不到真实的原因 (#1828) [@wangfakang](https://github.com/wangfakang)
+- 修复：当有多个匹配的 listener 的时候，应该选择最优的匹配的 listener，否则可能导致 400 错误 [@MengJiapeng](https://github.com/MengJiapeng)
+- 修复：HTTP2 协议处理 broadcast 可能导致 map 并发读写 panic [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- 修复：XProtocol 连接池 (binding connpool) 中的内存泄漏 (#1821) [@Dennis8274](https://github.com/Dennis8274)
+- 修复：应该将 close logger 放在最后，否则在关闭 MOSN 实例过程中将没有日志输出 (#1845) [@doujiang24](https://github.com/doujiang24)
+- 修复：XProtocol PingPong 类型连接超时的时候，因为 codecClient 没有初始化，会导致 panic (#1849) [@cuiweixie](https://github.com/cuiweixie)
+- 修复：当 unhealthyThreshold 是一个空值时，健康检查将不会工作，修改为空值时使用默认值 (#1853) [@Bryce-huang](https://github.com/Bryce-huang)
+- 修复：WRR 负载均衡算法可能导致死循环（发生在 unweightChooseHost）#1860 [@alpha-baby](https://github.com/alpha-baby)
+- 修复：direct response 中 hijack 不应该再执行转换 [@nejisama](https://github.com/nejisama)
+- 修复：当一个不健康的 host 有很高的权重时，EDF wrr 将不再选择其他健康的 host [@lemonlinger](https://github.com/lemonlinger)
+- 修复：Istio LDS 中的 CACert 文件名获取错误，导致 MOSN listen 失败，不会接受请求 (#1893). [@doujiang24](https://github.com/doujiang24)
+- 修复：DNS 解析 STRICT_DNS_CLUSTER 中 host 的 goroutine 没法停止 #1894 [@bincherry](https://github.com/bincherry)
+
 ## v0.25.0
 
 ### 新功能

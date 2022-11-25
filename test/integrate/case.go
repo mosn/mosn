@@ -170,8 +170,8 @@ type XTestCase struct {
 func NewXTestCase(t *testing.T, subProtocol types.ProtocolName, server util.UpstreamServer) *XTestCase {
 	return &XTestCase{
 		TestCase: TestCase{
-			AppProtocol:  protocol.Xprotocol,
-			MeshProtocol: protocol.Xprotocol,
+			AppProtocol:  types.ProtocolName("X"),
+			MeshProtocol: types.ProtocolName("X"),
 			C:            make(chan error),
 			T:            t,
 			AppServer:    server,

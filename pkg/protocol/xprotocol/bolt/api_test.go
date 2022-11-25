@@ -24,15 +24,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
-
-	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/pkg/header"
 )
 
 // decoded result should equal to request
 func TestEncodeDecode(t *testing.T) {
 	var (
 		ctx            = context.TODO()
-		originalHeader = protocol.CommonHeader{
+		originalHeader = header.CommonHeader{
 			"k1": "v1",
 			"k2": "v2",
 		}

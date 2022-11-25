@@ -139,6 +139,14 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
+	if sh.ClusterInfo().Mark() != 0 {
+		clientConn.SetMark(sh.ClusterInfo().Mark())
+	}
+
+	if sh.ClusterInfo().IdleTimeout() > 0 {
+		clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
+	}
+
 	return types.CreateConnectionData{
 		Connection: clientConn,
 		Host:       sh,

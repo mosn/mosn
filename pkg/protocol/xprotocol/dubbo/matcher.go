@@ -21,13 +21,7 @@ import (
 	"bytes"
 
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 )
-
-func init() {
-	xprotocol.RegisterMatcher(ProtocolName, dubboMatcher)
-}
 
 // predicate dubbo header len and compare magic number
 func dubboMatcher(data []byte) api.MatchResult {

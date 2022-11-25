@@ -43,13 +43,15 @@ func (e *mockEventListener) SetRecvStatus(state bool) {
 	e.recvStatus = state
 }
 
-func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
+func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte, listeners []api.ConnectionEventListener) {
 	e.recvStatus = true
 	rawc.Close()
 }
 
 func (e *mockEventListener) OnNewConnection(ctx context.Context, conn api.Connection) {
 }
+
+func (e *mockEventListener) OnShutdown() {}
 
 func (e *mockEventListener) OnClose() {}
 
@@ -67,7 +69,7 @@ func testBase(t *testing.T, addr net.Addr) {
 		PerConnBufferLimitBytes: 1024,
 		Addr:                    addr,
 	}
-	ln := NewListener(cfg)
+	ln := GetListenerFactory()(cfg)
 
 	el := &mockEventListener{}
 	ln.SetListenerCallbacks(el)

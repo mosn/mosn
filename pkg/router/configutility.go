@@ -26,7 +26,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // StringMatch describes hwo to match a given string.
@@ -81,7 +81,7 @@ func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
 	if header.Regex {
 		p, err := regexp.Compile(header.Value)
 		if err != nil {
-			log.DefaultLogger.Errorf("parse route header macther config failed, ignore it, error: %v", err)
+			log.DefaultLogger.Errorf("parse route header matcher config failed, ignore it, error: %v", err)
 			return nil, err
 		}
 		kvData.Value.RegexPattern = p
@@ -89,7 +89,7 @@ func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
 	return kvData, nil
 }
 
-// commonHeaderMatcherImpl implements a simple types.HeaderMacther
+// commonHeaderMatcherImpl implements a simple types.HeaderMatcher
 type commonHeaderMatcherImpl []*KeyValueData
 
 func (m commonHeaderMatcherImpl) Get(i int) api.KeyValueMatchCriterion {

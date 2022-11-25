@@ -21,11 +21,11 @@ import (
 	"context"
 	"encoding/binary"
 
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd interface{}, err error) {
@@ -79,6 +79,9 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	request.Data.Write(bytes[:frameLen])
 	request.rawData = request.Data.Bytes()
 
+	// notice: read-only!!! do not modify the raw data!!!
+	variable.Set(ctx, types.VarRequestRawData, request.rawData)
+
 	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := RequestHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
@@ -90,7 +93,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	}
 	if headerLen > 0 {
 		request.rawHeader = request.rawData[headerIndex:contentIndex]
-		err = xprotocol.DecodeHeader(request.rawHeader, &request.Header)
+		err = xprotocol.DecodeHeader(request.rawHeader, &request.BytesHeader)
 	}
 	if contentLen > 0 {
 		request.rawContent = request.rawData[contentIndex:]
@@ -146,6 +149,9 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	response.Data.Write(bytes[:frameLen])
 	response.rawData = response.Data.Bytes()
 
+	// notice: read-only!!! do not modify the raw data!!!
+	variable.Set(ctx, types.VarResponseRawData, response.rawData)
+
 	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := ResponseHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
@@ -157,7 +163,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	}
 	if headerLen > 0 {
 		response.rawHeader = response.rawData[headerIndex:contentIndex]
-		err = xprotocol.DecodeHeader(response.rawHeader, &response.Header)
+		err = xprotocol.DecodeHeader(response.rawHeader, &response.BytesHeader)
 	}
 	if contentLen > 0 {
 		response.rawContent = response.rawData[contentIndex:]

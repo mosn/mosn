@@ -27,11 +27,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
-	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -41,17 +42,18 @@ var errNilCluster = errors.New("cannot update nil cluster")
 func refreshHostsConfig(c types.Cluster) {
 	// use new cluster snapshot to get new cluster config
 	name := c.Snapshot().ClusterInfo().Name()
-	hosts := c.Snapshot().HostSet().Hosts()
-	hostsConfig := make([]v2.Host, 0, len(hosts))
-	for _, h := range hosts {
+	hostSet := c.Snapshot().HostSet()
+	hostsConfig := make([]v2.Host, 0, hostSet.Size())
+	hostSet.Range(func(h types.Host) bool {
 		hostsConfig = append(hostsConfig, h.Config())
-	}
+		return true
+	})
 	configmanager.SetHosts(name, hostsConfig)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
+		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, hostSet.Size())
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hosts)
+		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hostSet)
 	}
 }
 
@@ -59,11 +61,11 @@ const globalTLSMetrics = "global"
 
 // types.ClusterManager
 type clusterManager struct {
-	clustersMap      sync.Map
-	protocolConnPool sync.Map
-	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSClientContextManager
-	mux              sync.Mutex
+	clustersMap          sync.Map
+	protocolConnPool     sync.Map // protocolname: { address : connpool }
+	tlsMetrics           *mtls.TLSStats
+	tlsMng               atomic.Value // store types.TLSClientContextManager
+	mux                  sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -92,9 +94,9 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	// set global tls
 	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
 	// add conn pool
-	for k := range types.ConnPoolFactories {
+	protocol.RangeAllRegisteredProtocol(func(k api.ProtocolName) {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
-	}
+	})
 
 	//Add cluster to cm
 	for _, cluster := range clusters {
@@ -111,9 +113,70 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	return clusterManagerInstance
 }
 
+// CDS Handler
+// old cluster maybe nil when cluster is newly created.
+func UpdateClusterResourceManagerHandler(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+	newSnap := nc.Snapshot()
+	oldSnap := oc.Snapshot()
+
+	if newSnap.ClusterInfo().ClusterType() != oldSnap.ClusterInfo().ClusterType() {
+		return
+	}
+
+	newResourceManager := newSnap.ClusterInfo().ResourceManager()
+	oldResourceManager := oldSnap.ClusterInfo().ResourceManager()
+
+	// sync oldResourceManager to new cluster ResourceManager
+	if ci, ok := newSnap.ClusterInfo().(*clusterInfo); ok {
+		ci.resourceManager = oldResourceManager
+	}
+	// sync newResourceManager config to oldResourceManager
+	updateResourceValue(oldResourceManager, newResourceManager)
+}
+
+func CleanOldClusterHandler(oc, _ types.Cluster) {
+	if oc == nil {
+		return
+	}
+	oc.StopHealthChecking()
+}
+
+func InheritClusterHostsHandler(oc, nc types.Cluster) {
+	if oc == nil {
+		return
+	}
+
+	newInfo := nc.Snapshot().ClusterInfo()
+	oc.Snapshot().HostSet().Range(func(host types.Host) bool {
+		host.SetClusterInfo(newInfo) // update host cluster info
+		return true
+	})
+	nc.UpdateHosts(oc.Snapshot().HostSet())
+}
+
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
 // if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
+	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
+		UpdateClusterResourceManagerHandler(oc, nc)
+		CleanOldClusterHandler(oc, nc)
+		InheritClusterHostsHandler(oc, nc)
+	})
+}
+
+// AddOrUpdateClusterAndHost will create a new cluster and use hosts config replace the original hosts if cluster is exists
+func (cm *clusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hostConfigs []v2.Host) error {
+	return cm.UpdateCluster(cluster, func(oc, nc types.Cluster) {
+		UpdateClusterResourceManagerHandler(oc, nc)
+		CleanOldClusterHandler(oc, nc)
+		NewSimpleHostHandler(nc, hostConfigs)
+	})
+}
+
+func (cm *clusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types.ClusterUpdateHandler) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
 	if newCluster == nil || reflect.ValueOf(newCluster).IsNil() {
@@ -126,33 +189,20 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	configmanager.SetClusterConfig(cluster)
 	// add or update
 	ci, exists := cm.clustersMap.Load(clusterName)
+	var oldCluster types.Cluster
 	if exists {
-		c := ci.(types.Cluster)
-		hosts := c.Snapshot().HostSet().Hosts()
-
-		newSnap := newCluster.Snapshot()
-
-		oldResourceManager := c.Snapshot().ClusterInfo().ResourceManager()
-		newResourceManager := newSnap.ClusterInfo().ResourceManager()
-
-		// sync oldResourceManager to new cluster ResourceManager
-		updateClusterResourceManager(newSnap.ClusterInfo(), oldResourceManager)
-
-		// sync newResourceManager value to oldResourceManager value
-		updateResourceValue(oldResourceManager, newResourceManager)
-		for _, host := range hosts {
-			host.SetClusterInfo(newSnap.ClusterInfo()) // update host cluster info
-		}
-
-		// update hosts, refresh
-		newCluster.UpdateHosts(hosts)
-		refreshHostsConfig(c)
+		oldCluster = ci.(types.Cluster)
+	}
+	if clusterHandler != nil {
+		clusterHandler(oldCluster, newCluster)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
+	refreshHostsConfig(newCluster)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	}
 	return nil
+
 }
 
 // AddClusterHealthCheckCallbacks adds a health check callback function into cluster
@@ -172,12 +222,12 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 }
 
 // RemovePrimaryCluster removes clusters from cluster manager
-// If the cluster is more than one, all of them should be exists, or no one will be deleted
+// If the cluster is more than one, all of them should exist, or no one will be deleted
 func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
-	// check all clutsers in cluster manager
+	// check all clusters in cluster manager
 	for _, clusterName := range clusterNames {
 		if _, ok := cm.clustersMap.Load(clusterName); !ok {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] Remove Primary Cluster,  cluster %s not exists", clusterName)
+			log.DefaultLogger.Errorf("[upstream] [cluster manager] Remove Primary Cluster,  cluster %s is not exists", clusterName)
 			return fmt.Errorf("remove cluster failed, cluster %s is not exists", clusterName)
 		}
 	}
@@ -200,67 +250,78 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	return nil
 }
 
-// UpdateClusterHosts update all hosts in the cluster
-func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	ci, ok := cm.clustersMap.Load(clusterName)
-	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] UpdateClusterHosts cluster %s not found", clusterName)
-		return fmt.Errorf("cluster %s is not exists", clusterName)
-	}
-	c := ci.(types.Cluster)
+// EDS Handler
+func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	snap := c.Snapshot()
 	hosts := make([]types.Host, 0, len(hostConfigs))
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	c.UpdateHosts(hosts)
-	refreshHostsConfig(c)
-	return nil
+	c.UpdateHosts(NewHostSet(hosts))
+
+}
+
+func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
+	snap := c.Snapshot()
+	hosts := make([]types.Host, 0, len(hostConfigs))
+	for _, hc := range hostConfigs {
+		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
+	}
+	snap.HostSet().Range(func(host types.Host) bool {
+		hosts = append(hosts, host)
+		return true
+	})
+	c.UpdateHosts(NewHostSet(hosts))
+
+}
+
+// UpdateClusterHosts update all hosts in the cluster
+func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
+	return cm.UpdateHosts(clusterName, hostConfigs, NewSimpleHostHandler)
 }
 
 // AppendClusterHosts adds new hosts into cluster
 func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	ci, ok := cm.clustersMap.Load(clusterName)
-	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] AppendClusterHosts cluster %s not found", clusterName)
-		return fmt.Errorf("cluster %s is not exists", clusterName)
-	}
-	c := ci.(types.Cluster)
-	snap := c.Snapshot()
-	hosts := make([]types.Host, 0, len(hostConfigs))
-	for _, hc := range hostConfigs {
-		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
-	}
-	hosts = append(hosts, snap.HostSet().Hosts()...)
-	c.UpdateHosts(hosts)
-	refreshHostsConfig(c)
-	return nil
+	return cm.UpdateHosts(clusterName, hostConfigs, AppendSimpleHostHandler)
 }
 
 // RemoveClusterHosts removes hosts from cluster by address string
 func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string) error {
+	return cm.UpdateHosts(clusterName, nil,
+		func(c types.Cluster, _ []v2.Host) {
+			snap := c.Snapshot()
+			newHosts := make([]types.Host,0, snap.HostSet().Size())
+			snap.HostSet().Range(func(host types.Host) bool {
+				newHosts = append(newHosts, host)
+				return true
+			})
+			sortedHosts := types.SortedHosts(newHosts)
+			sort.Sort(sortedHosts)
+			for _, addr := range addrs {
+				i := sort.Search(sortedHosts.Len(), func(i int) bool {
+					return sortedHosts[i].AddressString() >= addr
+				})
+				// found it, delete it
+				if i < sortedHosts.Len() && sortedHosts[i].AddressString() == addr {
+					sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
+				}
+			}
+			c.UpdateHosts(NewHostSet(sortedHosts))
+
+		},
+	)
+}
+
+func (cm *clusterManager) UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler types.HostUpdateHandler) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] RemoveClusterHosts cluster %s not found", clusterName)
+		log.DefaultLogger.Errorf("[upstream] [cluster manager] cluster %s is not found", clusterName)
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
 	c := ci.(types.Cluster)
-	snap := c.Snapshot()
-	hosts := snap.HostSet().Hosts()
-	newHosts := make([]types.Host, len(hosts))
-	copy(newHosts, hosts)
-	sortedHosts := types.SortedHosts(newHosts)
-	sort.Sort(sortedHosts)
-	for _, addr := range addrs {
-		i := sort.Search(sortedHosts.Len(), func(i int) bool {
-			return sortedHosts[i].AddressString() >= addr
-		})
-		// found it, delete it
-		if i < sortedHosts.Len() && sortedHosts[i].AddressString() == addr {
-			sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
-		}
+	if hostHandler != nil {
+		hostHandler(c, hostConfigs)
 	}
-	c.UpdateHosts(sortedHosts)
 	refreshHostsConfig(c)
 	return nil
 }
@@ -317,11 +378,13 @@ func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
 	return tlsmng
 }
 
+const clusterManagerTLS = "mosn-cluster-manager-tls"
+
 func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 	if tls == nil {
 		tls = &v2.TLSConfig{} // use a disabled config instead
 	}
-	mng, err := mtls.NewTLSClientContextManager(tls)
+	mng, err := mtls.NewTLSClientContextManager(clusterManagerTLS, tls)
 	if err != nil {
 		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: Add TLS Manager failed, error: %v", err)
 		return
@@ -359,10 +422,10 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host, error) {
-	factory, ok := network.ConnNewPoolFactories[protocol]
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, proto types.ProtocolName) (types.ConnectionPool, types.Host, error) {
+	factory, ok := protocol.GetNewPoolFactory(proto)
 	if !ok {
-		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
+		return nil, nil, fmt.Errorf("protocol %v is not registered in pool factory", proto)
 	}
 
 	// for pool to know, whether this is a multiplex or pingpong pool
@@ -388,13 +451,13 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
 		}
-		value, ok := cm.protocolConnPool.Load(protocol)
+		value, ok := cm.protocolConnPool.Load(proto)
 		if !ok {
 			return nil, nil, errUnknownProtocol
 		}
 
 		connectionPool := value.(*sync.Map)
-		// we cannot use sync.Map.LoadOrStore directly, becasue we do not want to new a connpool every time
+		// we cannot use sync.Map.LoadOrStore directly, because we do not want to new a connpool every time
 		loadOrStoreConnPool := func() (types.ConnectionPool, bool) {
 			// avoid locking if it is already exists
 			if connPool, ok := connectionPool.Load(addr); ok {

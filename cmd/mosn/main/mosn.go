@@ -23,19 +23,22 @@ import (
 	"strconv"
 	"time"
 
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	"github.com/urfave/cli"
-	_ "mosn.io/mosn/istio/istio152"
-	_ "mosn.io/mosn/istio/istio152/filter/stream/jwtauthn"
-	_ "mosn.io/mosn/istio/istio152/filter/stream/mixer"
-	_ "mosn.io/mosn/istio/istio152/filter/stream/stats"
-	_ "mosn.io/mosn/istio/istio152/sds"
-	_ "mosn.io/mosn/istio/istio152/xds"
+	_ "mosn.io/mosn/istio/istio1106"
+	_ "mosn.io/mosn/istio/istio1106/filter/stream/jwtauthn"
+	_ "mosn.io/mosn/istio/istio1106/filter/stream/mixer"
+	_ "mosn.io/mosn/istio/istio1106/filter/stream/stats"
+	_ "mosn.io/mosn/istio/istio1106/sds"
+	_ "mosn.io/mosn/istio/istio1106/xds"
 	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/grpc"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/streamproxy"
+	_ "mosn.io/mosn/pkg/filter/network/tunnel"
 	_ "mosn.io/mosn/pkg/filter/stream/dsl"
 	_ "mosn.io/mosn/pkg/filter/stream/dubbo"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
@@ -50,18 +53,14 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
 	_ "mosn.io/mosn/pkg/filter/stream/seata"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
+	_ "mosn.io/mosn/pkg/filter/stream/transcoder/httpconv"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
 	_ "mosn.io/mosn/pkg/network"
 	_ "mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/http/conv"
-	_ "mosn.io/mosn/pkg/protocol/http2/conv"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-	_ "mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	_ "mosn.io/mosn/pkg/router"
+	_ "mosn.io/mosn/pkg/server/keeper"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -74,12 +73,16 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
+	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm020"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
+	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 	_ "mosn.io/pkg/buffer"
 )
 
-// Version mosn version
-var Version = "0.25.0"
+var _ = &corev3.Pipe{}
+
+// Version mosn version is specified by build tag, in VERSION file
+var Version = ""
 
 func main() {
 	app := newMosnApp(&cmdStart)

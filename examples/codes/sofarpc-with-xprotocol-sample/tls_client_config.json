@@ -1,5 +1,5 @@
 {
-	"close_graceful": true,
+	"disable_upgrade": true,
 	"servers":[
 		{
 			"default_log_path":"stdout",
@@ -28,11 +28,7 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "X",
-									"upstream_protocol": "X",
-									"extend_config": {
-										"sub_protocol": "bolt"
-									},
+									"downstream_protocol": "bolt",
 									"router_config_name":"client_router"
 								}
 							}

@@ -26,7 +26,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
@@ -36,8 +35,8 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // New Test Case
@@ -62,8 +61,8 @@ func TestProxyWithFilters(t *testing.T) {
 
 	// mock context from connection
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+	_ = variable.Set(ctx, types.VariableAccessLogs, []api.AccessLog{})
+	_ = variable.Set(ctx, types.VariableListenerName, "test_listener")
 
 	// mock cluster manager
 	monkey.Patch(cluster.GetClusterMngAdapterInstance, func() *cluster.MngAdapter {
@@ -236,6 +235,8 @@ func TestProxyWithFilters(t *testing.T) {
 	}).AnyTimes()
 	// mock response sender
 	sender := gomockStreamSender(ctrl)
+	// set variable for proxy parsed
+	variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
 
 	// finish mock, start test
 	pv := NewProxy(ctx, &v2.Proxy{

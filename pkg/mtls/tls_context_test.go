@@ -72,7 +72,7 @@ func TestTLSContextNoCert(t *testing.T) {
 		Status:     true,
 		ServerName: "127.0.0.1",
 	}
-	ctx, err := newTLSContext(cfg, &secretInfo{})
+	ctx, err := newTLSContext(cfg, &SecretInfo{})
 	if err != nil {
 		t.Fatalf("create tls context failed, %v", err)
 	}
@@ -177,7 +177,7 @@ func TestTLSContextHashNil(t *testing.T) {
 	cfg := &v2.TLSConfig{
 		Status: false,
 	}
-	cltMng, err := NewTLSClientContextManager(cfg)
+	cltMng, err := NewTLSClientContextManager("", cfg)
 	if err != nil {
 		t.Fatalf("new client manager failed: %v", err)
 	}

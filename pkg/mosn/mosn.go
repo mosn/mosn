@@ -18,24 +18,26 @@
 package mosn
 
 import (
+	"errors"
+	"mosn.io/mosn/pkg/server/pid"
 	"net"
-	"sync"
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/utils"
 )
 
-// UpgradeData stores datas that are used to smooth upgrade
+// UpgradeData stores data that are used to smooth upgrade
 type UpgradeData struct {
 	InheritListeners  []net.Listener
 	InheritPacketConn []net.PacketConn
@@ -43,6 +45,7 @@ type UpgradeData struct {
 }
 
 type Mosn struct {
+	isFromUpgrade  bool // hot upgrade from old MOSN
 	Upgrade        UpgradeData
 	Clustermanager types.ClusterManager
 	RouterManager  types.RouterManager
@@ -50,65 +53,93 @@ type Mosn struct {
 	// internal data
 	servers   []server.Server
 	xdsClient *istio.ADSClient
-	wg        sync.WaitGroup
 }
 
-func NewMosn(c *v2.MOSNConfig) *Mosn {
-	log.StartLogger.Infof("[mosn start] create a new mosn structure")
-	// set the mosn config finally
-	defer configmanager.SetMosnConfig(c)
-
+// create an empty mosn
+func NewMosn() *Mosn {
+	log.StartLogger.Infof("[mosn start] create an empty mosn structure")
 	m := &Mosn{
 		Upgrade: UpgradeData{},
-		Config:  c,
 	}
-	// generate mosn structure members
-	m.upgradeCheck()
-	m.initClusterManager()
-	m.initServer()
-
 	return m
 }
 
-func (m *Mosn) upgradeCheck() {
-	c := m.Config
+// whether Mosn is hot upgraded from an old MOSN
+func (m *Mosn) IsFromUpgrade() bool {
+	return m.isFromUpgrade
+}
+
+// generate mosn structure members
+func (m *Mosn) Init(c *v2.MOSNConfig) error {
+	if c.CloseGraceful {
+		c.DisableUpgrade = true
+	}
+	if err := m.inheritConfig(c); err != nil {
+		return err
+	}
+
+	log.StartLogger.Infof("[mosn start] init the members of the mosn")
+
+	m.initClusterManager()
+	m.initServer()
+
+	// set the mosn config finally
+	configmanager.SetMosnConfig(m.Config)
+	return nil
+}
+
+// receive from old mosn
+// stage manager will stop the new mosn when returning error
+func (m *Mosn) inheritHandler() error {
+	var err error
+	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
+	if err != nil {
+		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		return err
+	}
+	log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
+	// parse MOSNConfig again
+	c := configmanager.Load(configmanager.GetConfigPath())
+	if c.InheritOldMosnconfig {
+		// inherit old mosn config
+		oldMosnConfig, err := server.GetInheritConfig()
+		if err != nil {
+			m.Upgrade.ListenSockConn.Close()
+			log.StartLogger.Errorf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			return err
+		}
+		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+		c.Servers = oldMosnConfig.Servers
+		c.ClusterManager = oldMosnConfig.ClusterManager
+		c.Extends = oldMosnConfig.Extends
+	}
+	if c.CloseGraceful {
+		c.DisableUpgrade = true
+	}
+	m.Config = c
+	return nil
+}
+
+// inherit listener fds / config from old mosn when it exists,
+// use the local config by default,
+// stop the new mosn when error happens
+func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
+	m.Config = c
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
-	var err error
 	// default is graceful mode, turn graceful off by set it to false
-	if !c.CloseGraceful {
-		//get inherit fds
-		m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
-		if err != nil {
-			log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	if !c.DisableUpgrade && server.IsReconfigure() {
+		m.isFromUpgrade = true
+		if err = m.inheritHandler(); err != nil {
+			return
 		}
 	}
-	if m.Upgrade.ListenSockConn != nil {
-		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
-		// set Mosn Active_Reconfiguring
-		store.SetMosnState(store.Active_Reconfiguring)
-		// parse MOSNConfig again
-		c = configmanager.Load(configmanager.GetConfigPath())
-		if c.InheritOldMosnconfig {
-			// inherit old mosn config
-			oldMosnConfig, err := server.GetInheritConfig()
-			if err != nil {
-				m.Upgrade.ListenSockConn.Close()
-				log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
-			}
-			log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
-			c.Servers = oldMosnConfig.Servers
-			c.ClusterManager = oldMosnConfig.ClusterManager
-			c.Extends = oldMosnConfig.Extends
-		}
-	} else {
-		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
-		// start init services
-		if err := store.StartService(nil); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
-		}
-
+	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
+	// start init services
+	if err = store.StartService(nil); err != nil {
+		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 	}
+	return
 }
 
 type clusterManagerFilter struct {
@@ -174,8 +205,6 @@ func (m *Mosn) initServer() {
 
 		// init default log
 		server.InitDefaultLogger(sc)
-		// set use optimize local write mode or not, default is false
-		network.SetOptimizeLocalWrite(serverConfig.OptimizeLocalWrite)
 
 		var srv server.Server
 		if mode == v2.Xds {
@@ -211,42 +240,51 @@ func (m *Mosn) initServer() {
 	}
 }
 
-func (m *Mosn) TransferConnection() {
+// receive old connections from old mosn,
+func (m *Mosn) transferConnectionHandler() error {
+	// notify old mosn to transfer connection
+	if _, err := m.Upgrade.ListenSockConn.Write([]byte{0}); err != nil {
+		log.StartLogger.Errorf("[mosn] [NewMosn] failed to notify old mosn to transfer connection: %v, exit", err)
+		return err
+	}
+	// wait old mosn ack
+	m.Upgrade.ListenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	var buf [1]byte
+	n, err := m.Upgrade.ListenSockConn.Read(buf[:])
+	if n != 1 {
+		log.StartLogger.Errorf("[mosn] [NewMosn] failed to get ack from old mosn, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
+		return errors.New("failed to get ack from old mosn")
+	}
+
+	m.Upgrade.ListenSockConn.Close()
+
+	// receive old mosn connections
+	utils.GoWithRecover(func() {
+		network.TransferServer(m.servers[0].Handler())
+	}, nil)
+
+	return nil
+}
+
+func (m *Mosn) TransferConnection() (err error) {
 	log.StartLogger.Infof("[mosn start] mosn transfer connections")
 	// SetTransferTimeout
 	network.SetTransferTimeout(server.GracefulTimeout)
 
-	if store.GetMosnState() == store.Active_Reconfiguring {
+	if m.Upgrade.ListenSockConn != nil {
 		// start other services
-		if err := store.StartService(m.Upgrade.InheritListeners); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+		if err = store.StartService(m.Upgrade.InheritListeners); err != nil {
+			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 		}
-		// notify old mosn to transfer connection
-		if _, err := m.Upgrade.ListenSockConn.Write([]byte{0}); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
-		}
-		// wait old mosn ack
-		m.Upgrade.ListenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
-		var buf [1]byte
-		n, err := m.Upgrade.ListenSockConn.Read(buf[:])
-		if n != 1 {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
-		}
+		err = m.transferConnectionHandler()
 
-		m.Upgrade.ListenSockConn.Close()
-
-		// transfer old mosn connections
-		utils.GoWithRecover(func() {
-			network.TransferServer(m.servers[0].Handler())
-		}, nil)
 	} else {
 		// start other services
-		if err := store.StartService(nil); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+		if err = store.StartService(nil); err != nil {
+			log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 		}
-		store.SetMosnState(store.Running)
 	}
-
+	return
 }
 
 func (m *Mosn) CleanUpgrade() {
@@ -299,16 +337,16 @@ func (m *Mosn) HandleExtendConfig() {
 
 func (m *Mosn) Start() {
 	log.StartLogger.Infof("[mosn start] mosn start server")
-	m.wg.Add(1)
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	if !m.Config.CloseGraceful {
+	if !m.Config.DisableUpgrade {
+		stagemanager.RegisterUpgradeHandler(server.ReconfigureHandler)
 		// start reconfig domain socket
 		utils.GoWithRecover(func() {
-			server.ReconfigureHandler()
+			server.ReconfigureListener()
 		}, nil)
 	}
 
@@ -321,20 +359,37 @@ func (m *Mosn) Start() {
 			srv.Start()
 		}, nil)
 	}
-
 }
 
-func (m *Mosn) Wait() {
-	m.wg.Wait()
+// Shutdown means graceful stop servers
+func (m *Mosn) Shutdown() error {
+	var failed bool
+	for _, srv := range m.servers {
+		if err := srv.Shutdown(); err != nil {
+			log.StartLogger.Errorf("[mosn shutdown] server shutdown failed: %v", err)
+			failed = true
+		}
+	}
+	if failed {
+		return errors.New("failed to shutdown MOSN")
+	}
+	return nil
 }
 
-func (m *Mosn) Close() {
-	log.StartLogger.Infof("[mosn start] mosn stop server")
+func (m *Mosn) Close(isUpgrade bool) {
+	log.StartLogger.Infof("[mosn close] mosn stop server")
+
+	// do not remove the pid file,
+	// since the new started server may have the same pid file
+	if !isUpgrade {
+		pid.RemovePidFile()
+		// stop reconfigure domain socket
+		server.StopReconfigureHandler()
+
+	}
+
 	// close service
 	store.CloseService()
-
-	// stop reconfigure domain socket
-	server.StopReconfigureHandler()
 
 	// stop mosn server
 	for _, srv := range m.servers {
@@ -346,6 +401,18 @@ func (m *Mosn) Close() {
 	if m.Clustermanager != nil {
 		m.Clustermanager.Destroy()
 	}
-	m.wg.Done()
+}
 
+// transfer existing connections from old mosn,
+// stage manager will stop the new mosn when return error
+func (m *Mosn) InheritConnections() error {
+	// transfer connection used in smooth upgrade in mosn
+	err := m.TransferConnection()
+	// clean upgrade finish the smooth upgrade datas
+	m.CleanUpgrade()
+	return err
+}
+
+func (m *Mosn) GetServer() []server.Server {
+	return m.servers
 }

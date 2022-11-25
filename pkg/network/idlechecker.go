@@ -24,13 +24,13 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 // getIdleCount calculates the idle timeout as max idle count.
 func getIdleCount(readTimeout time.Duration, idleTimeout time.Duration) uint32 {
 	if readTimeout == 0 {
-		readTimeout = buffer.ConnReadTimeout
+		readTimeout = types.DefaultConnReadTimeout
 	}
 	fd := float64(idleTimeout)
 	ft := float64(readTimeout)

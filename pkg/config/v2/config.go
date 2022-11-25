@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+
 	"github.com/c2h5oh/datasize"
 )
 
@@ -28,15 +29,18 @@ import (
 type MOSNConfig struct {
 	Servers              []ServerConfig       `json:"servers,omitempty"`                //server config
 	ClusterManager       ClusterManagerConfig `json:"cluster_manager,omitempty"`        //cluster config
-	CloseGraceful        bool                 `json:"close_graceful,omitempty"`         // graceful switch, default false
+	DisableUpgrade       bool                 `json:"disable_upgrade,omitempty"`        // not upgrade from old mosn, default false
+	CloseGraceful        bool                 `json:"close_graceful,omitempty"`         // deprecated, same as disable_upgrade
 	InheritOldMosnconfig bool                 `json:"inherit_old_mosnconfig,omitempty"` // inherit old mosn config switch, default false
 	Tracing              TracingConfig        `json:"tracing,omitempty"`
 	Metrics              MetricsConfig        `json:"metrics,omitempty"`
 	RawDynamicResources  json.RawMessage      `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
+	Node                 json.RawMessage      `json:"node,omitempty"`              // node info for pilot
 	RawAdmin             *Admin               `json:"admin,omitempty"`             // admin
 	Debug                PProfConfig          `json:"pprof,omitempty"`
 	Pid                  string               `json:"pid,omitempty"`                 // pid file
+	UDSDir               string               `json:"uds_dir,omitempty"`             // unix domain socket directory
 	Plugin               PluginConfig         `json:"plugin,omitempty"`              // plugin config
 	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"`    // third part codec config
 	Extends              []ExtendConfig       `json:"extends,omitempty"`             // extend config

@@ -27,7 +27,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -38,6 +37,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -97,6 +97,8 @@ type proxy struct {
 	streamFilterFactory streamfilter.StreamFilterFactory
 	routeHandlerFactory router.MakeHandlerFunc
 
+	protocols []api.ProtocolName
+
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
 	// we only start one worker(goroutine) on this connection
@@ -106,13 +108,20 @@ type proxy struct {
 
 // NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
+	aclog, _ := variable.Get(ctx, types.VariableAccessLogs)
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     aclog.([]api.AccessLog),
+	}
+
+	if pi, err := variable.Get(ctx, types.VarProtocolConfig); err == nil {
+		if protos, ok := pi.([]api.ProtocolName); ok {
+			proxy.protocols = protos
+		}
 	}
 
 	// proxy level worker pool config
@@ -121,7 +130,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	lv, _ := variable.Get(ctx, types.VariableListenerName)
+	listenerName := lv.(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
@@ -151,7 +161,13 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			prot = conn.ConnectionState().NegotiatedProtocol
 		}
 
-		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
+		scopes := p.protocols
+		// if protocols is Auto only, match all registered protocols
+		if len(scopes) == 1 && scopes[0] == protocol.Auto {
+			scopes = nil
+		}
+
+		proto, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes(), scopes)
 
 		if err == stream.EAGAIN {
 			return api.Stop
@@ -174,10 +190,10 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", proto)
 		}
 
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, proto, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
 
@@ -200,6 +216,11 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
+			// don't need to resetStream when upstream already response
+			// so that the stream can be reused.
+			if ds.upstreamProcessDone.Load() {
+				continue
+			}
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
 		return
@@ -213,6 +234,10 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			p.fallback = true
 			p.readCallbacks.ContinueReading()
 		}
+		return
+	}
+	if event == api.OnShutdown && p.serverStreamConn != nil {
+		p.serverStreamConn.GoAway()
 		return
 	}
 }
@@ -259,8 +284,8 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.listenerStats.DownstreamConnectionActive.Inc(1)
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
-	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.ProtocolName(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+	if len(p.protocols) == 1 && p.protocols[0] != protocol.Auto {
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, api.ProtocolName(p.protocols[0]), p.readCallbacks.Connection(), p)
 	}
 }
 

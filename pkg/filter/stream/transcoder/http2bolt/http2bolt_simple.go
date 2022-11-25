@@ -21,19 +21,24 @@ import (
 	"context"
 
 	"github.com/valyala/fasthttp"
-	mosnctx "mosn.io/mosn/pkg/context"
-
+	apit "mosn.io/api/extensions/transcoder"
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/protocol/http"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
-	transcoder.MustRegister("http2bolt_simple", &http2bolt{})
+	transcoder.MustRegister("http2bolt_simple", NewTranscoder)
 }
 
-type http2bolt struct{}
+type http2bolt struct {
+}
+
+func NewTranscoder(config map[string]interface{}) apit.Transcoder {
+	return &http2bolt{}
+}
 
 func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	_, ok := headers.(http.RequestHeader)
@@ -41,15 +46,20 @@ func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf typ
 }
 
 func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
-	// 1. set sub protocol
-	mosnctx.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
+	// 1.set upstream protocol
+	_ = variable.Set(ctx, types.VariableUpstreamProtocol, bolt.ProtocolName)
 	// 2. assemble target request
 	targetRequest := bolt.NewRpcRequest(0, headers, buf)
 	return targetRequest, buf, trailers, nil
 }
 
 func (t *http2bolt) TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
-	sourceResponse := headers.(*bolt.Response)
+	sourceResponse, ok := headers.(*bolt.Response)
+	if !ok {
+		// if the response is not bolt response, it maybe come from hijack or send directly response.
+		// so we just returns the original data
+		return headers, buf, trailers, nil
+	}
 	targetResponse := fasthttp.Response{}
 
 	// 1. headers

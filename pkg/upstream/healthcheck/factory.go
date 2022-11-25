@@ -34,7 +34,7 @@ func RegisterSessionFactory(p types.ProtocolName, f types.HealthCheckSessionFact
 	sessionFactories[p] = f
 }
 
-// CreateHealthCheck is a extendable function that can create different health checker
+// CreateHealthCheck is an extendable function that can create different health checker
 // by different health check session.
 // The Default session is TCPDial session
 func CreateHealthCheck(cfg v2.HealthCheck) types.HealthChecker {
@@ -51,7 +51,7 @@ func CreateHealthCheck(cfg v2.HealthCheck) types.HealthChecker {
 var commonCallbacks sync.Map
 
 func RegisterCommonCallbacks(name string, cb types.HealthCheckCb) bool {
-	// can not regitser same name
+	// can not register same name
 	_, loaded := commonCallbacks.LoadOrStore(name, cb)
 	if loaded {
 		return false

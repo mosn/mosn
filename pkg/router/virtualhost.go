@@ -42,31 +42,27 @@ func (vh *VirtualHostImpl) Name() string {
 	return vh.virtualHostName
 }
 
-func (vh *VirtualHostImpl) addRouteBase(route api.RouteBase) error {
-	if route != nil {
-		vh.mutex.Lock()
-		vh.routes = append(vh.routes, route)
-		// make fast index, used in certain scenarios
-		// TODO: rule can be extended
-		hmc := route.RouteRule().HeaderMatchCriteria()
-		if hmc != nil && hmc.Len() == 1 && hmc.Get(0).MatchType() == api.ValueExact {
-			key := hmc.Get(0).Key()
-			value := hmc.Get(0).Matcher()
-			valueMap, ok := vh.fastIndex[key]
-			if !ok {
-				valueMap = make(map[string]api.Route)
-				vh.fastIndex[key] = valueMap
-			}
-			valueMap[value] = route
-		}
-		vh.mutex.Unlock()
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
-		}
-	} else {
-		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule failed")
+func (vh *VirtualHostImpl) addRouteBase(route api.RouteBase) {
+	if route == nil {
+		return
 	}
-	return nil
+	vh.mutex.Lock()
+	defer vh.mutex.Unlock()
+	vh.routes = append(vh.routes, route)
+	// make fast index, used in certain scenarios
+	// TODO: rule can be extended
+	hmc := route.RouteRule().HeaderMatchCriteria()
+	if hmc != nil && hmc.Len() == 1 && hmc.Get(0).MatchType() == api.ValueExact {
+		key := hmc.Get(0).Key()
+		value := hmc.Get(0).Matcher()
+		valueMap, ok := vh.fastIndex[key]
+		if !ok {
+			valueMap = make(map[string]api.Route)
+			vh.fastIndex[key] = valueMap
+		}
+		valueMap[value] = route
+	}
+	return
 
 }
 
@@ -104,8 +100,10 @@ func (vh *VirtualHostImpl) GetRouteFromHeaderKV(key, value string) api.Route {
 	return nil
 }
 
+// AddRoute always returns nil, keep api.VirtualHost interface compatible
 func (vh *VirtualHostImpl) AddRoute(route api.RouteBase) error {
-	return vh.addRouteBase(route)
+	vh.addRouteBase(route)
+	return nil
 }
 
 func (vh *VirtualHostImpl) RemoveAllRoutes() {
@@ -123,13 +121,13 @@ func (vh *VirtualHostImpl) PerFilterConfig() map[string]interface{} {
 }
 
 func (vh *VirtualHostImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	vh.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	vh.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.requestHeadersParser.evaluateHeaders(ctx, headers)
+	vh.globalRouteConfig.requestHeadersParser.evaluateHeaders(ctx, headers)
 }
 
 func (vh *VirtualHostImpl) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	vh.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	vh.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.responseHeadersParser.evaluateHeaders(ctx, headers)
+	vh.globalRouteConfig.responseHeadersParser.evaluateHeaders(ctx, headers)
 }
 
 // NewVirtualHostImpl convert mosn VirtualHost config to actual virtual host object
@@ -146,9 +144,7 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := vhImpl.addRouteBase(rb); err != nil {
-			return nil, err
-		}
+		vhImpl.addRouteBase(rb)
 	}
 	return vhImpl, nil
 }

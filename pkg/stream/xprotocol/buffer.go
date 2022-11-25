@@ -20,7 +20,7 @@ package xprotocol
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {

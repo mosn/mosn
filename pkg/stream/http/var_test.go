@@ -27,11 +27,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -42,9 +41,9 @@ var (
 )
 
 func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = mbuffer.NewBufferPoolContext(ctx)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableListenerPort, 80)
+	ctx = buffer.NewBufferPoolContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
@@ -126,13 +125,25 @@ func Test_get_cookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
 	actual, err := variable.GetString(ctx,
-		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolCookie, "zone"))
+		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "zone"))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
 
 	if actual != "shanghai" {
 		t.Error("request cookie assert failed, expected: shanghai, actual is: ", actual)
+	}
+
+	_, err = variable.GetString(
+		ctx,
+		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "env"),
+	)
+
+	if err == nil {
+		t.Error("request cookie assert failed, should get an err, actually get a nil")
+	}
+	if err.Error() != "not found cookie value" {
+		t.Error(`request cookie assert failed, the err message should be "not found cookie value"`)
 	}
 }
 
@@ -183,7 +194,7 @@ func Test_get_allarg(t *testing.T) {
 func Test_get_protocolResource(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
 	actual, err := variable.GetProtocolResource(ctx, api.PATH)
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -214,7 +225,7 @@ func Test_get_protocolResource(t *testing.T) {
 
 func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
 
 	cookieName := "zone"
 	expect := "shanghai"
@@ -240,9 +251,11 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 }
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = mbuffer.NewBufferPoolContext(ctx)
-	ctx = variable.NewVariableContext(ctx)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableListenerPort, 80)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, protocol.HTTP1)
+
+	ctx = buffer.NewBufferPoolContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
@@ -260,30 +273,7 @@ func Benchmark_get_request_length(b *testing.B) {
 	ctx := prepareBenchmarkRequest(b, getRequestBytes)
 
 	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_request_length")
-		if err != nil {
-			b.Error("get variable failed:", err)
-		}
-	}
-}
-
-func Benchmark_get_http_header_without_add(b *testing.B) {
-	ctx := prepareBenchmarkRequest(b, getRequestBytes)
-
-	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_header_scene")
-		if err != nil {
-			b.Error("get variable failed:", err)
-		}
-	}
-}
-
-func Benchmark_get_http_header_with_add(b *testing.B) {
-	variable.Check("http_header_scene")
-	ctx := prepareBenchmarkRequest(b, getRequestBytes)
-
-	for i := 0; i < b.N; i++ {
-		_, err := variable.GetString(ctx, "http_header_scene")
+		_, err := variable.GetString(ctx, "Http1_request_length")
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}

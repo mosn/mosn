@@ -34,11 +34,11 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -46,8 +46,8 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // ConnectionHandler
@@ -105,7 +105,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 	var listenerName string
 	if lc.Name == "" {
-		listenerName = utils.GenerateUUID()
+		listenerName = lc.Addr.String() //utils.GenerateUUID()
 		lc.Name = listenerName
 	} else {
 		listenerName = lc.Name
@@ -160,10 +160,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
-		rawConfig.UseOriginalDst = lc.UseOriginalDst
-		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
+		rawConfig.OriginalDst = lc.OriginalDst
+		al.listener.SetOriginalDstType(lc.OriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
-
 		al.listener.SetConfig(rawConfig)
 
 		// set update label to true, do not start the listener again
@@ -194,7 +193,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 			}
 		}
 
-		l := network.NewListener(lc)
+		l := network.GetListenerFactory()(lc)
 
 		var err error
 		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, ch, listenerStopChan)
@@ -258,37 +257,70 @@ func (ch *connHandler) RemoveListeners(name string) {
 	}
 }
 
-func (ch *connHandler) StopListener(lctx context.Context, name string, close bool) error {
+func (ch *connHandler) GracefulStopListener(lctx context.Context, name string) error {
+	var errGlobal error
 	for _, l := range ch.listeners {
 		if l.listener.Name() == name {
-			// stop goroutine
-			if close {
-				return l.listener.Close(lctx)
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
+			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
 			}
-
-			return l.listener.Stop()
 		}
 	}
+	return errGlobal
+}
 
+func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) error {
+	var errGlobal error
+	for _, l := range ch.listeners {
+		if l.listener.Name() == name {
+			log.DefaultLogger.Infof("graceful closing listener %v", name)
+			if err := l.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
+			}
+			if err := l.listener.Close(lctx); err != nil {
+				log.DefaultLogger.Errorf("failed to close listener %v: %v", l.listener.Name(), err)
+				errGlobal = err
+			}
+		}
+	}
+	return errGlobal
+}
+
+// GracefulStopListeners stop accept new connections
+// and graceful close all the existing connections.
+func (ch *connHandler) GracefulStopListeners() error {
+	var failed bool
+	listeners := ch.listeners
+	wg := sync.WaitGroup{}
+	wg.Add(len(listeners))
+	for _, l := range listeners {
+		al := l
+		log.DefaultLogger.Infof("graceful shutdown listener %v", al.listener.Name())
+		// Shutdown listener in parallel
+		utils.GoWithRecover(func() {
+			defer wg.Done()
+			if err := al.listener.Shutdown(); err != nil {
+				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", al.listener.Name(), err)
+				failed = true
+			}
+		}, nil)
+	}
+	wg.Wait()
+
+	if failed {
+		return errors.New("failed to shutdown listeners")
+	}
 	return nil
 }
 
-func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
-	var errGlobal error
+// CloseListeners close listeners immediately
+func (ch *connHandler) CloseListeners() {
 	for _, l := range ch.listeners {
-		// stop goroutine
-		if close {
-			if err := l.listener.Close(lctx); err != nil {
-				errGlobal = err
-			}
-		} else {
-			if err := l.listener.Stop(); err != nil {
-				errGlobal = err
-			}
-		}
+		l.listener.Close(nil)
 	}
-
-	return errGlobal
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
@@ -322,10 +354,8 @@ func (ch *connHandler) findActiveListenerByAddress(addr net.Addr) *activeListene
 
 func (ch *connHandler) findActiveListenerByName(name string) *activeListener {
 	for _, l := range ch.listeners {
-		if l.listener != nil {
-			if l.listener.Name() == name {
-				return l
-			}
+		if l.listener != nil && l.listener.Name() == name {
+			return l
 		}
 	}
 
@@ -345,8 +375,8 @@ type activeListener struct {
 	networkFiltersFactories  []api.NetworkFilterChainFactory
 	listenIP                 string
 	listenPort               int
-	conns                    *list.List
-	connsMux                 sync.RWMutex
+	defaultReadBufferSize    int
+	conns                    *utils.SyncList
 	handler                  *connHandler
 	stopChan                 chan struct{}
 	stats                    *listenerStats
@@ -362,7 +392,8 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
-		conns:                    list.New(),
+		defaultReadBufferSize:    lc.DefaultReadBufferSize,
+		conns:                    utils.NewSyncList(),
 		handler:                  handler,
 		stopChan:                 stopChan,
 		accessLogs:               accessLoggers,
@@ -406,7 +437,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte) {
+func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte, listeners []api.ConnectionEventListener) {
 	var rawf *os.File
 
 	// only store fd and tls conn handshake in final working listener
@@ -453,26 +484,33 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if useOriginalDst {
 		arc.useOriginalDst = true
 		// TODO remove it when Istio deprecate UseOriginalDst.
-		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst(arc.activeListener.listener.GetOriginalDstType()))
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	// connection context support variables too
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableListenerPort, al.listenPort)
+	_ = variable.Set(ctx, types.VariableListenerType, al.listener.Config().Type)
+	_ = variable.Set(ctx, types.VariableListenerName, al.listener.Name())
+	_ = variable.Set(ctx, types.VariableConnDefaultReadBufferSize, al.defaultReadBufferSize)
+	_ = variable.Set(ctx, types.VariableNetworkFilterChainFactories, al.networkFiltersFactories)
+	_ = variable.Set(ctx, types.VariableAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		_ = variable.Set(ctx, types.VariableConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptChan, ch)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		_ = variable.Set(ctx, types.VariableOriRemoteAddr, oriRemoteAddr)
+	}
+
+	if len(listeners) != 0 {
+		_ = variable.Set(ctx, types.VariableConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -486,19 +524,14 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	for _, nfcf := range al.networkFiltersFactories {
 		nfcf.CreateFilterChain(ctx, filterManager)
 	}
-	filterManager.InitializeReadFilters()
 
-	if len(filterManager.ListReadFilter()) == 0 &&
-		len(filterManager.ListWriteFilters()) == 0 {
-		// no filter found, close connection
-		conn.Close(api.NoFlush, api.LocalClose)
-		return
-	}
 	ac := newActiveConnection(al, conn)
 
-	al.connsMux.Lock()
+	if conn.LocalAddr().Network() == "udp" {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	}
+
 	e := al.conns.PushBack(ac)
-	al.connsMux.Unlock()
 	ac.element = e
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
@@ -507,8 +540,16 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
-		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	filterManager.InitializeReadFilters()
+
+	if len(filterManager.ListReadFilter()) == 0 &&
+		len(filterManager.ListWriteFilters()) == 0 {
+		// no filter found, close connection
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+		}
+		conn.Close(api.NoFlush, api.LocalClose)
+		return
 	}
 
 	// start conn loops first
@@ -522,7 +563,52 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
+var (
+	// drain time, default 15 seconds
+	drainTime = time.Second * 15
+)
+
+func SetDrainTime(time time.Duration) {
+	drainTime = time
+}
+
+// OnShutdown graceful stop the existing connection and wait all connections to be closed
+func (al *activeListener) OnShutdown() {
+	utils.GoWithRecover(func() {
+		al.conns.VisitSafe(func(v interface{}) {
+			conn := v.(*activeConnection).conn
+			// TODO 1: conn.OnConnectionEvent may be blocked on connection.Write, need a proper way to not block too long.
+			// TODO 2: shutdown connections gradual, it's useful when there are many connections.
+			conn.OnConnectionEvent(api.OnShutdown)
+		})
+	}, nil)
+
+	al.waitConnectionsClose(drainTime)
+}
+
 func (al *activeListener) OnClose() {
+}
+
+// waitConnectionsClose wait all connections to be closed, wait maxWaitMilliseconds at most.
+func (al *activeListener) waitConnectionsClose(maxWaitTime time.Duration) {
+	// if there is any stream being processed and without timeout,
+	// we try to wait for processing to complete, or wait for a timeout.
+	current := time.Now()
+	remainStream, waited := al.activeStreamSize(), time.Since(current)
+	for ; remainStream > 0 && waited <= maxWaitTime; remainStream, waited =
+		al.activeStreamSize(), time.Since(current) {
+		// sleep 10ms
+		time.Sleep(10 * time.Millisecond)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms",
+				al.listener.Name(), remainStream, Milliseconds(waited))
+		}
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms",
+			al.listener.Name(), remainStream, Milliseconds(waited))
+	}
 }
 
 // PreStopHook used for graceful stop
@@ -531,35 +617,14 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 	// check that the preconditions are met.
 	// for example: whether all request queues are processed ?
 	return func() error {
-		var remainStream int
-		var waitedMilliseconds int64
 		if ctx != nil {
 			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
 				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
-					current := time.Now()
-					// if there any stream being processed and without timeout,
-					// we try to wait for processing to complete, or wait for a timeout.
-					remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current))
-					for ; remainStream > 0 && waitedMilliseconds <= timeout; remainStream, waitedMilliseconds =
-						al.activeStreamSize(), Milliseconds(time.Since(current)) {
-						// waiting for 10ms
-						time.Sleep(10 * time.Millisecond)
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[activeListener] listener %s invoking stop hook, remaining stream count %d, waited time %dms",
-								al.listener.Name(), remainStream, waitedMilliseconds)
-						}
-					}
+					al.waitConnectionsClose(time.Millisecond * time.Duration(timeout))
 				}
 			}
 		}
-
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete, remaining stream count %d, waited time %dms",
-				al.listener.Name(), remainStream, waitedMilliseconds)
-		}
-
 		return nil
 	}
 }
@@ -568,46 +633,42 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 func Milliseconds(d time.Duration) int64 { return int64(d) / 1e6 }
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
-	al.connsMux.Lock()
 	al.conns.Remove(ac.element)
-	al.connsMux.Unlock()
 
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
 }
 
-// defaultIdleTimeout represents the idle timeout if listener have no such configuration
-// we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
-var (
-	defaultIdleTimeout    = types.DefaultIdleTimeout
-	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
-	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
-)
-
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
+		conn.SetIdleTimeout(types.DefaultConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
 		switch conn.LocalAddr().Network() {
 		case "udp":
-			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultUDPReadTimeout, types.DefaultUDPIdleTimeout)
 		default:
-			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-	if oriRemoteAddr != nil {
+	oriRemoteAddr, err := variable.Get(ctx, types.VariableOriRemoteAddr)
+	if err == nil && oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
-	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
+	listeners, err := variable.Get(ctx, types.VariableConnectionEventListeners)
+	if err == nil && listeners != nil {
+		for _, listener := range listeners.([]api.ConnectionEventListener) {
+			conn.AddConnectionEventListener(listener)
+		}
+	}
+	_ = variable.Set(ctx, types.VariableConnectionID, conn.ID())
+	_ = variable.Set(ctx, types.VariableConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(newCtx, conn)
+	al.OnNewConnection(ctx, conn)
 }
 
 type activeRawConn struct {
@@ -640,9 +701,23 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	}
 }
 
+func init() {
+	variable.Register(
+		variable.NewStringVariable(types.VarListenerMatchFallbackIP, nil, nil, variable.DefaultStringSetter, 0),
+	)
+}
+
+const fallback_any = "0.0.0.0"
+
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
-	var found bool
+
+	// if listener match ip address, we will use a fallback listener.
+	// default action is fallback to a listener which listen ip 0.0.0.0
+	fallbackip := fallback_any
+	if v, err := variable.GetString(arc.ctx, types.VarListenerMatchFallbackIP); err == nil {
+		fallbackip = v
+	}
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -650,44 +725,41 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			break
 		}
 
-		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
+		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
-
 	}
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val, err := variable.Get(ctx, types.VariableAcceptChan); err == nil && val != nil {
 		ch = val.(chan api.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf = val.([]byte)
 		}
 	}
 
 	if listener != nil {
-		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
-		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
+		return
 	}
 
 	if localListener != nil {
-		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
-		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
+		return
 	}
 
-	// If it can’t find any matching listeners and should using the self listener.
-	if !found {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
-		}
-		arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	// If it can’t find any matching listeners and should use the self listener.
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
+	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 }
 
 func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
@@ -862,16 +934,6 @@ func SendInheritConfig() error {
 }
 
 func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
-		}
-	}()
-
-	if !isReconfigure() {
-		return nil, nil, nil, nil
-	}
-
 	syscall.Unlink(types.TransferListenDomainSocket)
 
 	l, err := net.Listen("unix", types.TransferListenDomainSocket)

@@ -25,19 +25,14 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.HTTP1, true)
-}
 
 // types.ConnectionPool
 type connPool struct {
@@ -100,6 +95,8 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	if c == nil {
 		return host, nil, reason
 	}
+
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
@@ -306,7 +303,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together
+	// bytes total adds all connections' data together
 	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac, ""

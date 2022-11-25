@@ -18,7 +18,6 @@
 package server
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -33,7 +32,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 const testServerName = "test_server"
@@ -45,7 +43,7 @@ func setup() {
 
 func tearDown() {
 	for _, handler := range listenerAdapterInstance.connHandlerMap {
-		handler.StopListeners(context.Background(), true)
+		handler.CloseListeners()
 	}
 	listenerAdapterInstance = nil
 }
@@ -244,13 +242,15 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	setup()
 	defer tearDown()
 
+	oldDefaultConnReadTimeout := types.DefaultConnReadTimeout
+	oldDefaultIdleTimeout := types.DefaultIdleTimeout
 	defer func() {
-		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
-		defaultIdleTimeout = types.DefaultIdleTimeout
+		types.DefaultConnReadTimeout = oldDefaultConnReadTimeout
+		types.DefaultIdleTimeout = oldDefaultIdleTimeout
 	}()
 	log.DefaultLogger.SetLogLevel(log.DEBUG)
-	buffer.ConnReadTimeout = time.Second
-	defaultIdleTimeout = 3 * time.Second
+	types.DefaultConnReadTimeout = time.Second
+	types.DefaultIdleTimeout = 3 * time.Second
 	addrStr := "127.0.0.1:8082"
 	name := "listener3"
 	// bas listener config have no idle timeout config, set the default value
@@ -283,7 +283,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 			if err != io.EOF {
 				t.Fatalf("connection read returns error: %v", err)
 			}
-			if time.Now().Sub(n) < defaultIdleTimeout {
+			if time.Now().Sub(n) < types.DefaultIdleTimeout {
 				t.Fatal("connection closed too quickly")
 			}
 		case <-time.After(5 * time.Second):

@@ -29,7 +29,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -100,8 +100,8 @@ func newRandomLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.Lo
 }
 
 func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.Hosts()
-	total := len(targets)
+	hs := lb.hosts
+	total := hs.Size()
 	if total == 0 {
 		return nil
 	}
@@ -110,7 +110,7 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	idx := lb.rand.Intn(total)
 	lb.mutex.Unlock()
 
-	host := targets[idx]
+	host := hs.Get(idx)
 	if host.Health() {
 		return host
 	}
@@ -120,11 +120,11 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 }
 
 func (lb *randomLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
+	return lb.hosts.Size() > 0
 }
 
 func (lb *randomLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }
 
 type roundRobinLoadBalancer struct {
@@ -139,11 +139,10 @@ type roundRobinLoadBalancerFactory struct {
 
 func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	var idx uint32
-	hostsList := hosts.Hosts()
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
-	if len(hostsList) != 0 {
-		idx = f.rand.Uint32() % uint32(len(hostsList))
+	if hosts.Size() != 0 {
+		idx = f.rand.Uint32() % uint32(hosts.Size())
 	}
 	return &roundRobinLoadBalancer{
 		hosts:   hosts,
@@ -152,14 +151,14 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(info types.Clu
 }
 
 func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.Hosts()
-	total := len(targets)
+	hs := lb.hosts
+	total := hs.Size()
 	if total == 0 {
 		return nil
 	}
 	for i := 0; i < total; i++ {
 		index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
-		host := targets[index]
+		host := hs.Get(int(index))
 		if host.Health() {
 			return host
 		}
@@ -169,7 +168,7 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 	secondStartIndex := int(atomic.AddUint32(&lb.rrIndex, 1) % uint32(total))
 	for i := 0; i < total; i++ {
 		index := (i + secondStartIndex) % total
-		host := targets[index]
+		host := hs.Get(index)
 		if host.Health() {
 			return host
 		}
@@ -179,11 +178,11 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 }
 
 func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
+	return lb.hosts.Size() > 0
 }
 
 func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }
 
 /*
@@ -203,11 +202,11 @@ func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadB
 }
 
 func (lb *WRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
+	return lb.hosts.Size() > 0
 }
 
 func (lb *WRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }
 
 func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
@@ -217,7 +216,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	return lb.ChooseHost(context)
+	return lb.rrLB.ChooseHost(context)
 }
 
 const default_choice = 2
@@ -246,32 +245,32 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 
-	allHosts := lb.hosts.Hosts()
-	total := len(allHosts)
+	hs := lb.hosts
+	total := hs.Size()
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	var candicate types.Host
+	var candidate types.Host
 	// Choose `choice` times and return the best one
 	// See The Power of Two Random Choices: A Survey of Techniques and Results
 	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
 	for cur := 0; cur < int(lb.choice); cur++ {
 
 		randIdx := lb.rand.Intn(total)
-		tempHost := allHosts[randIdx]
-		if candicate == nil {
-			candicate = tempHost
+		tempHost := hs.Get(randIdx)
+		if candidate == nil {
+			candidate = tempHost
 			continue
 		}
-		if candicate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
-			candicate = tempHost
+		if candidate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+			candidate = tempHost
 		}
 	}
-	return candicate
+	return candidate
 
 }
 
 type EdfLoadBalancer struct {
-	scheduler *edfSchduler
+	scheduler *edfScheduler
 	hosts     types.HostSet
 	rand      *rand.Rand
 	mutex     sync.Mutex
@@ -282,45 +281,42 @@ type EdfLoadBalancer struct {
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 
-	var candicate types.Host
-	targetHosts := lb.hosts.Hosts()
-	total := len(targetHosts)
+	var candidate types.Host
+	hs := lb.hosts
+	total := hs.Size()
 	if total == 0 {
 		// Return nil directly if allHosts is nil or size is 0
 		return nil
 	}
 	if total == 1 {
-		targetHost := targetHosts[0]
+		targetHost := hs.Get(0)
 		// Return directly if there is only one host
 		if targetHost.Health() {
 			return targetHost
 		}
 		return nil
 	}
-	for i := 0; i < total; i++ {
-		if lb.scheduler != nil {
+
+	if lb.scheduler != nil {
+		for i := 0; i < total; i++ {
 			// do weight selection
-			candicate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
-		} else {
-			// do unweight selection
-			candicate = lb.unweightChooseHostFunc(context)
-		}
-		// only return when candicate is healthy
-		if candicate.Health() {
-			return candicate
+			candidate = lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
+			if candidate != nil && candidate.Health() {
+				return candidate
+			}
 		}
 	}
-	// refer https://github.com/mosn/mosn/pull/1713
-	// return nil when all instances are unhealthy
-	return nil
+
+	// Use unweighted round-robin as a fallback while failed to pick a healthy host by weighted round-robin.
+	return lb.unweightChooseHostFunc(context)
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
+	return lb.hosts.Size() > 0
 }
 
 func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
@@ -330,38 +326,39 @@ func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(typ
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
-	lb.refresh(hosts.Hosts())
+	lb.refresh(hosts)
 	return lb
 }
 
-func (lb *EdfLoadBalancer) refresh(hosts []types.Host) {
+func (lb *EdfLoadBalancer) refresh(hosts types.HostSet) {
 	// Check if the original host weights are equal and skip EDF creation if they are
 	if hostWeightsAreEqual(hosts) {
 		return
 	}
 
-	lb.scheduler = newEdfScheduler(len(hosts))
+	lb.scheduler = newEdfScheduler(hosts.Size())
 
 	// Init Edf scheduler with healthy hosts.
-	for _, host := range hosts {
+	hosts.Range(func(host types.Host) bool {
 		lb.scheduler.Add(host, lb.hostWeightFunc(host))
-	}
+		return true
+	})
 	// refer blog http://zablog.me/2019/08/02/2019-08-02/
 	// avoid instance flood pressure for the first entry start from a random one via pick random times
-	randomPick := lb.rand.Intn(len(hosts))
+	randomPick := lb.rand.Intn(hosts.Size())
 	for i := 0; i < randomPick; i++ {
 		lb.scheduler.NextAndPush(lb.hostWeightFunc)
 	}
 }
 
-func hostWeightsAreEqual(hosts []types.Host) bool {
-	if len(hosts) <= 1 {
+func hostWeightsAreEqual(hosts types.HostSet) bool {
+	if hosts.Size() <= 1 {
 		return true
 	}
-	weight := hosts[0].Weight()
+	weight := hosts.Get(0).Weight()
 
-	for i := 1; i < len(hosts); i++ {
-		if hosts[i].Weight() != weight {
+	for i := 1; i < hosts.Size(); i++ {
+		if hosts.Get(i).Weight() != weight {
 			return false
 		}
 	}
@@ -373,10 +370,11 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 // In maglevLoadBalancer, there is a maglev table for consistence hash host choosing.
 // If the chosen host is unhealthy, maglevLoadBalancer will traverse host list to find a healthy host.
 func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.LoadBalancer {
-	names := []string{}
-	for _, host := range set.Hosts() {
+	names := make([]string, 0, set.Size())
+	set.Range(func(host types.Host) bool {
 		names = append(names, host.AddressString())
-	}
+		return true
+	})
 	mgv := &maglevLoadBalancer{
 		hosts: set,
 	}
@@ -430,11 +428,20 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 
 	hash := hashPolicy.GenerateHash(ctx.DownstreamContext())
 	index := lb.maglev.Lookup(hash)
-	chosen := lb.hosts.Hosts()[index]
+	chosen := lb.hosts.Get(index)
 
+	// if retry, means request to last chose host failed, do not use it again
+	retrying := false
+	context := ctx.DownstreamContext()
+	if ind, err := variable.GetString(context, VarProxyUpstreamIndex); err == nil {
+		if i, err := strconv.Atoi(ind); err == nil {
+			index = i
+		}
+		retrying = true
+	}
 	// fallback
-	if !chosen.Health() {
-		chosen = lb.chooseHostFromHostList(index)
+	if !chosen.Health() || retrying {
+		chosen, index = lb.chooseHostFromHostList(index + 1)
 	}
 
 	if chosen == nil {
@@ -443,6 +450,7 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 				hash, index)
 		}
 	} else {
+		variable.SetString(context, VarProxyUpstreamIndex, strconv.Itoa(index))
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
 				hash, index, chosen.AddressString())
@@ -457,31 +465,22 @@ func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) 
 }
 
 func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }
 
 // chooseHostFromHostList traverse host list to find a healthy host
-func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
-	hostCount := len(lb.hosts.Hosts())
+func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) (types.Host, int) {
+	total := lb.hosts.Size()
 
-	// go left
-	counterIndex := index
-	for counterIndex > 0 {
-		counterIndex--
-
-		if lb.hosts.Hosts()[counterIndex].Health() {
-			return lb.hosts.Hosts()[counterIndex]
+	for i := 0; i < total; i++ {
+		ind := (index + i) % total
+		host := lb.hosts.Get(ind)
+		if host.Health() {
+			return host, ind
 		}
 	}
 
-	// go right
-	for counterIndex = index + 1; counterIndex < hostCount; counterIndex++ {
-		if lb.hosts.Hosts()[counterIndex].Health() {
-			return lb.hosts.Hosts()[counterIndex]
-		}
-	}
-
-	return nil
+	return nil, index
 }
 
 type reqRoundRobinLoadBalancer struct {
@@ -496,8 +495,8 @@ func newReqRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) t
 
 // request round robin load balancer choose host start from index 0 every single context, and round robin when reentry
 func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.Hosts()
-	total := len(targets)
+	hs := lb.hosts
+	total := hs.Size()
 	if total == 0 {
 		return nil
 	}
@@ -509,12 +508,13 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 		}
 	}
 	for id := ind; id < total; id++ {
-		if targets[id].Health() {
+		target := hs.Get(id)
+		if target.Health() {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
+				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", target.AddressString())
 			}
 			variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
-			return targets[id]
+			return target
 		}
 	}
 	variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
@@ -523,9 +523,9 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 }
 
 func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
+	return lb.hosts.Size() > 0
 }
 
 func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
+	return lb.hosts.Size()
 }

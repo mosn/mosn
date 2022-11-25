@@ -30,14 +30,12 @@ import (
 	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/header"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -122,9 +120,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, api.ProtocolName(grpcName))
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, requestHeader)
 
 	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
@@ -186,11 +184,6 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 	if err != nil {
 		log.DefaultLogger.Errorf("invalid grpc server config: %v, error: %v", conf, err)
 		return nil, err
-	}
-	// if OptimizeLocalWrite is true, the connection maybe start a goroutine for connection write,
-	// which maybe cause some errors when grpc write. so we do not allow this
-	if network.OptimizeLocalWrite {
-		return nil, errors.New("grpc does not support local optimize write")
 	}
 	name := cfg.ServerName
 	handler := getRegisterServerHandler(name)
@@ -269,7 +262,7 @@ func (rsw *registerServerWrapper) Start(graceful time.Duration) {
 			}
 		}()
 		// stop grpc server when mosn process shutdown
-		keeper.OnProcessShutDown(func() error {
+		stagemanager.OnGracefulStop(func() error {
 			if graceful <= 0 {
 				graceful = v2.GrpcDefaultGracefulStopTimeout // use default timeout
 			}

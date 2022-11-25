@@ -1,5 +1,5 @@
 {
-	"close_graceful" : true,
+	"disable_upgrade" : true,
 	"servers":[
 		{
 			"default_log_path":"stdout",
@@ -30,7 +30,6 @@
 								"type": "proxy",
 								"config": {
 									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
 									"router_config_name":"client_router"
 								}
 							}

@@ -35,6 +35,7 @@ type HealthCheckConfig struct {
 	TimeoutConfig        api.DurationConfig     `json:"timeout,omitempty"`
 	IntervalConfig       api.DurationConfig     `json:"interval,omitempty"`
 	IntervalJitterConfig api.DurationConfig     `json:"interval_jitter,omitempty"`
+	InitialDelaySeconds  api.DurationConfig     `json:"initial_delay_seconds,omitempty"`
 	HealthyThreshold     uint32                 `json:"healthy_threshold,omitempty"`
 	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold,omitempty"`
 	ServiceName          string                 `json:"service_name,omitempty"`
@@ -55,8 +56,8 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER      ClusterType = "STATIC"
 	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
+	STATIC_CLUSTER      ClusterType = "STATIC"
 	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
 	EDS_CLUSTER         ClusterType = "EDS"
 	ORIGINALDST_CLUSTER ClusterType = "ORIGINAL_DST"
@@ -89,6 +90,7 @@ type Cluster struct {
 	SubType              string              `json:"sub_type,omitempty"` //not used yet
 	LbType               LbType              `json:"lb_type,omitempty"`
 	MaxRequestPerConn    uint32              `json:"max_request_per_conn,omitempty"`
+	Mark                 uint32              `json:"mark,omitempty"`
 	ConnBufferLimitBytes uint32              `json:"conn_buffer_limit_bytes,omitempty"`
 	CirBreThresholds     CircuitBreakers     `json:"circuit_breakers,omitempty"`
 	HealthCheck          HealthCheck         `json:"health_check,omitempty"`
@@ -99,6 +101,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	IdleTimeout          *api.DurationConfig `json:"idle_timeout,omitempty"`
 	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
 	RespectDnsTTL        bool                `json:"respect_dns_ttl,omitempty"`
@@ -206,6 +209,9 @@ type LBSubsetConfig struct {
 type LBOriDstConfig struct {
 	UseHeader  bool   `json:"use_header,omitempty"`
 	HeaderName string `json:"header_name,omitempty"`
+	// ReplaceLocal is true means the load balance will always choose
+	// a host with local address
+	ReplaceLocal bool `json:"replace_local,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager

@@ -25,8 +25,8 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -46,6 +46,11 @@ func newOriginalDstLoadBalancer(info types.ClusterInfo, hosts types.HostSet) typ
 		host:  make(map[string]types.Host),
 	}
 }
+
+const (
+	localhost = "127.0.0.1"
+	missPort  = "missing port in address"
+)
 
 func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) types.Host {
 
@@ -68,8 +73,8 @@ func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) t
 	}
 
 	if dstAdd == "" {
-		oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-		if oriRemoteAddr == nil {
+		oriRemoteAddr, err := variable.Get(ctx, types.VariableOriRemoteAddr)
+		if err != nil || oriRemoteAddr == nil {
 			return nil
 		}
 
@@ -78,9 +83,16 @@ func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) t
 
 	}
 
-	// if does not specify a port and default useing 80.
-	if ok := strings.Contains(dstAdd, ":"); !ok {
-		dstAdd = dstAdd + ":80"
+	_, port, err := net.SplitHostPort(dstAdd)
+	if err == nil {
+		if lbOriDstInfo.IsReplaceLocal() {
+			dstAdd = localhost + ":" + port
+		}
+	} else {
+		// if does not specify a port and default using 80
+		if strings.Contains(err.Error(), missPort) {
+			dstAdd = dstAdd + ":80"
+		}
 	}
 
 	var config v2.Host
@@ -107,8 +119,9 @@ func (lb *OriginalDstLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) i
 }
 
 type LBOriDstInfoImpl struct {
-	useHeader  bool
-	headerName string
+	useHeader    bool
+	headerName   string
+	replaceLocal bool
 }
 
 func (info *LBOriDstInfoImpl) IsEnabled() bool {
@@ -119,10 +132,15 @@ func (info *LBOriDstInfoImpl) GetHeader() string {
 	return info.headerName
 }
 
+func (info *LBOriDstInfoImpl) IsReplaceLocal() bool {
+	return info.replaceLocal
+}
+
 func NewLBOriDstInfo(oridstCfg *v2.LBOriDstConfig) types.LBOriDstInfo {
 	dstInfo := &LBOriDstInfoImpl{
-		useHeader:  oridstCfg.UseHeader,
-		headerName: oridstCfg.HeaderName,
+		useHeader:    oridstCfg.UseHeader,
+		headerName:   oridstCfg.HeaderName,
+		replaceLocal: oridstCfg.ReplaceLocal,
 	}
 
 	return dstInfo

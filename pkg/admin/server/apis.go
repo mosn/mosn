@@ -27,7 +27,6 @@ import (
 	"strconv"
 
 	gometrics "github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
@@ -35,6 +34,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink/console"
 	"mosn.io/mosn/pkg/plugin"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -47,15 +47,17 @@ var levelMap = map[string]log.Level{
 	"TRACE": log.TRACE,
 }
 
+var version string
+
 const errMsgFmt = `{
 	"error": "%s"
 }
 `
 
-func help(w http.ResponseWriter, r *http.Request) {
+func Help(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
-	buf.WriteString("support apis:\n")
-	for key := range apiHandleFuncStore {
+	buf.WriteString("supported APIs:\n")
+	for key := range apiHandlerStore {
 		if key != "/" { // do not show this pages
 			buf.WriteString(key)
 			buf.WriteRune('\n')
@@ -64,7 +66,15 @@ func help(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
-func configDump(w http.ResponseWriter, r *http.Request) {
+func SetVersion(v string) {
+	version = v
+}
+
+func OutputVersion(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("mosn version: " + version))
+}
+
+func ConfigDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "config dump", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -137,7 +147,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func statsDump(w http.ResponseWriter, r *http.Request) {
+func StatsDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "stats dump", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -168,7 +178,7 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 	sink.Flush(w, []types.Metrics{m})
 }
 
-func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
+func StatsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "stats dump", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -201,7 +211,7 @@ type LogLevelData struct {
 	LogLevel string `json:"log_level"`
 }
 
-func getLoggerInfo(w http.ResponseWriter, r *http.Request) {
+func GetLoggerInfo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -212,7 +222,7 @@ func getLoggerInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func updateLogLevel(w http.ResponseWriter, r *http.Request) {
+func UpdateLogLevel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -247,7 +257,7 @@ func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 
 // post data:
 // loggeer path
-func enableLogger(w http.ResponseWriter, r *http.Request) {
+func EnableLogger(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "enable logger", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -273,7 +283,7 @@ func enableLogger(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "enable logger success\n")
 }
 
-func disableLogger(w http.ResponseWriter, r *http.Request) {
+func DisableLogger(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "disable logger", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -301,14 +311,14 @@ func disableLogger(w http.ResponseWriter, r *http.Request) {
 
 // returns data
 // pid=xxx&state=xxx
-func getState(w http.ResponseWriter, r *http.Request) {
+func GetState(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "get state", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	pid := os.Getpid()
-	state := store.GetMosnState()
+	state := stagemanager.GetState()
 	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
 	fmt.Fprint(w, msg)
 }
@@ -317,12 +327,12 @@ func getState(w http.ResponseWriter, r *http.Request) {
 // http://ip:port/plugin?disable=pluginname
 // http://ip:port/plugin?status=pluginname
 // http://ip:port/plugin?status=all
-func pluginApi(w http.ResponseWriter, r *http.Request) {
+func PluginApi(w http.ResponseWriter, r *http.Request) {
 	log.DefaultLogger.Infof("[admin api] [plugin] url %s", r.URL.RequestURI())
 	plugin.AdminApi(w, r)
 }
 
-func knownFeatures(w http.ResponseWriter, r *http.Request) {
+func KnownFeatures(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "known features", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -344,7 +354,7 @@ type envResults struct {
 	NotFound []string          `json:"not_found,omityempty"`
 }
 
-func getEnv(w http.ResponseWriter, r *http.Request) {
+func GetEnv(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "get env", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)

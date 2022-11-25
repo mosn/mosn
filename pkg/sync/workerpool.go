@@ -85,7 +85,7 @@ func (p *workerPool) ScheduleAuto(task func()) {
 func (p *workerPool) spawnWorker(task func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Alertf("syncpool", "[syncpool] panic %v\n%s", p, string(debug.Stack()))
+			log.DefaultLogger.Alertf("syncpool", "[syncpool] panic %v\n%s", r, string(debug.Stack()))
 		}
 		<-p.sem
 	}()

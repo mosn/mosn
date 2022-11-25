@@ -25,10 +25,10 @@ import (
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // Decoder is heavy and caches to improve performance.
@@ -103,6 +103,15 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 
 	frame.rawData = body
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
+	switch frame.Direction {
+	case EventRequest:
+		// notice: read-only!!! do not modify the raw data!!!
+		variable.Set(ctx, types.VarRequestRawData, frame.rawData)
+	case EventResponse:
+		// notice: read-only!!! do not modify the raw data!!!
+		variable.Set(ctx, types.VarResponseRawData, frame.rawData)
+	}
+
 	data.Drain(int(frameLen))
 	return frame, nil
 }
@@ -121,7 +130,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	)
 
 	if ctx != nil {
-		listener = ctx.Value(types.ContextKeyListenerName)
+		listener, _ = variable.Get(ctx, types.VariableListenerName)
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)

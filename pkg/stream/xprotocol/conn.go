@@ -20,21 +20,17 @@ package xprotocol
 import (
 	"context"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // types.DecodeFilter
@@ -46,8 +42,8 @@ type streamConn struct {
 	netConn    api.Connection
 	ctxManager *stream.ContextManager
 
-	engine   *xprotocol.XEngine // xprotocol fields
-	protocol api.XProtocol
+	protocol     api.XProtocol
+	protocolName api.ProtocolName
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
@@ -57,7 +53,7 @@ type streamConn struct {
 	clientCallbacks    types.StreamConnectionEventListener
 }
 
-func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
+func (f *streamConnFactory) newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConn{
@@ -65,33 +61,15 @@ func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbac
 		netConn:    conn,
 		ctxManager: stream.NewContextManager(ctx),
 
+		protocol:     f.factory(ctx), // protocol is matched by the factory
+		protocolName: f.name,
+
 		serverCallbacks: serverCallbacks,
 		clientCallbacks: clientCallbacks,
 	}
 
 	// 1. init first context
 	sc.ctxManager.Next()
-
-	// 2. prepare protocols
-	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol).(string)
-	subProtocols := strings.Split(subProtocol, ",")
-	// 2.1 exact protocol, get directly
-	// 2.2 multi protocol, setup engine for further match
-	if len(subProtocols) == 1 {
-		proto := xprotocol.GetProtocol(types.ProtocolName(subProtocol))
-		if proto == nil {
-			log.Proxy.Errorf(ctx, "[stream] [xprotocol] no such protocol: %s", subProtocol)
-			return nil
-		}
-		sc.protocol = proto
-	} else {
-		engine, err := xprotocol.NewXEngine(subProtocols)
-		if err != nil {
-			log.Proxy.Errorf(ctx, "[stream] [xprotocol] create XEngine failed: %s", err)
-			return nil
-		}
-		sc.engine = engine
-	}
 
 	// client
 	if sc.clientCallbacks != nil {
@@ -124,27 +102,6 @@ func (sc *streamConn) CheckReasonError(connected bool, event api.ConnectionEvent
 
 // types.StreamConnection
 func (sc *streamConn) Dispatch(buf types.IoBuffer) {
-	// match if multi protocol used
-	if sc.protocol == nil {
-		proto, result := sc.engine.Match(sc.ctx, buf)
-		switch result {
-		case api.MatchSuccess:
-			sc.protocol = proto.(api.XProtocol)
-		case api.MatchFailed:
-			// print error info
-			size := buf.Len()
-			if size > 10 {
-				size = 10
-			}
-			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
-			// close conn
-			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-			return
-		case api.MatchAgain:
-			// do nothing and return, wait for more data
-			return
-		}
-	}
 	// decode frames
 	for {
 		if buf.Len() == 0 {
@@ -197,8 +154,13 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	}
 }
 
+// return true means MOSN work on the server side for this stream
+func (sc *streamConn) isServerStream() bool {
+	return sc.clientCallbacks == nil && sc.serverCallbacks != nil
+}
+
 func (sc *streamConn) Protocol() types.ProtocolName {
-	return protocol.Xprotocol
+	return sc.protocolName
 }
 
 func (sc *streamConn) EnableWorkerPool() bool {
@@ -209,9 +171,29 @@ func (sc *streamConn) EnableWorkerPool() bool {
 	return sc.protocol.EnableWorkerPool()
 }
 
+// GoAway send goaway frame to client.
 func (sc *streamConn) GoAway() {
-	// unsupported
-	// TODO: client-side conn pool go away
+	if !sc.isServerStream() {
+		log.DefaultLogger.Alertf("xprotocol.goaway", "[stream] [xprotocol] client stream(connection %d) enter unexpected GoAway method", sc.netConn.ID())
+		return
+	}
+
+	if gs, ok := sc.protocol.(api.GoAwayer); ok {
+		// Notice: may not a good idea to newClientStream here,
+		// since goaway frame usually not have a stream ID.
+		fr := gs.GoAway(sc.ctx)
+		if fr == nil {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] goaway return a nil frame")
+			return
+		}
+
+		ctx := context.Background()
+		sender := sc.newClientStream(ctx)
+		sender.AppendHeaders(ctx, fr.GetHeader(), true)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] connection %d send a goaway frame", sc.netConn.ID())
+		}
+	}
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
@@ -289,11 +271,16 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	}
 
 	// 2. goaway process
-	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() && sc.clientCallbacks != nil {
+	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
-		sc.clientCallbacks.OnGoAway()
+		if sc.isServerStream() {
+			// client do not need to send GoAway frame usually, it's acceptable.
+			log.Proxy.Errorf(ctx, "Got GoAway frame from client while not support yet, ignore it")
+		} else {
+			sc.clientCallbacks.OnGoAway()
+		}
 		return
 	}
 
@@ -314,7 +301,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	var span api.Span
 	if trace.IsEnabled() {
 		// try build trace span
-		tracer := trace.Tracer(protocol.Xprotocol)
+		tracer := trace.Tracer(sc.protocolName)
 		if tracer != nil {
 			span = tracer.Start(ctx, frame, time.Now())
 		}
@@ -382,8 +369,9 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xS
 
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, serverStream.id)
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
+	serverStream.ctx = ctx
+	_ = variable.Set(serverStream.ctx, types.VariableStreamID, serverStream.id)
+	_ = variable.Set(serverStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
 	serverStream.sc = sc
 
 	return serverStream
@@ -397,8 +385,9 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 
 	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
+	clientStream.ctx = ctx
+	_ = variable.Set(clientStream.ctx, types.VariableStreamID, clientStream.id)
+	_ = variable.Set(clientStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
 	clientStream.sc = sc
 
 	return clientStream

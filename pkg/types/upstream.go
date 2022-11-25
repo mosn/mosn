@@ -33,10 +33,22 @@ import (
 //           1              * | 1                          1 | 1          *
 //   clusterManager --------- cluster  --------- --------- hostSet------hosts
 
+// CDS Handler for cluster manager
+type ClusterUpdateHandler func(oldCluster, newCluster Cluster)
+
+// EDS Handler for cluster manager
+type HostUpdateHandler func(cluster Cluster, hostConfigs []v2.Host)
+
 // ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
 	// Add or update a cluster via API.
 	AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
+
+	// AddOrUpdateClusterAndHost
+	AddOrUpdateClusterAndHost(cluster v2.Cluster, hosts []v2.Host) error
+
+	// Cluster Update functions, keep AddOrUpdatePrimaryCluster and AddOrUpdateClusterAndHost for compatible
+	UpdateCluster(cluster v2.Cluster, clusterHandler ClusterUpdateHandler) error
 
 	// Add Cluster health check callbacks
 	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
@@ -53,6 +65,9 @@ type ClusterManager interface {
 
 	// AppendClusterHosts used to add cluster's hosts
 	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
+
+	// Host Update functions, keep UpdateClusterHosts and AppendClusterHosts for compatible
+	UpdateHosts(clusterName string, hostConfigs []v2.Host, hostHandler HostUpdateHandler) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
@@ -109,7 +124,7 @@ type Cluster interface {
 	Snapshot() ClusterSnapshot
 
 	// UpdateHosts updates the host set's hosts
-	UpdateHosts([]Host)
+	UpdateHosts(HostSet)
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
@@ -118,13 +133,19 @@ type Cluster interface {
 	StopHealthChecking()
 }
 
-// HostPredicate checks wether the host is matched the metadata
+// HostPredicate checks whether the host is matched the metadata
 type HostPredicate func(Host) bool
 
-// HostSet is as set of hosts that contains all of the endpoints for a given
+// HostSet is as set of hosts that contains all the endpoints for a given
 type HostSet interface {
-	// Hosts returns all hosts that make up the set at the current time.
-	Hosts() []Host
+	// Size return len(hosts) in hostSet
+	Size() int
+
+	// Get get hosts[i] in hostSet
+	// The value range of i should be [0, len(hosts) )
+	Get(i int) Host
+	// Range iterates each host in hostSet
+	Range(func(Host) bool)
 }
 
 // Host is an upstream host
@@ -144,7 +165,7 @@ type Host interface {
 	// CreateConnection a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// CreateUDPConnection a udp connection for this host.
+	// CreateUDPConnection an udp connection for this host.
 	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
@@ -170,6 +191,8 @@ type ClusterInfo interface {
 	// MaxRequestsPerConn returns a connection's max request
 	MaxRequestsPerConn() uint32
 
+	Mark() uint32
+
 	// Stats returns the cluster's stats metrics
 	Stats() ClusterStats
 
@@ -182,8 +205,11 @@ type ClusterInfo interface {
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
 
-	// ConectTimeout returns the connect timeout
+	// ConnectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
+
+	// IdleTimeout returns the idle timeout
+	IdleTimeout() time.Duration
 
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
@@ -210,7 +236,7 @@ type ResourceManager interface {
 	Retries() Resource
 }
 
-// Resource is a interface to statistics information
+// Resource is an interface to statistics information
 type Resource interface {
 	CanCreate() bool
 	Increase()
@@ -325,6 +351,8 @@ type LBOriDstInfo interface {
 
 	// GET header name
 	GetHeader() string
+
+	IsReplaceLocal() bool
 }
 
 // SortedHosts is an implementation of sort.Interface
@@ -393,15 +421,4 @@ func (ss *SortedStringSetType) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
-}
-
-func init() {
-	ConnPoolFactories = make(map[api.ProtocolName]bool)
-}
-
-var ConnPoolFactories map[api.ProtocolName]bool
-
-func RegisterConnPoolFactory(protocol api.ProtocolName, registered bool) {
-	//other
-	ConnPoolFactories[protocol] = registered
 }

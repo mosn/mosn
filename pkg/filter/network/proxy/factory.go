@@ -21,16 +21,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -40,20 +40,23 @@ func init() {
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 	//
-	extendConfig interface{}
-	subProtocols string
+	extendConfig map[api.ProtocolName]interface{}
+	protocols    []api.ProtocolName
 }
 
 func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	if gfcf.extendConfig != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, gfcf.extendConfig)
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, gfcf.extendConfig)
 	}
-	if gfcf.subProtocols != "" {
-		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, gfcf.subProtocols)
-	}
+
+	// TODO: cache it, use varProtocolConfig instead search with Set API
+	variable.Set(ctx, types.VarProtocolConfig, gfcf.protocols)
+
 	p := proxy.NewProxy(ctx, gfcf.Proxy)
 	callbacks.AddReadFilter(p)
 }
+
+var protocolCheck func(api.ProtocolName) bool = protocol.ProtocolRegistered
 
 func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	p, err := ParseProxyFilter(conf)
@@ -63,12 +66,29 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	gfcf := &genericProxyFilterConfigFactory{
 		Proxy: p,
 	}
+
+	protos := strings.Split(p.DownstreamProtocol, ",")
+	gfcf.protocols = make([]api.ProtocolName, 0, len(protos))
+	for _, p := range protos {
+		proto := api.ProtocolName(p)
+		if ok := protocolCheck(proto); !ok {
+			return nil, fmt.Errorf("invalid downstream protocol %s", p)
+		}
+		gfcf.protocols = append(gfcf.protocols, proto)
+	}
+
 	if len(p.ExtendConfig) != 0 {
-		gfcf.extendConfig = protocol.HandleConfig(api.ProtocolName(p.DownstreamProtocol), p.ExtendConfig)
-		// TODO: move it into xprotocol registered and support protocol transfer
-		if v, ok := p.ExtendConfig["sub_protocol"]; ok {
-			if subProtocol, ok := v.(string); ok {
-				gfcf.subProtocols = subProtocol
+		gfcf.extendConfig = make(map[api.ProtocolName]interface{})
+		// It's just for backward compatibility, will be removed in the feature.
+		if len(gfcf.protocols) == 1 && gfcf.protocols[0] != protocol.Auto {
+			proto := gfcf.protocols[0]
+			gfcf.extendConfig[proto] = protocol.HandleConfig(proto, p.ExtendConfig)
+			if p.ExtendConfig[string(proto)] == nil {
+				log.DefaultLogger.Warnf(`Old extend_config format is deprecated, please use the protocol name as key index, eg: "Http2: {http2_use_stream: true}"`)
+			}
+		} else {
+			for proto, value := range p.ExtendConfig {
+				gfcf.extendConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), value)
 			}
 		}
 	}
@@ -85,17 +105,17 @@ func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
 	if err := json.Unmarshal(data, proxyConfig); err != nil {
 		return nil, err
 	}
-
-	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+	if proxyConfig.DownstreamProtocol == "" {
 		return nil, fmt.Errorf("protocol in string needed in proxy network filter")
 	}
-	if _, ok := configmanager.ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
-		return nil, fmt.Errorf("invalid downstream protocol %s", proxyConfig.DownstreamProtocol)
+	// TODO: compatbile handler, will be removed later.
+	if proxyConfig.DownstreamProtocol == "X" && len(proxyConfig.ExtendConfig) != 0 {
+		if v, ok := proxyConfig.ExtendConfig["sub_protocol"]; ok {
+			if subProtocol, ok := v.(string); ok {
+				proxyConfig.DownstreamProtocol = subProtocol
+			}
+		}
 	}
-	if _, ok := configmanager.ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
-		return nil, fmt.Errorf("invalid upstream protocol %s", proxyConfig.UpstreamProtocol)
-	}
-
 	// set default proxy router name
 	if proxyConfig.RouterHandlerName == "" {
 		proxyConfig.RouterHandlerName = types.DefaultRouteHandler

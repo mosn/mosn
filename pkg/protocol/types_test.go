@@ -18,7 +18,13 @@
 package protocol
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 const testHeaderHostKey = "Mosn-Header-Host"
@@ -59,4 +65,19 @@ func TestCommonHeader(t *testing.T) {
 		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderHostKey)+len("test"))
 	}
 
+}
+
+func TestGetStatusCodeMapping(t *testing.T) {
+	variable.Register(variable.NewStringVariable(types.VarHeaderStatus, nil, nil, variable.DefaultStringSetter, 0))
+	ctx := variable.NewVariableContext(context.Background())
+	mapping := GetStatusCodeMapping{}
+	getstatus := func(ctx context.Context, m api.HTTPMapping) (int, error) {
+		return m.MappingHeaderStatusCode(ctx, nil)
+	}
+	_, err := getstatus(ctx, mapping)
+	require.ErrorIs(t, err, ErrNoStatusCode)
+	variable.SetString(ctx, types.VarHeaderStatus, "200")
+	status, err := getstatus(ctx, mapping)
+	require.Nil(t, err)
+	require.Equal(t, 200, status)
 }

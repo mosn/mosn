@@ -23,7 +23,7 @@ import (
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 const (
@@ -165,7 +165,7 @@ func responseFlagGetter(ctx context.Context, value *variable.IndexedValue, data 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	return strconv.FormatBool(info.GetResponseFlag(0)), nil
+	return strconv.FormatBool(info.GetResponseFlag(^0)), nil
 }
 
 // UpstreamLocalAddressGetter
@@ -174,7 +174,11 @@ func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValu
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	return info.UpstreamLocalAddress(), nil
+	if info.UpstreamLocalAddress() != "" {
+		return info.UpstreamLocalAddress(), nil
+	}
+
+	return variable.ValueNotFound, nil
 }
 
 // DownstreamLocalAddressGetter
@@ -236,6 +240,9 @@ func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, da
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	proxyBuffers := proxyBuffersByContext(ctx)
 	headers := proxyBuffers.stream.downstreamReqHeaders
+	if headers == nil {
+		return variable.ValueNotFound, errors.New("not found request headers")
+	}
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
@@ -248,7 +255,10 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 
 func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	proxyBuffers := proxyBuffersByContext(ctx)
-	headers := proxyBuffers.request.upstreamRespHeaders
+	headers := proxyBuffers.stream.downstreamRespHeaders
+	if headers == nil {
+		return variable.ValueNotFound, errors.New("not found resp headers")
+	}
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])

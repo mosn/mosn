@@ -30,13 +30,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestBuildUrlFromCtxVar(t *testing.T) {
@@ -354,7 +353,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -440,10 +439,14 @@ func TestHeaderSize(t *testing.T) {
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
 
-	proxyGeneralExtendConfig := map[string]interface{}{
+	httpConfig := map[string]interface{}{
 		"max_header_size": len(requestSmall),
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, streamConfigHandler(proxyGeneralExtendConfig))
+	proxyGeneralExtendConfig := make(map[api.ProtocolName]interface{})
+	proxyGeneralExtendConfig[protocol.HTTP1] = streamConfigHandler(httpConfig)
+
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableProxyGeneralConfig, proxyGeneralExtendConfig)
 
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {

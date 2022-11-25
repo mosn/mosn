@@ -19,7 +19,7 @@ package proxy
 
 import (
 	"context"
-	"strings"
+	"os"
 	"testing"
 
 	monkey "github.com/cch123/supermonkey"
@@ -27,24 +27,31 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/stream/http2"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
+
+func TestMain(m *testing.M) {
+	// mock register variable
+	variable.Register(variable.NewVariable(types.VarProtocolConfig, nil, nil, variable.DefaultSetter, 0))
+	os.Exit(m.Run())
+}
 
 func TestNewProxy(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
-		ctx := context.Background()
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx := variable.NewVariableContext(context.Background())
+		_ = variable.Set(ctx, types.VariableAccessLogs, []api.AccessLog{})
+		_ = variable.Set(ctx, types.VariableListenerName, "test_listener")
 		return ctx
 	}
 	t.Run("config simple", func(t *testing.T) {
@@ -62,10 +69,11 @@ func TestNewProxy(t *testing.T) {
 			return rm
 		})
 		defer monkey.UnpatchAll()
-		pv := NewProxy(genctx(), &v2.Proxy{
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
+		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "Http1",
-			UpstreamProtocol:   "Http1",
 			RouterConfigName:   "test_router",
 		})
 		// verify
@@ -76,27 +84,23 @@ func TestNewProxy(t *testing.T) {
 	})
 
 	t.Run("config with subprotocol", func(t *testing.T) {
-		subs := "bolt,boltv2"
+		subs := []api.ProtocolName{api.ProtocolName("bolt"), api.ProtocolName("boltv2")}
 		ctx := genctx()
-		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, subs)
+		variable.Set(ctx, types.VarProtocolConfig, subs)
 		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "X",
-			UpstreamProtocol:   "X",
 			RouterConfigName:   "test_router",
 		})
 		// verify
 		p := pv.(*proxy)
-		sub, ok := mosnctx.Get(p.context, types.ContextSubProtocol).(string)
-		if !ok {
-			t.Fatal("no sub protocol got")
-		}
-		if !strings.EqualFold(sub, subs) {
-			t.Fatalf("got subprotocol %s, but expected %s", sub, subs)
+		if len(p.protocols) != 2 || p.protocols[0] != api.ProtocolName("bolt") || p.protocols[1] != api.ProtocolName("boltv2") {
+			t.Fatalf("got subprotocol %v, but expected %v", p.protocols, subs)
 		}
 	})
 	t.Run("config with proxy general HTTP1", func(t *testing.T) {
 		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
 		cfg := &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "Http1",
@@ -108,22 +112,178 @@ func TestNewProxy(t *testing.T) {
 			},
 		}
 		// mock create proxy factory
-		extConfig := protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		extConfig := make(map[api.ProtocolName]interface{})
+		extConfig[api.ProtocolName(cfg.DownstreamProtocol)] = protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, extConfig)
 		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
-		v := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig)
-		if v == nil {
-			t.Fatal("no proxy extend config")
+		var v http.StreamConfig
+		if pgc, err := variable.Get(p.context, types.VariableProxyGeneralConfig); err == nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						v = cfg
+					}
+				}
+			}
 		}
-		//
 		check := func(t *testing.T, v interface{}) {
 			cfg, ok := v.(http.StreamConfig)
 			assert.True(t, ok)
-			assert.Equal(t, cfg.MaxRequestBodySize, 100)
+			assert.Equal(t, 100, cfg.MaxRequestBodySize)
 		}
 		check(t, v)
+	})
+	t.Run("config with proxy general http1 and bolt", func(t *testing.T) {
+		subs := []api.ProtocolName{api.ProtocolName("Http1"), api.ProtocolName("Http2")}
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, subs)
+		cfg := &v2.Proxy{
+			Name:               "test",
+			DownstreamProtocol: "Http1,Http2",
+			ExtendConfig: map[string]interface{}{
+				"Http1": map[string]interface{}{
+					"http2_use_stream":      true,
+					"max_request_body_size": 100,
+				},
+				"Http2": map[string]interface{}{
+					"http2_use_stream": true,
+				},
+			},
+		}
+		// mock create proxy factory
+		extConfig := make(map[api.ProtocolName]interface{})
+		for proto, _ := range cfg.ExtendConfig {
+			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
+		}
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, extConfig)
+		pv := NewProxy(ctx, cfg)
+		// verify
+		p := pv.(*proxy)
+		var value1 http.StreamConfig
+		var value2 http2.StreamConfig
+		if pgc, err := variable.Get(p.context, types.VariableProxyGeneralConfig); err == nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						value1 = cfg
+					}
+				}
+			}
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+					if cfg, ok := http2Config.(http2.StreamConfig); ok {
+						value2 = cfg
+					}
+				}
+			}
+		}
+		check := func(t *testing.T, value1 interface{}, value2 interface{}) {
+			cfg1, ok := value1.(http.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, 100, cfg1.MaxRequestBodySize)
+			cfg2, ok := value2.(http2.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, true, cfg2.Http2UseStream)
+		}
+		check(t, value1, value2)
+	})
+	t.Run("config with proxy general Auto(single protocol)", func(t *testing.T) {
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Auto")})
+		cfg := &v2.Proxy{
+			Name:               "test",
+			DownstreamProtocol: "Auto",
+			UpstreamProtocol:   "Auto",
+			RouterConfigName:   "test_router",
+			ExtendConfig: map[string]interface{}{
+				"Http1": map[string]interface{}{
+					"http2_use_stream":      true,
+					"max_request_body_size": 100,
+				},
+			},
+		}
+		// mock create proxy factory
+		extConfig := make(map[api.ProtocolName]interface{})
+		for proto, _ := range cfg.ExtendConfig {
+			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
+		}
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, extConfig)
+		pv := NewProxy(ctx, cfg)
+		// verify
+		p := pv.(*proxy)
+		var v http.StreamConfig
+		if pgc, err := variable.Get(p.context, types.VariableProxyGeneralConfig); err == nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						v = cfg
+					}
+				}
+			}
+		}
+		check := func(t *testing.T, v interface{}) {
+			cfg, ok := v.(http.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, 100, cfg.MaxRequestBodySize)
+		}
+		check(t, v)
+	})
+	t.Run("config with proxy general Auto(multi protocol)", func(t *testing.T) {
+		ctx := genctx()
+		variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
+		cfg := &v2.Proxy{
+			Name:               "test",
+			DownstreamProtocol: "Auto",
+			UpstreamProtocol:   "Auto",
+			RouterConfigName:   "test_router",
+			ExtendConfig: map[string]interface{}{
+				"Http1": map[string]interface{}{
+					"http2_use_stream":      true,
+					"max_request_body_size": 100,
+				},
+				"Http2": map[string]interface{}{
+					"http2_use_stream": true,
+				},
+			},
+		}
+		// mock create proxy factory
+		extConfig := make(map[api.ProtocolName]interface{})
+		for proto, _ := range cfg.ExtendConfig {
+			extConfig[api.ProtocolName(proto)] = protocol.HandleConfig(api.ProtocolName(proto), cfg.ExtendConfig[proto])
+		}
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, extConfig)
+		pv := NewProxy(ctx, cfg)
+		// verify
+		p := pv.(*proxy)
+		var value1 http.StreamConfig
+		var value2 http2.StreamConfig
+		if pgc, err := variable.Get(p.context, types.VariableProxyGeneralConfig); err == nil {
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
+					if cfg, ok := http1Config.(http.StreamConfig); ok {
+						value1 = cfg
+					}
+				}
+			}
+			if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
+				if http2Config, ok := extendConfig[protocol.HTTP2]; ok {
+					if cfg, ok := http2Config.(http2.StreamConfig); ok {
+						value2 = cfg
+					}
+				}
+			}
+		}
+		check := func(t *testing.T, value1 interface{}, value2 interface{}) {
+			cfg1, ok := value1.(http.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, 100, cfg1.MaxRequestBodySize)
+			cfg2, ok := value2.(http2.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, true, cfg2.Http2UseStream)
+		}
+		check(t, value1, value2)
 	})
 }
 
@@ -136,9 +296,9 @@ func TestNewProxyRequest(t *testing.T) {
 	defer monkey.UnpatchAll()
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
-		ctx := context.Background()
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx := variable.NewVariableContext(context.Background())
+		_ = variable.Set(ctx, types.VariableAccessLogs, []api.AccessLog{})
+		_ = variable.Set(ctx, types.VariableListenerName, "test_listener")
 		return ctx
 	}
 	callCreateFilterChain := false
@@ -151,7 +311,9 @@ func TestNewProxyRequest(t *testing.T) {
 		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
 		return filterManager
 	})
-	pv := NewProxy(genctx(), &v2.Proxy{
+	ctx := genctx()
+	variable.Set(ctx, types.VarProtocolConfig, []api.ProtocolName{api.ProtocolName("Http1")})
+	pv := NewProxy(ctx, &v2.Proxy{
 		Name:               "test",
 		DownstreamProtocol: "Http1",
 		UpstreamProtocol:   "Http1",

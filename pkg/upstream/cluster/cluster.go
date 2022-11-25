@@ -49,29 +49,19 @@ func NewCluster(clusterConfig v2.Cluster) types.Cluster {
 	if f, ok := clusterFactories[clusterConfig.ClusterType]; ok {
 		return f(clusterConfig)
 	}
+	// if cluster type is not registered, we use simple cluster instead
+	// the cluster type should convert to simple too.
+	clusterConfig.ClusterType = v2.SIMPLE_CLUSTER
 	return clusterFactories[v2.SIMPLE_CLUSTER](clusterConfig)
 }
 
-// simpleCluster is an implementation of types.Cluster
-type simpleCluster struct {
-	info          *clusterInfo
-	mutex         sync.Mutex
-	healthChecker types.HealthChecker
-	lbInstance    types.LoadBalancer // load balancer used for this cluster
-	hostSet       *hostSet
-	snapshot      atomic.Value
-}
-
-func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
-	// TODO support original dst cluster
-	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
-		clusterConfig.LbType = v2.LB_ORIGINAL_DST
-	}
+func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
 		subType:              clusterConfig.SubType,
 		maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
+		mark:                 clusterConfig.Mark,
 		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 		stats:                newClusterStats(clusterConfig.Name),
 		lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
@@ -80,7 +70,6 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
 	}
-
 	// set ConnectTimeout
 	if clusterConfig.ConnectTimeout != nil {
 		info.connectTimeout = clusterConfig.ConnectTimeout.Duration
@@ -88,14 +77,38 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		info.connectTimeout = network.DefaultConnectTimeout
 	}
 
+	// set IdleTimeout
+	if clusterConfig.IdleTimeout != nil {
+		info.idleTimeout = clusterConfig.IdleTimeout.Duration
+	}
+
 	// tls mng
 	if !info.clusterManagerTLS {
-		mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
+		mgr, err := mtls.NewTLSClientContextManager(clusterConfig.Name, &clusterConfig.TLS)
 		if err != nil {
 			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 		}
 		info.tlsMng = mgr
 	}
+	return info
+}
+
+// simpleCluster is an implementation of types.Cluster
+type simpleCluster struct {
+	info          types.ClusterInfo
+	mutex         sync.Mutex
+	healthChecker types.HealthChecker
+	lbInstance    types.LoadBalancer // load balancer used for this cluster
+	hostSet       types.HostSet
+	snapshot      atomic.Value
+}
+
+func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
+	// TODO support original dst cluster
+	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
+		clusterConfig.LbType = v2.LB_ORIGINAL_DST
+	}
+	info := NewClusterInfo(clusterConfig)
 	cluster := &simpleCluster{
 		info: info,
 	}
@@ -115,14 +128,16 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	return cluster
 }
 
-func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
+func (sc *simpleCluster) UpdateHosts(hostSet types.HostSet) {
 	info := sc.info
-	hostSet := &hostSet{}
-	hostSet.setFinalHost(newHosts)
 	// load balance
 	var lb types.LoadBalancer
-	if info.lbSubsetInfo.IsEnabled() {
-		lb = NewSubsetLoadBalancer(info, hostSet)
+	if info.LbSubsetInfo().IsEnabled() {
+		if getSubsetBuildMode() == SubsetPreIndexBuildMode {
+			lb = NewSubsetLoadBalancerPreIndex(info, hostSet)
+		} else {
+			lb = NewSubsetLoadBalancer(info, hostSet)
+		}
 	} else {
 		lb = NewLoadBalancer(info, hostSet)
 	}
@@ -138,7 +153,6 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	if sc.healthChecker != nil {
 		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
-
 }
 
 func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
@@ -172,6 +186,7 @@ type clusterInfo struct {
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
 	connBufferLimitBytes uint32
 	maxRequestsPerConn   uint32
+	mark                 uint32
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
@@ -179,13 +194,8 @@ type clusterInfo struct {
 	clusterManagerTLS    bool
 	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
+	idleTimeout          time.Duration
 	lbConfig             v2.IsCluster_LbConfig
-}
-
-func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
-	if c, ok := ci.(*clusterInfo); ok {
-		c.resourceManager = rm
-	}
 }
 
 func (ci *clusterInfo) Name() string {
@@ -206,6 +216,10 @@ func (ci *clusterInfo) ConnBufferLimitBytes() uint32 {
 
 func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
 	return ci.maxRequestsPerConn
+}
+
+func (ci *clusterInfo) Mark() uint32 {
+	return ci.mark
 }
 
 func (ci *clusterInfo) Stats() types.ClusterStats {
@@ -229,6 +243,10 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 
 func (ci *clusterInfo) ConnectTimeout() time.Duration {
 	return ci.connectTimeout
+}
+
+func (ci *clusterInfo) IdleTimeout() time.Duration {
+	return ci.idleTimeout
 }
 
 func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {

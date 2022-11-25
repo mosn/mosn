@@ -25,9 +25,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	mlog "mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
 )
 
@@ -75,8 +73,6 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 		}
 	}
 
-	keeper.OnProcessShutDown(log.CloseAll)
-
 	server := &server{
 		serverName: config.ServerName,
 		stopChan:   make(chan struct{}),
@@ -110,10 +106,16 @@ func (srv *server) Restart() {
 	// TODO
 }
 
+// Shutdown graceful stop server.
+// stop accept new connections and graceful close the existing connections if it supports graceful close.
+func (srv *server) Shutdown() error {
+	return srv.handler.GracefulStopListeners()
+}
+
 // Close the server
 func (srv *server) Close() {
-	// stop listener and connections
-	srv.handler.StopListeners(nil, true)
+	// close listener and connections
+	srv.handler.CloseListeners()
 
 	close(srv.stopChan)
 }
@@ -130,10 +132,9 @@ func Stop() {
 	}
 }
 
-// StopAccept stops all listeners in servers
-func StopAccept() {
+func shutdownServers() {
 	for _, server := range servers {
-		server.handler.StopListeners(nil, false)
+		server.Shutdown()
 	}
 }
 
@@ -158,7 +159,7 @@ func WaitConnectionsDone(duration time.Duration) {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// DefaultConnReadTimeout wait for read timeout
-	timeout := time.NewTimer(2*duration + 2*buffer.ConnReadTimeout)
+	timeout := time.NewTimer(2*duration + 2*types.DefaultConnReadTimeout)
 	StopConnection()
 	log.DefaultLogger.Infof("[server] StopConnection")
 

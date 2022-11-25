@@ -24,10 +24,10 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/protocol/http"
 )
 
 func Test_http2bolt_Accept(t1 *testing.T) {
@@ -156,7 +156,7 @@ func Test_http2bolt_TranscodingResponse(t1 *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "normal_nternal_server_error",
+			name: "normal_internal_server_error",
 			args: args{
 				ctx:      context.Background(),
 				headers:  bolt.NewRpcResponse(0, bolt.ResponseStatusServerException, protocol.CommonHeader(map[string]string{"service": "test", "scene": "ut"}), buffer.NewIoBufferString("Test_http2bolt_TranscodingResponse")),

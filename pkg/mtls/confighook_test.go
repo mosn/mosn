@@ -192,9 +192,8 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	testCases := []struct {
@@ -223,13 +222,13 @@ func TestTLSExtensionsVerifyClient(t *testing.T) {
 			t.Errorf("#%d create client certificate error %v", i, err)
 			continue
 		}
-		cltMng, err := NewTLSClientContextManager(cfg)
+		cltMng, err := NewTLSClientContextManager("", cfg)
 		if err != nil {
 			t.Errorf("#%d create client context manager failed %v", i, err)
 			continue
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -292,9 +291,8 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 	server := MockServer{
 		Mng: ctxMng,
-		t:   t,
 	}
-	server.GoListenAndServe(t)
+	server.GoListenAndServe()
 	defer server.Close()
 	time.Sleep(time.Second) //wait server start
 	clientConfig, err := clientInfo.CreateCertConfig()
@@ -306,13 +304,13 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	clientConfig.ExtendVerify = extendVerify
 	for i, tc := range testCases {
 		clientConfig.ServerName = tc.Info.DNS
-		cltMng, err := NewTLSClientContextManager(clientConfig)
+		cltMng, err := NewTLSClientContextManager("", clientConfig)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			return
 		}
 
-		resp, err := MockClient(t, server.Addr, cltMng)
+		resp, err := MockClient(server.Addr, cltMng)
 		if !tc.Pass(resp, err) {
 			t.Errorf("#%d verify failed", i)
 		}
@@ -328,12 +326,12 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 	for i, tc := range testCases {
 		skipConfig.ServerName = tc.Info.DNS
-		skipMng, err := NewTLSClientContextManager(skipConfig)
+		skipMng, err := NewTLSClientContextManager("", skipConfig)
 		if err != nil {
 			t.Errorf("create client context manager failed %v", err)
 			return
 		}
-		resp, err := MockClient(t, server.Addr, skipMng)
+		resp, err := MockClient(server.Addr, skipMng)
 		// ignore the case, must be pass
 		if !pass(resp, err) {
 			t.Errorf("#%d skip verify failed", i)

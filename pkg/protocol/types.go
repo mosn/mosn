@@ -18,18 +18,21 @@
 package protocol
 
 import (
+	"context"
+	"errors"
+	"strconv"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // ProtocolName type definition
 const (
-	Auto      api.ProtocolName = "Auto"
-	SofaRPC   api.ProtocolName = "SofaRpc"
-	HTTP1     api.ProtocolName = "Http1"
-	HTTP2     api.ProtocolName = "Http2"
-	Xprotocol api.ProtocolName = "X"
+	Auto  api.ProtocolName = "Auto"
+	HTTP1 api.ProtocolName = "Http1" // TODO: move it to protocol/HTTP
+	HTTP2 api.ProtocolName = "Http2" // TODO: move it to protocol/HTTP2
+
 )
 
 // header direction definition
@@ -49,8 +52,7 @@ func init() {
 	variable.Register(variable.NewStringVariable(types.VarIstioHeaderHost, nil, nil, variable.DefaultStringSetter, 0))
 }
 
-// TODO: move CommonHeader to common, not only in protocol
-
+// TODO: use pkg.CommonHeader, why not?
 // CommonHeader wrapper for map[string]string
 type CommonHeader map[string]string
 
@@ -106,4 +108,20 @@ func (h CommonHeader) ByteSize() uint64 {
 		size += uint64(len(k) + len(v))
 	}
 	return size
+}
+
+var ErrNoStatusCode = errors.New("headers have no status code")
+
+// GetStatusCodeMapping is a default http mapping implementation, which get
+// status code from variable without any translation.
+type GetStatusCodeMapping struct{}
+
+var _ api.HTTPMapping = (*GetStatusCodeMapping)(nil)
+
+func (m GetStatusCodeMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
+	status, err := variable.GetString(ctx, types.VarHeaderStatus)
+	if err != nil {
+		return 0, ErrNoStatusCode
+	}
+	return strconv.Atoi(status)
 }

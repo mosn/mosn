@@ -1,5 +1,214 @@
 # Changelog
 
+## v1.2.0
+
+### New Features
+
+- Support for configuring HTTP retry status codes (#2097) [@dengqian](https://github.com/dengqian)
+- Add dev container build configuration and instructions (#2108) [@keqingyuan](https://github.com/keqingyuan)
+- Support connpool_binding GoAway (#2115) [@EraserTime](https://github.com/EraserTime)
+- Support for configuring the listener defaultReadBufferSize (#2133) [@3062](https://github.com/3062)
+- Support Proxy-Wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
+- Support transparent proxy based on iptables tproxy (#2142) [@3062](https://github.com/3062)
+
+### Refactoring
+
+- Remove MOSN's extended context framework and use the variable mechanism instead. Migrate the variable mechanism and memory reuse framework to mosn.io/pkg (#2055) [@nejisama](https://github.com/nejisama)
+- Migrating the metrics interface to mosn.io/api (#2124) [@YIDWang](https://github.com/YIDWang)
+
+### Bug fixes
+
+- Fix some missing log parameters (#2141) [@lawrshen](https://github.com/lawrshen)
+- Determine if the obtained cookie exists by error (#2136) [@greedying](https://github.com/greedying)
+
+## v1.1.0
+
+### New Features
+
+- TraceLog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- Support cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger), details can be found in [blog](https://mosn.io/blog/posts/mosn-tunnel/)
+- Trace supports plugin extension in the form of Driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Support Parsing Extended xDS Stream Filter (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
+
+### Changes
+
+- Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- Fix typo in documentation (#2056) (#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+- New interface for traversing SubsetLB (#2059) (#2061) [@nejisama](https://github.com/nejisama)
+- Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
+- Add Example of xds-server as MOSN control plane (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Load balancing skips the last selected host on retry  (#2077) [@dengqian](https://github.com/dengqian)
+- Access logs support printing traceID, connectionID and UpstreamConnectionID (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
+
+### Refactoring
+
+- Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
+- Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Optimization
+
+- Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
+- Support scalable cluster update method operation (#2048) [@nejisama](https://github.com/nejisama)
+- Optimize multi-certificate matching logic: match servername first, and match ALPN only after all servernames are unmatched (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+
+### Bug fixes
+
+- Fix the latest image version in the wasm example to be a fixed version (#2033) [@antJack](https://github.com/antJack)
+- Adjust the order of log closing execution when MOSN exits, and fix the problem that some exit logs cannot be output correctly (#2034) [@doujiang24](https://github.com/doujiang24)
+- Fix the problem that OriginalDst was not properly processed after matching successfully (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- Fix the problem that the protocol conversion scene does not handle exceptions correctly, and add the protocol conversion implementation specification (#2062) [@YIDWang](https://github.com/YIDWang)
+- Fix stream proxy not properly handling exception events such as connection write timeout/disconnect (#2080) [@dengqian](https://github.com/dengqian)
+- Fix the panic problem that may be caused by the wrong timing of connection event listening (#2082) [@dengqian](https://github.com/dengqian)
+- Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP1/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
+- Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
+- If the upstream address variable is not found, it no longer returns null and returns ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- Fix health check does not support xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
+
+
+## v1.0.1
+
+### Changes
+
+- Protocol: Bolt v1 v2 maps status code api.NoHealthUpstreamCode -> ResponseStatusNoProcessor (#2018) [@antJack](https://github.com/antJack).
+
+### Bug fixes
+
+- Should allow AppendGracefulStopStage and AppendBeforeStopStage when MOSN is starting or running (#2029) [@rayowang](https://github.com/rayowang).
+- Fix wrong variable in error message when workerPool Panic (#2019) [@antJack](https://github.com/antJack).
+
+## v1.0.0
+
+### Changes
+
+- Protocol: bolt support GoAway (#1993) [@z2z23n0](https://github.com/z2z23n0)
+- Protocol: HTTP health check support more configurations (#1999) [@dengqian](https://github.com/dengqian)
+- Add new Admin API for query MOSN version (#2002) [@songzhibin97](https://github.com/songzhibin97)
+- Exit code change to 2 when mosn start failed in upgrade mode (#2006) [@doujiang24](https://github.com/doujiang24)
+- Add a new function to check whether MOSN is in active upgrading state (#2003) [@doujiang24](https://github.com/doujiang24)
+- Add new command: stop (#1990) [@Jun10ng](https://github.com/Jun10ng)
+
+### Bug fixes
+
+- Fix the problem that the domain name update result is wrong when there are multiple DNS domain names in StrictDnsCluster (#1994) [@Jun10ng](https://github.com/Jun10ng)
+- Fix upgrade state check error when metrics is configured to shared memory (#2011) [@nejisama](https://github.com/nejisama)
+
+## v0.27.0
+
+### New Features
+
+- Support istio v1.10.6 by default. Support switch istio version by make command, current MOSN support v1.10.6 and v1.5.2. (#1910) [@nejisama](https://github.com/nejisama)
+- Support use variables to configure route headers add or remove. (#1946) [@MengJiapeng](https://github.com/MengJiapeng)
+- Support health check's initialize interval can be configured (#1942) [@rickey17](https://github.com/rickey17)
+- Add HTTP Dial for upstream cluster health check (#1942) [@rickey17](https://github.com/rickey17)
+- Add extension callback function for tls context created. [@antJack](https://github.com/antJack)
+- Support extension for Listener and Connection created. [@antJack](https://github.com/antJack)
+- Support graceful shutdown for xprotocol framework. (#1922) [@doujiang24](https://github.com/doujiang24)
+- Support graceful shutdown for MOSN (#1922) [@doujiang24](https://github.com/doujiang24)
+- Integrated [Holmes](https://github.com/mosn/holmes) for automatically pprof (#1978) [@doujiang24](https://github.com/doujiang24)
+- Add Fetch and RequireCert for SDS client [@nejisama](https://github.com/nejisama)
+- Add a new tls verify extension: sni verify (#1910) [@nejisama](https://github.com/nejisama)
+
+### Changes
+
+- Upgrade dubbo-go-hessian to v1.10.2 (#1896) [@wongoo](https://github.com/wongoo)
+- Add new configuration for upstream cluster: IdleTimeout (#1914) [hui-cha](https://github.com/hui-cha)
+- Transfer some upstream cluster configuration constants to `config/v2` package (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- Add variable to store request raw data in xprotocol protocols implementations [@antJack](https://github.com/antJack)
+- Add new configuration for original-dst filter: localhost listener can be used in listener match fallback (#1972) [@nejisama](https://github.com/nejisama)
+- Add new configuration for original-dst cluster: use localhost address as the target address [@nejisama](https://github.com/nejisama)
+- Do not use vendor mode any more, use go mod instead. (#1997) [@nejisama](https://github.com/nejisama)
+
+### Refactoring
+
+- Refactor MOSN state management and stage management. (#1859) [@doujiang24](https://github.com/doujiang24)
+- Shield signal processing extension related interfaces, do not expose semaphore to developers, and modify it to be scalable for behavior after receiving a signal. (#1859) [@doujiang24](https://github.com/doujiang24)
+- Use separate IoBuffer for log (#1936) [@nejisama](https://github.com/nejisama)
+- Refactor sds provider, support a sds config to generate different tls config (#1958) [@nejisama](https://github.com/nejisama)
+
+### Optimization
+
+- Optimize the irregular module naming in examples. (#1913) [@scaat](https://github.com/scaat)
+- Delete some useless fields in connection struct (#1811) [@doujiang24](https://github.com/doujiang24)
+- Optimize the heap management in edf loadbalancer (#1920) [@jizhuozhi](https://github.com/jizhuozhi)
+- Optimize the error message when get variables returns error (#1952) [@antJack](https://github.com/antJack)
+- Optimize the memory reuse in proxy: a finished request received reset will take no effect on memory reuse now [@wangfakang](https://github.com/wangfakang)
+- Optimize the memory usage in maglev loadbalancer (#1964) [@baerwang](https://github.com/baerwang)
+- Support error log to iobuffer error, support exception handling when log rotation error occurs (#1996) [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix: when stream id is too large in http2, the connection is not closed. (#1900) [@jayantxie](https://github.com/jayantxie)
+- Fix: route error log output is abnormal (#1915) [@scaat](https://github.com/scaat)
+- Fix: xprotocol go plugin example build errors (#1899) [@nearmeng](https://github.com/nearmeng)
+- Fix: original-dst filter get ip errors being ignored (#1931) [@alpha-baby](https://github.com/alpha-baby)
+- Fix: HTTP may cause hangs in high concurrency (#1949) [@alpha-baby](https://github.com/alpha-baby)
+- Fix: istio config parse extension spell error (#1927) [LemmyHuang](https://github.com/LemmyHuang)
+- Fix: proxy may cause nil panic when get variables (#1953) [@doujiang24](https://github.com/doujiang24)
+- Fix: HTTP cannot get reason for connection reset (#1772) [@wangfakang](https://github.com/wangfakang)
+- Fix: cannot restart a stopped listener  (#1883) [@lemonlinger](https://github.com/lemonlinger)
+- Fix: strict-dns debug log output is abnormal (#1963) [@wangfakang](https://github.com/wangfakang)
+- Fix: divide 0 error in edf loadbalancer (#1970) [@jizhuozhi](https://github.com/jizhuozhi)
+- Fix: listener may cause nil panic when set deadline (#1981)  [@antJack](https://github.com/antJack)
+- Fix: some typo errors [@Jun10ng](https://github.com/Jun10ng) [@fibbery](https://github.com/fibbery)
+- Fix: too many goroutines makes go test race failed (#1898) [@alpha-baby](https://github.com/alpha-baby)
+
+
+## v0.26.0
+
+### Incompatible Change
+
+For implementing new protocols more nature, XProtocol is no longer as a protocol and no subprotocol any more.
+XProtocol is a framework to implement protocol easier now.
+So, the old existing code for implementing new protocols need some changes,
+please see [this doc](reports/xprotocol_0.26.0.md)(In Chinese) for changing the old existing code suit for the new release.
+
+### New Features
+
+- Added the ip_access new filter to manage access control based on IP (#1797). [@Bryce-huang](https://github.com/Bryce-huang)
+- Support admin api extends auth functions (#1834). [@nejisama](https://github.com/nejisama)
+- The transcode filter module support dynamic phase (#1815). [@YIDWang](https://github.com/YIDWang)
+- Added the SetConnectionState method for tls connection in pkg/mtls/crypto/tls.Conn (#1804). [@antJack](https://github.com/antJack)
+- Added the after-start and after-stop two new stages, and allow to register handler during these stages. [@doujiang24](https://github.com/doujiang24)
+- Support specify the unix domain socket directory by adding the new "uds_dir" configuration (#1829). [@dengqian](https://github.com/dengqian)
+- Support choose dynamic protocol convert dynamically and allow register transcoder through go-plugin. [@Tanc010](https://github.com/Tanc010)
+- Added more HTTP protocol method to make protocol matcher work properly (#1870). [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Support to set upstream protocol dynamically (#1808). [@YIDWang](https://github.com/YIDWang)
+- Support set default HTTP stream config #1886. [@nejisama](https://github.com/nejisama)
+
+### Changes
+
+- Change the default max header size to 8KB (#1837). [@nejisama](https://github.com/nejisama)
+- Refactory default HTTP1 and HTTP2 convert, remove the proxy convert, use transcoder filter instead. [@nejisama](https://github.com/nejisama)
+- transcoder filter: changed to register trancoder factory instead trancoder (#1879). [@YIDWang](https://github.com/YIDWang)
+
+### Bug fixes
+
+- Fix a HTTP buffer reuse related bug that may leads to nil panics in high concurrency case. [@nejisama](https://github.com/nejisama)
+- Fix: get the proper value of variable response_flag, (#1814). [@lemonlinger](https://github.com/lemonlinger)
+- Fix: prefix_write not work with "/" (#1826). [@Bryce-huang](https://github.com/Bryce-huang)
+- Fix: the reconfig.sock file may be removed unexpectly when killed the old MOSN manually during smoothly upgrade, (#1820). [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Fix the bug in doretry: should not set setupRetry to false directly, since the old response should be skip when the new upstream request has been sent out (#1807). [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Should set the inherit config back to the MOSN instance (#1819). [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Should send resetStreamFrame to upstream when cancel grpc context at client side, otherwise server side context won't be done.  [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Should set the resetReason before closing the stream connection, otherwise, may unable to get the real reason (#1828). [@wangfakang](https://github.com/wangfakang)
+- Should use the listener that best match when found multi listeners, otherwise, may got 400 error code. [@MengJiapeng](https://github.com/MengJiapeng)
+- Fixed panic due to concurrent map iteration and map write during process setting broadcast in HTTP2 protocol. [@XIEZHENGYAO](https://github.com/XIEZHENGYAO)
+- Fix memory leak occurred in the binding connpool of XProtocol (#1821). [@Dennis8274](https://github.com/Dennis8274)
+- Should close logger at the end, otherwise, may lost log during close MOSN instance (#1845). [@doujiang24](https://github.com/doujiang24)
+- Fix panic due to codecClient is nil when got connect timeout event from XProtocol PingPong connection pool (#1849). [@cuiweixie](https://github.com/cuiweixie)
+- Health checker not work when the unhealthyThreshold is an empty value (#1853). [@Bryce-huang](https://github.com/Bryce-huang)
+- WRR may leads dead recursion in unweightChooseHost #1860. [@alpha-baby](https://github.com/alpha-baby)
+- Fix direct response, send hijack should not transcode. [@nejisama](https://github.com/nejisama)
+- Fix EDF wrr lb cannot choose a healthy host when there's a unhealthy host with a high weight. [@lemonlinger](https://github.com/lemonlinger)
+- Got the wrong CACert filename when converting the listen filter from Istio LDS, MOSN may not listen success (#1893). [@doujiang24](https://github.com/doujiang24)
+- The goroutine for resolving hosts in STRICT_DNS_CLUSTER cannot be stopped #1894 [@bincherry](https://github.com/bincherry)
+
 ## v0.25.0
 
 ### New Features
@@ -246,7 +455,7 @@
 ### Bug fixes
 
 - Fix `go mod tidy` failing [@champly](https://github.com/champly)
-- Fix `ResourceExhausted: grpc: received message larger than max` when MOSN receive > 4M XDS messages [@champly](https://github.com/champly) 
+- Fix `ResourceExhausted: grpc: received message larger than max` when MOSN receive > 4M XDS messages [@champly](https://github.com/champly)
 - Fix fault tolerance unit-test [@wangfakang](https://github.com/wangfakang)
 - Fix MOSN reconfig fails when `MOSNConfig.servers[].listeners[].bind_port` is `false` [@alpha-baby](https://github.com/alpha-baby)
 - Set timeout for local write buffer send, avoid goroutine leak [@cch123](https://github.com/cch123)

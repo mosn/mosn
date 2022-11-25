@@ -25,18 +25,33 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
+var _ types.HostSet = &mockHostSet{}
 type mockHostSet struct {
-	types.HostSet
 	hosts                   []types.Host
 	healthCheckVisitedCount int
 }
 
+func (hs *mockHostSet) Get(i int) types.Host {
+	return hs.hosts[i]
+}
+
+func (hs *mockHostSet) Range(f func(types.Host) bool) {
+	for _, h := range hs.hosts{
+		if !f(h){
+			break
+		}
+	}
+}
+
 func (hs *mockHostSet) Hosts() []types.Host {
 	return hs.hosts
+}
+func (hs *mockHostSet)Size()int{
+	return len(hs.hosts)
 }
 
 func getMockHostSet(count int) *mockHostSet {
@@ -197,15 +212,20 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 	p.host.Store(h)
 }
 
+type mockStreamConnFactory struct {
+	types.ProtocolStreamFactory
+}
+
 func init() {
-	network.RegisterNewPoolFactory(mockProtocol, func(ctx context.Context, h types.Host) types.ConnectionPool {
+	protocol.RegisterProtocol(mockProtocol, func(ctx context.Context, h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
 			hashvalue: h.TLSHashValue(),
 		}
 		pool.host.Store(h)
 		return pool
-	})
-	types.RegisterConnPoolFactory(mockProtocol, true)
+
+	}, &mockStreamConnFactory{}, nil)
+
 }
 
 type mockLbContext struct {

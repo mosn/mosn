@@ -26,9 +26,9 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func TestMain(m *testing.M) {
@@ -115,9 +115,9 @@ func BenchmarkUpdateClusterHosts(b *testing.B) {
 	b.Run("UpdateClusterHost", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			cluster.UpdateHosts(hosts)
+			cluster.UpdateHosts(NewHostSet(hosts))
 			b.StartTimer()
-			cluster.UpdateHosts(newHosts)
+			cluster.UpdateHosts(NewHostSet(newHosts))
 		}
 	})
 
@@ -156,9 +156,9 @@ func BencmarkUpdateClusterHostsLabel(b *testing.B) {
 	b.Run("UpdateClusterHostsLabel", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			cluster.UpdateHosts(hosts)
+			cluster.UpdateHosts(NewHostSet(hosts))
 			b.StartTimer()
-			cluster.UpdateHosts(newHosts)
+			cluster.UpdateHosts(NewHostSet(newHosts))
 		}
 	})
 }
@@ -381,7 +381,8 @@ func BenchmarkMaglevLB(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -406,7 +407,8 @@ func BenchmarkMaglevLBParallel(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -442,7 +444,8 @@ func BenchmarkMaglevLBFallback(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,

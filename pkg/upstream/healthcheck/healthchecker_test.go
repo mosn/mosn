@@ -18,12 +18,14 @@
 package healthcheck
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -235,8 +237,8 @@ func equal(originHosts, targetHosts []types.Host) bool {
 
 func Test_findNewAndDeleteHost(t *testing.T) {
 	type args struct {
-		old []types.Host
-		new []types.Host
+		old types.HostSet
+		new types.HostSet
 	}
 	tests := []struct {
 		name            string
@@ -247,7 +249,7 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_delete_and_new",
 			args: args{
-				old: []types.Host{
+				old: newMockHostSet([]types.Host{
 					&mockHost{
 						addr: "addr1",
 					},
@@ -257,8 +259,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					&mockHost{
 						addr: "addr3",
 					},
-				},
-				new: []types.Host{
+				}),
+				new: newMockHostSet([]types.Host{
 					&mockHost{
 						addr: "addr3",
 					},
@@ -268,7 +270,7 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					&mockHost{
 						addr: "addr5",
 					},
-				},
+				}),
 			},
 			wantDeleteHosts: []types.Host{
 				&mockHost{
@@ -290,8 +292,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_delete",
 			args: args{
-				old: newMockHosts(0, 100),
-				new: []types.Host{},
+				old: newMockHostSet(newMockHosts(0, 100)),
+				new: newMockHostSet([]types.Host{}),
 			},
 			wantDeleteHosts: newMockHosts(0, 100),
 			wantNewHosts:    []types.Host{},
@@ -299,8 +301,8 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		{
 			name: "find_new",
 			args: args{
-				old: []types.Host{},
-				new: newMockHosts(0, 100),
+				old: newMockHostSet([]types.Host{}),
+				new: newMockHostSet(newMockHosts(0, 100)),
 			},
 			wantDeleteHosts: []types.Host{},
 			wantNewHosts:    newMockHosts(0, 100),
@@ -331,8 +333,8 @@ func newMockHosts(from, to int) []types.Host {
 
 func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 	type args struct {
-		oldHostset []types.Host
-		newHostset []types.Host
+		oldHostset types.HostSet
+		newHostset types.HostSet
 	}
 	benchmarkCases := []struct {
 		name string
@@ -341,36 +343,36 @@ func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 		{
 			name: "find-1newHost-1deleteHost-from10hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 10),
-				newHostset: newMockHosts(1, 11),
+				oldHostset: newMockHostSet(newMockHosts(0, 10)),
+				newHostset: newMockHostSet(newMockHosts(1, 11)),
 			},
 		},
 		{
 			name: "find-10newHost-10deleteHost-from100hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 100),
-				newHostset: newMockHosts(10, 110),
+				oldHostset: newMockHostSet(newMockHosts(0, 100)),
+				newHostset: newMockHostSet(newMockHosts(10, 110)),
 			},
 		},
 		{
 			name: "find-10newHost-10deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(10, 1010),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(10, 1010)),
 			},
 		},
 		{
 			name: "find-100newHost-100deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(100, 1100),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(100, 1100)),
 			},
 		},
 		{
 			name: "find-500newHost-500deleteHost-from1000hosts",
 			args: args{
-				oldHostset: newMockHosts(0, 1000),
-				newHostset: newMockHosts(500, 1500),
+				oldHostset: newMockHostSet(newMockHosts(0, 1000)),
+				newHostset: newMockHostSet(newMockHosts(500, 1500)),
 			},
 		},
 	}
@@ -382,5 +384,63 @@ func Benchmark_findNewAndDeleteHost1(b *testing.B) {
 			}
 			b.StopTimer()
 		})
+	}
+}
+
+func Test_InitialDelaySeconds(t *testing.T) {
+	cfg := v2.HealthCheck{
+		HealthCheckConfig: v2.HealthCheckConfig{
+			Protocol:           "testInitialDelay",
+			HealthyThreshold:   1,
+			UnhealthyThreshold: 1,
+			ServiceName:        "testServiceName",
+			CommonCallbacks:    []string{"test"},
+		},
+	}
+	hc := CreateHealthCheck(cfg)
+	hcx := hc.(*healthChecker)
+	if hcx.initialDelay != firstInterval {
+		t.Errorf("Test_InitialDelaySeconds Error %+v", hcx)
+	}
+
+	cfg = v2.HealthCheck{
+		HealthCheckConfig: v2.HealthCheckConfig{
+			Protocol:            "testInitialDelay",
+			HealthyThreshold:    1,
+			UnhealthyThreshold:  1,
+			InitialDelaySeconds: api.DurationConfig{time.Second * 2},
+			ServiceName:         "testServiceName",
+			CommonCallbacks:     []string{"test"},
+		},
+	}
+	hc = CreateHealthCheck(cfg)
+	hcx = hc.(*healthChecker)
+	if hcx.initialDelay != time.Second*2 {
+		t.Errorf("Test_InitialDelaySeconds Error %+v", hcx)
+	}
+}
+
+func Test_HttpHealthCheck(t *testing.T) {
+	hcString := `{"protocol":"Http1","timeout":"20s","interval":"0s","interval_jitter":"0s","initial_delay_seconds":"0s","service_name":"testCluster","check_config":{"http_check_config":{"port":33333,"timeout":"2s","path":"/test"}}}`
+	cfg := &v2.HealthCheck{}
+	json.Unmarshal([]byte(hcString), cfg)
+	hc := newHealthChecker(*cfg, &HTTPDialSessionFactory{})
+	h := &mockHost{
+		addr: "127.0.0.1:33333",
+	}
+	hs := &mockHostSet{
+		hosts: []types.Host{
+			h,
+		},
+	}
+	hc.SetHealthCheckerHostSet(hs)
+	hcc := hc.(*healthChecker)
+	if hcc.sessionConfig[HTTPCheckConfigKey] == nil {
+		t.Errorf("Test_HttpHealthCheck error")
+	}
+	hcs := hcc.sessionFactory.NewSession(hcc.sessionConfig, h)
+	_, ok := hcs.(*HTTPDialSession)
+	if !ok {
+		t.Errorf("Test_HttpHealthCheck error")
 	}
 }

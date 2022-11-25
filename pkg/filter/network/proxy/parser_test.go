@@ -21,9 +21,19 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
+
+func createConfig(s string) (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
 
 func TestParseProxyFilter(t *testing.T) {
 	proxyConfigStr := `{
@@ -35,16 +45,43 @@ func TestParseProxyFilter(t *testing.T) {
                         "sub_protocol":"example"
                 }
         }`
-	m := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(proxyConfigStr), &m); err != nil {
-		t.Error(err)
-		return
-	}
+	m, err := createConfig(proxyConfigStr)
+	require.Nil(t, err)
 	proxy, _ := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
 		proxy.RouterHandlerName == types.DefaultRouteHandler &&
-		proxy.DownstreamProtocol == string(protocol.Xprotocol) &&
+		proxy.DownstreamProtocol == "example" && // change to sub protocol
 		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
-		t.Error("parse proxy filter failed")
+		t.Errorf("parse proxy filter failed: %+v", proxy)
 	}
+}
+
+func TestCreateProxyFactory(t *testing.T) {
+	// mock for test
+	protocolCheck = func(_ api.ProtocolName) bool {
+		return true
+	}
+	t.Run("multiple protocols", func(t *testing.T) {
+		proxyConfigStr := `{
+			"downstream_protocol":"bolt,boltv2,Http1"
+		}`
+		m, err := createConfig(proxyConfigStr)
+		require.Nil(t, err)
+		nfcf, err := CreateProxyFactory(m)
+		require.Nil(t, err)
+		gfcf := nfcf.(*genericProxyFilterConfigFactory)
+		require.Len(t, gfcf.protocols, 3)
+	})
+	t.Run("single protocol", func(t *testing.T) {
+		proxyConfigStr := `{
+			 "downstream_protocol":"Http1"
+		 }`
+		m, err := createConfig(proxyConfigStr)
+		require.Nil(t, err)
+		nfcf, err := CreateProxyFactory(m)
+		require.Nil(t, err)
+		gfcf := nfcf.(*genericProxyFilterConfigFactory)
+		require.Len(t, gfcf.protocols, 1)
+	})
+
 }

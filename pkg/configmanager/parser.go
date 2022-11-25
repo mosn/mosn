@@ -32,35 +32,9 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 )
 
 type ContentKey string
-
-var ProtocolsSupported = map[string]bool{
-	string(protocol.Auto):      true,
-	string(protocol.HTTP1):     true,
-	string(protocol.HTTP2):     true,
-	string(protocol.Xprotocol): true,
-}
-
-const (
-	MinHostWeight               = uint32(1)
-	MaxHostWeight               = uint32(128)
-	DefaultMaxRequestPerConn    = uint32(1024)
-	DefaultConnBufferLimitBytes = uint32(16 * 1024)
-)
-
-// RegisterProtocolParser
-// used to register parser
-func RegisterProtocolParser(key string) bool {
-	if _, ok := ProtocolsSupported[key]; ok {
-		return false
-	}
-	log.StartLogger.Infof("[config] %s added to ProtocolsSupported", key)
-	ProtocolsSupported[key] = true
-	return true
-}
 
 // ParsedCallback is an
 // alias for closure func(data interface{}, endParsing bool) error
@@ -102,14 +76,14 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 			log.StartLogger.Fatalf("[config] [parse cluster] name is required in cluster config")
 		}
 		if c.MaxRequestPerConn == 0 {
-			c.MaxRequestPerConn = DefaultMaxRequestPerConn
+			c.MaxRequestPerConn = v2.DefaultMaxRequestPerConn
 			log.StartLogger.Infof("[config] [parse cluster] max_request_per_conn is not specified, use default value %d",
-				DefaultMaxRequestPerConn)
+				v2.DefaultMaxRequestPerConn)
 		}
 		if c.ConnBufferLimitBytes == 0 {
-			c.ConnBufferLimitBytes = DefaultConnBufferLimitBytes
+			c.ConnBufferLimitBytes = v2.DefaultConnBufferLimitBytes
 			log.StartLogger.Infof("[config] [parse cluster] conn_buffer_limit_bytes is not specified, use default value %d",
-				DefaultConnBufferLimitBytes)
+				v2.DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
 			log.StartLogger.Errorf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
@@ -117,9 +91,6 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
 			c.LBSubSetConfig.FallBackPolicy = 0
-		}
-		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts
@@ -144,11 +115,11 @@ func parseHostConfig(hosts []v2.Host) (hs []v2.Host) {
 }
 
 func transHostWeight(weight uint32) uint32 {
-	if weight > MaxHostWeight {
-		return MaxHostWeight
+	if weight > v2.MaxHostWeight {
+		return v2.MaxHostWeight
 	}
-	if weight < MinHostWeight {
-		return MinHostWeight
+	if weight < v2.MinHostWeight {
+		return v2.MinHostWeight
 	}
 	return weight
 }
@@ -460,7 +431,7 @@ func AddOrUpdateNetworkFilterFactories(listenerName string, ln *v2.Listener) []a
 	}
 
 	if len(factories) == 0 {
-		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener name: %v", listenerName)
+		log.DefaultLogger.Errorf("[config] network filter factories len is 0, listener: %+v", ln)
 		return nil
 	}
 

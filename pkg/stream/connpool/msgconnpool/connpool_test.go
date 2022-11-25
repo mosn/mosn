@@ -96,10 +96,11 @@ func (mf *myFilter) InitializeReadFilterCallbacks(callbacks api.ReadFilterCallba
 
 func TestExampleHeartBeatSuccess(t *testing.T) {
 	// setup
-	buffer.ConnReadTimeout = time.Second * 2
+	oldDefaultConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = time.Second * 2
 	// tear down
 	defer func() {
-		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+		types.DefaultConnReadTimeout = oldDefaultConnReadTimeout
 	}()
 
 	server := tcpServer{
@@ -125,7 +126,7 @@ func TestExampleHeartBeatSuccess(t *testing.T) {
 	defer c.Destroy()
 
 	// ensure the heartbeat is triggered by ReadTimeout
-	time.Sleep(buffer.ConnReadTimeout + time.Second*5)
+	time.Sleep(types.DefaultConnReadTimeout + time.Second*5)
 
 	assert.Less(t, 0, previousKeepalive.heartbeatTriggerCount)
 	fmt.Println("heart beat trigger count", previousKeepalive.heartbeatTriggerCount)
@@ -133,10 +134,11 @@ func TestExampleHeartBeatSuccess(t *testing.T) {
 
 func TestHeartBeatTimeoutFail(t *testing.T) {
 	// setup
-	buffer.ConnReadTimeout = time.Second * 2
+	oldDefaultConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = time.Second * 2
 	// tear down
 	defer func() {
-		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+		types.DefaultConnReadTimeout = oldDefaultConnReadTimeout
 	}()
 
 	server := tcpServer{
@@ -150,7 +152,7 @@ func TestHeartBeatTimeoutFail(t *testing.T) {
 	c := NewConn(server.addr, -1,
 		func() ([]api.ReadFilter, KeepAlive) {
 			mf := &myFilter{
-				keepaliveFrameTimeout: buffer.ConnReadTimeout - time.Second,
+				keepaliveFrameTimeout: types.DefaultConnReadTimeout - time.Second,
 			}
 			previousKeepalive = mf
 			return nil, mf
@@ -158,7 +160,7 @@ func TestHeartBeatTimeoutFail(t *testing.T) {
 	defer c.Destroy()
 
 	// ensure the heart beat is triggered
-	time.Sleep(buffer.ConnReadTimeout + time.Second*5)
+	time.Sleep(types.DefaultConnReadTimeout + time.Second*5)
 
 	assert.Less(t, 0, previousKeepalive.heartbeatTriggerCount)
 }

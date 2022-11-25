@@ -24,13 +24,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/pkg/variable"
 )
 
 const testClientNum = 10
@@ -40,7 +40,7 @@ func TestNewMultiplex(t *testing.T) {
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	p := connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
 	}
 	p.host.Store(host)
@@ -51,23 +51,24 @@ func TestNewMultiplex(t *testing.T) {
 }
 
 func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
-	ctxNew := mosnctx.Clone(ctx)
+	// needs create a mosn context wrapper
+	ctx := variable.NewVariableContext(context.Background())
+	ctxNew := variable.NewVariableContext(ctx)
 
 	cl := basicCluster("localhost:8888", []string{"localhost:8888"})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	p := connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
 	}
 	p.host.Store(host)
 
 	pMultiplex := NewPoolMultiplex(&p)
 	pInst := pMultiplex.(*poolMultiplex)
 
-	assert.Equal(t, len(pInst.activeClients), testClientNum)
+	assert.Equal(t, testClientNum, len(pInst.activeClients))
 	// set status for each client
 	for i := 0; i < len(pInst.activeClients); i++ {
 		pInst.activeClients[i].Store(types.ProtocolName("dubbo"), &activeClientMultiplex{
@@ -78,18 +79,18 @@ func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	////// scene 1, client id not previously set
 	assert.True(t, pInst.CheckAndInit(ctx))
 	idSetByPool := getClientIDFromDownStreamCtx(ctx)
-	assert.Equal(t, int(idSetByPool), 1)
+	assert.Equal(t, 1, int(idSetByPool))
 
 	// the id is already set, should always use the same client id
 	assert.True(t, pInst.CheckAndInit(ctx))
 	idSetByPool = getClientIDFromDownStreamCtx(ctx)
-	assert.Equal(t, int(idSetByPool), 1)
+	assert.Equal(t, 1, int(idSetByPool))
 
 	////// scene 2, the new request without client id
 	// should use the next client
 	assert.True(t, pInst.CheckAndInit(ctxNew))
 	idSetByPool = getClientIDFromDownStreamCtx(ctxNew)
-	assert.Equal(t, int(idSetByPool), 2)
+	assert.Equal(t, 2, int(idSetByPool))
 }
 
 func TestMultiplexParallelShutdown(t *testing.T) {
@@ -99,8 +100,7 @@ func TestMultiplexParallelShutdown(t *testing.T) {
 	// wait for server to start
 	time.Sleep(time.Second * 2)
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := context.Background()
 
 	cl := basicCluster(addr, []string{addr})
 	connNum := uint32(1)
@@ -108,8 +108,9 @@ func TestMultiplexParallelShutdown(t *testing.T) {
 
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 	p := connpool{
-		protocol: protocol.Xprotocol,
+		protocol: api.ProtocolName(dubbo.ProtocolName),
 		tlsHash:  &types.HashValue{},
+		codec:    &dubbo.XCodec{},
 	}
 	p.host.Store(host)
 

@@ -14,133 +14,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package http
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/valyala/fasthttp"
+	"mosn.io/mosn/pkg/types"
 )
 
-const testHeaderHostKey = "Mosn-Header-Host"
-const testHeaderContentTypeKey = "Content-Type"
-const testHeaderEmptyKey = "Mosn-Empty"
+func TestParseQueryString(t *testing.T) {
+	type args struct {
+		query string
+	}
+	tests := []struct {
+		name string
+		args args
+		want types.QueryParams
+	}{
+		{
+			args: args{
+				query: "",
+			},
+			want: types.QueryParams{},
+		},
+		{
+			args: args{
+				query: "key1=valuex",
+			},
+			want: types.QueryParams{
+				"key1": "valuex",
+			},
+		},
 
-func TestRequestHeader(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestCommonHeader error: %v", r)
-		}
-	}()
+		{
+			args: args{
+				query: "key1=valuex&nobody=true",
+			},
+			want: types.QueryParams{
+				"key1":   "valuex",
+				"nobody": "true",
+			},
+		},
 
-	header := RequestHeader{&fasthttp.RequestHeader{}}
-
-	header.Set(testHeaderHostKey, "test")
-	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
-		t.Error("Get header failed.")
+		{
+			args: args{
+				query: "key1=valuex&nobody=true&test=biz",
+			},
+			want: types.QueryParams{
+				"key1":   "valuex",
+				"nobody": "true",
+				"test":   "biz",
+			},
+		},
 	}
 
-	header.Del(testHeaderHostKey)
-	if _, ok := header.Get(testHeaderHostKey); ok {
-		t.Error("Del header failed.")
-	}
-
-	// test clone header
-	header.Set(testHeaderHostKey, "test")
-	h2 := header.Clone()
-	if h2 == nil {
-		t.Error("Clone header failed.")
-	}
-	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
-		t.Error("Clone header failed.")
-	}
-
-	// test ByteSize
-	if l := h2.ByteSize(); l != uint64(len(testHeaderHostKey)+len("test")) {
-		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderHostKey)+len("test"))
-	}
-
-	// test range header
-	h2.Range(func(key, value string) bool {
-		if key != testHeaderHostKey || value != "test" {
-			t.Errorf("Range header failed: %v, %v", key, value)
-			return false
-		}
-		return true
-	})
-
-}
-
-func TestEmptyValueForRequestHeader(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestCommonHeader error: %v", r)
-		}
-	}()
-	header := RequestHeader{&fasthttp.RequestHeader{}}
-
-	header.Set(testHeaderEmptyKey, "")
-	if v, ok := header.Get(testHeaderEmptyKey); !ok || v != "" {
-		t.Errorf("Set empty header failed: %v %v", v, ok)
-	}
-}
-
-func TestResponseHeader(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestCommonHeader error: %v", r)
-		}
-	}()
-
-	header := ResponseHeader{&fasthttp.ResponseHeader{}}
-
-	header.Set(testHeaderContentTypeKey, "test")
-	if v, ok := header.Get(testHeaderContentTypeKey); !ok || v != "test" {
-		t.Error("Get header failed.")
-	}
-
-	// test clone header
-	header.Set(testHeaderContentTypeKey, "test")
-	h2 := header.Clone()
-	if h2 == nil {
-		t.Error("Clone header failed.")
-	}
-	if v, ok := header.Get(testHeaderContentTypeKey); !ok || v != "test" {
-		t.Error("Clone header failed.")
-	}
-
-	// test ByteSize
-	if l := h2.ByteSize(); l != uint64(len(testHeaderContentTypeKey)+len("test")) {
-		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderContentTypeKey)+len("test"))
-	}
-
-	// test range header
-	h2.Range(func(key, value string) bool {
-		if key != testHeaderContentTypeKey || value != "test" {
-			t.Error("Range header failed.")
-			return false
-		}
-		return true
-	})
-
-	// test set empty header
-	h2.Set(testHeaderHostKey, "")
-	if _, ok := header.Get(testHeaderHostKey); ok {
-		t.Error("Set empty header failed.")
-	}
-}
-
-func TestEmptyValueForResponseHeader(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestCommonHeader error: %v", r)
-		}
-	}()
-	header := ResponseHeader{&fasthttp.ResponseHeader{}}
-
-	header.Set(testHeaderEmptyKey, "")
-	if v, ok := header.Get(testHeaderEmptyKey); !ok || v != "" {
-		t.Errorf("Set empty header failed: %v %v", v, ok)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ParseQueryString(tt.args.query); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseQueryString() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -2,7 +2,7 @@ SHELL = /bin/bash
 
 IMAGE_NAME      = mosn
 MOSN_VERSION    = $(shell cat ../../VERSION)
-ISTIO_VERSION   = $(shell cat ../../ISTIO_VERSION)
+#ISTIO_VERSION   = $(shell cat ../../ISTIO_VERSION)
 IMAGE_NAME_ENVOY_SDK = mosn-network-envoy-sdk
 IMAGE_NAME_MOSN_NETWORK_ENVOY = mosn-network-on-envoy
 MOSNIOHUB = mosnio
@@ -16,9 +16,8 @@ PROJECT_NAME_NETWORKDIR = ${PROJECT_NAME}/pkg/networkextention
 build-l7:
 	@rm -rf ${TARGET}
 	mkdir -p ${TARGET}
-	make istio-${ISTIO_VERSION}
 	GODEBUG=cgocheck=1 go build -tags mosn_debug -buildmode=c-shared \
-		-v -o ${TARGET}/golang_extention.so ./mosn.go istio.go init.go l7_golang_extention.go
+		-v -o ${TARGET}/golang_extention.so ./mosn.go init.go l7_golang_extention.go
 
 # build mosn on envoy image
 build-moe-image:
@@ -46,5 +45,6 @@ clean:
 	@rm -rf IMAGEBUILD
 
 
-istio-1.5.2:
-	cp ./istio152/istio.go ./
+# TODO upgrade mosn
+#istio-1.5.2:
+#	cp ./istio152/istio.go ./

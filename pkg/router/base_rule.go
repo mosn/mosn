@@ -32,7 +32,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -112,6 +112,7 @@ func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleIm
 			retryOn:      route.Route.RetryPolicy.RetryOn,
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
+			statusCodes:  route.Route.RetryPolicy.StatusCodes,
 		}
 	}
 	// add hash policy
@@ -273,7 +274,7 @@ func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers ap
 
 func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
 
-	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
+	if len(rri.prefixRewrite) == 0 && len(rri.regexRewrite.Pattern.Regex) == 0 {
 		return
 	}
 
@@ -282,7 +283,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 
 		//If both prefix_rewrite and regex_rewrite are configured
 		//prefix rewrite by default
-		if len(rri.prefixRewrite) > 1 {
+		if len(rri.prefixRewrite) != 0 {
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
 				headers.Set(types.HeaderOriginalPath, path)
@@ -295,7 +296,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		}
 
 		// regex rewrite path if configured
-		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
+		if len(rri.regexRewrite.Pattern.Regex) != 0 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(types.HeaderOriginalPath, path)
@@ -314,7 +315,7 @@ func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, header
 }
 
 func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.requestHeadersParser.evaluateHeaders(ctx, headers)
 	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		variable.SetString(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
@@ -331,6 +332,6 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 }
 
 func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.responseHeadersParser.evaluateHeaders(ctx, headers)
 	rri.vHost.FinalizeResponseHeaders(ctx, headers, requestInfo)
 }

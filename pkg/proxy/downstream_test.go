@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -34,8 +33,8 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -65,7 +64,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	}
 
 	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	header := protocol.CommonHeader{}
@@ -404,6 +404,7 @@ func TestRetryEmptyUpstreamHosts(t *testing.T) {
 
 	s := &downStream{
 		ID:      1,
+		context: ctx,
 		cluster: cluster,
 		upstreamRequest: &upstreamRequest{
 			setupRetry: true,
@@ -430,4 +431,57 @@ func TestRetryEmptyUpstreamHosts(t *testing.T) {
 	phase = s.receive(ctx, 1, phase)
 	assert.Equal(t, types.End, phase)
 	assert.Equal(t, true, s.processDone())
+}
+
+// TestGetUpstreamProtocol
+// 1. default is same as downstream protocol
+// 2. if contextkey is setted, use the contextkey value
+// 3. if the route is setted, use the route value
+func TestGetUpstreamProtocol(t *testing.T) {
+	route := &mockRoute{
+		rule: &mockRouteRule{
+			upstreamProtocol: "HTTP1",
+		},
+	}
+
+	testCases := []struct {
+		ctx              context.Context
+		route            types.Route
+		expectedProtocol types.ProtocolName
+	}{
+		{
+			ctx: func() context.Context {
+				ctx := variable.NewVariableContext(context.Background())
+				_ = variable.Set(ctx, types.VariableUpstreamProtocol, api.ProtocolName("bolt"))
+				return ctx
+			}(),
+			route:            route,
+			expectedProtocol: api.ProtocolName("bolt"),
+		},
+		{
+			ctx:              context.Background(),
+			route:            route,
+			expectedProtocol: api.ProtocolName(route.rule.UpstreamProtocol()),
+		},
+		{
+			ctx:              context.Background(),
+			route:            nil,
+			expectedProtocol: api.ProtocolName("HTTP2"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s := &downStream{
+			ID:      1,
+			context: tc.ctx,
+			route:   tc.route,
+			proxy: &proxy{
+				config: &v2.Proxy{
+					DownstreamProtocol: "HTTP2",
+				},
+			},
+		}
+		currentProtocol := s.getUpstreamProtocol()
+		assert.Equal(t, tc.expectedProtocol, currentProtocol)
+	}
 }

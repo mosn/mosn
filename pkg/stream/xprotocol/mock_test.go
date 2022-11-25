@@ -20,16 +20,28 @@ package xprotocol
 import (
 	"context"
 	"net"
+	"os"
+	"testing"
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
+
+func TestMain(m *testing.M) {
+	// register xstream
+	// TODO: framework unit test should not depend on the implementations
+	xprotocol.RegisterXProtocolAction(NewConnPool, NewStreamFactory, nil)
+	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
+	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
+
+	os.Exit(m.Run())
+}
 
 // a mock server for handle heart beat request
 type mockServer struct {
@@ -47,7 +59,7 @@ func newMockServer(delay time.Duration) (*mockServer, error) {
 	return &mockServer{
 		ln:       ln,
 		stop:     make(chan struct{}),
-		protocol: xprotocol.GetProtocol(bolt.ProtocolName),
+		protocol: (&bolt.XCodec{}).NewXProtocol(context.Background()),
 		delay:    delay,
 	}, nil
 }
@@ -137,6 +149,10 @@ func (ci *mockClusterInfo) Name() string {
 	return ci.name
 }
 
+func (ci *mockClusterInfo) Mark() uint32 {
+	return 0
+}
+
 func (ci *mockClusterInfo) ConnBufferLimitBytes() uint32 {
 	return ci.limit
 }
@@ -147,4 +163,8 @@ func (ci *mockClusterInfo) SourceAddress() net.Addr {
 
 func (ci *mockClusterInfo) ConnectTimeout() time.Duration {
 	return network.DefaultConnectTimeout
+}
+
+func (ci *mockClusterInfo) IdleTimeout() time.Duration {
+	return 0
 }
