@@ -25,6 +25,7 @@ import (
 	"time"
 
 	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
+	envoy_config_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -213,27 +214,20 @@ func convertAccessLogsFromFilterChain(xdsFilterChain *envoy_config_listener_v3.F
 		return nil
 	}
 
+	type FilterLogConfig interface {
+		GetAccessLog() []*envoy_config_accesslog_v3.AccessLog
+	}
+
 	accessLogs := make([]v2.AccessLog, 0)
 	for _, xdsFilter := range xdsFilterChain.GetFilters() {
+		var filterConfig FilterLogConfig
 		if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
-			filterConfig := GetHTTPConnectionManager(xdsFilter)
-
-			for _, accConfig := range filterConfig.GetAccessLog() {
-				if accConfig.Name == wellknown.FileAccessLog {
-					als, err := GetAccessLog(accConfig)
-					if err != nil {
-						log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
-						continue
-					}
-					accessLog := v2.AccessLog{
-						Path:   als.GetPath(),
-						Format: als.GetFormat(),
-					}
-					accessLogs = append(accessLogs, accessLog)
-				}
-			}
+			filterConfig = GetHTTPConnectionManager(xdsFilter)
 		} else if xdsFilter.GetName() == wellknown.TCPProxy {
-			filterConfig := GetTcpProxy(xdsFilter)
+			filterConfig = GetTcpProxy(xdsFilter)
+		}
+
+		if filterConfig != nil {
 			for _, accConfig := range filterConfig.GetAccessLog() {
 				if accConfig.Name == wellknown.FileAccessLog {
 					als, err := GetAccessLog(accConfig)
