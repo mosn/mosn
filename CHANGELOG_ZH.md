@@ -7,13 +7,13 @@
 
 ### 优化
 
-- 优化解析 xds 透明代理配置：增加对未识别地址的透传配置 (#2171) [@3062](https://github.com/3062)
+- 优化解析 xDS 透明代理配置：增加对未识别地址的透传配置 (#2171) [@3062](https://github.com/3062)
 - 优化 CI 测试中 golangci 执行流程 (#2166) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2167) [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 为 proxywasm 添加集成基准测试 (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
-- 升级 mosn 支持的 go 的最低版本至 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- 为 Proxy-Wasm 添加集成基准测试 (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- 升级 MOSN 支持的 go 的最低版本至 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
 - 改正 README.md 中的一些问题 (#2161) [@liaolinrong](https://github.com/liaolinrong)
 - 新增基准测试 (#2173) [@3062](https://github.com/3062)
-- 重用子集条目以优化分配/使用内存 (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
+- subsetLoadBalancerBuilder 重用子集条目以优化分配/使用内存 (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
 
 ### Bug 修复
 

@@ -7,13 +7,13 @@
 
 ### Optimization
 
-- Optimized parsing xds transparent proxy configuration: add pass-through configuration for unrecognized addresses (#2171) [@3062](https://github.com/3062)
+- Optimized parsing xDS transparent proxy configuration: add pass-through configuration for unrecognized addresses (#2171) [@3062](https://github.com/3062)
 - Optimizing the golangci execution flow in CI testing  (#2166) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2167) [@taoyuanyuan](https://github.com/taoyuanyuan)
-- Adds integrated benchmarks for proxywasm (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
-- Upgrade the minimum version of go supported by mosn to 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- Adds integrated benchmarks for Proxy-Wasm (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- Upgrade the minimum version of go supported by MOSN to 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
 - Fix some problems in the README.md (#2161) [@liaolinrong](https://github.com/liaolinrong)
 - add benchmark (#2173) [@3062](https://github.com/3062)
-- reuse subset entry to optimze alloc/inuse memory (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
+- subsetLoadBalancerBuilder reuse subset entry to optimze alloc/inuse memory (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
 
 ### Bug fixes
 
