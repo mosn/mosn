@@ -214,21 +214,20 @@ func convertAccessLogsFromFilterChain(xdsFilterChain *envoy_config_listener_v3.F
 		return nil
 	}
 
-	type FilterLogConfig interface {
-		GetAccessLog() []*envoy_config_accesslog_v3.AccessLog
-	}
-
+	var envoyAccesslogs []*envoy_config_accesslog_v3.AccessLog
 	accessLogs := make([]v2.AccessLog, 0)
+
 	for _, xdsFilter := range xdsFilterChain.GetFilters() {
-		var filterConfig FilterLogConfig
 		if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
-			filterConfig = GetHTTPConnectionManager(xdsFilter)
+			filterConfig := GetHTTPConnectionManager(xdsFilter)
+			envoyAccesslogs = filterConfig.GetAccessLog()
 		} else if xdsFilter.GetName() == wellknown.TCPProxy {
-			filterConfig = GetTcpProxy(xdsFilter)
+			filterConfig := GetTcpProxy(xdsFilter)
+			envoyAccesslogs = filterConfig.GetAccessLog()
 		}
 
-		if filterConfig != nil {
-			for _, accConfig := range filterConfig.GetAccessLog() {
+		if envoyAccesslogs != nil {
+			for _, accConfig := range envoyAccesslogs {
 				if accConfig.Name == wellknown.FileAccessLog {
 					als, err := GetAccessLog(accConfig)
 					if err != nil {
