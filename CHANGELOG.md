@@ -20,7 +20,7 @@
 - Fix a panic problem with connpool_binging when connecting to upstream timeout (#2180) [@EraserTime](https://github.com/EraserTime)
 - Fix the problem that retryTime is 0 when cluster LB algorithm is LB_ORIGINAL_DST (#2170) [@3062](https://github.com/3062)
 - Fix smooth upgrade failed (#2129) [@Bryce-Huang](https://github.com/Bryce-huang)
-- Modify the way xDS listener logs are parsed (#2182) [@3062](https://github.com/3062)
+- Modify the way xDS Listener logs are parsed (#2182) [@3062](https://github.com/3062)
 - Fix example print error (#2190) [@liaolinrong](https://github.com/liaolinrong)
 
 ## v1.2.0
