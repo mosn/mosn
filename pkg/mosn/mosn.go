@@ -381,7 +381,7 @@ func (m *Mosn) Close(isUpgrade bool) {
 
 	// do not remove the pid file,
 	// since the new started server may have the same pid file
-	if isUpgrade {
+	if !isUpgrade {
 		pid.RemovePidFile()
 		// stop reconfigure domain socket
 		server.StopReconfigureHandler()
