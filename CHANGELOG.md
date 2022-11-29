@@ -10,10 +10,10 @@
 - Optimized parsing xDS transparent proxy configuration: add pass-through configuration for unrecognized addresses (#2171) [@3062](https://github.com/3062)
 - Optimized the golangci execution flow in CI testing  (#2166) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2167) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Add integrated benchmarks for Proxy-Wasm (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
-- Upgrade the minimum version of go supported by MOSN to 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- Upgrade the minimum version of Go supported by MOSN to 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
 - Fix some problems in the README.md (#2161) [@liaolinrong](https://github.com/liaolinrong)
 - Add benchmark (#2173) [@3062](https://github.com/3062)
-- subsetLoadBalancerBuilder reuse subset entry to optimze alloc/inuse memory (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
+- subsetLoadBalancer reuse subset entry to optimze alloc/inuse memory (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
 
 ### Bug fixes
 
@@ -21,6 +21,7 @@
 - Fix the problem that retryTime is 0 when cluster LB algorithm is LB_ORIGINAL_DST (#2170) [@3062](https://github.com/3062)
 - Fix smooth upgrade failed (#2129) [@Bryce-Huang](https://github.com/Bryce-huang)
 - Modify the way xDS listener logs are parsed (#2182) [@3062](https://github.com/3062)
+- Fix example print error (#2190) [@liaolinrong](https://github.com/liaolinrong)
 
 ## v1.2.0
 
