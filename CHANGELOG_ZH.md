@@ -19,7 +19,7 @@
 
 - 修复 connpool_binging 在连接 upstream timeout 时出现的 panic 问题 (#2180) [@EraserTime](https://github.com/EraserTime)
 - 修复 cluster LB 算法为 LB_ORIGINAL_DST 时 retryTime 是 0 的问题 (#2170) [@3062](https://github.com/3062)
-- 修复平滑升级失败 (#2129) [@Bryce-Huang](https://github.com/Bryce-huang)
+- 修复平滑升级失败 (#2129) [@Bryce-Huang](https://github.com/Bryce-huang) (#2193) [@3062](https://github.com/3062)
 - 修改解析 xDS Listener 日志的方式 (#2182) [@3062](https://github.com/3062)
 - 修复示例代码打印错误 (#2190) [@liaolinrong](https://github.com/liaolinrong)
 
