@@ -84,7 +84,7 @@ func TestStageManager(t *testing.T) {
 	app.EXPECT().Start().Return()
 	app.EXPECT().InheritConnections().Return(nil)
 	app.EXPECT().Shutdown().Return(nil)
-	app.EXPECT().Close(true).Return()
+	app.EXPECT().Close(false).Return()
 
 	stm := InitStageManager(&cli.Context{}, "", app)
 	// test for mock
