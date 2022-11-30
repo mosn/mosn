@@ -21,47 +21,10 @@
 package wasmer
 
 import (
-	wasmerGo "github.com/wasmerio/wasmer-go/wasmer"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
+	"mosn.io/proxy-wasm-go-host/wasmer"
 )
 
 func init() {
-	wasm.RegisterWasmEngine("wasmer", NewWasmerVM())
-}
-
-type VM struct {
-	engine *wasmerGo.Engine
-	store  *wasmerGo.Store
-}
-
-func NewWasmerVM() types.WasmVM {
-	vm := &VM{}
-	vm.Init()
-
-	return vm
-}
-
-func (w *VM) Name() string {
-	return "wasmer"
-}
-
-func (w *VM) Init() {
-	w.engine = wasmerGo.NewEngine()
-	w.store = wasmerGo.NewStore(w.engine)
-}
-
-func (w *VM) NewModule(wasmBytes []byte) types.WasmModule {
-	if len(wasmBytes) == 0 {
-		return nil
-	}
-
-	m, err := wasmerGo.NewModule(w.store, wasmBytes)
-	if err != nil {
-		log.DefaultLogger.Errorf("[wasmer][vm] fail to new module, err: %v", err)
-		return nil
-	}
-
-	return NewWasmerModule(w, m, wasmBytes)
+	wasm.RegisterWasmEngine("wasmer", wasmer.NewWasmerVM())
 }

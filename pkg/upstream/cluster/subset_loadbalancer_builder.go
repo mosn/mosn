@@ -29,6 +29,7 @@ const (
 	SubsetPreIndexBuildMode SubsetBuildMode = iota
 	SubsetFilterBuildMode
 )
+const initCap = 16
 
 var subsetBuildMode = SubsetPreIndexBuildMode
 
@@ -49,12 +50,14 @@ type subsetLoadBalancerBuilder struct {
 	indexer     map[string]map[string]*intsets.Sparse
 	hosts       types.HostSet
 	subSetCount int64
+	hostsCache  hostsCache
 }
 
 func newSubsetLoadBalancerBuilder(info types.ClusterInfo, hs types.HostSet) *subsetLoadBalancerBuilder {
 	b := &subsetLoadBalancerBuilder{
-		hosts: hs,
-		info:  info,
+		hosts:      hs,
+		info:       info,
+		hostsCache: newMapHostsCache(),
 	}
 	b.initIndex()
 	return b
@@ -121,8 +124,11 @@ func (b *subsetLoadBalancerBuilder) createSubsets() types.LbSubsetMap {
 }
 
 func (b *subsetLoadBalancerBuilder) selectHosts(s *intsets.Sparse) []types.Host {
-	if s == nil {
-		return nil
+	if s == nil || s.IsEmpty() {
+		return make([]types.Host, 0)
+	}
+	if val := b.hostsCache.get(s); val != nil {
+		return val.([]types.Host)
 	}
 	offsets := make([]int, 0, s.Len())
 	offsets = s.AppendTo(offsets)
@@ -130,6 +136,7 @@ func (b *subsetLoadBalancerBuilder) selectHosts(s *intsets.Sparse) []types.Host 
 	for i, n := range offsets {
 		ret[i] = b.hosts.Get(n)
 	}
+	b.hostsCache.put(s, ret)
 	return ret
 }
 
@@ -271,4 +278,61 @@ func subsetMergeKeys(subSetKeys []types.SortedStringSetType, defaultSubset types
 		ret = append(ret, k)
 	}
 	return ret
+}
+
+type hostsCache interface {
+	get(key *intsets.Sparse) interface{}
+	put(key *intsets.Sparse, val interface{})
+}
+
+func newMapHostsCache() *mapHostsCache {
+	return &mapHostsCache{
+		entries: make(map[int64][]sparseEntry, initCap),
+	}
+}
+
+type mapHostsCache struct {
+	entries map[int64][]sparseEntry
+}
+
+func (c *mapHostsCache) get(key *intsets.Sparse) interface{} {
+	keyEntry := sparseEntry{key: key}
+	ses := c.entries[keyEntry.HashCode()]
+	for _, entry := range ses {
+		if entry.Equals(keyEntry) {
+			return entry.value
+		}
+	}
+	return nil
+}
+
+func (c *mapHostsCache) put(key *intsets.Sparse, value interface{}) {
+	keyEntry := sparseEntry{key: key}
+	hash := keyEntry.HashCode()
+	c.entries[hash] = append(c.entries[hash], sparseEntry{key: key, value: value})
+}
+
+type sparseEntry struct {
+	key   *intsets.Sparse
+	value interface{}
+}
+
+func (e sparseEntry) HashCode() int64 {
+	min := e.key.Min()
+	max := e.key.Max()
+	length := e.key.Len()
+	return int64(min)<<44 | int64(max)<<22 | int64(length)
+}
+
+func (e sparseEntry) Equals(e1 sparseEntry) bool {
+	if e.key.Min() != e1.key.Min() {
+		return false
+	}
+	if e.key.Max() != e1.key.Max() {
+		return false
+	}
+	if e.key.Len() != e1.key.Len() {
+		return false
+	}
+	return e.key.Equals(e1.key)
 }

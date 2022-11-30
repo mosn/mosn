@@ -1,6 +1,3 @@
-//go:build wasmer
-// +build wasmer
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -31,7 +28,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/mock"
 	_ "mosn.io/mosn/pkg/stream/http"
-	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
+	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 	"mosn.io/pkg/buffer"
 )
 
@@ -76,7 +73,7 @@ func testProxyWasmStreamFilterCommon(t *testing.T, wasmPath string) {
 	configMap := map[string]interface{}{
 		"instance_num": 2,
 		"vm_config": map[string]interface{}{
-			"engine": "wasmer",
+			"engine": "wazero",
 			"path":   wasmPath,
 		},
 		"user_config1": "user_value1",
@@ -170,7 +167,7 @@ func TestProxyWasmStreamFilterHttpCallout(t *testing.T) {
 	configMap := map[string]interface{}{
 		"instance_num": 1,
 		"vm_config": map[string]interface{}{
-			"engine": "wasmer",
+			"engine": "wazero",
 			"path":   "./data/httpCall.wasm",
 		},
 	}

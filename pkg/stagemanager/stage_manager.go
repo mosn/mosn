@@ -106,8 +106,8 @@ type Application interface {
 	// Shutdown means graceful stop
 	Shutdown() error
 	// Close means stop working immediately
-	// It will skip stop reconfigure domain socket when is not upgrading
-	Close(bool)
+	// It will skip stop reconfigure domain socket when is upgrading
+	Close(isUpgrade bool)
 	// IsFromUpgrade application start from upgrade mode,
 	// means inherit connections and configuration(if enabled) from old application.
 	IsFromUpgrade() bool
@@ -390,7 +390,7 @@ func (stm *StageManager) Stop() {
 	stm.SetState(Stopping)
 
 	// close application
-	stm.app.Close(preState != Upgrading)
+	stm.app.Close(preState == Upgrading)
 
 	// other cleanup actions
 	stm.runAfterStopStage()
