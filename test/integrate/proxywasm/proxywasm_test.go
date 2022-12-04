@@ -38,7 +38,12 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm020"
 	"mosn.io/mosn/test/util/mosn"
+	"mosn.io/pkg/log"
 )
+
+func init() {
+	log.DefaultLogger.SetLogLevel(log.ERROR)
+}
 
 type testMosn struct {
 	url     string
