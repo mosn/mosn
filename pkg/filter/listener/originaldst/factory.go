@@ -19,10 +19,10 @@ package originaldst
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
@@ -31,32 +31,44 @@ import (
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
+
 }
 
 type OriginalDstConfig struct {
 	// If FallbackToLocal is setted to true, the listener filter match will use local address instead of
 	// any (0.0.0.0). usually used in ingress listener.
-	FallbackToLocal bool `json:"fallback_to_local"`
+	FallbackToLocal bool               `json:"fallback_to_local"`
+	Type            v2.OriginalDstType `json:"type"`
 }
 
 type originalDst struct {
-	fallbackToLocal bool
+	FallbackToLocal bool
+	Type            v2.OriginalDstType
 }
 
 // TODO remove it when Istio deprecate UseOriginalDst.
 // NewOriginalDst new an original dst filter.
-func NewOriginalDst() api.ListenerFilterChainFactory {
-	return &originalDst{}
+func NewOriginalDst(t v2.OriginalDstType) api.ListenerFilterChainFactory {
+	return &originalDst{Type: t}
 }
 
 func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
+
 	b, _ := json.Marshal(conf)
 	cfg := OriginalDstConfig{}
 	if err := json.Unmarshal(b, &cfg); err != nil {
 		return nil, err
 	}
+
+	if cfg.Type == "" {
+		cfg.Type = v2.REDIRECT
+	} else if cfg.Type != v2.REDIRECT && cfg.Type != v2.TPROXY {
+		return nil, errors.New("listener filter type unrecognized")
+	}
+
 	return &originalDst{
-		fallbackToLocal: cfg.FallbackToLocal,
+		FallbackToLocal: cfg.FallbackToLocal,
+		Type:            cfg.Type,
 	}, nil
 }
 
@@ -68,23 +80,37 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 		return api.Continue
 	}
 
-	ip, port, err := getOriginalAddr(cb.Conn())
+	var ip string
+	var port int
+	var err error
+	var logTag string
+
+	if filter.Type == v2.TPROXY {
+		ip, port, err = getTProxyAddr(cb.Conn())
+		logTag = string(v2.TPROXY)
+
+	} else if filter.Type == v2.REDIRECT {
+		ip, port, err = getRedirectAddr(cb.Conn())
+		logTag = string(v2.REDIRECT)
+	} else {
+		log.DefaultLogger.Errorf("listenerFifter type error: not %d or %d", v2.TPROXY, v2.REDIRECT)
+	}
+
 	if err != nil {
-		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
+		log.DefaultLogger.Errorf("[%s] get original addr failed: %v", logTag, err)
 		return api.Continue
 	}
 
-	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
-
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("originalDst remote addr: %s:%d", ips, port)
+		log.DefaultLogger.Debugf("%s remote addr: %s:%d", logTag, ip, port)
 	}
-	if filter.fallbackToLocal {
+
+	if filter.FallbackToLocal {
 		ctx := cb.GetOriContext()
 		variable.SetString(ctx, types.VarListenerMatchFallbackIP, localHost)
 	}
 
-	cb.SetOriginalAddr(ips, port)
+	cb.SetOriginalAddr(ip, port)
 	cb.UseOriginalDst(cb.GetOriContext())
 
 	return api.Stop

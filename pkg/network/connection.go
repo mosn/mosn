@@ -29,9 +29,11 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/rcrowley/go-metrics"
+	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
@@ -49,6 +51,12 @@ const (
 	NetBufferDefaultCapacity = 1 << 4
 
 	DefaultConnectTimeout = 10 * time.Second
+)
+
+const (
+	SO_MARK        = 0x24
+	SOL_IP         = 0x0
+	IP_TRANSPARENT = 0x13
 )
 
 // Factory function for creating server side connection.
@@ -107,6 +115,7 @@ type connection struct {
 	localAddressRestored bool
 	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
+	mark                 uint32
 	tlsMng               types.TLSClientContextManager
 	connCallbacks        []api.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
@@ -1133,7 +1142,32 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	if addr == nil {
 		return api.ConnectFailed, errors.New("ClientConnection RemoteAddr is nil")
 	}
-	cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
+
+	dialer := &net.Dialer{
+		Timeout: timeout,
+	}
+
+	if cc.mark != 0 {
+		mark := int(cc.mark)
+		dialer.Control = func(network, address string, c syscall.RawConn) error {
+			var err error
+			if cerr := c.Control(func(fd uintptr) {
+				err = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, SO_MARK, mark)
+				if err != nil {
+					return
+				}
+			}); cerr != nil {
+				return cerr
+			}
+
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	cc.rawConnection, err = dialer.Dial(cc.network, cc.RemoteAddr().String())
 	if err != nil {
 		if err == io.EOF {
 			// remote conn closed
@@ -1208,4 +1242,8 @@ func (cc *clientConnection) Connect() (err error) {
 		}
 	})
 	return
+}
+
+func (cc *clientConnection) SetMark(mark uint32) {
+	cc.mark = mark
 }

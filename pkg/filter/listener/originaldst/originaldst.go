@@ -32,24 +32,27 @@ const (
 	IP6T_SO_ORIGINAL_DST = 80
 )
 
-func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
-	tc := conn.(*net.TCPConn)
+func getRedirectAddr(conn net.Conn) (string, int, error) {
+	tc, ok := conn.(*net.TCPConn)
+	if !ok {
+		return "", 0, fmt.Errorf("redirect proxy only support tcp")
+	}
 
 	f, err := tc.File()
 	if err != nil {
-		log.DefaultLogger.Errorf("[originaldst] get conn file error, err: %v", err)
-		return nil, 0, errors.New("conn has error")
+		log.DefaultLogger.Errorf("[redirect] get conn file error, err: %v", err)
+		return "", 0, errors.New("conn has error")
 	}
 	defer f.Close()
 
 	fd := int(f.Fd())
 	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
 	if err != nil {
-		return nil, 0, fmt.Errorf("syscall.GetsockoptIPv6Mreq %v", err)
+		return "", 0, fmt.Errorf("syscall.GetsockoptIPv6Mreq %v", err)
 	}
 
 	if err := syscall.SetNonblock(fd, true); err != nil {
-		return nil, 0, fmt.Errorf("setnonblock %v", err)
+		return "", 0, fmt.Errorf("setnonblock %v", err)
 	}
 
 	p0 := int(addr.Multiaddr[2])
@@ -57,7 +60,21 @@ func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
 
 	port := p0*256 + p1
 
-	ip := addr.Multiaddr[4:8]
+	ips := addr.Multiaddr[4:8]
+	ip := fmt.Sprintf("%d.%d.%d.%d", ips[0], ips[1], ips[2], ips[3])
 
 	return ip, port, nil
+}
+
+func getTProxyAddr(conn net.Conn) (string, int, error) {
+	tc, ok := conn.(*net.TCPConn)
+	if !ok {
+		return "", 0, fmt.Errorf("transport proxy only support tcp")
+	}
+
+	oriDst, _ := tc.LocalAddr().(*net.TCPAddr)
+	dstIP := oriDst.IP.String()
+	dstPort := oriDst.Port
+
+	return dstIP, dstPort, nil
 }

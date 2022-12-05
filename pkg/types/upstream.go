@@ -191,6 +191,8 @@ type ClusterInfo interface {
 	// MaxRequestsPerConn returns a connection's max request
 	MaxRequestsPerConn() uint32
 
+	Mark() uint32
+
 	// Stats returns the cluster's stats metrics
 	Stats() ClusterStats
 

@@ -95,7 +95,7 @@ type WasmPlugin interface {
 	// SetCpuLimit set cpu limit of the plugin, not supported currently
 	SetCpuLimit(cpu int)
 
-	// SetCpuLimit set cpu limit of the plugin, not supported currently
+	// SetMemLimit set cpu limit of the plugin, not supported currently
 	SetMemLimit(mem int)
 
 	// Clear got called when the plugin is destroyed

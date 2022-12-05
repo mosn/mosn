@@ -43,6 +43,10 @@ func (ci *fakeClusterInfo) Name() string {
 	return "test"
 }
 
+func (ci *fakeClusterInfo) Mark() uint32 {
+	return 0
+}
+
 type fakeTLSContextManager struct {
 	types.TLSContextManager
 }

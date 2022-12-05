@@ -106,7 +106,8 @@ type Application interface {
 	// Shutdown means graceful stop
 	Shutdown() error
 	// Close means stop working immediately
-	Close()
+	// It will skip stop reconfigure domain socket when is upgrading
+	Close(isUpgrade bool)
 	// IsFromUpgrade application start from upgrade mode,
 	// means inherit connections and configuration(if enabled) from old application.
 	IsFromUpgrade() bool
@@ -388,18 +389,13 @@ func (stm *StageManager) Stop() {
 
 	stm.SetState(Stopping)
 
-	// do not remove the pid file,
-	// since the new started server may have the same pid file
-	if preState != Upgrading {
-		pid.RemovePidFile()
-	}
 	// close application
-	stm.app.Close()
+	stm.app.Close(preState == Upgrading)
 
 	// other cleanup actions
 	stm.runAfterStopStage()
 
-	if preState != Running {
+	if preState != Running && preState != Upgrading {
 		log.StartLogger.Errorf("[start] failed to start application at stage: %v", preState)
 	}
 

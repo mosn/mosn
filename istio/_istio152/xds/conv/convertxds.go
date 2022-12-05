@@ -87,19 +87,24 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           xdsListener.GetName(),
-			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
-			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
-			Inspector:      true,
-			AccessLogs:     convertAccessLogs(xdsListener),
+			Name:       xdsListener.GetName(),
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:  true,
+			AccessLogs: convertAccessLogs(xdsListener),
 		},
 		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
+	if xdsListener.GetUseOriginalDst().GetValue() {
+		listenerConfig.OriginalDst = v2.REDIRECT
+	} else if xdsListener.GetTransparent().GetValue() {
+		listenerConfig.OriginalDst = v2.TPROXY
+	}
+
 	for _, xl := range xdsListener.GetListenerFilters() {
-		if xl.Name == xdswellknown.OriginalDestination {
-			listenerConfig.UseOriginalDst = true
+		if xl.Name == xdswellknown.OriginalDestination && listenerConfig.OriginalDst != v2.TPROXY {
+			listenerConfig.OriginalDst = v2.REDIRECT
 		}
 	}
 

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
+	envoy_config_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -41,12 +42,18 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	iv2 "mosn.io/mosn/istio/istio1106/config/v2"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/extensions/sni"
 	"mosn.io/mosn/pkg/protocol"
 )
+
+// DefaultPassthroughCluster: EGRESS_CLUSTER or INGRESS_CLUSTER, counterpart of v2.ListenerType
+type DefaultPassthroughCluster string
+
+const EGRESS_CLUSTER DefaultPassthroughCluster = "PassthroughCluster"
+const INGRESS_CLUSTER DefaultPassthroughCluster = "InboundPassthroughClusterIpv4"
 
 // support network filter list
 var supportFilter = map[string]bool{
@@ -110,15 +117,20 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	}
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           listenerName,
-			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:      false,
-			AccessLogs:     convertAccessLogs(xdsListener),
-			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
-			Type:           convertTrafficDirection(xdsListener),
+			Name:       listenerName,
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:  false,
+			AccessLogs: convertAccessLogsFromListener(xdsListener),
+			Type:       convertTrafficDirection(xdsListener),
 		},
 		Addr:                    addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
+	}
+
+	if xdsListener.GetUseOriginalDst().GetValue() {
+		listenerConfig.OriginalDst = v2.REDIRECT
+	} else if xdsListener.GetTransparent().GetValue() {
+		listenerConfig.OriginalDst = v2.TPROXY
 	}
 
 	// convert listener filters.
@@ -137,8 +149,8 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 			listenerFilters = append(listenerFilters, lnf)
 		}
 		// set use original dst flag if original dst filter is exists
-		if lnf.Type == v2.ORIGINALDST_LISTENER_FILTER {
-			listenerConfig.UseOriginalDst = true
+		if lnf.Type == v2.ORIGINALDST_LISTENER_FILTER && listenerConfig.OriginalDst != v2.TPROXY {
+			listenerConfig.OriginalDst = v2.REDIRECT
 		}
 	}
 	listenerConfig.ListenerFilters = listenerFilters
@@ -146,7 +158,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener, rh ro
 	// use virtual listeners instead of multi filter chain.
 	// TODO: support multi filter chain
 	var virtualListeners []*v2.Listener
-	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.UseOriginalDst, rh)
+	listenerConfig.FilterChains, listenerConfig.StreamFilters, virtualListeners = convertFilterChains(xdsListener, listenerConfig.IsOriginalDst(), rh)
 	mosnListeners := []*v2.Listener{listenerConfig}
 	mosnListeners = append(mosnListeners, virtualListeners...)
 	return mosnListeners
@@ -173,50 +185,64 @@ func convertBindToPort(xdsDeprecatedV1 *envoy_config_listener_v3.Listener_Deprec
 	return xdsDeprecatedV1.BindToPort.GetValue()
 }
 
-func convertAccessLogs(xdsListener *envoy_config_listener_v3.Listener) []v2.AccessLog {
+func convertAccessLogsFromListener(xdsListener *envoy_config_listener_v3.Listener) []v2.AccessLog {
 	if xdsListener == nil {
 		return nil
 	}
 
 	accessLogs := make([]v2.AccessLog, 0)
-	for _, xdsFilterChain := range xdsListener.GetFilterChains() {
-		for _, xdsFilter := range xdsFilterChain.GetFilters() {
-			if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
-				filterConfig := GetHTTPConnectionManager(xdsFilter)
-
-				for _, accConfig := range filterConfig.GetAccessLog() {
-					if accConfig.Name == wellknown.FileAccessLog {
-						als, err := GetAccessLog(accConfig)
-						if err != nil {
-							log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
-							continue
-						}
-						accessLog := v2.AccessLog{
-							Path:   als.GetPath(),
-							Format: als.GetFormat(),
-						}
-						accessLogs = append(accessLogs, accessLog)
-					}
-				}
-			} else if xdsFilter.GetName() == wellknown.TCPProxy {
-				filterConfig := GetTcpProxy(xdsFilter)
-				for _, accConfig := range filterConfig.GetAccessLog() {
-					if accConfig.Name == wellknown.FileAccessLog {
-						als, err := GetAccessLog(accConfig)
-						if err != nil {
-							log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
-							continue
-						}
-						accessLog := v2.AccessLog{
-							Path:   als.GetPath(),
-							Format: als.GetFormat(),
-						}
-						accessLogs = append(accessLogs, accessLog)
-					}
-				}
-			} else {
-				log.DefaultLogger.Infof("[xds] unsupported filter config type, filter name: %s", xdsFilter.GetName())
+	for _, accConfig := range xdsListener.GetAccessLog() {
+		if accConfig.Name == wellknown.FileAccessLog {
+			als, err := GetAccessLog(accConfig)
+			if err != nil {
+				log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
+				continue
 			}
+			accessLog := v2.AccessLog{
+				Path:   als.GetPath(),
+				Format: als.GetFormat(),
+			}
+			accessLogs = append(accessLogs, accessLog)
+		}
+	}
+
+	return accessLogs
+}
+
+func convertAccessLogsFromFilterChain(xdsFilterChain *envoy_config_listener_v3.FilterChain) []v2.AccessLog {
+	if xdsFilterChain == nil {
+		return nil
+	}
+
+	var envoyAccesslogs []*envoy_config_accesslog_v3.AccessLog
+	accessLogs := make([]v2.AccessLog, 0)
+
+	for _, xdsFilter := range xdsFilterChain.GetFilters() {
+		if value, ok := httpBaseConfig[xdsFilter.GetName()]; ok && value {
+			filterConfig := GetHTTPConnectionManager(xdsFilter)
+			envoyAccesslogs = filterConfig.GetAccessLog()
+		} else if xdsFilter.GetName() == wellknown.TCPProxy {
+			filterConfig := GetTcpProxy(xdsFilter)
+			envoyAccesslogs = filterConfig.GetAccessLog()
+		}
+
+		if envoyAccesslogs != nil {
+			for _, accConfig := range envoyAccesslogs {
+				if accConfig.Name == wellknown.FileAccessLog {
+					als, err := GetAccessLog(accConfig)
+					if err != nil {
+						log.DefaultLogger.Warnf("[convertxds] [accesslog] conversion is fail %s", err)
+						continue
+					}
+					accessLog := v2.AccessLog{
+						Path:   als.GetPath(),
+						Format: als.GetFormat(),
+					}
+					accessLogs = append(accessLogs, accessLog)
+				}
+			}
+		} else {
+			log.DefaultLogger.Infof("[xds] unsupported filter config type, filter name: %s", xdsFilter.GetName())
 		}
 	}
 	return accessLogs
@@ -540,6 +566,7 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 							},
 						},
 						StreamFilters: streamFilters,
+						AccessLogs:    convertAccessLogsFromFilterChain(xdsFilterChain),
 					},
 					PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 				})
@@ -560,11 +587,27 @@ func convertFilterChains(xdsListener *envoy_config_listener_v3.Listener, useOrig
 		}
 	}
 	if useOriginalDst {
-		// TODO support passthrough and blackhole
+		// TODO support blackhole
+
+		var cluster DefaultPassthroughCluster
+		if convertTrafficDirection(xdsListener) == v2.INGRESS {
+			cluster = INGRESS_CLUSTER
+		} else {
+			cluster = EGRESS_CLUSTER
+		}
 		filterChains = []v2.FilterChain{
 			{
-				FilterChainConfig: v2.FilterChainConfig{},
-				TLSContexts:       []v2.TLSConfig{{}},
+				FilterChainConfig: v2.FilterChainConfig{
+					Filters: []v2.Filter{
+						{
+							Type: v2.TCP_PROXY,
+							Config: map[string]interface{}{
+								"cluster": cluster,
+							},
+						},
+					},
+				},
+				TLSContexts: []v2.TLSConfig{{}},
 			},
 		}
 		streamFilters = nil

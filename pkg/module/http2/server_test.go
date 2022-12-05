@@ -2408,6 +2408,7 @@ func TestServer_Rejects_TLS11(t *testing.T) { testRejectTLS(t, tls.VersionTLS11)
 
 func testRejectTLS(t *testing.T, max uint16) {
 	st := newServerTester(t, nil, func(c *tls.Config) {
+		c.MinVersion = tls.VersionTLS10 // Override go 1.18 default of tls.VersionTLS12
 		c.MaxVersion = max
 	})
 	defer st.Close()
@@ -2534,8 +2535,9 @@ func readBodyHandler(t *testing.T, want string) func(w http.ResponseWriter, r *h
 }
 
 // TestServerWithCurl currently fails, hence the LenientCipherSuites test. See:
-//   https://github.com/tatsuhiro-t/nghttp2/issues/140 &
-//   http://sourceforge.net/p/curl/bugs/1472/
+//
+//	https://github.com/tatsuhiro-t/nghttp2/issues/140 &
+//	http://sourceforge.net/p/curl/bugs/1472/
 func TestServerWithCurl(t *testing.T)                     { testServerWithCurl(t, false) }
 func TestServerWithCurl_LenientCipherSuites(t *testing.T) { testServerWithCurl(t, true) }
 
