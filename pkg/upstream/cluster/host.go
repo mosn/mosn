@@ -143,9 +143,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 		clientConn.SetMark(sh.ClusterInfo().Mark())
 	}
 
-	if sh.ClusterInfo().IdleTimeout() > 0 {
-		clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
-	}
+	clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
