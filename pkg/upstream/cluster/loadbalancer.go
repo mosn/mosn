@@ -570,7 +570,7 @@ func (lb *leastActiveConnectionLoadBalancer) unweightChooseHost(context types.Lo
 			candidate = tempHost
 			continue
 		}
-		if candidate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+		if candidate.HostStats().UpstreamConnectionActive.Count() > tempHost.HostStats().UpstreamConnectionActive.Count() {
 			candidate = tempHost
 		}
 	}
