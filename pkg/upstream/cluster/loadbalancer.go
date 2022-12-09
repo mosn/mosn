@@ -534,10 +534,16 @@ func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria)
 // leastActiveConnectiontLoadBalancer choose the host with the least active connection
 type leastActiveConnectionLoadBalancer struct {
 	*EdfLoadBalancer
+	choice uint32
 }
 
 func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
+	if info != nil && info.LbConfig() != nil {
+		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+	} else {
+		lb.choice = default_choice
+	}
 	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
 }
@@ -548,21 +554,26 @@ func (lb *leastActiveConnectionLoadBalancer) hostWeight(item WeightItem) float64
 }
 
 func (lb *leastActiveConnectionLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	allHosts := lb.hosts
-	total := allHosts.Size()
+	hs := lb.hosts
+	total := hs.Size()
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	var candicate types.Host
-	randIdx := lb.rand.Intn(total)
-	for cur := 0; cur < total; cur++ {
-		tempHost := allHosts.Get((randIdx+cur)%total)
-		if candicate == nil {
-			candicate = tempHost
+	var candidate types.Host
+	// Choose `choice` times and return the best one
+	// See The Power of Two Random Choices: A Survey of Techniques and Results
+	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+	for cur := 0; cur < int(lb.choice); cur++ {
+
+		randIdx := lb.rand.Intn(total)
+		tempHost := hs.Get(randIdx)
+		if candidate == nil {
+			candidate = tempHost
 			continue
 		}
-		if candicate.HostStats().UpstreamConnectionActive.Count() > tempHost.HostStats().UpstreamConnectionActive.Count() {
-			candicate = tempHost
+		if candidate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+			candidate = tempHost
 		}
 	}
-	return candicate
+	return candidate
+
 }
