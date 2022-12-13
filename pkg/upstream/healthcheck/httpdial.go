@@ -59,10 +59,10 @@ type HttpCheckConfig struct {
 }
 
 type HTTPDialSession struct {
-	client    *http.Client
-	timeout   time.Duration
-	request   *http.Request
-	Codes     []CodeRange
+	client  *http.Client
+	timeout time.Duration
+	request *http.Request
+	Codes   []CodeRange
 }
 
 type HTTPDialSessionFactory struct{}
