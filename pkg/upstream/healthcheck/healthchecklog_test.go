@@ -19,6 +19,7 @@ package healthcheck
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,7 @@ import (
 
 func TestHealthCheckLog(t *testing.T) {
 	path := "/tmp/hc.log"
+	os.Remove(path)
 	hc := NewHealthCheckLogger(path)
 	if hc != nil {
 		return
@@ -39,10 +41,9 @@ func TestHealthCheckLog(t *testing.T) {
 		t.Errorf("health check log file open failed, err:%v", err)
 	}
 	// "time:%d host:%s health_status:%v current_result:%v status_changed:%v %s"
-	expected := fmt.Sprintf(defaultHealthCheckFormat,
+	expected := fmt.Sprintf("time:%d host:%s health_status:%v current_result:%v status_changed:%v",
 		time.Now().Unix(), "localhost:5300", 0, 0, 0)
 	if ! strings.Contains(string(dat), expected) {
 		t.Errorf("health check log failed, data:%s, expected:%s", string(dat), expected)
 	}
-	//os.Remove(path)
 }

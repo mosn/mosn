@@ -17,17 +17,18 @@
 package healthcheck
 
 import (
-	"fmt"
+	"strconv"
+	"time"
+
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
-	"time"
 )
 
 type hcLogCreator func(path string) types.HealthCheckLog
 
 var gHealthCheckLogCreator hcLogCreator
 
-func SetHealthCheckLogger(creator hcLogCreator)  {
+func SetHealthCheckLogger(creator hcLogCreator) {
 	gHealthCheckLogCreator = creator
 }
 
@@ -61,24 +62,24 @@ type defaultHealthCheckLogger struct {
 	logger *log.Logger
 }
 
-const (
-	// timestamp host health_status current_result status_changed additional info(current_code domain path)
-	defaultHealthCheckFormat = "time:%d host:%s health_status:%v current_result:%v status_changed:%v"
-)
-
+// default format:time host health_status current_result status_changed
 func (l *defaultHealthCheckLogger) Log(host types.Host, current_status, changed bool) {
 	if l.logger == nil {
 		return
 	}
 
-	s := fmt.Sprintf(defaultHealthCheckFormat, time.Now().Unix(), host.AddressString(), boolToInt(host.Health()),
-		boolToInt(current_status), boolToInt(changed))
-
-	buf := log.GetLogBuffer(len(s))
-	buf.WriteString(s)
-	if len(s) == 0 || s[len(s)-1] != '\n' {
-		buf.WriteString("\n")
-	}
+	buf := log.GetLogBuffer(256)
+	buf.WriteString("time:")
+	buf.WriteString(strconv.FormatInt(time.Now().Unix(), 10) + ",")
+	buf.WriteString("host:")
+	buf.WriteString(host.AddressString() + ",")
+	buf.WriteString("health_status:")
+	buf.WriteString(strconv.Itoa(boolToInt(host.Health())) + ",")
+	buf.WriteString("current_result:")
+	buf.WriteString(strconv.Itoa(boolToInt(current_status)) + ",")
+	buf.WriteString("status_changed:")
+	buf.WriteString(strconv.Itoa(boolToInt(changed)))
+	buf.WriteString("\n")
 
 	l.logger.Print(buf, true)
 }
