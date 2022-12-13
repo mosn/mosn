@@ -20,22 +20,26 @@ import (
 	"fmt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
+	"time"
 )
 
-type HealthCheckLogger struct {
-	output string
-	logger *log.Logger
+type hcLogCreator func(path string) types.HealthCheckLog
+
+var gHealthCheckLogCreator hcLogCreator
+
+func SetHealthCheckLogger(creator hcLogCreator)  {
+	gHealthCheckLogCreator = creator
 }
 
-const (
-	// timestamp host health_status current_result status_changed additional info(current_code domain path)
-	defaultHealthCheckFormat = "time:%d host:%s health_status:%v current_result:%v status_changed:%v %s"
-)
+// NewHealthCheckLogger returns a hc logger
+func NewHealthCheckLogger(output string) types.HealthCheckLog {
+	if gHealthCheckLogCreator != nil {
+		return gHealthCheckLogCreator(output)
+	}
+	return defaultHealthCheckLogCreator(output)
+}
 
-var _ types.HealthCheckLog =  &HealthCheckLogger{}
-
-// NewHealthCheckLog
-func NewHealthCheckLog(output string) types.HealthCheckLog {
+func defaultHealthCheckLogCreator(output string) types.HealthCheckLog {
 	if output == "" {
 		return nil
 	}
@@ -44,7 +48,7 @@ func NewHealthCheckLog(output string) types.HealthCheckLog {
 		log.DefaultLogger.Errorf("[upstream] [health check] new health check log failed, %v", err)
 	}
 
-	l := &HealthCheckLogger{
+	l := &defaultHealthCheckLogger{
 		output: output,
 		logger: lg,
 	}
@@ -52,19 +56,24 @@ func NewHealthCheckLog(output string) types.HealthCheckLog {
 	return l
 }
 
-func boolToInt(status bool) int {
-	if status {
-		return 1
-	}
-	return 0
+type defaultHealthCheckLogger struct {
+	output string
+	logger *log.Logger
 }
 
-func (l *HealthCheckLogger) Log(format string, args ...interface{}) {
+const (
+	// timestamp host health_status current_result status_changed additional info(current_code domain path)
+	defaultHealthCheckFormat = "time:%d host:%s health_status:%v current_result:%v status_changed:%v"
+)
+
+func (l *defaultHealthCheckLogger) Log(host types.Host, current_status, changed bool) {
 	if l.logger == nil {
 		return
 	}
 
-	s := fmt.Sprintf(format, args...)
+	s := fmt.Sprintf(defaultHealthCheckFormat, time.Now().Unix(), host.AddressString(), boolToInt(host.Health()),
+		boolToInt(current_status), boolToInt(changed))
+
 	buf := log.GetLogBuffer(len(s))
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
@@ -72,4 +81,11 @@ func (l *HealthCheckLogger) Log(format string, args ...interface{}) {
 	}
 
 	l.logger.Print(buf, true)
+}
+
+func boolToInt(status bool) int {
+	if status {
+		return 1
+	}
+	return 0
 }

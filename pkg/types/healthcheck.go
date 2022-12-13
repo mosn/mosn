@@ -32,7 +32,7 @@ type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
 // HealthCheckCb is the health check's callback function
 
 type HealthCheckLog interface {
-	Log(format string, args ...interface{})
+	Log(host Host, changedState bool, isHealthy bool)
 }
 
 // HealthChecker is a framework for connection management
@@ -57,8 +57,6 @@ type HealthCheckSession interface {
 	CheckHealth() bool
 	// OnTimeout is called when a check health does not return after timeout duration
 	OnTimeout()
-	// CheckInfo returns additional info on health check
-	CheckInfo() string
 }
 
 // HealthCheckSessionFactory creates a HealthCheckSession

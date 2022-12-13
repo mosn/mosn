@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -64,7 +63,6 @@ type HTTPDialSession struct {
 	timeout   time.Duration
 	request   *http.Request
 	Codes     []CodeRange
-	checkCode int
 }
 
 type HTTPDialSessionFactory struct{}
@@ -169,7 +167,6 @@ func (s *HTTPDialSession) CheckHealth() bool {
 	}
 	defer resp.Body.Close()
 
-	s.setCheckCode(resp.StatusCode)
 	result := s.verifyCode(resp.StatusCode)
 	if !result {
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.request.URL.String(), resp.StatusCode)
@@ -180,14 +177,6 @@ func (s *HTTPDialSession) CheckHealth() bool {
 	}
 
 	return result
-}
-
-func (s *HTTPDialSession) setCheckCode(code int) {
-	s.checkCode = code
-}
-
-func (s *HTTPDialSession) CheckInfo() string {
-	return fmt.Sprintf("code:%d domain:%s path:%s", s.checkCode, s.request.Host, s.request.RequestURI)
 }
 
 func (s *HTTPDialSession) OnTimeout() {

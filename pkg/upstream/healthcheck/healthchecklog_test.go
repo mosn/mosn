@@ -26,21 +26,21 @@ import (
 
 func TestHealthCheckLog(t *testing.T) {
 	path := "/tmp/hc.log"
-	hc := NewHealthCheckLog(path)
+	hc := NewHealthCheckLogger(path)
 	if hc != nil {
 		return
 	}
 	host := &mockHost{
 		addr: "localhost:5300",
 	}
-	hc.Log(defaultHealthCheckFormat, host, false, false, "code:200")
+	hc.Log(host, false, false)
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("health check log file open failed, err:%v", err)
 	}
 	// "time:%d host:%s health_status:%v current_result:%v status_changed:%v %s"
 	expected := fmt.Sprintf(defaultHealthCheckFormat,
-		time.Now().Unix(), "localhost:5300", 0, 0, 0, "code:200")
+		time.Now().Unix(), "localhost:5300", 0, 0, 0)
 	if ! strings.Contains(string(dat), expected) {
 		t.Errorf("health check log failed, data:%s, expected:%s", string(dat), expected)
 	}

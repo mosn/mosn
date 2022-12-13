@@ -102,7 +102,7 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		sessionFactory:     f,
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
-		logger:             NewHealthCheckLog(cfg.EventLogPath),
+		logger:             NewHealthCheckLogger(cfg.EventLogPath),
 	}
 
 	// Add common callbacks when create
@@ -275,9 +275,9 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 
 }
 
-func (hc *healthChecker) log(host types.Host, current_status, changed bool, info string) {
+func (hc *healthChecker) log(host types.Host, current_status, changed bool) {
 	if hc.logger == nil {
 		return
 	}
-	hc.logger.Log(defaultHealthCheckFormat, time.Now().Unix(), host.AddressString(), boolToInt(host.Health()), boolToInt(current_status), boolToInt(changed), info)
+	hc.logger.Log(host, current_status, changed)
 }

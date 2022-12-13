@@ -51,7 +51,3 @@ func (s *TCPDialSession) CheckHealth() bool {
 }
 
 func (s *TCPDialSession) OnTimeout() {}
-
-func (s *TCPDialSession) CheckInfo() string {
-	return ""
-}
