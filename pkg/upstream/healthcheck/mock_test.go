@@ -45,7 +45,6 @@ func (s *mockSession) CheckHealth() bool {
 	}
 	return s.host.Health()
 }
-
 func (s *mockSession) OnTimeout() {}
 
 type mockCluster struct {
