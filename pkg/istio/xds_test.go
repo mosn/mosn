@@ -162,4 +162,17 @@ func TestXdsClient(t *testing.T) {
 		require.True(t, ok)
 		waitStop(client)
 	})
+
+	t.Run("reconnect client once", func(t *testing.T) {
+		records = map[string]struct{}{}
+		EnableReconnect()
+		cfg.failed = 1
+		client, _ := NewAdsClient(&v2.MOSNConfig{})
+		client.Start()
+		client.ReconnectStreamClient()
+		time.Sleep(3 * time.Second)
+		_, ok := records["cds-test"]
+		require.True(t, ok)
+		waitStop(client)
+	})
 }
