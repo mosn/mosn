@@ -136,16 +136,7 @@ func generateArgs() []string {
 	args := mosnCmd
 	args += " -c " + DefaultMosnConfigPath
 	addCmdArg(args, "--log-level", "LOG_LEVEL")
-	addCmdArg(args, "--pod-ip", "POD_IP")
-	addCmdArg(args, "--pod-name", "POD_NAME")
-	addCmdArg(args, "--pod-namespace", "POD_NAMESPACE")
 	addCmdArg(args, "--feature-gates", "FEATURE_GATES")
-	addCmdArg(args, "--cluster-domain", "CLUSTER_DOMAIN")
-	addCmdArg(args, "--service-lables", "SERVICE_LAB")
-	addCmdArg(args, "--service-meta", "SERVICE_META")
-	addCmdArg(args, "--service-type", "SERVICE_TYPE")
-	addCmdArg(args, "--service-node", "SERVICE_NODE")
-	addCmdArg(args, "--service-cluster", "LOG_FORMAT")
 	addCmdArg(args, "--component-log-level", "COMPONENT_LOG_LEVEL")
 	addCmdArg(args, "--local-address-ip-version", "LOCAL_ADDRESS_IP_VERSION")
 	addCmdArg(args, "--restart-epoch", "RESTART_EPOCH")
