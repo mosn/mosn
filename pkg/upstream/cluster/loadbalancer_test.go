@@ -809,3 +809,9 @@ func TestWRRLoadBalancer(t *testing.T) {
 		}
 	}
 }
+
+func TestNewLACBalancer(t *testing.T) {
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveConnection}, &hostSet{})
+	assert.NotNil(t, balancer)
+	assert.IsType(t, &leastActiveConnectionLoadBalancer{}, balancer)
+}
