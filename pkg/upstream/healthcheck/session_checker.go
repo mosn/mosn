@@ -131,6 +131,7 @@ func (c *sessionChecker) HandleSuccess() {
 			c.Host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 		}
 	}
+	c.HealthChecker.log(c.Host, true, changed)
 	c.HealthChecker.incHealthy(c.Host, changed)
 }
 
@@ -146,6 +147,7 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 		}
 	}
 	c.HealthChecker.decHealthy(c.Host, reason, changed)
+	c.HealthChecker.log(c.Host, false, changed)
 }
 
 func (c *sessionChecker) OnCheck() {
