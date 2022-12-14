@@ -170,7 +170,7 @@ func TestXdsClient(t *testing.T) {
 		client, _ := NewAdsClient(&v2.MOSNConfig{})
 		client.Start()
 		client.ReconnectStreamClient()
-		time.Sleep(2*time.Second)
+		time.Sleep(2 * time.Second)
 		_, ok := records["cds-test"]
 		require.True(t, ok)
 		waitStop(client)
