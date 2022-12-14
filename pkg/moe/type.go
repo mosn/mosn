@@ -37,15 +37,15 @@ type bufferImpl struct {
 	api.DataBufferBase
 }
 
-func (b *bufferImpl) Read(p []byte) (n int, err error) {
+func (b *bufferImpl) Read(p []byte) (int, error) {
 	panic("implement me")
 }
 
-func (b *bufferImpl) ReadOnce(r io.Reader) (n int64, err error) {
+func (b *bufferImpl) ReadOnce(r io.Reader) (int64, error) {
 	panic("implement me")
 }
 
-func (b *bufferImpl) ReadFrom(r io.Reader) (n int64, err error) {
+func (b *bufferImpl) ReadFrom(r io.Reader) (int64, error) {
 	panic("implement me")
 }
 
@@ -53,7 +53,7 @@ func (b *bufferImpl) Grow(n int) error {
 	panic("implement me")
 }
 
-func (b *bufferImpl) WriteTo(w io.Writer) (n int64, err error) {
+func (b *bufferImpl) WriteTo(w io.Writer) (int64, error) {
 	panic("implement me")
 }
 

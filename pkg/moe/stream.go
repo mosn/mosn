@@ -44,12 +44,12 @@ func init() {
 }
 
 func ConfigFactory(config interface{}) api.HttpFilterFactory {
-	any, ok := config.(*anypb.Any)
+	ap, ok := config.(*anypb.Any)
 	if !ok {
 		return nil
 	}
 	configStruct := &udpa.TypedStruct{}
-	if err := any.UnmarshalTo(configStruct); err != nil {
+	if err := ap.UnmarshalTo(configStruct); err != nil {
 		log.DefaultLogger.Errorf("[moe] ConfigFactory fail to unmarshal, err: %v", err)
 		return nil
 	}
