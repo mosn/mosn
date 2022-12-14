@@ -195,12 +195,13 @@ func (adsClient *ADSClient) Stop() {
 }
 
 // close stream client and trigger reconnect right now
-func (adsClient *ADSClient) ReconnectOnce() {
+func (adsClient *ADSClient) ReconnectStreamClient() {
 	adsClient.stopStreamClient()
 	log.DefaultLogger.Infof("[xds] [ads client] close stream client")
 
 	if disableReconnect {
 		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect disabled")
+		return
 	}
 
 	adsClient.sendTimer.Reset(0)

@@ -169,8 +169,8 @@ func TestXdsClient(t *testing.T) {
 		cfg.failed = 1
 		client, _ := NewAdsClient(&v2.MOSNConfig{})
 		client.Start()
-		client.ReconnectOnce()
-		time.Sleep(time.Second)
+		client.ReconnectStreamClient()
+		time.Sleep(2*time.Second)
 		_, ok := records["cds-test"]
 		require.True(t, ok)
 		waitStop(client)
