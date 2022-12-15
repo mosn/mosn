@@ -116,6 +116,7 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 		//try from first server by default
 		for _, addr := range addrs {
 			msg.SetQuestion(addr, dnsQueryType)
+			msg.SetEdns0(4096, true)
 			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
 
 			if err != nil {
