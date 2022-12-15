@@ -683,9 +683,9 @@ func (s *downStream) matchRoute() {
 			log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil but updated from routerManager, router:%s", s.proxy.config.RouterConfigName)
 			s.proxy.routersWrapper = routersWrapper
 		} else {
-			log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
+			log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router")
 			s.requestInfo.SetResponseFlag(api.NoRouteFound)
-			s.sendHijackReply(types.RouterUnavailableCode, headers)
+			s.sendHijackReply(api.RouterUnavailableCode, headers)
 			return
 		}
 	}
