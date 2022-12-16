@@ -678,16 +678,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 func (s *downStream) matchRoute() {
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
-		// try to update s.proxy.routersWrapper since RDS arrives after LDS in case keepalive connections are always affected
-		if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(s.proxy.config.RouterConfigName); routersWrapper != nil {
-			log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil but updated from routerManager, router:%s", s.proxy.config.RouterConfigName)
-			s.proxy.routersWrapper = routersWrapper
-		} else {
-			log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router")
-			s.requestInfo.SetResponseFlag(api.NoRouteFound)
-			s.sendHijackReply(api.RouterUnavailableCode, headers)
-			return
-		}
+		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router")
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
+		s.sendHijackReply(api.RouterUnavailableCode, headers)
+		return
 	}
 
 	// get router instance and do routing

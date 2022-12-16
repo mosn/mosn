@@ -59,7 +59,6 @@ func (cvt *xdsConverter) listenerRouterHandler(isRds bool, routerConfig *v2.Rout
 	// save rds records, get router config from rds request
 	if isRds {
 		cvt.AppendRouterName(routerConfig.RouterConfigName)
-		return
 	}
 	routersMngIns := router.GetRoutersMangerInstance()
 	if routersMngIns == nil {
