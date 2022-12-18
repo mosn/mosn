@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package match;
+
+import "google/protobuf/wrappers.proto";
+import "github.com/bufbuild/protoc-gen-validate/validate/validate.proto";
+
+option go_package = "mosn.io/mosn/pkg/filter/stream/auth/matchpb";
+
+message RequirementRule {
+
+  RouteMatch match = 1 [(validate.rules).message = {required: true}];
+
+  Requirement requires = 2 [(validate.rules).message = {required: true}];
+}
+
+// This message specifies a auth requirement. An empty message means verification is not required
+message Requirement {
+  oneof requires_type {
+    option (validate.required) = true;
+
+    // Specify a required authenticator name.
+    string authenticator_name = 1;
+
+    // Specify list of Requirement. Their results are OR-ed.
+    // If any one of them passes, the result is passed.
+    RequirementOrList requires_any = 2;
+
+   // Specify list of Requirement. Their results are AND-ed.
+    // All of them must pass, if one of them fails or missing, it fails.
+    RequirementAndList requires_all = 3;
+  }
+}
+
+message RequirementOrList {
+  repeated Requirement requirements = 1 [(validate.rules).repeated = {min_items: 2}];
+}
+
+message RequirementAndList {
+  repeated Requirement requirements = 1 [(validate.rules).repeated = {min_items: 2}];
+}
+
+message RouteMatch {
+
+  oneof path_specifier {
+    option (validate.required) = true;
+
+    // If specified, the route is a prefix rule meaning that the prefix must
+    // match the beginning of the *:path* header.
+    string prefix = 1;
+
+    // If specified, the route is an exact path rule meaning that the path must
+    // exactly match the *:path* header once the query string is removed.
+    string path = 2;
+  }
+
+  // Indicates that prefix/path matching should be case sensitive. The default
+  // is true.
+  google.protobuf.BoolValue case_sensitive = 3;
+
+  // Specifies a set of headers that the route should match on. The router will
+  // check the request’s headers against all the specified headers in the route
+  // config. A match will happen if all the headers in the route are present in
+  // the request with the same values (or based on presence if the value field
+  // is not in the config).
+  repeated HeaderMatcher headers = 4;
+}
+
+message HeaderMatcher {
+
+  // Specifies the name of the header in the request.
+  string name = 1
+      [(validate.rules).string = {min_bytes: 1 well_known_regex: HTTP_HEADER_NAME strict: false}];
+
+  // If specified, the match result will be inverted before checking. Defaults to false.
+  bool invert_match = 2;
+
+  // Specifies how the header match will be performed to route the request.
+  oneof header_match_specifier {
+    // If specified, header match will be performed based on the value of the header.
+    string exact_match = 3;
+
+    // If specified, header match will be performed based on whether the header is in the
+    // request.
+    bool present_match = 4;
+
+    // If specified, header match will be performed based on the prefix of the header value.
+    // Note: empty prefix is not allowed, please use present_match instead.
+    //
+    // Examples:
+    //
+    // * The prefix *abcd* matches the value *abcdxyz*, but not for *abcxyz*.
+    string prefix_match = 5 [(validate.rules).string = {min_bytes: 1}];
+
+    // If specified, header match will be performed based on the suffix of the header value.
+    // Note: empty suffix is not allowed, please use present_match instead.
+    //
+    // Examples:
+    //
+    // * The suffix *abcd* matches the value *xyzabcd*, but not for *xyzbcd*.
+    string suffix_match = 6 [(validate.rules).string = {min_bytes: 1}];
+  }
+}

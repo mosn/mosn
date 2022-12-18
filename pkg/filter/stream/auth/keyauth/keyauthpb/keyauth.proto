@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package keyauth;
+
+import "auth/matchpb/match.proto";
+
+option go_package = "mosn.io/mosn/pkg/filter/stream/auth/keyauth/keyauthpb";
+
+message Authenticator {
+  // The following two fields define the location of the key extracted from the HTTP request.
+  string from_header = 1;
+
+  string from_param = 2;
+
+  repeated string keys = 3;
+}
+
+message KeyAuth {
+
+  // Map of authenticator names to authenticator.
+  map<string, Authenticator> authenticators = 1;
+
+  // Specifies requirements based on the route matches. The first matched requirement will be
+	// applied. If there are overlapped match conditions, please put the most specific match first.
+  repeated match.RequirementRule rules = 2;
+}

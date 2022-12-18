@@ -100,6 +100,7 @@ const (
 	GoPluginStreamFilterSuffix = "so_plugin"
 	GrpcMetricFilter           = "grpc_metric"
 	IPAccess                   = "ip_access"
+	KeyAuth                    = "key_auth"
 )
 
 // HealthCheckFilter

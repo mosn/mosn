@@ -30,6 +30,7 @@ const (
 	V4Only uint8 = iota
 	V6Only
 	Auto
+	defaultUDPBufferSize = 4096
 )
 
 var DefaultResolverFile string = "/etc/resolv.conf"
@@ -116,6 +117,7 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 		//try from first server by default
 		for _, addr := range addrs {
 			msg.SetQuestion(addr, dnsQueryType)
+			msg.SetEdns0(defaultUDPBufferSize, true)
 			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
 
 			if err != nil {
