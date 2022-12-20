@@ -54,6 +54,7 @@ func init() {
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
+	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
 
 	registerVariables()
 }
