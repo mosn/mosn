@@ -136,7 +136,7 @@ func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 	// start init services
-	if err = store.StartService(nil); err != nil {
+	if err = store.StartService(m.Upgrade.InheritListeners); err != nil {
 		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 	}
 	return
