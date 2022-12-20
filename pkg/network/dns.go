@@ -114,6 +114,8 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 		//try from first server by default
 		for _, addr := range addrs {
 			msg.SetQuestion(addr, dnsQueryType)
+			// 1. SetEdns0 appends a EDNS0 OPT RR to the message, in case server side response message truncated
+			// 2. It also adjusts client side buffer size
 			msg.SetEdns0(defaultUDPBufferSize, true)
 			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
 
