@@ -49,8 +49,9 @@ type MOSNConfig struct {
 
 // PProfConfig is used to start a pprof server for debug
 type PProfConfig struct {
-	StartDebug bool `json:"debug"`      // If StartDebug is true, start a pprof, default is false
-	Port       int  `json:"port_value"` // If port value is 0, will use 9090 as default
+	StartDebug bool   `json:"debug"`      // If StartDebug is true, start a pprof, default is false
+	Port       int    `json:"port_value"` // If port value is 0, will use 9090 as default
+	Endpoint   string `json:"endpoint"`   // If endpoint is empty, will use "0.0.0.0" as default
 }
 
 // Tracing configuration for a server
