@@ -91,7 +91,6 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		}
 	}
 
-	uri := &url.URL{}
 	uri, err := url.Parse(httpCheckConfig.Path)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] path=%s parse error %+v", httpCheckConfig.Path, err)
