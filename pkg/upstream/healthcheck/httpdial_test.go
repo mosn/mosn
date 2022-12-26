@@ -193,6 +193,14 @@ func Test_CheckL7Health(t *testing.T) {
 			expect: true,
 		},
 		{
+			name:       "normal_code_with_querystring",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "/200?test=foo&test1=bar",
+			},
+			expect: true,
+		},
+		{
 			name:       "abnormal_code",
 			serverCode: 500,
 			serverPath: "/500",

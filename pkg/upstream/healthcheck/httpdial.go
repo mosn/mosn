@@ -92,6 +92,11 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 	}
 
 	uri := &url.URL{}
+	uri, err := url.Parse(httpCheckConfig.Path)
+	if err != nil {
+		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] path=%s parse error %+v", httpCheckConfig.Path, err)
+		return nil
+	}
 	if httpCheckConfig.Scheme == "" {
 		uri.Scheme = "http"
 	} else {
@@ -107,12 +112,10 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 	if httpCheckConfig.Port > 0 && httpCheckConfig.Port < 65535 {
 		// re-config http check port
 		uri.Host = hostIp + ":" + strconv.Itoa(httpCheckConfig.Port)
-		uri.Path = httpCheckConfig.Path
 	} else {
 		// use rpc port as http check port
 		log.DefaultLogger.Warnf("[upstream] [health check] [httpdial session] httpCheckConfig port config error %+v", httpCheckConfig)
 		uri.Host = host.AddressString()
-		uri.Path = httpCheckConfig.Path
 	}
 
 	if httpCheckConfig.Scheme != "" {
