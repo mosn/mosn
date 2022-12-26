@@ -381,6 +381,7 @@ func (stm *StageManager) Stop() {
 	if stm.state == Nil {
 		return
 	}
+	preState := stm.state
 	// graceful stop the existing connections and requests
 	if stm.stopAction == GracefulStop || stm.stopAction == Upgrade {
 		stm.runGracefulStopStage()
