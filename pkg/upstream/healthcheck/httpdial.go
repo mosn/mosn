@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"mosn.io/api"
@@ -91,11 +92,7 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		}
 	}
 
-	uri, err := url.Parse(httpCheckConfig.Path)
-	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] path=%s parse error %+v", httpCheckConfig.Path, err)
-		return nil
-	}
+	uri := &url.URL{}
 	if httpCheckConfig.Scheme == "" {
 		uri.Scheme = "http"
 	} else {
@@ -117,8 +114,12 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		uri.Host = host.AddressString()
 	}
 
-	if httpCheckConfig.Scheme != "" {
-		uri.Scheme = httpCheckConfig.Scheme
+	strs := strings.Split(httpCheckConfig.Path, "?")
+	if len(strs) == 2 {
+		uri.Path = strs[0]
+		uri.RawQuery = strs[0]
+	} else {
+		uri.Path = strs[0]
 	}
 
 	if httpCheckConfig.Timeout.Duration > 0 {
