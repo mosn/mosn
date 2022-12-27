@@ -114,12 +114,14 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 		uri.Host = host.AddressString()
 	}
 
-	strs := strings.Split(httpCheckConfig.Path, "?")
-	if len(strs) == 2 {
-		uri.Path = strs[0]
-		uri.RawQuery = strs[0]
+	ind := strings.IndexByte(httpCheckConfig.Path, '?')
+	if ind < 0 {
+		uri.Path = httpCheckConfig.Path
 	} else {
-		uri.Path = strs[0]
+		uri.Path = httpCheckConfig.Path[:ind]
+		if len(httpCheckConfig.Path) > ind+1 {
+			uri.RawQuery = httpCheckConfig.Path[ind+1:]
+		}
 	}
 
 	if httpCheckConfig.Timeout.Duration > 0 {

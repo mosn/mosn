@@ -201,6 +201,46 @@ func Test_CheckL7Health(t *testing.T) {
 			expect: true,
 		},
 		{
+			name:       "normal_code_only_querystring",
+			serverCode: 200,
+			serverPath: "/",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "?test=foo&test1=bar",
+			},
+			expect: true,
+		},
+		{
+			name:       "normal_code_no_path_and_querystring",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "?",
+			},
+			expect: true,
+		},
+		{
+			name:       "normal_code_force_query",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "/200?",
+			},
+			expect: true,
+		},
+		{
+			name:       "abnormal_code_illegal_path",
+			hostAddr:   httpAddr,
+			config: HttpCheckConfig{
+				Path: "http://localhost/400?foo=bar",
+				Codes: []CodeRange{
+					{
+						Start: 300,
+						End:   401,
+					},
+				},
+			},
+			expect: false,
+		},
+		{
 			name:       "abnormal_code",
 			serverCode: 500,
 			serverPath: "/500",
@@ -239,15 +279,15 @@ func Test_CheckL7Health(t *testing.T) {
 		},
 	}
 
+	mux := http.NewServeMux()
 	addPath := func(path string, code int) {
-		http.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(code)
 		})
 	}
 
 	// start httpserver
-	server := &http.Server{Addr: "127.0.0.1:22222"}
-	go server.ListenAndServe()
+	go http.ListenAndServe("127.0.0.1:22222", mux)
 	time.Sleep(time.Second)
 
 	for _, tc := range testCases {
@@ -268,6 +308,4 @@ func Test_CheckL7Health(t *testing.T) {
 			t.Errorf("Test_CheckHealth Error, case:%s", tc.name)
 		}
 	}
-
-	server.Close()
 }
