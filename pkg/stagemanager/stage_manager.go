@@ -390,7 +390,9 @@ func (stm *StageManager) Stop() {
 	stm.SetState(Stopping)
 
 	// close application
-	stm.app.Close(preState == Upgrading)
+	// preState == Upgrading : old Mosn exits after new Mosn starts successfully
+	// preState < Starting && stm.app.IsFromUpgrade() : new Mosn exits when starting from upgrade mode fails
+	stm.app.Close(preState == Upgrading || preState < Starting && stm.app.IsFromUpgrade())
 
 	// other cleanup actions
 	stm.runAfterStopStage()
