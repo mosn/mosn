@@ -519,7 +519,6 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 			return target
 		}
 	}
-	variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
 
 	return nil
 }
