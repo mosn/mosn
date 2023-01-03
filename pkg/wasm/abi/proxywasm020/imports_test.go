@@ -61,7 +61,7 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 	instance.EXPECT().GetData().AnyTimes().Return(abiContext)
 	instance.EXPECT().Lock(gomock.Any()).AnyTimes().Return()
 	instance.EXPECT().Unlock().AnyTimes().Return()
-	instance.EXPECT().GetExportsFunc(gomock.Any()).AnyTimes().Return(nil, errors.New("func not esists"))
+	instance.EXPECT().GetExportsFunc(gomock.Any()).AnyTimes().Return(nil, errors.New("func not exists"))
 
 	d := abiContext.GetABIImports().(*DefaultImportsHandler)
 

@@ -25,7 +25,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
-	github.com/miekg/dns v1.1.25
+	github.com/miekg/dns v1.1.50
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/opentrx/seata-golang/v2 v2.0.4
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -40,13 +40,12 @@ require (
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/fasthttp v1.40.0
 	github.com/valyala/fasttemplate v1.1.0
-	github.com/wasmerio/wasmer-go v1.0.4
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
-	golang.org/x/tools v0.1.4
+	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
@@ -54,10 +53,10 @@ require (
 	istio.io/api v0.0.0-20211103171850-665ed2b92d52
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
-	mosn.io/api v1.2.3
+	mosn.io/api v1.3.0
 	mosn.io/holmes v1.0.1
-	mosn.io/pkg v1.2.3
-	mosn.io/proxy-wasm-go-host v0.2.0
+	mosn.io/pkg v1.3.0
+	mosn.io/proxy-wasm-go-host v0.2.1-0.20221123073237-4f948bf02510
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
 
@@ -112,15 +111,19 @@ require (
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.20.11 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/tetratelabs/wazero v1.0.0-pre.3.0.20221122114515-b8d985462e20 // indirect
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/arch v0.0.0-20200826200359-b19915210f00 // indirect
+	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

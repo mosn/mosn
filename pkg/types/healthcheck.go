@@ -29,6 +29,11 @@ const (
 
 // HealthCheckCb is the health check's callback function
 type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
+// HealthCheckCb is the health check's callback function
+
+type HealthCheckLog interface {
+	Log(host Host, changedState bool, isHealthy bool)
+}
 
 // HealthChecker is a framework for connection management
 // When NewCluster is called, and the config contains health check related, mosn will create

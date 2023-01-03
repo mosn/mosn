@@ -58,6 +58,7 @@ type healthChecker struct {
 	unhealthyThreshold uint32
 	rander             *rand.Rand
 	hostCheckCallbacks []types.HealthCheckCb
+	logger             types.HealthCheckLog
 }
 
 func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
@@ -101,7 +102,9 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		sessionFactory:     f,
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
+		logger:             NewHealthCheckLogger(cfg.EventLogPath),
 	}
+
 	// Add common callbacks when create
 	// common callbacks should be registered and configured
 	for _, name := range cfg.CommonCallbacks {
@@ -163,7 +166,7 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
 func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	newHostsMap := make(map[string]types.Host, new.Size())
-	if new != nil{
+	if new != nil {
 		new.Range(func(newHost types.Host) bool {
 			newHostsMap[newHost.AddressString()] = newHost
 			return true
@@ -171,7 +174,7 @@ func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	}
 	// find delete host
 	deleteHosts := make([]types.Host, 0)
-	if old != nil{
+	if old != nil {
 		old.Range(func(oldHost types.Host) bool {
 			_, ok := newHostsMap[oldHost.AddressString()]
 			if ok {
@@ -270,4 +273,11 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 	}
 	hc.runCallbacks(host, changed, false)
 
+}
+
+func (hc *healthChecker) log(host types.Host, current_status, changed bool) {
+	if hc.logger == nil {
+		return
+	}
+	hc.logger.Log(host, current_status, changed)
 }

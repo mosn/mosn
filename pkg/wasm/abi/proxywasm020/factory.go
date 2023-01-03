@@ -59,7 +59,9 @@ func (ctx *ABIContext) GetABIExports() interface{} {
 
 // implement types.ABIHandler
 func (ctx *ABIContext) OnInstanceCreate(instance types.WasmInstance) {
-	proxywasm.RegisterImports(instance)
+	if err := instance.RegisterImports(ctx.Name()); err != nil {
+		panic(err)
+	}
 }
 
 func (ctx *ABIContext) OnInstanceStart(instance types.WasmInstance) {}

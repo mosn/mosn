@@ -19,7 +19,6 @@ package mosn
 
 import (
 	"errors"
-	"mosn.io/mosn/pkg/server/pid"
 	"net"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -136,7 +136,7 @@ func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 	// start init services
-	if err = store.StartService(nil); err != nil {
+	if err = store.StartService(m.Upgrade.InheritListeners); err != nil {
 		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 	}
 	return

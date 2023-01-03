@@ -562,9 +562,10 @@ func TestReqRRChooseHost(t *testing.T) {
 
 	ctx := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
 	// RR when use
-	for i := 0; i < len(hosts.allHosts); i++ {
+	for i := 0; i < 2*hosts.Size(); i++ {
+		ind := i % hosts.Size()
 		host := balancer.ChooseHost(ctx)
-		assert.Equal(t, host, hosts.allHosts[i])
+		assert.Equal(t, host, hosts.allHosts[ind])
 	}
 
 	ctx0 := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
@@ -939,4 +940,10 @@ func TestWRRLoadBalancer(t *testing.T) {
 			t.Fatalf("case:%s, expected %s, but got: %s", tc.name, tc.want.AddressString(), h.AddressString())
 		}
 	}
+}
+
+func TestNewLACBalancer(t *testing.T) {
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveConnection}, &hostSet{})
+	assert.NotNil(t, balancer)
+	assert.IsType(t, &leastActiveConnectionLoadBalancer{}, balancer)
 }
