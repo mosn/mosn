@@ -201,7 +201,9 @@ func (cm *clusterManager) AddOrUpdateClusterAndHost(cluster v2.Cluster, hostConf
 		UpdateClusterResourceManagerHandler(oc, nc)
 		CleanOldClusterHandler(oc, nc)
 		NewSimpleHostHandler(nc, hostConfigs)
-		TransferClusterHostStatesHandler(oc, nc)
+		if cluster.SlowStart.Mode != "" {
+			TransferClusterHostStatesHandler(oc, nc)
+		}
 	})
 }
 
@@ -288,7 +290,9 @@ func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	}
 
 	ns := NewHostSet(hosts)
-	transferHostSetStates(snap.HostSet(), ns)
+	if snap.ClusterInfo().SlowStart().Mode != "" {
+		transferHostSetStates(snap.HostSet(), ns)
+	}
 
 	c.UpdateHosts(ns)
 
@@ -306,7 +310,9 @@ func AppendSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	})
 
 	ns := NewHostSet(hosts)
-	transferHostSetStates(snap.HostSet(), ns)
+	if snap.ClusterInfo().SlowStart().Mode != "" {
+		transferHostSetStates(snap.HostSet(), ns)
+	}
 
 	c.UpdateHosts(ns)
 }
