@@ -58,7 +58,9 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
 		healthFlags:   GetHealthFlagPointer(config.Address),
-		startTime:     time.Now(),
+	}
+	if clusterInfo.SlowStart().Mode != "" {
+		h.startTime = time.Now()
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h
