@@ -29,13 +29,13 @@ import (
 )
 
 func init() {
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0))
-	_ = variable.Register(variable.NewStringVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0))
+	_ = variable.Override(variable.NewStringVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0))
 }
 
 func requestSchemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

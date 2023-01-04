@@ -54,8 +54,9 @@ require (
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
 	mosn.io/api v1.3.0
-	mosn.io/holmes v1.0.1
-	mosn.io/pkg v1.3.0
+	mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7
+	mosn.io/holmes v1.1.0
+	mosn.io/pkg v1.3.1-0.20230104081003-9c747062328a
 	mosn.io/proxy-wasm-go-host v0.2.1-0.20221123073237-4f948bf02510
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
@@ -128,12 +129,9 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	mosn.io/envoy-go-extension v0.0.0-20221208111733-0c8cbb3d26c7
 	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
-
-replace mosn.io/pkg => github.com/antJack/pkg v0.0.0-20221213090422-5e20b931ade3
