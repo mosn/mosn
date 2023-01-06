@@ -44,10 +44,14 @@ import (
 func InitDebugServe(c *v2.MOSNConfig) {
 	if c.Debug.StartDebug {
 		port := 9090 //default use 9090
+		endpoint := "0.0.0.0"
 		if c.Debug.Port != 0 {
 			port = c.Debug.Port
 		}
-		addr := fmt.Sprintf("0.0.0.0:%d", port)
+		if c.Debug.Endpoint != "" {
+			endpoint = c.Debug.Endpoint
+		}
+		addr := fmt.Sprintf("%s:%d", endpoint, port)
 		s := &http.Server{Addr: addr, Handler: nil}
 		store.AddService(s, "pprof", nil, nil)
 	}

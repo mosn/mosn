@@ -431,9 +431,10 @@ func TestReqRRChooseHost(t *testing.T) {
 
 	ctx := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
 	// RR when use
-	for i := 0; i < len(hosts.allHosts); i++ {
+	for i := 0; i < 2*hosts.Size(); i++ {
+		ind := i % hosts.Size()
 		host := balancer.ChooseHost(ctx)
-		assert.Equal(t, host, hosts.allHosts[i])
+		assert.Equal(t, host, hosts.allHosts[ind])
 	}
 
 	ctx0 := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))

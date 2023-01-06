@@ -25,7 +25,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
-	github.com/miekg/dns v1.1.25
+	github.com/miekg/dns v1.1.50
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/opentrx/seata-golang/v2 v2.0.4
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -45,7 +45,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
-	golang.org/x/tools v0.1.4
+	golang.org/x/tools v0.1.6-0.20210726203631-07bc1bf47fb2
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
@@ -119,9 +119,11 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/arch v0.0.0-20200826200359-b19915210f00 // indirect
+	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
