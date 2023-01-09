@@ -39,6 +39,7 @@ type ADSClient struct {
 	streamClient      XdsStreamClient
 	config            XdsStreamConfig
 	stopChan          chan struct{}
+	sendTimer         *time.Timer
 }
 
 func NewAdsClient(config *v2.MOSNConfig) (*ADSClient, error) {
@@ -49,6 +50,7 @@ func NewAdsClient(config *v2.MOSNConfig) (*ADSClient, error) {
 	return &ADSClient{
 		config:   cfg,
 		stopChan: make(chan struct{}),
+		sendTimer: time.NewTimer(0),
 	}, nil
 }
 
@@ -78,15 +80,13 @@ func (adsClient *ADSClient) Start() {
 
 func (adsClient *ADSClient) sendRequestLoop() {
 	log.DefaultLogger.Debugf("[xds] [ads client] send request, start with cds")
-	// start a directly timer
-	t := time.NewTimer(0)
 	for {
 		select {
 		case <-adsClient.stopChan:
 			log.DefaultLogger.Infof("[xds] [ads client] send request loop shutdown")
 			adsClient.stopStreamClient()
 			return
-		case <-t.C:
+		case <-adsClient.sendTimer.C:
 			c := adsClient.GetStreamClient()
 			if c == nil {
 				log.DefaultLogger.Infof("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
@@ -96,7 +96,7 @@ func (adsClient *ADSClient) sendRequestLoop() {
 				log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
 				adsClient.reconnect()
 			}
-			t.Reset(adsClient.config.RefreshDelay())
+			adsClient.sendTimer.Reset(adsClient.config.RefreshDelay())
 		}
 	}
 }
@@ -163,7 +163,6 @@ func (adsClient *ADSClient) reconnect() {
 		time.Sleep(interval + time.Duration(rand.Intn(1000))*time.Millisecond)
 		interval = computeInterval(interval)
 	}
-
 }
 
 func (adsClient *ADSClient) stopStreamClient() {
@@ -193,4 +192,17 @@ func (adsClient *ADSClient) connect() error {
 
 func (adsClient *ADSClient) Stop() {
 	close(adsClient.stopChan)
+}
+
+// close stream client and trigger reconnect right now
+func (adsClient *ADSClient) ReconnectStreamClient() {
+	adsClient.stopStreamClient()
+	log.DefaultLogger.Infof("[xds] [ads client] close stream client")
+
+	if disableReconnect {
+		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect disabled")
+		return
+	}
+
+	adsClient.sendTimer.Reset(0)
 }

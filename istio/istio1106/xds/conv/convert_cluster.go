@@ -322,6 +322,7 @@ func convertHealthChecks(serviceName string, xdsHealthChecks []*envoy_config_cor
 			ServiceName:        serviceName,
 			HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
 			UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
+			EventLogPath:       xdsHealthChecks[0].GetEventLogPath(),
 		},
 		Timeout:        ConvertDuration(xdsHealthChecks[0].GetTimeout()),
 		Interval:       ConvertDuration(xdsHealthChecks[0].GetInterval()),
