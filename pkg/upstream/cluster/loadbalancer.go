@@ -202,8 +202,8 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 }
 
 /*
- A round robin load balancer. When in weighted mode, EDF scheduling is used. When in not
- weighted mode, simple RR index selection is used.
+A round robin load balancer. When in weighted mode, EDF scheduling is used. When in not
+weighted mode, simple RR index selection is used.
 */
 type WRRLoadBalancer struct {
 	*EdfLoadBalancer
@@ -351,7 +351,7 @@ func slowStartDurationFactorFunc(info types.ClusterInfo, host types.Host) float6
 	return slowStartDurationFactorFuncWithNowFunc(info, host, time.Now)
 }
 
-//slowStartDurationFactorFuncWithNowFunc with nowFunc parameter for testing
+// slowStartDurationFactorFuncWithNowFunc with nowFunc parameter for testing
 func slowStartDurationFactorFuncWithNowFunc(info types.ClusterInfo, host types.Host, nowFunc func() time.Time) float64 {
 	slowStart := info.SlowStart()
 
@@ -420,6 +420,11 @@ func (lb *EdfLoadBalancer) refresh(info types.ClusterInfo, hosts types.HostSet) 
 	if info != nil {
 		slowStart = info.SlowStart()
 	}
+
+	if hosts.Size() <= 1 {
+		return
+	}
+
 	// Check if the slow-start not configured and original host weights are equal and skip EDF creation if they are
 	if slowStart.Mode == "" && hostWeightsAreEqual(hosts) {
 		return
@@ -441,9 +446,6 @@ func (lb *EdfLoadBalancer) refresh(info types.ClusterInfo, hosts types.HostSet) 
 }
 
 func hostWeightsAreEqual(hosts types.HostSet) bool {
-	if hosts.Size() <= 1 {
-		return true
-	}
 	weight := hosts.Get(0).Weight()
 
 	for i := 1; i < hosts.Size(); i++ {
