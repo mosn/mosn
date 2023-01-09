@@ -132,17 +132,19 @@ func (s *ActiveStream) DecodeHeaders(header api.RequestHeaderMap, endStream bool
 
 	if endStream {
 		s.runReceiverFilters()
+		return api.Running
 	}
 
-	return api.Running
+	return api.StopAndBuffer
 }
 
 func (s *ActiveStream) DecodeData(buffer api.BufferInstance, endStream bool) api.StatusType {
 	s.reqBody = &bufferImpl{buffer}
 	if endStream {
 		s.runReceiverFilters()
+		return api.Running
 	}
-	return api.Running
+	return api.StopAndBuffer
 }
 
 func (s *ActiveStream) DecodeTrailers(trailer api.RequestTrailerMap) api.StatusType {
@@ -159,18 +161,20 @@ func (s *ActiveStream) EncodeHeaders(header api.ResponseHeaderMap, endStream boo
 
 	if endStream {
 		s.runSenderFilters()
+		return api.Running
 	}
 
-	return api.Running
+	return api.StopAndBuffer
 }
 
 func (s *ActiveStream) EncodeData(buffer api.BufferInstance, endStream bool) api.StatusType {
 	s.respBody = &bufferImpl{buffer}
 	if endStream {
 		s.runSenderFilters()
+		return api.Running
 	}
 
-	return api.Running
+	return api.StopAndBuffer
 }
 
 func (s *ActiveStream) EncodeTrailers(trailer api.ResponseTrailerMap) api.StatusType {

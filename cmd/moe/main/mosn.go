@@ -50,7 +50,6 @@ import (
 	_ "mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol"
 	_ "mosn.io/mosn/pkg/router"
-	_ "mosn.io/mosn/pkg/server/keeper"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
