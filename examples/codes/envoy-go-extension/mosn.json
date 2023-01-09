@@ -1,4 +1,9 @@
 {
+  "servers": [
+    {
+      "default_log_path": "stdout"
+    }
+  ],
   "stream_filters": [
     {
       "name": "demo",

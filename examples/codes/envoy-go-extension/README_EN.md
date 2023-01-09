@@ -21,7 +21,7 @@ server.go       // external HTTP server
 ### Build libmosn.so
 
 ```
-./build.sh
+make build
 ```
 
 This operation will generate libmosn.so
@@ -29,7 +29,7 @@ This operation will generate libmosn.so
 ### Start External HTTP Server
 
 ```
-go run server.go
+make run
 ```
 
 ### Start MOSN

@@ -21,7 +21,7 @@ server.go       // 模拟的外部 Http 服务器
 ### 构建 libmosn.so
 
 ```
-./build.sh
+make build
 ```
 
 该操作将产生 libmosn.so 文件
@@ -36,11 +36,7 @@ go run server.go
 ### 启动MOSN
 
 ```
-docker run -d -p 12000:12000 \
-    -v `pwd`/libmosn.so:/usr/local/envoy-go-extension/libmosn.so \
-    -v `pwd`/envoy.yaml:/etc/envoy/envoy-golang.yaml \
-    -v `pwd`/mosn.json:/home/admin/mosn/config/mosn.json \
-    mosnio/envoy-go-extension:latest
+make run
 ```
 
 ### 使用CURL进行验证
