@@ -182,6 +182,21 @@ func (p *connPool) Shutdown() {
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	host := p.Host()
 	if event.IsClose() {
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+
+		switch event {
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
+		}
 
 		if client.closeWithActiveReq {
 			if event == api.LocalClose {
