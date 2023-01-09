@@ -11,6 +11,7 @@ require (
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
 	github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
+	github.com/cncf/xds/go v0.0.0-20220520190051-1e77728a1eaa
 	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.10.0
 	github.com/ghodss/yaml v1.0.0
@@ -25,7 +26,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/juju/errors v1.0.0
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
-	github.com/miekg/dns v1.1.25
+	github.com/miekg/dns v1.1.50
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/opentrx/seata-golang/v2 v2.0.4
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -61,10 +62,8 @@ require (
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
 
-require github.com/kr/pretty v0.3.1 // indirect
-
 require (
-	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
+	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Shopify/sarama v1.19.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
@@ -72,7 +71,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/cncf/xds/go v0.0.0-20220520190051-1e77728a1eaa
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dubbogo/getty v1.3.4 // indirect
@@ -95,6 +93,7 @@ require (
 	github.com/jinzhu/copier v0.3.2 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
@@ -115,13 +114,14 @@ require (
 	github.com/shirou/gopsutil/v3 v3.20.11 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/tetratelabs/wazero v1.0.0-pre.3.0.20221122114515-b8d985462e20 // indirect
-	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/arch v0.0.0-20200826200359-b19915210f00 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
@@ -129,7 +129,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
+	vimagination.zapto.org/memio v1.0.0 // indirect
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
