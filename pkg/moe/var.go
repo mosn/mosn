@@ -44,7 +44,7 @@ func requestSchemeGetter(ctx context.Context, value *variable.IndexedValue, data
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	buffers := moeBuffersByContext(ctx)
+	buffers := streamBufferByContext(ctx)
 	if h, ok := buffers.stream.reqHeader.(api.RequestHeaderMap); ok {
 		return h.Method(), nil
 	}
@@ -52,7 +52,7 @@ func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data
 }
 
 func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	buffers := moeBuffersByContext(ctx)
+	buffers := streamBufferByContext(ctx)
 
 	res := 0
 	if h, ok := buffers.stream.reqHeader.(api.RequestHeaderMap); ok {
@@ -66,7 +66,7 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 }
 
 func requestPathGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	buffers := moeBuffersByContext(ctx)
+	buffers := streamBufferByContext(ctx)
 	if h, ok := buffers.stream.reqHeader.(api.RequestHeaderMap); ok {
 		return h.Path(), nil
 	}

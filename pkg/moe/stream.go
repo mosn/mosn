@@ -64,21 +64,17 @@ func ConfigFactory(config interface{}) api.HttpFilterFactory {
 		ctx := buffer.NewBufferPoolContext(context.Background())
 		ctx = variable.NewVariableContext(ctx)
 
-		buf := moeBuffersByContext(ctx)
-		if buf.stream == nil {
-			buf.stream = &ActiveStream{
-				ctx:             ctx,
-				filterChainName: filterChainName,
-				filterChain:     CreateStreamFilterChain(ctx, filterChainName),
-				workPool:        workerPool,
-				callbacks:       callbacks,
-			}
-		}
+		buf := streamBufferByContext(ctx)
+		buf.stream.ctx = ctx
+		buf.stream.filterChainName = filterChainName
+		buf.stream.filterChain = CreateStreamFilterChain(ctx, filterChainName)
+		buf.stream.workPool = workerPool
+		buf.stream.callbacks = callbacks
 
-		buf.stream.filterChain.SetReceiveFilterHandler(buf.stream)
-		buf.stream.filterChain.SetSenderFilterHandler(buf.stream)
+		buf.stream.filterChain.SetReceiveFilterHandler(&buf.stream)
+		buf.stream.filterChain.SetSenderFilterHandler(&buf.stream)
 
-		return buf.stream
+		return &buf.stream
 	}
 }
 
@@ -95,6 +91,7 @@ type ActiveStream struct {
 	respBody            mosnApi.IoBuffer
 	respTrailer         mosnApi.HeaderMap
 	workPool            mosnSync.WorkerPool
+	hijack              bool
 }
 
 var _ api.HttpFilter = (*ActiveStream)(nil)
@@ -109,17 +106,20 @@ func (s *ActiveStream) runReceiverFilters() {
 	s.workPool.ScheduleAuto(func() {
 		s.SetCurrentReceiverPhase(mosnApi.BeforeRoute)
 		s.filterChain.RunReceiverFilter(s.ctx, mosnApi.BeforeRoute, s.reqHeader, s.reqBody, s.reqTrailer, nil)
-		s.callbacks.Continue(api.Continue)
+		if !s.hijack {
+			s.callbacks.Continue(api.Continue)
+		}
 	})
 }
 
 func (s *ActiveStream) runSenderFilters() {
 	s.workPool.ScheduleAuto(func() {
 		s.filterChain.RunSenderFilter(s.ctx, mosnApi.BeforeSend, s.respHeader, s.respBody, s.respTrailer, nil)
-		s.callbacks.Continue(api.Continue)
+		if !s.hijack {
+			s.callbacks.Continue(api.Continue)
+		}
 	})
 }
-
 
 func (s *ActiveStream) DecodeHeaders(header api.RequestHeaderMap, endStream bool) api.StatusType {
 	s.reqHeader = &headerMapImpl{header}
@@ -218,6 +218,7 @@ func (s *ActiveStream) SendHijackReply(code int, headers mosnApi.HeaderMap) {
 		return true
 	})
 
+	s.hijack = true
 	s.callbacks.SendLocalReply(code, "", h, 0, "")
 }
 
@@ -228,6 +229,7 @@ func (s *ActiveStream) SendHijackReplyWithBody(code int, headers mosnApi.HeaderM
 		return true
 	})
 
+	s.hijack = true
 	s.callbacks.SendLocalReply(code, body, h, 0, "")
 }
 
@@ -262,6 +264,7 @@ func (s *ActiveStream) TerminateStream(code int) bool {
 		return true
 	})
 
+	s.hijack = true
 	s.callbacks.SendLocalReply(code, "", h, 0, "")
 
 	return true

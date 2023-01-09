@@ -24,29 +24,29 @@ import (
 )
 
 func init() {
-	buffer.RegisterBuffer(&ins)
+	buffer.RegisterBuffer(&sbc)
 }
 
-var ins = moeBufferCtx{}
+var sbc = streamBufferCtx{}
 
-type moeBufferCtx struct {
+type streamBufferCtx struct {
 	buffer.TempBufferCtx
 }
 
-func (ctx moeBufferCtx) New() interface{} {
-	return new(moeBuffers)
+func (ctx streamBufferCtx) New() interface{} {
+	return new(streamBuffer)
 }
 
-func (ctx moeBufferCtx) Reset(i interface{}) {
-	buf, _ := i.(*moeBuffers)
-	buf.stream = nil
+func (ctx streamBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*streamBuffer)
+	*buf = streamBuffer{}
 }
 
-type moeBuffers struct {
-	stream *ActiveStream
+type streamBuffer struct {
+	stream ActiveStream
 }
 
-func moeBuffersByContext(context context.Context) *moeBuffers {
+func streamBufferByContext(context context.Context) *streamBuffer {
 	ctx := buffer.PoolContext(context)
-	return ctx.Find(&ins, nil).(*moeBuffers)
+	return ctx.Find(&sbc, nil).(*streamBuffer)
 }
