@@ -1,39 +1,38 @@
-## 运行 MOSN envoy-go-extension
+## Run MOSN As envoy-go-extension
 
-## 简介
+## Introduction
 
-+ 该样例工程演示了如何配置 MOSN, 将 MOSN 作为 envoy-go-extension 来运行
-+ MOSN 监听一个端口，收到 HTTP1 请求后转发给外部 HTTP 服务器
++ This example project demonstrates how to configure MOSN as an envoy-go-extension.
++ MOSN listens on a port, and proxy HTTP1 request to an external HTTP server.
 
 
-## 目录结构
+## Catelog
 
 ```
-mosn.json       // MOSN 配置
-envoy.yaml      // Envoy 配置
-filter.go       // 一个简单的 MOSN filter
-build.sh        // 用于构建 MOSN 的 Bash 脚本
-server.go       // 模拟的外部 Http 服务器
+mosn.json       // MOSN config file
+envoy.yaml      // Envoy config file
+filter.go       // a simple MOSN filter
+build.sh        // Bash script to build MOSN
+server.go       // external HTTP server
 ```
 
-## 运行说明
+## Instructions
 
-### 构建 libmosn.so
+### Build libmosn.so
 
 ```
 ./build.sh
 ```
 
-该操作将产生 libmosn.so 文件
+This operation will generate libmosn.so
 
-
-### 启动外部 HTTP 服务器
+### Start External HTTP Server
 
 ```
 go run server.go
 ```
 
-### 启动MOSN
+### Start MOSN
 
 ```
 docker run -d -p 12000:12000 \
@@ -43,13 +42,13 @@ docker run -d -p 12000:12000 \
     mosnio/envoy-go-extension:latest
 ```
 
-### 使用CURL进行验证
+### Send Request With Curl
 
 ```
 curl -v http://127.0.0.1:12000/
 ```
 
-上述命令将收到 HTTP200 回复：
+The above curl command will receive an HTTP 200 response:
 
 ```
 * About to connect() to 127.0.0.1 port 12000 (#0)
@@ -72,7 +71,7 @@ curl -v http://127.0.0.1:12000/
 response body from external http server
 ```
 
-在外部 HTTP 服务器一侧，将观察到由 MOSN filter 添加进请求头的 Foo: bar
+On the external HTTP server, we will observe a new http header "Foo: bar"
 
 ```
 [UPSTREAM]receive request /
