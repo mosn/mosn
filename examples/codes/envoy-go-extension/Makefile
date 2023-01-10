@@ -14,8 +14,8 @@ build:
 
 run:
 	docker run --platform linux/amd64 -p 12000:12000 \
-        -v $(PWD)/libmosn.so:/usr/local/envoy-go-extension/libmosn.so \
-        -v $(PWD)/envoy.yaml:/etc/envoy/envoy-golang.yaml \
-        -v $(PWD)/mosn.json:/home/admin/mosn/config/mosn.json \
-        --add-host=host.docker.internal:host-gateway \
+		-v $(PWD)/libmosn.so:/usr/local/envoy-go-extension/libmosn.so \
+		-v $(PWD)/envoy.yaml:/etc/envoy/envoy-golang.yaml \
+		-v $(PWD)/mosn.json:/home/admin/mosn/config/mosn.json \
+		--add-host=host.docker.internal:host-gateway \
         mosnio/envoy-go-extension:latest
