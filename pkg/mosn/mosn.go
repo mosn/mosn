@@ -20,6 +20,7 @@ package mosn
 import (
 	"errors"
 	"net"
+	_ "net/http/pprof"
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
