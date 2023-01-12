@@ -20,6 +20,7 @@ package mosn
 import (
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	goplugin "plugin"
 
