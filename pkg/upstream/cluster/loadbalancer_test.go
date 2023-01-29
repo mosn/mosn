@@ -19,17 +19,19 @@ package cluster
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
-	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // load should be balanced when node fails
@@ -190,12 +192,12 @@ func TestWRRLB(t *testing.T) {
 }
 
 func Test_slowStartDurationFactorFuncWithNowFunc(t *testing.T) {
-	startTime := time.Now()
+	now := time.Now()
 	host := &simpleHost{
-		hostname:      "localhost",
-		addressString: "127.0.0.1:8080",
-		weight:        100,
-		startTime:     startTime,
+		hostname:                "localhost",
+		addressString:           "127.0.0.1:8080",
+		weight:                  100,
+		lastHealthCheckPassTime: now,
 	}
 
 	check := func(slowStart types.SlowStart, now time.Time, excepted float64) {
@@ -206,18 +208,18 @@ func Test_slowStartDurationFactorFuncWithNowFunc(t *testing.T) {
 		assert.Equal(t, excepted, f)
 	}
 
-	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime, 0.1)
-	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(5*time.Second), 0.5)
-	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(10*time.Second), 1)
-	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, startTime.Add(20*time.Second), 1)
-	check(types.SlowStart{SlowStartDuration: 20 * time.Second}, startTime.Add(5*time.Second), 0.25)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now, 0.1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(5*time.Second), 0.5)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(10*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(20*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 20 * time.Second}, now.Add(5*time.Second), 0.25)
 
 	// always return 1.0 if given non-positive duration
-	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, startTime, 1)
-	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, startTime.Add(5*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, now, 1)
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, now.Add(5*time.Second), 1)
 
-	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, startTime, 1)
-	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, startTime.Add(5*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, now, 1)
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, now.Add(5*time.Second), 1)
 }
 
 type notHostWeightItem struct {

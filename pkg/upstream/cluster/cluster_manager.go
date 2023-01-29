@@ -162,16 +162,16 @@ func transferHostSetStates(os, ns types.HostSet) {
 		return
 	}
 
-	oldStartTimes := make(map[string]types.Host, os.Size())
+	oldHosts := make(map[string]types.Host, os.Size())
 
 	os.Range(func(host types.Host) bool {
-		oldStartTimes[host.AddressString()] = host
+		oldHosts[host.AddressString()] = host
 		return true
 	})
 
 	ns.Range(func(host types.Host) bool {
-		if h, ok := oldStartTimes[host.AddressString()]; ok {
-			host.SetStartTime(h.StartTime())
+		if h, ok := oldHosts[host.AddressString()]; ok {
+			host.SetLastHealthCheckPassTime(h.LastHealthCheckPassTime())
 		}
 		return true
 	})

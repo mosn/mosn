@@ -52,9 +52,9 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 	require.Equal(t, uint64(100), snap1.ClusterInfo().ResourceManager().Connections().Max())
 	require.Equal(t, 1, snap1.HostNum(nil))
 
-	oldStartTimes := make(map[string]time.Time)
+	oldLastHealthCheckPassTimes := make(map[string]time.Time)
 	snap1.HostSet().Range(func(host types.Host) bool {
-		oldStartTimes[host.AddressString()] = host.StartTime()
+		oldLastHealthCheckPassTimes[host.AddressString()] = host.LastHealthCheckPassTime()
 		return true
 	})
 
@@ -77,10 +77,10 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 	require.Equal(t, int64(1), snap2.ClusterInfo().ResourceManager().Connections().Cur())
 	require.Equal(t, uint64(20), snap2.ClusterInfo().ResourceManager().Connections().Max())
 
-	// start time of hosts are transferred
+	// lastHealthCheckPassTime of hosts are transferred
 	snap2.HostSet().Range(func(host types.Host) bool {
-		st := oldStartTimes[host.AddressString()]
-		require.Equal(t, st, host.StartTime())
+		st := oldLastHealthCheckPassTimes[host.AddressString()]
+		require.Equal(t, st, host.LastHealthCheckPassTime())
 		return true
 	})
 }

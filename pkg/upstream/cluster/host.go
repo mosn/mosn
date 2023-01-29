@@ -35,15 +35,15 @@ import (
 
 // simpleHost is an implement of types.Host and types.HostInfo
 type simpleHost struct {
-	hostname      string
-	addressString string
-	clusterInfo   atomic.Value // store types.ClusterInfo
-	stats         types.HostStats
-	metaData      api.Metadata
-	tlsDisable    bool
-	weight        uint32
-	healthFlags   *uint64
-	startTime     time.Time
+	hostname                string
+	addressString           string
+	clusterInfo             atomic.Value // store types.ClusterInfo
+	stats                   types.HostStats
+	metaData                api.Metadata
+	tlsDisable              bool
+	weight                  uint32
+	healthFlags             *uint64
+	lastHealthCheckPassTime time.Time
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -51,16 +51,14 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	// pre resolve address
 	GetOrCreateAddr(config.Address)
 	h := &simpleHost{
-		hostname:      config.Hostname,
-		addressString: config.Address,
-		stats:         newHostStats(clusterInfo.Name(), config.Address),
-		metaData:      config.MetaData,
-		tlsDisable:    config.TLSDisable,
-		weight:        config.Weight,
-		healthFlags:   GetHealthFlagPointer(config.Address),
-	}
-	if clusterInfo.SlowStart().Mode != "" {
-		h.startTime = time.Now()
+		hostname:                config.Hostname,
+		addressString:           config.Address,
+		stats:                   newHostStats(clusterInfo.Name(), config.Address),
+		metaData:                config.MetaData,
+		tlsDisable:              config.TLSDisable,
+		weight:                  config.Weight,
+		healthFlags:             GetHealthFlagPointer(config.Address),
+		lastHealthCheckPassTime: time.Now(),
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h
@@ -169,6 +167,9 @@ func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateC
 
 func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
 	ClearHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
@@ -177,6 +178,9 @@ func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
 
 func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
 	SetHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) HealthFlag() api.HealthFlag {
@@ -187,12 +191,12 @@ func (sh *simpleHost) Health() bool {
 	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
-func (sh *simpleHost) StartTime() time.Time {
-	return sh.startTime
+func (sh *simpleHost) LastHealthCheckPassTime() time.Time {
+	return sh.lastHealthCheckPassTime
 }
 
-func (sh *simpleHost) SetStartTime(startTime time.Time) {
-	sh.startTime = startTime
+func (sh *simpleHost) SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time) {
+	sh.lastHealthCheckPassTime = lastHealthCheckPassTime
 }
 
 // net.Addr reuse for same address, valid in simple type

@@ -28,4 +28,6 @@ const (
 const (
 	SlowStartDefaultAggression       = 1.0
 	SlowStartDefaultMinWeightPercent = 0.10 // 10%
+
+	SlowStartDurationMode = "duration"
 )

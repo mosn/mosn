@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/trainyao/go-maglev"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -359,8 +360,7 @@ func slowStartDurationFactorFuncWithNowFunc(info types.ClusterInfo, host types.H
 		return 1.0
 	}
 
-	// always using the first start time, unaware of restarts
-	duration := nowFunc().Sub(host.StartTime())
+	duration := nowFunc().Sub(host.LastHealthCheckPassTime())
 	window := slowStart.SlowStartDuration
 	if duration >= window {
 		return 1.0

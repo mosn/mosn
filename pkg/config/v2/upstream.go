@@ -24,8 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -322,30 +320,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 
 // Percent TODO(jizhuozhi): should move to "mosn.io/api"
 type Percent struct {
-	Percent float64
+	Value float64 `json:"value"`
 }
 
 var NotPercentError = errors.New("not a percent")
-
-func (p Percent) String() string {
-	return fmt.Sprintf("%s%%", strconv.FormatFloat(p.Percent*100, 'f', -1, 64))
-}
-
-func (p Percent) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, p)), nil
-}
-
-func (p *Percent) UnmarshalJSON(bytes []byte) error {
-	str := string(bytes)
-	l := len(str)
-	if l < 3 || str[0] != '"' || str[l-1] != '"' || str[l-2] != '%' {
-		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(p)}
-	}
-	str = str[1 : l-2]
-	f, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		return &json.InvalidUnmarshalError{Type: reflect.TypeOf(p)}
-	}
-	p.Percent = f / 100
-	return nil
-}

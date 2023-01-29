@@ -173,10 +173,11 @@ type Host interface {
 	// Config creates a host config by the host attributes
 	Config() v2.Host
 
-	// StartTime returns the start time of host
-	StartTime() time.Time
-	// SetStartTime updates the start time of host
-	SetStartTime(startTime time.Time)
+	// LastHealthCheckPassTime returns the timestamp when host has translated from unhealthy to healthy state
+	LastHealthCheckPassTime() time.Time
+	// SetLastHealthCheckPassTime updates the timestamp when host has translated from unhealthy to healthy state,
+	// or translated from other host
+	SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time)
 }
 
 // ClusterInfo defines a cluster's information

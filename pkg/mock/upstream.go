@@ -720,6 +720,20 @@ func (mr *MockHostMockRecorder) Hostname() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hostname", reflect.TypeOf((*MockHost)(nil).Hostname))
 }
 
+// LastHealthCheckPassTime mocks base method.
+func (m *MockHost) LastHealthCheckPassTime() time.Time {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastHealthCheckPassTime")
+	ret0, _ := ret[0].(time.Time)
+	return ret0
+}
+
+// LastHealthCheckPassTime indicates an expected call of LastHealthCheckPassTime.
+func (mr *MockHostMockRecorder) LastHealthCheckPassTime() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastHealthCheckPassTime", reflect.TypeOf((*MockHost)(nil).LastHealthCheckPassTime))
+}
+
 // Metadata mocks base method.
 func (m *MockHost) Metadata() api.Metadata {
 	m.ctrl.T.Helper()
@@ -758,30 +772,16 @@ func (mr *MockHostMockRecorder) SetHealthFlag(flag interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHealthFlag", reflect.TypeOf((*MockHost)(nil).SetHealthFlag), flag)
 }
 
-// SetStartTime mocks base method.
-func (m *MockHost) SetStartTime(startTime time.Time) {
+// SetLastHealthCheckPassTime mocks base method.
+func (m *MockHost) SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetStartTime", startTime)
+	m.ctrl.Call(m, "SetLastHealthCheckPassTime", lastHealthCheckPassTime)
 }
 
-// SetStartTime indicates an expected call of SetStartTime.
-func (mr *MockHostMockRecorder) SetStartTime(startTime interface{}) *gomock.Call {
+// SetLastHealthCheckPassTime indicates an expected call of SetLastHealthCheckPassTime.
+func (mr *MockHostMockRecorder) SetLastHealthCheckPassTime(lastHealthCheckPassTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetStartTime", reflect.TypeOf((*MockHost)(nil).SetStartTime), startTime)
-}
-
-// StartTime mocks base method.
-func (m *MockHost) StartTime() time.Time {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartTime")
-	ret0, _ := ret[0].(time.Time)
-	return ret0
-}
-
-// StartTime indicates an expected call of StartTime.
-func (mr *MockHostMockRecorder) StartTime() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartTime", reflect.TypeOf((*MockHost)(nil).StartTime))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastHealthCheckPassTime", reflect.TypeOf((*MockHost)(nil).SetLastHealthCheckPassTime), lastHealthCheckPassTime)
 }
 
 // SupportTLS mocks base method.

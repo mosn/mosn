@@ -266,11 +266,11 @@ func (m *MockHost) SupportTLS() bool {
 	return false
 }
 
-func (m *MockHost) StartTime() time.Time {
+func (m *MockHost) LastHealthCheckPassTime() time.Time {
 	return time.Now()
 }
 
-func (m *MockHost) SetStartTime(st time.Time) {
+func (m *MockHost) SetLastHealthCheckPassTime(t time.Time) {
 	// do nothing
 }
 

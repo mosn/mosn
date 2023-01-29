@@ -100,10 +100,10 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 	}
 
 	// MinWeightPercent must be positive because weighted load balancing only accepts positive weight
-	if clusterConfig.SlowStart.MinWeightPercent == nil || clusterConfig.SlowStart.MinWeightPercent.Percent <= 0 {
+	if clusterConfig.SlowStart.MinWeightPercent == nil || clusterConfig.SlowStart.MinWeightPercent.Value <= 0 {
 		info.slowStart.MinWeightPercent = v2.SlowStartDefaultMinWeightPercent
 	} else {
-		info.slowStart.MinWeightPercent = clusterConfig.SlowStart.MinWeightPercent.Percent
+		info.slowStart.MinWeightPercent = clusterConfig.SlowStart.MinWeightPercent.Value
 	}
 
 	// tls mng
