@@ -2,7 +2,9 @@ SHELL = /bin/bash
 
 TARGET          = mosnd
 TARGET_SIDECAR  = mosn
+TARGET_SO       = libmosn.so
 CONFIG_FILE     = mosn_config.json
+CONFIG_FILE_SO  = mosn_so.json
 PROJECT_NAME    = mosn.io/mosn
 
 # default istio version
@@ -77,6 +79,18 @@ build-wasm-image:
 	docker build --rm -t ${WASM_IMAGE}:${MAJOR_VERSION} -f build/contrib/builder/wasm/Dockerfile .
 
 binary: build
+
+build-local-so:
+	@rm -rf build/bundles/${MAJOR_VERSION}/binary
+	GO111MODULE=on CGO_ENABLED=1 go build ${TAGS_OPT} \
+		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/istio.IstioVersion=${ISTIO_VERSION}" \
+		--buildmode=c-shared \
+		-v -o ${TARGET_SO} \
+		${PROJECT_NAME}/cmd/moe/main
+	mkdir -p build/bundles/${MAJOR_VERSION}/binary
+	mv ${TARGET_SO} build/bundles/${MAJOR_VERSION}/binary
+	@cd build/bundles/${MAJOR_VERSION}/binary && $(shell which md5sum) -b ${TARGET_SO} | cut -d' ' -f1  > ${TARGET_SO}.md5
+	cp configs/${CONFIG_FILE_SO} build/bundles/${MAJOR_VERSION}/binary
 
 build-local-wasmer:
 	@$(MAKE) build-local TAGS=wasmer
