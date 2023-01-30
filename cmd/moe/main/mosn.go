@@ -120,7 +120,7 @@ const mosnCmd = "mosn start"
 func addCmdArg(cmd, key, env string) string {
 	envValue := os.Getenv(env)
 	if envValue != "" {
-		cmd += key + " " + envValue
+		cmd += " " + key + " " + envValue
 	}
 	return cmd
 }
@@ -134,19 +134,19 @@ func generateArgs() []string {
 
 	args := mosnCmd
 	args += " -c " + DefaultMosnConfigPath
-	addCmdArg(args, "--log-level", "LOG_LEVEL")
-	addCmdArg(args, "--feature-gates", "FEATURE_GATES")
-	addCmdArg(args, "--component-log-level", "COMPONENT_LOG_LEVEL")
-	addCmdArg(args, "--local-address-ip-version", "LOCAL_ADDRESS_IP_VERSION")
-	addCmdArg(args, "--restart-epoch", "RESTART_EPOCH")
-	addCmdArg(args, "--drain-time-s", "DRAIN_TIME_S")
-	addCmdArg(args, "--parent-shutdown-time-s", "PARENT_SHUTDOWN_TIME_S")
-	addCmdArg(args, "--max-obj-name-len", "MAX_OBJ_NAME_LEN")
-	addCmdArg(args, "--concurrency", "CONCURRENCY")
-	addCmdArg(args, "--log-format-prefix-with-location", "LOG_FORMAT_PREFIX_WITH_LOCATION")
-	addCmdArg(args, "--bootstrap-version", "BOOTSTRAP_VERSION")
-	addCmdArg(args, "--drain-strategy", "DRAIN_STRATEGY")
-	addCmdArg(args, "--disable-hot-restart", "DISABLE_HOT_RESTART")
+	args = addCmdArg(args, "--log-level", "LOG_LEVEL")
+	args = addCmdArg(args, "--feature-gates", "FEATURE_GATES")
+	args = addCmdArg(args, "--component-log-level", "COMPONENT_LOG_LEVEL")
+	args = addCmdArg(args, "--local-address-ip-version", "LOCAL_ADDRESS_IP_VERSION")
+	args = addCmdArg(args, "--restart-epoch", "RESTART_EPOCH")
+	args = addCmdArg(args, "--drain-time-s", "DRAIN_TIME_S")
+	args = addCmdArg(args, "--parent-shutdown-time-s", "PARENT_SHUTDOWN_TIME_S")
+	args = addCmdArg(args, "--max-obj-name-len", "MAX_OBJ_NAME_LEN")
+	args = addCmdArg(args, "--concurrency", "CONCURRENCY")
+	args = addCmdArg(args, "--log-format-prefix-with-location", "LOG_FORMAT_PREFIX_WITH_LOCATION")
+	args = addCmdArg(args, "--bootstrap-version", "BOOTSTRAP_VERSION")
+	args = addCmdArg(args, "--drain-strategy", "DRAIN_STRATEGY")
+	args = addCmdArg(args, "--disable-hot-restart", "DISABLE_HOT_RESTART")
 
 	envAppendCmd := os.Getenv("MOSN_APPEND_CMD")
 	if envAppendCmd != "" {
