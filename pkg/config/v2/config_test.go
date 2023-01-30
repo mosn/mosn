@@ -281,7 +281,7 @@ func TestSlowStartConfigParse(t *testing.T) {
 						"mode": "duration",
 						"slow_start_duration": "10s",
 						"aggression": 2.0,
-						"min_weight_percent": "12.5%"
+						"min_weight_percent": { "value": 0.125 }
 					}
 				},
 				{
@@ -304,31 +304,6 @@ func TestSlowStartConfigParse(t *testing.T) {
 	assert.Nil(t, clusters[1].SlowStart.SlowStartDuration)
 	assert.Zero(t, clusters[1].SlowStart.Aggression)
 	assert.Zero(t, clusters[1].SlowStart.MinWeightPercent)
-}
-
-func TestPercent_MarshalJSON(t *testing.T) {
-	check := func(p Percent, s string) {
-		b, err := json.Marshal(p)
-		assert.NoError(t, err)
-		assert.Equal(t, s, string(b))
-	}
-	check(Percent{1}, `"100%"`)
-	check(Percent{0}, `"0%"`)
-	check(Percent{0.5}, `"50%"`)
-	check(Percent{0.1250}, `"12.5%"`)
-}
-
-func TestPercent_UnmarshalJSON(t *testing.T) {
-	check := func(p Percent, s string) {
-		var v Percent
-		err := json.Unmarshal([]byte(s), &v)
-		assert.NoError(t, err)
-		assert.Equal(t, v, p)
-	}
-	check(Percent{1}, `"100%"`)
-	check(Percent{0}, `"0%"`)
-	check(Percent{0.5}, `"50%"`)
-	check(Percent{0.1250}, `"12.5%"`)
 }
 
 var _iterJson = jsoniter.ConfigCompatibleWithStandardLibrary
