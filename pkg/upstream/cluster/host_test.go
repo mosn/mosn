@@ -109,13 +109,13 @@ func TestHostStartTime(t *testing.T) {
 	host := NewSimpleHost(clusterConf.Hosts[0], NewCluster(clusterConf).Snapshot().ClusterInfo())
 
 	assert.NotNil(t, host)
-	assert.NotZero(t, host.StartTime())
+	assert.NotZero(t, host.LastHealthCheckPassTime())
 
 	now := time.Now()
-	assert.NotEqual(t, now, host.StartTime())
+	assert.NotEqual(t, now, host.LastHealthCheckPassTime())
 
-	host.SetStartTime(now)
-	assert.Equal(t, now, host.StartTime())
+	host.SetLastHealthCheckPassTime(now)
+	assert.Equal(t, now, host.LastHealthCheckPassTime())
 }
 
 type countConnServer struct {
