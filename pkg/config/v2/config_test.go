@@ -281,7 +281,7 @@ func TestSlowStartConfigParse(t *testing.T) {
 						"mode": "duration",
 						"slow_start_duration": "10s",
 						"aggression": 2.0,
-						"min_weight_percent": { "value": 0.125 }
+						"min_weight_percent": 0.125
 					}
 				},
 				{
@@ -299,7 +299,7 @@ func TestSlowStartConfigParse(t *testing.T) {
 	assert.Equal(t, "duration", clusters[0].SlowStart.Mode)
 	assert.Equal(t, 10*time.Second, clusters[0].SlowStart.SlowStartDuration.Duration)
 	assert.Equal(t, 2.0, clusters[0].SlowStart.Aggression)
-	assert.Equal(t, Percent{0.125}, *clusters[0].SlowStart.MinWeightPercent)
+	assert.Equal(t, 0.125, clusters[0].SlowStart.MinWeightPercent)
 	assert.Empty(t, clusters[1].SlowStart.Mode)
 	assert.Nil(t, clusters[1].SlowStart.SlowStartDuration)
 	assert.Zero(t, clusters[1].SlowStart.Aggression)

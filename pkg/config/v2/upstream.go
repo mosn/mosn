@@ -127,7 +127,7 @@ type SlowStartConfig struct {
 	Mode              string              `json:"mode,omitempty"`
 	SlowStartDuration *api.DurationConfig `json:"slow_start_duration,omitempty"`
 	Aggression        float64             `json:"aggression,omitempty"`
-	MinWeightPercent  *Percent            `json:"min_weight_percent,omitempty"`
+	MinWeightPercent  float64             `json:"min_weight_percent,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -316,11 +316,6 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		os.Remove(path.Join(cc.ClusterConfigPath, f))
 	}
 	return json.Marshal(cc.ClusterManagerConfigJson)
-}
-
-// Percent TODO(jizhuozhi): should move to "mosn.io/api"
-type Percent struct {
-	Value float64 `json:"value"`
 }
 
 var NotPercentError = errors.New("not a percent")

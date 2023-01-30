@@ -63,7 +63,7 @@
           "mode": "duration",
           "slow_start_duration": "30s",
           "aggression": 1,
-          "min_weight_percent": { "value": 0.1 }
+          "min_weight_percent": 0.1
         }
       }
     ]
