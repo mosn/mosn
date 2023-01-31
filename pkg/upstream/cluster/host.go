@@ -51,14 +51,13 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	// pre resolve address
 	GetOrCreateAddr(config.Address)
 	h := &simpleHost{
-		hostname:                config.Hostname,
-		addressString:           config.Address,
-		stats:                   newHostStats(clusterInfo.Name(), config.Address),
-		metaData:                config.MetaData,
-		tlsDisable:              config.TLSDisable,
-		weight:                  config.Weight,
-		healthFlags:             GetHealthFlagPointer(config.Address),
-		lastHealthCheckPassTime: time.Now(),
+		hostname:      config.Hostname,
+		addressString: config.Address,
+		stats:         newHostStats(clusterInfo.Name(), config.Address),
+		metaData:      config.MetaData,
+		tlsDisable:    config.TLSDisable,
+		weight:        config.Weight,
+		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h

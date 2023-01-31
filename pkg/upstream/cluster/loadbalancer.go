@@ -360,6 +360,10 @@ func slowStartDurationFactorFuncWithNowFunc(info types.ClusterInfo, host types.H
 		return 1.0
 	}
 
+	if host.LastHealthCheckPassTime().IsZero() {
+		return 1.0
+	}
+
 	duration := nowFunc().Sub(host.LastHealthCheckPassTime())
 	window := slowStart.SlowStartDuration
 	if duration >= window {

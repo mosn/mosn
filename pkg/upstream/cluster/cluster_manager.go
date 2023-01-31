@@ -169,9 +169,12 @@ func transferHostSetStates(os, ns types.HostSet) {
 		return true
 	})
 
+	now := time.Now()
 	ns.Range(func(host types.Host) bool {
 		if h, ok := oldHosts[host.AddressString()]; ok {
 			host.SetLastHealthCheckPassTime(h.LastHealthCheckPassTime())
+		} else {
+			host.SetLastHealthCheckPassTime(now)
 		}
 		return true
 	})
