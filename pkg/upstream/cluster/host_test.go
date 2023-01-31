@@ -109,7 +109,7 @@ func TestHostStartTime(t *testing.T) {
 	host := NewSimpleHost(clusterConf.Hosts[0], NewCluster(clusterConf).Snapshot().ClusterInfo())
 
 	assert.NotNil(t, host)
-	assert.NotZero(t, host.LastHealthCheckPassTime())
+	assert.Zero(t, host.LastHealthCheckPassTime())
 
 	now := time.Now()
 	assert.NotEqual(t, now, host.LastHealthCheckPassTime())
