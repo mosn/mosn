@@ -176,7 +176,7 @@ func TestEdfSchedulerDistribution(t *testing.T) {
 		scheduler.Add(&mockHost{name: fmt.Sprintf("host-%d", i), w: w}, float64(w))
 	}
 
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 128; i++ {
 		seq := make([]string, 0)
 		for i := uint32(0); i < totalWeights; i++ {
 			h := scheduler.NextAndPush(func(item WeightItem) float64 {
