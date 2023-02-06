@@ -163,7 +163,9 @@ func TestEdfSchedulerDistribution(t *testing.T) {
 		}
 	}
 
-	for i := rnd(64, 512); i >= 0; i-- {
+	// number of hosts in [2*MaxHostWeight, 4*MaxHostWeight) to make sure
+	// always have two hosts with same weight
+	for i := rnd(2*int(v2.MaxHostWeight), 4*int(v2.MaxHostWeight)); i >= 0; i-- {
 		w := uint32(rnd(int(v2.MinHostWeight), int(v2.MaxHostWeight)))
 		weights = append(weights, w)
 		totalWeights += w
