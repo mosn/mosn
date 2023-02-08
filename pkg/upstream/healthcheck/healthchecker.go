@@ -56,7 +56,7 @@ type healthChecker struct {
 	healthyThreshold   uint32
 	initialDelay       time.Duration
 	unhealthyThreshold uint32
-	rander             *rand.Rand
+	rander             rand.Rand
 	hostCheckCallbacks []types.HealthCheckCb
 	logger             types.HealthCheckLog
 }
@@ -97,7 +97,7 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		unhealthyThreshold: unhealthyThreshold,
 		initialDelay:       initialDelay,
 		//runtime and stats
-		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		rander:             *rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},
 		sessionFactory:     f,
 		checkers:           make(map[string]*sessionChecker),
