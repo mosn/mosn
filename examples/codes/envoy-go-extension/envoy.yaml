@@ -1,0 +1,78 @@
+node:
+  id: mosn
+  cluster: mosn
+
+bootstrap_extensions:
+  - name: envoy.bootstrap.dso
+    typed_config:
+      "@type": type.googleapis.com/envoy.extensions.dso.v3.dso
+      so_id: mosn
+      so_path: "/usr/local/envoy-go-extension/libmosn.so"
+
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 12000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                http_protocol_options:
+                  enable_trailers: true
+                  accept_http_10: true
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                http_filters:
+                  - name: envoy.filters.http.golang
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3.Config
+                      so_id: mosn
+                      plugin_name: xx
+                      merge_policy: MERGE_VIRTUALHOST_ROUTER_FILTER
+                      plugin_config:
+                        "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+                        type_url: typexx
+                        value:
+                          filter_chain: demo
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: local_service
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"
+                          route:
+                            host_rewrite_literal: mosn.io
+                            cluster: http_server
+
+  clusters:
+    - name: http_server
+      type: STRICT_DNS
+      http_protocol_options:
+        enable_trailers: true
+      load_assignment:
+        cluster_name: http_server
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: host.docker.internal
+                      port_value: 8090
+
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 19900
