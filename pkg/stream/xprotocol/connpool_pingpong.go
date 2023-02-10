@@ -193,7 +193,6 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	}
 
 	host := p.Host()
-	connCtx := ctx
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
@@ -203,6 +202,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	}
 
 	////////// codec client
+	connCtx := context.Background()
 	codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
 	codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
 	ac.codecClient = codecClient
