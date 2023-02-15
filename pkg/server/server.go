@@ -109,7 +109,7 @@ func (srv *server) Restart() {
 // Shutdown graceful stop server.
 // stop accept new connections and graceful close the existing connections if it supports graceful close.
 func (srv *server) Shutdown() error {
-	return srv.handler.GracefulStopListeners()
+	return srv.handler.GracefulStopListeners(nil)
 }
 
 // Close the server
