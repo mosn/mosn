@@ -44,8 +44,8 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.3.0
-	golang.org/x/net v0.2.0
-	golang.org/x/sys v0.2.0
+	golang.org/x/net v0.7.0
+	golang.org/x/sys v0.5.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.38.0
@@ -123,8 +123,8 @@ require (
 	golang.org/x/arch v0.0.0-20200826200359-b19915210f00 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/term v0.2.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
