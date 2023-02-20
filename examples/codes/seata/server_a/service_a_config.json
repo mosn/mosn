@@ -39,14 +39,11 @@
 						{
 							"type": "seata",
 							"config": {
-								"addressing": "service-a",
-								"serverAddressing": "localhost:8091",
-								"commitRetryCount": 5,
-								"rollbackRetryCount": 5,
+								"name": "service-a",
+								"confPath": "conf/seatago.yml",
 								"transactionInfos": [
 									{
-										"requestPath": "/service-a/begin",
-										"timeout": 60000
+										"requestPath": "/service-a/begin"
 									}
 								]
 							}
