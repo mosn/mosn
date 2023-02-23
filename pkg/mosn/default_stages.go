@@ -41,10 +41,6 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 func DefaultPreStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 
-	// after inherit config,
-	// since metrics need the isFromUpgrade flag in Mosn
-	InitializeMetrics(m)
-
 	// start xds client
 	_ = m.StartXdsClient()
 	featuregate.FinallyInitFunc()

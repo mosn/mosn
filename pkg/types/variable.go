@@ -31,6 +31,7 @@ const (
 	VarRequestReceivedDuration        string = "request_received_duration"
 	VarResponseReceivedDuration       string = "response_received_duration"
 	VarRequestFinishedDuration        string = "request_finished_duration"
+	VarProcessTimeDuration            string = "process_time_duration"
 	VarBytesSent                      string = "bytes_sent"
 	VarBytesReceived                  string = "bytes_received"
 	VarProtocol                       string = "protocol"
