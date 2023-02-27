@@ -8,7 +8,7 @@
 - 新增最小连接负载均衡器 (#2184) @dengqian
 - 新增 API: 强制断开并重新连接 ADS 服务 (#2183) @dengqian
 - 支持 pprof debug server 配置 endpoint (#2202) @dengqian
-- 集成 mosn.io/envoy-go-extension，示例文档：examples/codes/envoy-go-extension/README_CN.md (#2200) @antJack (#2222) @3062
+- 集成 mosn.io/envoy-go-extension，参考[文档](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_CN.md) (#2200) @antJack (#2222) @3062
 - 新增 API: 支持覆盖注册 Variable (mosn/pkg#72) @antJack
 - 在 variables 中增加记录 mosn 处理时间的字段 (#2235) @z2z23n0
 

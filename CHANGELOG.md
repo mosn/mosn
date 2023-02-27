@@ -8,7 +8,7 @@
 - Add least_connection load balancer (#2184) @dengqian
 - Add API to force reconnect and send ADS request (#2183) @dengqian
 - Support pprof debug server endpoint configure (#2202) @dengqian
-- Integrate with mosn.io/envoy-go-extension, example documents: examples/codes/envoy-go-extension/README_EN.md (#2200) @antJack (#2222) @3062
+- Integrate with mosn.io/envoy-go-extension, consult [document](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_EN.md) (#2200) @antJack (#2222) @3062
 - Add API to support override registration (mosn/pkg#72) @antJack
 
 ### Refactoring
