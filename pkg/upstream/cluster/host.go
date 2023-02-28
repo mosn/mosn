@@ -35,14 +35,15 @@ import (
 
 // simpleHost is an implement of types.Host and types.HostInfo
 type simpleHost struct {
-	hostname      string
-	addressString string
-	clusterInfo   atomic.Value // store types.ClusterInfo
-	stats         types.HostStats
-	metaData      api.Metadata
-	tlsDisable    bool
-	weight        uint32
-	healthFlags   *uint64
+	hostname                string
+	addressString           string
+	clusterInfo             atomic.Value // store types.ClusterInfo
+	stats                   types.HostStats
+	metaData                api.Metadata
+	tlsDisable              bool
+	weight                  uint32
+	healthFlags             *uint64
+	lastHealthCheckPassTime time.Time
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -163,6 +164,9 @@ func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateC
 
 func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
 	ClearHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
@@ -171,6 +175,9 @@ func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
 
 func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
 	SetHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) HealthFlag() api.HealthFlag {
@@ -181,9 +188,17 @@ func (sh *simpleHost) Health() bool {
 	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
+func (sh *simpleHost) LastHealthCheckPassTime() time.Time {
+	return sh.lastHealthCheckPassTime
+}
+
+func (sh *simpleHost) SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time) {
+	sh.lastHealthCheckPassTime = lastHealthCheckPassTime
+}
+
 // net.Addr reuse for same address, valid in simple type
 // Update DNS cache using asynchronous mode
-var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var AddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveTCPAddr("tcp", key.(string))
 		if err == nil {
@@ -241,7 +256,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 }
 
 // store resolved UDP addr
-var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var UDPAddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveUDPAddr("udp", key.(string))
 		if err == nil {

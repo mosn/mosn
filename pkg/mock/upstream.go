@@ -492,17 +492,17 @@ func (m *MockHostSet) EXPECT() *MockHostSetMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockHostSet) Get(arg0 int) types.Host {
+func (m *MockHostSet) Get(i int) types.Host {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", i)
 	ret0, _ := ret[0].(types.Host)
 	return ret0
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockHostSetMockRecorder) Get(arg0 interface{}) *gomock.Call {
+func (mr *MockHostSetMockRecorder) Get(i interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockHostSet)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockHostSet)(nil).Get), i)
 }
 
 // Range mocks base method.
@@ -720,6 +720,20 @@ func (mr *MockHostMockRecorder) Hostname() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hostname", reflect.TypeOf((*MockHost)(nil).Hostname))
 }
 
+// LastHealthCheckPassTime mocks base method.
+func (m *MockHost) LastHealthCheckPassTime() time.Time {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastHealthCheckPassTime")
+	ret0, _ := ret[0].(time.Time)
+	return ret0
+}
+
+// LastHealthCheckPassTime indicates an expected call of LastHealthCheckPassTime.
+func (mr *MockHostMockRecorder) LastHealthCheckPassTime() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastHealthCheckPassTime", reflect.TypeOf((*MockHost)(nil).LastHealthCheckPassTime))
+}
+
 // Metadata mocks base method.
 func (m *MockHost) Metadata() api.Metadata {
 	m.ctrl.T.Helper()
@@ -756,6 +770,18 @@ func (m *MockHost) SetHealthFlag(flag api.HealthFlag) {
 func (mr *MockHostMockRecorder) SetHealthFlag(flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHealthFlag", reflect.TypeOf((*MockHost)(nil).SetHealthFlag), flag)
+}
+
+// SetLastHealthCheckPassTime mocks base method.
+func (m *MockHost) SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetLastHealthCheckPassTime", lastHealthCheckPassTime)
+}
+
+// SetLastHealthCheckPassTime indicates an expected call of SetLastHealthCheckPassTime.
+func (mr *MockHostMockRecorder) SetLastHealthCheckPassTime(lastHealthCheckPassTime interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastHealthCheckPassTime", reflect.TypeOf((*MockHost)(nil).SetLastHealthCheckPassTime), lastHealthCheckPassTime)
 }
 
 // SupportTLS mocks base method.
@@ -821,20 +847,6 @@ func NewMockClusterInfo(ctrl *gomock.Controller) *MockClusterInfo {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterInfo) EXPECT() *MockClusterInfoMockRecorder {
 	return m.recorder
-}
-
-// Mark mocks base method.
-func (m *MockClusterInfo) Mark() uint32 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Mark")
-	ret0, _ := ret[0].(uint32)
-	return ret0
-}
-
-// Mark indicates an expected call of Mark
-func (mr *MockClusterInfoMockRecorder) Mark() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mark", reflect.TypeOf((*MockClusterInfo)(nil).Mark))
 }
 
 // ClusterType mocks base method.
@@ -949,6 +961,20 @@ func (mr *MockClusterInfoMockRecorder) LbType() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbType", reflect.TypeOf((*MockClusterInfo)(nil).LbType))
 }
 
+// Mark mocks base method.
+func (m *MockClusterInfo) Mark() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Mark")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
+// Mark indicates an expected call of Mark.
+func (mr *MockClusterInfoMockRecorder) Mark() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mark", reflect.TypeOf((*MockClusterInfo)(nil).Mark))
+}
+
 // MaxRequestsPerConn mocks base method.
 func (m *MockClusterInfo) MaxRequestsPerConn() uint32 {
 	m.ctrl.T.Helper()
@@ -989,6 +1015,20 @@ func (m *MockClusterInfo) ResourceManager() types.ResourceManager {
 func (mr *MockClusterInfoMockRecorder) ResourceManager() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResourceManager", reflect.TypeOf((*MockClusterInfo)(nil).ResourceManager))
+}
+
+// SlowStart mocks base method.
+func (m *MockClusterInfo) SlowStart() types.SlowStart {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SlowStart")
+	ret0, _ := ret[0].(types.SlowStart)
+	return ret0
+}
+
+// SlowStart indicates an expected call of SlowStart.
+func (mr *MockClusterInfoMockRecorder) SlowStart() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SlowStart", reflect.TypeOf((*MockClusterInfo)(nil).SlowStart))
 }
 
 // Stats mocks base method.

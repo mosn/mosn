@@ -39,6 +39,12 @@ const (
 	LeastActiveConnection LoadBalancerType = "LB_LEAST_CONNECTION"
 )
 
+type SlowStartMode string
+
+const (
+	ModeDuration SlowStartMode = "duration"
+)
+
 // LoadBalancer is a upstream load balancer.
 // When a request comes, the LoadBalancer will choose a upstream cluster's host to handle the request.
 type LoadBalancer interface {

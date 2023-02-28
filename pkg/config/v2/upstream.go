@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -110,6 +111,7 @@ type Cluster struct {
 	DnsResolverConfig    DnsResolverConfig   `json:"dns_resolvers,omitempty"`
 	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
 	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
+	SlowStart            SlowStartConfig     `json:"slow_start,omitempty"`
 }
 
 type DnsResolverConfig struct {
@@ -119,6 +121,13 @@ type DnsResolverConfig struct {
 	Ndots    int      `json:"ndots,omitempty"`
 	Timeout  int      `json:"timeout,omitempty"`
 	Attempts int      `json:"attempts,omitempty"`
+}
+
+type SlowStartConfig struct {
+	Mode              string              `json:"mode,omitempty"`
+	SlowStartDuration *api.DurationConfig `json:"slow_start_duration,omitempty"`
+	Aggression        float64             `json:"aggression,omitempty"`
+	MinWeightPercent  float64             `json:"min_weight_percent,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -308,3 +317,5 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	return json.Marshal(cc.ClusterManagerConfigJson)
 }
+
+var NotPercentError = errors.New("not a percent")

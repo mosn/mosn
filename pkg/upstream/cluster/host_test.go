@@ -161,6 +161,32 @@ func TestCreateConnectionIdleTimeout(t *testing.T) {
 	assert.Eventually(checkCountZero, 3*time.Second, 500*time.Millisecond, "expect non connection")
 }
 
+func TestHostStartTime(t *testing.T) {
+	// create host
+	clusterConf := v2.Cluster{
+		Name:        "mock",
+		ClusterType: v2.SIMPLE_CLUSTER,
+		LbType:      v2.LB_ROUNDROBIN,
+		Hosts: []v2.Host{
+			{
+				HostConfig: v2.HostConfig{
+					Address: "127.0.0.1:10086",
+				},
+			},
+		},
+	}
+	host := NewSimpleHost(clusterConf.Hosts[0], NewCluster(clusterConf).Snapshot().ClusterInfo())
+
+	assert.NotNil(t, host)
+	assert.Zero(t, host.LastHealthCheckPassTime())
+
+	now := time.Now()
+	assert.NotEqual(t, now, host.LastHealthCheckPassTime())
+
+	host.SetLastHealthCheckPassTime(now)
+	assert.Equal(t, now, host.LastHealthCheckPassTime())
+}
+
 type countConnServer struct {
 	address  string
 	count    atomic.Int64
