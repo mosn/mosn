@@ -10,10 +10,10 @@
 - 支持 pprof debug server 配置 endpoint (#2202) @dengqian
 - 集成 mosn.io/envoy-go-extension，参考[文档](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_CN.md) (#2200) @antJack (#2222) @3062
 - 新增 API: 支持覆盖注册 Variable (mosn/pkg#72) @antJack
-- 在 variables 中增加记录 mosn 处理时间的字段 (#2235) @z2z23n0
+- 新增记录 mosn 处理时间的字段的变量 (#2235) @z2z23n0
 
 ### 重构
-- pprof 导入迁移至 pkg/mosn (#2216) @3062
+- import pprof 迁移至 pkg/mosn (#2216) @3062
 
 ### 优化
 
@@ -31,7 +31,7 @@
 - 修复 DefaultRoller 未设置时间导致 panic 的问题 (mosn/pkg#74) @dengqian
 - 提前 metrics 初始化时间使其适用于 static config (#2221) @dengqian
 - 修复多个 health checker 共用 rander 导致的并发问题 (#2228) @dengqian
-- 设置 HTTP1.1 作为发往上游的 HTTP 协议 (#2225) @dengqian
+- 设置 HTTP/1.1 作为发往上游的 HTTP 协议 (#2225) @dengqian
 
 ## v1.3.0
 

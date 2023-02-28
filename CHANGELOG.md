@@ -10,13 +10,14 @@
 - Support pprof debug server endpoint configure (#2202) @dengqian
 - Integrate with mosn.io/envoy-go-extension, consult [document](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_EN.md) (#2200) @antJack (#2222) @3062
 - Add API to support override registration (mosn/pkg#72) @antJack
+- Add a field in variables to record mosn processing time (#2235) @z2z23n0
 
 ### Refactoring
 - Move pprof import to pkg/mosn (#2216) @3062
 
 ### Optimization
 
-- Reduces logging for proxywasm benchmarks (#2189) @Crypt Keeper
+- Reduce logging for proxywasm benchmarks (#2189) @Crypt Keeper
 
 ### Bug fixes
 
@@ -30,8 +31,7 @@
 - Fix panic caused by DefaultRoller not setting time (mosn/pkg#74) @dengqian
 - Advance the timing of metrics initialization to make it work for static config (#2221) @dengqian
 - Fix a concurrency problem caused by multiple health checkers sharing rander (#2228) @dengqian
-- Set HTTP1.1 as the HTTP protocol to be sent upstream (#2225) @dengqian
-- Add a field in variables to record mosn processing time (#2235) @z2z23n0
+- Set HTTP/1.1 as the HTTP protocol to be sent upstream (#2225) @dengqian
 
 ## v1.3.0
 
