@@ -11,6 +11,7 @@
 - Integrate with mosn.io/envoy-go-extension, consult [document](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_EN.md) (#2200) @antJack (#2222) @3062
 - Add API to support override registration (mosn/pkg#72) @antJack
 - Add a field in variables to record mosn processing time (#2235) @z2z23n0
+- Support setting cluster idle_timeout to zero to indicate never timeout (#2197) @antJack
 
 ### Refactoring
 - Move pprof import to pkg/mosn (#2216) @3062

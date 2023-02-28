@@ -11,6 +11,7 @@
 - 集成 mosn.io/envoy-go-extension，参考[文档](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_CN.md) (#2200) @antJack (#2222) @3062
 - 新增 API: 支持覆盖注册 Variable (mosn/pkg#72) @antJack
 - 新增记录 mosn 处理时间的字段的变量 (#2235) @z2z23n0
+- 支持将 cluster idle_timeout 设置为零以表示从不超时 (#2197) @antJack
 
 ### 重构
 - import pprof 迁移至 pkg/mosn (#2216) @3062
