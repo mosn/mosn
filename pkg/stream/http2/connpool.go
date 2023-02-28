@@ -157,7 +157,9 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 		if atomic.LoadUint32(&client.goaway) == 1 {
 			return
 		}
+		p.mux.Lock()
 		p.deleteActiveClient()
+		p.mux.Unlock()
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
@@ -196,9 +198,7 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 func (p *connPool) deleteActiveClient() {
 	p.Host().HostStats().UpstreamConnectionActive.Dec(1)
 	p.Host().ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
-	p.mux.Lock()
 	p.activeClient = nil
-	p.mux.Unlock()
 }
 
 // types.StreamEventListener
