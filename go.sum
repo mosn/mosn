@@ -1057,6 +1057,7 @@ mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFV
 mosn.io/api v1.2.1/go.mod h1:UoBKBSsG+ZrRZvCpKcj/x2M9IMFmCg3Wz03D15O5OzM=
 mosn.io/api v1.3.0 h1:QhsrbkvYnpvvrC151S0N09TdU2jDODygLVK3Y58ubgg=
 mosn.io/api v1.3.0/go.mod h1:mJX2oRJkrXjLN6hY1Wwrlxj0F+RqEPOMhbf2WhZO+VY=
+mosn.io/api v1.4.0/go.mod h1:mJX2oRJkrXjLN6hY1Wwrlxj0F+RqEPOMhbf2WhZO+VY=
 mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7 h1:zCQVM5Bz2SlTRSDcmeUx3x6hR/8aJjbr1CGN0CR4l7s=
 mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7/go.mod h1:xmQX3gXsZOS1j9b8o6es5xTueaUtOCqEpheZouIXDF0=
 mosn.io/holmes v1.0.1/go.mod h1:pZjPamcZk4Z16xlZySG1rU9psLUCOx6MVNuj/3bfkEk=
@@ -1067,6 +1068,8 @@ mosn.io/pkg v0.0.0-20211217101631-d914102d1baf/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6
 mosn.io/pkg v1.2.1/go.mod h1:tK3Vbw6CcVeJ9H/BGjJ1wn6hRXt4Oxjfq1+gkOM0zG8=
 mosn.io/pkg v1.3.1-0.20230104081003-9c747062328a h1:ymsnQbSR14qQguC6AibcBlXOnCmNWlimZPfn8pjF8pw=
 mosn.io/pkg v1.3.1-0.20230104081003-9c747062328a/go.mod h1:bksEtkXis6vzQoU9Q7wwY9bWt7gfrj/l7rjRDu21Vt4=
+mosn.io/pkg v1.4.0 h1:6xMkkjpUjEXtL0JRQ9MfdvFhw8rfJ22qa9HHO1AY5Aw=
+mosn.io/pkg v1.4.0/go.mod h1:1oAl7HxIAQ4Tjg0dDjE8jQ0okS2NNPcWCwrJhdlw2PQ=
 mosn.io/proxy-wasm-go-host v0.2.0/go.mod h1:eTEPLCYncJ60dRh/n7E4GVRQELa0BsRr6TJ8RzE0Jkc=
 mosn.io/proxy-wasm-go-host v0.2.1-0.20221123073237-4f948bf02510 h1:FHJ+U12vvS1TPdXAvwxS1CZC31K1sa9aePayGU5muEU=
 mosn.io/proxy-wasm-go-host v0.2.1-0.20221123073237-4f948bf02510/go.mod h1:hC98WW5PbN+eQvnbE1F3N1eivGtlVTThfjAruULEiOM=
