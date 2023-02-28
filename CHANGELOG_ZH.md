@@ -33,6 +33,7 @@
 - 提前 metrics 初始化时间使其适用于 static config (#2221) @dengqian
 - 修复多个 health checker 共用 rander 导致的并发问题 (#2228) @dengqian
 - 设置 HTTP/1.1 作为发往上游的 HTTP 协议 (#2225) @dengqian
+- 补全缺失的统计信息 (#2215) @3062
 
 ## v1.3.0
 

@@ -33,6 +33,7 @@
 - Advance the timing of metrics initialization to make it work for static config (#2221) @dengqian
 - Fix a concurrency problem caused by multiple health checkers sharing rander (#2228) @dengqian
 - Set HTTP/1.1 as the HTTP protocol to be sent upstream (#2225) @dengqian
+- Completing the missing statistics (#2215) @3062
 
 ## v1.3.0
 
