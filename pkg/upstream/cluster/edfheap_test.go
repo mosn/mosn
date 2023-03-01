@@ -139,7 +139,7 @@ func TestEdfHeap_edfEntryLess(t *testing.T) {
 
 func BenchmarkEdfHeap_Push(b *testing.B) {
 	b.StopTimer()
-	h := newEdfHeap(16)
+	h := newEdfHeap(b.N)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		h.Push(&edfEntry{weight: rand.Float64()})
@@ -148,7 +148,7 @@ func BenchmarkEdfHeap_Push(b *testing.B) {
 
 func BenchmarkEdfHeap_Pop(b *testing.B) {
 	b.StopTimer()
-	h := newEdfHeap(16)
+	h := newEdfHeap(b.N)
 	for i := 0; i < b.N; i++ {
 		h.Push(&edfEntry{weight: rand.Float64()})
 	}
@@ -160,7 +160,7 @@ func BenchmarkEdfHeap_Pop(b *testing.B) {
 
 func BenchmarkEdfHeap_Fix(b *testing.B) {
 	b.StopTimer()
-	h := newEdfHeap(16)
+	h := newEdfHeap(b.N)
 	for i := 0; i < b.N; i++ {
 		h.Push(&edfEntry{weight: rand.Float64()})
 	}
