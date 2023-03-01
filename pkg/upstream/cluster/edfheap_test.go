@@ -116,6 +116,27 @@ func TestEdfHeap_Fix(t *testing.T) {
 	}
 }
 
+func TestEdfHeap_edfEntryLess(t *testing.T) {
+	tests := []struct {
+		a    *edfEntry
+		b    *edfEntry
+		less bool
+	}{
+		{&edfEntry{deadline: 1.0, queuedTime: 1}, &edfEntry{deadline: 1.0, queuedTime: 2}, true},
+		{&edfEntry{deadline: 1.0, queuedTime: 2}, &edfEntry{deadline: 1.0, queuedTime: 1}, false},
+		{&edfEntry{deadline: 1.0, queuedTime: 1}, &edfEntry{deadline: 1.0, queuedTime: 1}, false},
+		{&edfEntry{deadline: 2.0, queuedTime: 1}, &edfEntry{deadline: 1.0, queuedTime: 1}, false},
+		{&edfEntry{deadline: 1.0, queuedTime: 1}, &edfEntry{deadline: 2.0, queuedTime: 1}, true},
+		{&edfEntry{deadline: 1.0, queuedTime: 2}, &edfEntry{deadline: 2.0, queuedTime: 1}, true},
+	}
+
+	for _, tst := range tests {
+		if edfEntryLess(tst.a, tst.b) != tst.less {
+			t.Fatalf("%v < %v must be %v", tst.a, tst.b, tst.less)
+		}
+	}
+}
+
 func BenchmarkEdfHeap_Push(b *testing.B) {
 	b.StopTimer()
 	h := newEdfHeap(16)
