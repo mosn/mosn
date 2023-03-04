@@ -39,10 +39,8 @@
 						{
 							"type": "seata",
 							"config": {
-								"addressing": "service-c",
-								"serverAddressing": "localhost:8091",
-								"commitRetryCount": 5,
-								"rollbackRetryCount": 5,
+								"name" : "service-c",
+								"confPath": "conf/seatago.yml",
 								"tccResources": [
 									{
 										"prepareRequestPath": "/service-c/try",

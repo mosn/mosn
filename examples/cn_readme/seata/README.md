@@ -16,24 +16,21 @@
 	{
 		"type": "seata",
 		"config": {
-			"addressing": "service-a",
-			"serverAddressing": "localhost:8091",
-			"commitRetryCount": 5,
-			"rollbackRetryCount": 5,
+			"name": "service-a",
+			"confPath": "conf/seatago.yml",
 			"transactionInfos": [
 				{
-					"requestPath": "/service-a/begin",
-					"timeout": 60000
+					"requestPath": "/service-a/begin"
 				}
 			]
 		}
 	}
 ]
 ```
-1. addressing 为被代理的服务的唯一标识，可以是 applicationID，也可以是 k8s 中 service name.
-2. serverAddressing 为 seata tc server 的访问地址，在 k8s 中，可以配置为 ${FQDN}:{service 端口}。
+1. name 为 TM (Transaction Manager) 全局事务管理器的名称
+2. confPath 为seata-go的原生配置文件，其中具体说明可以查看seata官方文档.
 3. transactionInfos 配置了要开启全局事务的接口。通过 requestPath 与接口 url 匹配，匹配成功则 mosn 会与 
-seata tc server 交互开启全局事务。timeout 单位为毫秒，用来标识全局事务的超时时间。
+seata tc server 交互开启全局事务。
 
 + 下面的配置见 `examples/codes/seata/server_b/service_b_config.json`：
 ```
@@ -41,10 +38,8 @@ seata tc server 交互开启全局事务。timeout 单位为毫秒，用来标�
 	{
 		"type": "seata",
 		"config": {
-			"addressing": "service-b",
-			"serverAddressing": "localhost:8091",
-			"commitRetryCount": 5,
-			"rollbackRetryCount": 5,
+			"name": "service-b",
+			"confPath": "conf/seatago.yml",
 			"tccResources": [
 				{
 					"prepareRequestPath": "/service-b/try",
@@ -56,6 +51,7 @@ seata tc server 交互开启全局事务。timeout 单位为毫秒，用来标�
 	}
 ]
 ```
+name 为 RM (Resource Manager) 资源管理器ID。
 tccResources 配置了 TCC 分支事务对应的接口。如果请求 url 与 `prepareRequestPath` 匹配，并且 
 requestHeader 中存在 key `x_seata_xid`，则 mosn 将向 seata tc server 注册分支事务。当全
 局事务提交时，seata tc server 会通知 mosn 提交分支事务，mosn 将自动调用 `commitRequestPath`
@@ -70,7 +66,6 @@ cd ${projectpath}/cmd/mosn/main
 go build
 ```
 
-+ 需要运行 seata tc server，地址：https://github.com/opentrx/seata-golang/tree/v2
 
 
 + 示例代码目录
@@ -89,42 +84,52 @@ cd ${targetpath}
 ## 目录结构
 
 ```
-main        // 编译完成的 MOSN 程序
-|-- server_a
-|-- |-- server_a.go 
-|-- |-- server_a_config.json 
-|-- server_b
-|-- |-- server_b.go 
-|-- |-- server_b_config.json 
-|-- server_c
-|-- |-- server_c.go 
-|-- |-- server_c_config.json 
+seata
+├── main      // 编译完成的 MOSN 程序
+├── go.mod
+├── go.sum
+├── conf
+│   └── seatago.yml
+├── server_a
+│   ├── server_a.go
+│   └── service_a_config.json
+├── server_b
+│   ├── server_b.go
+│   └── service_b_config.json
+└── server_c
+    ├── server_c.go
+    └── service_c_config.json
 ```
 
 ## 运行说明
 
 ### 启动 seata tc server
 
-参考 https://github.com/opentrx/seata-golang/tree/v2
++ 需要运行 seata tc server，参见地址：https://github.com/seata/seata-go/tree/v1.0.3
+
+```
+cd sample/dockercompose
+docker-compose -f docker-compose.yml up -d seata-server
+```
 
 ### 启动 MOSN
 
 + 使用 server_a_config.json 启动 MOSN
 
 ```
-./main start -c server_a/server_a_config.json
+./main start -c server_a/service_a_config.json
 ```
 
 + 使用 server_b_config.json 启动 MOSN
 
 ```
-./main start -c server_b/server_b_config.json
+./main start -c server_b/service_b_config.json
 ```
 
 + 使用 server_c_config.json 启动 MOSN
 
 ```
-./main start -c server_c/server_c_config.json
+./main start -c server_c/service_c_config.json 
 ```
 
 ### 启动 rest 服务
