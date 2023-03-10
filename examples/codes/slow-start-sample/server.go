@@ -15,19 +15,29 @@
  * limitations under the License.
  */
 
-package v2
+package main
 
-const (
-	MinHostWeight               = uint32(1)
-	MaxHostWeight               = uint32(128)
-	DefaultMaxRequestPerConn    = uint32(1024)
-	DefaultConnBufferLimitBytes = uint32(16 * 1024)
+import (
+	"flag"
+	"fmt"
+	"net/http"
 )
 
-// Slow Start
-const (
-	SlowStartDefaultAggression       = 1.0
-	SlowStartDefaultMinWeightPercent = 0.10 // 10%
+var port int
 
-	SlowStartDurationMode = "duration"
-)
+func init() {
+	flag.IntVar(&port, "port", 8080, "server port")
+	flag.Parse()
+}
+
+func ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("[UPSTREAM]receive request %s\n", r.URL)
+
+	fmt.Fprintf(w, "%d", port)
+	w.WriteHeader(http.StatusOK)
+}
+
+func main() {
+	http.HandleFunc("/", ServeHTTP)
+	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), nil)
+}

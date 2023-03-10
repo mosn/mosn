@@ -54,11 +54,11 @@ require (
 	istio.io/api v0.0.0-20211103171850-665ed2b92d52
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
-	mosn.io/api v1.3.0
+	mosn.io/api v1.4.0
 	mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7
 	mosn.io/holmes v1.1.0
-	mosn.io/pkg v1.3.1-0.20230104081003-9c747062328a
-	mosn.io/proxy-wasm-go-host v0.2.1-0.20221123073237-4f948bf02510
+	mosn.io/pkg v1.4.0
+	mosn.io/proxy-wasm-go-host v0.2.1-0.20230303015731-d5007ceaba4f
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
 
@@ -113,7 +113,7 @@ require (
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.20.11 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/tetratelabs/wazero v1.0.0-pre.3.0.20221122114515-b8d985462e20 // indirect
+	github.com/tetratelabs/wazero v1.0.0-rc.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

@@ -183,6 +183,8 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	clusterConnectionResource.Increase()
 	p.upstreamConnection.SetCollector(p.clusterInfo.Stats().UpstreamBytesReadTotal, p.clusterInfo.Stats().UpstreamBytesWriteTotal)
 	p.readCallbacks.SetUpstreamHost(connectionData.Host)
+	connectionData.Host.HostStats().UpstreamConnectionActive.Inc(1)
+	connectionData.Host.HostStats().UpstreamConnectionTotal.Inc(1)
 	p.clusterInfo.Stats().UpstreamConnectionActive.Inc(1)
 	p.clusterInfo.Stats().UpstreamConnectionTotal.Inc(1)
 	p.requestInfo.OnUpstreamHostSelected(connectionData.Host)
@@ -237,6 +239,8 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	case api.ConnectFailed:
 		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
 	}
+
+	p.onUpstreamEventStats(event)
 }
 
 func (p *proxy) finalizeUpstreamConnectionStats() {
@@ -244,7 +248,41 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 	if host, ok := hostInfo.(types.Host); ok {
 		host.ClusterInfo().ResourceManager().Connections().Decrease()
 	}
-	p.clusterInfo.Stats().UpstreamConnectionActive.Dec(1)
+}
+
+func (p *proxy) onUpstreamEventStats(event api.ConnectionEvent) {
+
+	switch event {
+	case api.RemoteClose:
+		p.clusterInfo.Stats().UpstreamConnectionRemoteClose.Inc(1)
+	case api.LocalClose:
+		p.clusterInfo.Stats().UpstreamConnectionLocalClose.Inc(1)
+	case api.ConnectFailed:
+		p.clusterInfo.Stats().UpstreamConnectionConFail.Inc(1)
+	}
+
+	if event.IsClose() {
+		p.clusterInfo.Stats().UpstreamConnectionActive.Dec(1)
+		p.clusterInfo.Stats().UpstreamConnectionClose.Inc(1)
+	}
+
+	host, ok := p.readCallbacks.UpstreamHost().(types.Host)
+	if !ok {
+		return
+	}
+
+	switch event {
+	case api.RemoteClose:
+		host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+	case api.LocalClose:
+		host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+	case api.ConnectFailed:
+		host.HostStats().UpstreamConnectionConFail.Inc(1)
+	}
+	if event.IsClose() {
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+	}
 }
 
 func (p *proxy) onConnectionSuccess() {

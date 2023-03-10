@@ -89,6 +89,10 @@ func (ci *fakeClusterInfo) Stats() types.ClusterStats {
 	}
 }
 
+func (ci *fakeClusterInfo) SlowStart() types.SlowStart {
+	return types.SlowStart{}
+}
+
 type fakeResourceManager struct {
 	types.ResourceManager
 	max uint64

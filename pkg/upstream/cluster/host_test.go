@@ -19,17 +19,86 @@ package cluster
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/types"
 	"net"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/atomic"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/pkg/utils"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/types"
 )
+
+func TestCreateConnectionIdleTimeoutNotSet(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	as := assert.New(t)
+
+	// create host
+	ctx := context.Background()
+	clusterConf := v2.Cluster{
+		Name:        "mock",
+		ClusterType: v2.SIMPLE_CLUSTER,
+		LbType:      v2.LB_ROUNDROBIN,
+		Hosts: []v2.Host{{
+			HostConfig: v2.HostConfig{Address: "127.0.0.1:10086"},
+		}},
+	}
+
+	host := NewSimpleHost(clusterConf.Hosts[0], NewCluster(clusterConf).Snapshot().ClusterInfo())
+	as.NotNil(host)
+
+	// start mock server
+	server := &countConnServer{
+		address: "127.0.0.1:10086",
+	}
+
+	server.start()
+	defer server.stop()
+
+	// reset read timeout
+	oldConnReadTimeout := types.DefaultConnReadTimeout
+	types.DefaultConnReadTimeout = 100 * time.Millisecond
+	defer func() {
+		types.DefaultConnReadTimeout = oldConnReadTimeout
+	}()
+
+	// create connection
+	checkCountOne := func() bool {
+		count := server.getCount()
+		return count == 1
+	}
+	conn := host.CreateConnection(ctx)
+	conn.Connection.Connect()
+	conn.Connection.Start(ctx)
+
+	idleEventCount := 0
+	closeEventCount := 0
+	listener := mock.NewMockConnectionEventListener(ctrl)
+	listener.EXPECT().OnEvent(gomock.Any()).AnyTimes().Do(func(e api.ConnectionEvent) {
+		if e.IsClose() {
+			closeEventCount++
+		} else if e == api.OnReadTimeout {
+			idleEventCount++
+		}
+	})
+	conn.Connection.AddConnectionEventListener(listener)
+
+	// we create a connection to port 10086, so there should be only one connection on server
+	as.Eventually(checkCountOne, 1*time.Second, 500*time.Millisecond, "expect one connection")
+
+	checkCounter := func() bool {
+		return idleEventCount >= 20 && closeEventCount == 0
+	}
+	// the connection we created should be closed by idle timeout checker
+	// so there should be no connection on server
+	as.Eventually(checkCounter, 3*time.Second, 500*time.Millisecond, "expect non connection")
+}
 
 // TestCreateConnectionIdleTimeout test the connection idle timeout feature
 func TestCreateConnectionIdleTimeout(t *testing.T) {
@@ -90,6 +159,32 @@ func TestCreateConnectionIdleTimeout(t *testing.T) {
 	// the connection we created should be closed by idle timeout checker
 	// so there should be no connection on server
 	assert.Eventually(checkCountZero, 3*time.Second, 500*time.Millisecond, "expect non connection")
+}
+
+func TestHostStartTime(t *testing.T) {
+	// create host
+	clusterConf := v2.Cluster{
+		Name:        "mock",
+		ClusterType: v2.SIMPLE_CLUSTER,
+		LbType:      v2.LB_ROUNDROBIN,
+		Hosts: []v2.Host{
+			{
+				HostConfig: v2.HostConfig{
+					Address: "127.0.0.1:10086",
+				},
+			},
+		},
+	}
+	host := NewSimpleHost(clusterConf.Hosts[0], NewCluster(clusterConf).Snapshot().ClusterInfo())
+
+	assert.NotNil(t, host)
+	assert.Zero(t, host.LastHealthCheckPassTime())
+
+	now := time.Now()
+	assert.NotEqual(t, now, host.LastHealthCheckPassTime())
+
+	host.SetLastHealthCheckPassTime(now)
+	assert.Equal(t, now, host.LastHealthCheckPassTime())
 }
 
 type countConnServer struct {

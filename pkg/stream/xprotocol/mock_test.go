@@ -168,3 +168,7 @@ func (ci *mockClusterInfo) ConnectTimeout() time.Duration {
 func (ci *mockClusterInfo) IdleTimeout() time.Duration {
 	return 0
 }
+
+func (ci *mockClusterInfo) SlowStart() types.SlowStart {
+	return types.SlowStart{}
+}
