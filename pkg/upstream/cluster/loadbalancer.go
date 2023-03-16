@@ -69,6 +69,7 @@ func init() {
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
 	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
+	RegisterLBType(types.ShortestResponse, newShortestResponseLoadBalancer)
 
 	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
@@ -623,4 +624,96 @@ func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCri
 
 func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
+}
+
+type shortestResponseLoadBalancer struct {
+	hosts  types.HostSet
+	rand   *rand.Rand
+	mutex  sync.Mutex
+	choice uint32
+}
+
+func newShortestResponseLoadBalancer(_ types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	lb := &shortestResponseLoadBalancer{
+		hosts:  hosts,
+		rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		choice: default_choice,
+	}
+	return lb
+}
+
+func (lb *shortestResponseLoadBalancer) ChooseHost(_ types.LoadBalancerContext) types.Host {
+	hs := lb.hosts
+	total := hs.Size()
+
+	if total == 0 {
+		return nil
+	}
+	if total == 1 {
+		return hs.Get(0)
+	}
+
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+
+	choice := total
+	rnd := false
+	// Choose `choice` times and return the best one.
+	// See The Power of Two Random Choices: A Survey of Techniques and Results
+	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+	if choice > int(lb.choice) {
+		choice = int(lb.choice)
+		rnd = true
+	}
+
+	var candidate types.Host
+	var candidateScore float64
+
+	for i := 0; i < choice; i++ {
+		idx := i
+		if rnd {
+			idx = lb.rand.Intn(total)
+		}
+		tempHost := hs.Get(idx)
+
+		// Newly added host always has the shortest response
+		if tempHost.HostStats().UpstreamRequestTotal.Count() == 0 {
+			candidate = tempHost
+			break
+		}
+
+		if candidate == nil {
+			candidate = tempHost
+			candidateScore = shortestResponseScore(tempHost)
+			continue
+		}
+
+		tempScore := shortestResponseScore(tempHost)
+
+		if tempScore < candidateScore || (tempScore == candidateScore && (tempHost.Weight() > candidate.Weight() || (tempHost.Weight() == candidate.Weight() && lb.rand.Intn(2) == 0))) {
+			candidate = tempHost
+			candidateScore = tempScore
+		}
+	}
+
+	return candidate
+}
+
+func (lb *shortestResponseLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
+	return lb.hosts.Size() > 0
+}
+
+func (lb *shortestResponseLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
+	return lb.hosts.Size()
+}
+
+const minSuccessRate = 0.1
+
+func shortestResponseScore(h types.Host) float64 {
+	stats := h.HostStats()
+	successRate := (float64(stats.UpstreamResponseSuccess.Count())) / float64(stats.UpstreamRequestTotal.Count())
+	if successRate == 0 {
+		successRate = minSuccessRate // avoid starvation
+	}
+	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1) / successRate
 }

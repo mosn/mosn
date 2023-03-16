@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,7 +69,8 @@ func mockHostList(count int, name string) []types.Host {
 	hosts := make([]types.Host, 0, count)
 	for i := 0; i < count; i++ {
 		hosts = append(hosts, &mockHost{
-			name: "A" + strconv.Itoa(i),
+			name: fmt.Sprintf("%s%d", name, i),
+			addr: fmt.Sprintf("127.0.0.%d", i),
 			w:    uint32(i + 1),
 		})
 	}
