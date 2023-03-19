@@ -35,7 +35,7 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.8.0
-	github.com/tetratelabs/wabin v0.0.0-20220927005300-3b0fbf39a46a
+	github.com/tetratelabs/wabin v0.0.0-20230304001439-f6f874872834
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/urfave/cli v1.22.1
@@ -58,7 +58,7 @@ require (
 	mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7
 	mosn.io/holmes v1.1.0
 	mosn.io/pkg v1.5.1-0.20230525074748-e3528eae50d9
-	mosn.io/proxy-wasm-go-host v0.2.1-0.20230303015731-d5007ceaba4f
+	mosn.io/proxy-wasm-go-host v0.2.1-0.20230626122511-25a9e133320e
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
 
@@ -113,7 +113,7 @@ require (
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.20.11 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/tetratelabs/wazero v1.0.0-rc.1 // indirect
+	github.com/tetratelabs/wazero v1.2.1 // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
