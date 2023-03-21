@@ -240,8 +240,8 @@ func (hc *healthChecker) getCheckInterval() time.Duration {
 	interval := hc.intervalBase
 	if hc.intervalJitter > 0 {
 		hc.mux.Lock()
-		defer hc.mux.Unlock()
 		interval += time.Duration(hc.rander.Int63n(int64(hc.intervalJitter)))
+		hc.mux.Unlock()
 	}
 	// TODO: support jitter percentage
 	return interval
