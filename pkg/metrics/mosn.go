@@ -40,6 +40,25 @@ var (
 	LazyFlushMetrics bool
 )
 
+type SampleType string
+
+const (
+	SampleUniform  SampleType = "UNIFORM"
+	SampleExpDecay SampleType = "EXP_DECAY"
+)
+
+const (
+	defaultSampleType    = SampleUniform
+	defaultSampleSize    = 100
+	defaultExpDecayAlpha = 0.5
+)
+
+var (
+	sampleType    = defaultSampleType
+	sampleSize    = defaultSampleSize
+	expDecayAlpha = defaultExpDecayAlpha
+)
+
 // NewMosnMetrics returns the basic metrics for mosn
 // export the function for extension
 // multiple calls will only make a metrics object
@@ -76,4 +95,19 @@ func AddListenerAddr(addr string) {
 func SetMetricsFeature(flushMosn, lazyFlush bool) {
 	FlushMosnMetrics = flushMosn
 	LazyFlushMetrics = lazyFlush
+}
+
+// SetSampleType set sample type for Histogram
+func SetSampleType(t SampleType) {
+	sampleType = t
+}
+
+// SetSampleSize set sample size for Histogram
+func SetSampleSize(size int) {
+	sampleSize = size
+}
+
+// SetExpDecayAlpha set alpha of ExpDecaySample for Histogram
+func SetExpDecayAlpha(alpha float64) {
+	expDecayAlpha = alpha
 }

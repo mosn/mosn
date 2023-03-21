@@ -25,6 +25,7 @@ import (
 	"sort"
 
 	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
@@ -184,10 +185,24 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
-	construct := func() gometrics.Histogram {
-		// TODO: notice the histogram only keeps 100 values as we set
-		return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	var construct func() gometrics.Histogram
+	if sampleType == SampleUniform {
+		construct = func() gometrics.Histogram {
+			return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize)) }).(gometrics.Histogram)
+		}
+	} else if sampleType == SampleExpDecay {
+		construct = func() gometrics.Histogram {
+			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
+				return gometrics.NewHistogram(gometrics.NewExpDecaySample(sampleSize, expDecayAlpha))
+			}).(gometrics.Histogram)
+		}
+	} else {
+		log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
+		construct = func() gometrics.Histogram {
+			return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize)) }).(gometrics.Histogram)
+		}
 	}
+
 	if LazyFlushMetrics {
 		histogram, _ := NewLazyHistogram(construct)
 		return histogram

@@ -161,6 +161,18 @@ func (m *Mosn) initializeMetrics() {
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
+
+	// set metrics sample configures
+	if config.SampleConfig.Type != "" {
+		metrics.SetSampleType(metrics.SampleType(config.SampleConfig.Type))
+	}
+	if config.SampleConfig.Size > 0 {
+		metrics.SetSampleSize(config.SampleConfig.Size)
+	}
+	if config.SampleConfig.ExpDecayAlpha > 0 {
+		metrics.SetExpDecayAlpha(config.SampleConfig.ExpDecayAlpha)
+	}
+
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
@@ -244,7 +256,7 @@ func (m *Mosn) initServer() {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.Clustermanager)
 
-			for idx, _ := range serverConfig.Listeners {
+			for idx := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn)
 				// Note lc.FilterChains may be a nil value, and there is a check in srv.AddListener
