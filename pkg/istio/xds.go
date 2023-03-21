@@ -89,11 +89,11 @@ func (adsClient *ADSClient) sendRequestLoop() {
 		case <-adsClient.sendTimer.C:
 			c := adsClient.GetStreamClient()
 			if c == nil {
-				log.DefaultLogger.Infof("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
+				log.DefaultLogger.Errorf("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				adsClient.reconnect()
 			} else if err := c.Send(adsClient.config.InitAdsRequest()); err != nil {
-				log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
+				log.DefaultLogger.Errorf("[xds] [ads client] send thread request cds fail!auto retry next period, err:%v", err)
 				adsClient.reconnect()
 			}
 			adsClient.sendTimer.Reset(adsClient.config.RefreshDelay())
@@ -147,17 +147,17 @@ func computeInterval(t time.Duration) time.Duration {
 
 func (adsClient *ADSClient) reconnect() {
 	adsClient.stopStreamClient()
-	log.DefaultLogger.Infof("[xds] [ads client] close stream client before retry")
+	log.DefaultLogger.Errorf("[xds] [ads client] close stream client before retry")
 	interval := time.Second
 
 	for {
 		if !disableReconnect {
 			err := adsClient.connect()
 			if err == nil {
-				log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
+				log.DefaultLogger.Errorf("[xds] [ads client] stream client reconnected")
 				return
 			}
-			log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect failed %v,  retry after %v", err, interval)
+			log.DefaultLogger.Errorf("[xds] [ads client] stream client reconnect failed %v,  retry after %v", err, interval)
 		}
 		// sleep random
 		time.Sleep(interval + time.Duration(rand.Intn(1000))*time.Millisecond)
@@ -197,7 +197,7 @@ func (adsClient *ADSClient) Stop() {
 // close stream client and trigger reconnect right now
 func (adsClient *ADSClient) ReconnectStreamClient() {
 	adsClient.stopStreamClient()
-	log.DefaultLogger.Infof("[xds] [ads client] close stream client")
+	log.DefaultLogger.Errorf("[xds] [ads client] close stream client")
 
 	if disableReconnect {
 		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect disabled")
