@@ -101,7 +101,7 @@ func (m *Mosn) inheritHandler() error {
 	var err error
 	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
 	if err != nil {
-		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, err:%v, exit", err)
+		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exiting, err:%v", err)
 		return err
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
@@ -111,7 +111,7 @@ func (m *Mosn) inheritHandler() error {
 		err = inheritFunc(c)
 		if err != nil {
 			m.Upgrade.ListenSockConn.Close()
-			log.StartLogger.Errorf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			log.StartLogger.Errorf("[mosn] [NewMosn] InheritConfig failed, exiting, err: %v", err)
 			return err
 		}
 	}
