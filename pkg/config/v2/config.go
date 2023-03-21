@@ -73,6 +73,7 @@ type MetricsConfig struct {
 	SampleConfig SampleConfig      `json:"sample"`
 }
 
+// SampleConfig for metrics histogram
 type SampleConfig struct {
 	Type          string  `json:"type"`
 	Size          int     `json:"size"`
