@@ -188,7 +188,9 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 	var construct func() gometrics.Histogram
 	if sampleType == SampleUniform {
 		construct = func() gometrics.Histogram {
-			return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize)) }).(gometrics.Histogram)
+			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
+				return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize))
+			}).(gometrics.Histogram)
 		}
 	} else if sampleType == SampleExpDecay {
 		construct = func() gometrics.Histogram {
@@ -197,9 +199,13 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 			}).(gometrics.Histogram)
 		}
 	} else {
-		log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
+		if log.DefaultLogger.GetLogLevel() > log.WARN {
+			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
+		}
 		construct = func() gometrics.Histogram {
-			return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize)) }).(gometrics.Histogram)
+			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
+				return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize))
+			}).(gometrics.Histogram)
 		}
 	}
 
