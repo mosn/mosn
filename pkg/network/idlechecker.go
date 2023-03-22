@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -48,15 +49,15 @@ type idleChecker struct {
 	lastRead     int64
 }
 
-func (conn *connection) newIdleChecker(readTimeout time.Duration, idleTimeout time.Duration) {
+func (c *connection) newIdleChecker(readTimeout time.Duration, idleTimeout time.Duration) {
 	checker := &idleChecker{
-		conn:         conn,
+		conn:         c,
 		maxIdleCount: getIdleCount(readTimeout, idleTimeout),
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, conn.id)
+		log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, c.id)
 	}
-	conn.AddConnectionEventListener(checker)
+	c.AddConnectionEventListener(checker)
 }
 
 func (c *idleChecker) closeConnection() {
