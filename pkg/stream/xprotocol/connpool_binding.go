@@ -71,6 +71,9 @@ func (d downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
 // NewStream Create a client stream and call's by proxy
 func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
+	// stats
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 
 	c, reason := p.GetActiveClient(ctx)
 
@@ -100,7 +103,6 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 // GetActiveClient get a avail client
 // nolint: dupl
 func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
-
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
@@ -121,10 +123,6 @@ func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding
 	c, reason := p.newActiveClient(ctx)
 	if c != nil && reason == "" {
 		p.idleClients[downstreamConnID] = c
-
-		// stats
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 	}
 
 	return c, reason
