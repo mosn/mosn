@@ -39,7 +39,7 @@ type poolBinding struct {
 	*connpool
 
 	clientMux   sync.Mutex
-	idleClients map[uint64]*activeClientBinding // connection id --> client
+	idleClients map[uint64]*activeClientBinding // downstream connection id --> upstream client
 }
 
 // NewPoolBinding generates a binding connection pool
@@ -80,8 +80,6 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 
 	c.addDownConnListenerOnce(ctx)
 
-	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.connID)
-
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
 	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
@@ -113,8 +111,8 @@ func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	connID := getConnID(ctx)
-	if c, ok := p.idleClients[connID]; ok {
+	downstreamConnID := getDownstreamConnID(ctx)
+	if c, ok := p.idleClients[downstreamConnID]; ok {
 		// the client was already initialized
 		return c, ""
 	}
@@ -122,7 +120,7 @@ func (p *poolBinding) GetActiveClient(ctx context.Context) (*activeClientBinding
 	// no available client
 	c, reason := p.newActiveClient(ctx)
 	if c != nil && reason == "" {
-		p.idleClients[connID] = c
+		p.idleClients[downstreamConnID] = c
 
 		// stats
 		host.HostStats().UpstreamRequestTotal.Inc(1)
@@ -154,19 +152,19 @@ func (p *poolBinding) Shutdown() {
 }
 
 func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding, types.PoolFailureReason) {
-	connID := getConnID(ctx)
+	connID := getDownstreamConnID(ctx)
 	ac := &activeClientBinding{
-		protocol: p.connpool.codec.ProtocolName(),
-		connID:   connID,
-		pool:     p,
-		host:     p.Host().CreateConnection(ctx),
+		protocol:         p.connpool.codec.ProtocolName(),
+		downstreamConnID: connID,
+		pool:             p,
+		host:             p.Host().CreateConnection(ctx),
 	}
 
 	host := p.Host()
 
 	connCtx := ctx
 
-	_ = variable.Set(connCtx, types.VariableConnectionID, ac.host.Connection.ID())
+	_ = variable.Set(connCtx, types.VariableUpstreamConnectionID, ac.host.Connection.ID())
 	_ = variable.Set(connCtx, types.VariableUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
 
 	ac.host.Connection.AddConnectionEventListener(ac)
@@ -212,7 +210,7 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 // nolint: maligned
 type activeClientBinding struct {
 	closeWithActiveReq bool
-	connID             uint64
+	downstreamConnID   uint64
 	goaway             uint32
 	protocol           types.ProtocolName
 	keepAlive          *keepAliveListener
@@ -250,7 +248,7 @@ func (ac *activeClientBinding) removeFromPool() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	delete(p.idleClients, ac.connID)
+	delete(p.idleClients, ac.downstreamConnID)
 }
 
 // types.ConnectionEventListener
@@ -376,7 +374,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 	ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
 }
 
-func getConnID(ctx context.Context) uint64 {
+func getDownstreamConnID(ctx context.Context) uint64 {
 	if ctx != nil {
 		if val, err := variable.Get(ctx, types.VariableConnectionID); err == nil {
 			if code, ok := val.(uint64); ok {
