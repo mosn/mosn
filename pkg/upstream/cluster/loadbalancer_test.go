@@ -1031,6 +1031,8 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
 			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
 			mh.stats.UpstreamRequestTotal.Inc(1)
+			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamConnectionTotal.Inc(1)
 		}
 	}
 	lb = newShortestResponseLoadBalancer(nil, hs)
@@ -1064,6 +1066,8 @@ func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
 			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
 			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
 			mh.stats.UpstreamRequestTotal.Inc(1)
+			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamConnectionTotal.Inc(1)
 		}
 		return true
 	})

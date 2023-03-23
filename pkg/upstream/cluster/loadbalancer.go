@@ -653,50 +653,14 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(_ types.LoadBalancerContext) 
 		return hs.Get(0)
 	}
 
-	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
-
-	choice := total
-	rnd := false
-	// Choose `choice` times and return the best one.
-	// See The Power of Two Random Choices: A Survey of Techniques and Results
-	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-	if choice > int(lb.choice) {
-		choice = int(lb.choice)
-		rnd = true
+	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
+	if total <= int(lb.choice) {
+		log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
+		return lb.iterateChoose()
+	} else {
+		log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
+		return lb.randomChoose()
 	}
-
-	var candidate types.Host
-	var candidateScore float64
-
-	for i := 0; i < choice; i++ {
-		idx := i
-		if rnd {
-			idx = lb.rand.Intn(total)
-		}
-		tempHost := hs.Get(idx)
-
-		// Newly added host always has the shortest response
-		if tempHost.HostStats().UpstreamRequestTotal.Count() == 0 {
-			candidate = tempHost
-			break
-		}
-
-		if candidate == nil {
-			candidate = tempHost
-			candidateScore = shortestResponseScore(tempHost)
-			continue
-		}
-
-		tempScore := shortestResponseScore(tempHost)
-
-		if tempScore < candidateScore || (tempScore == candidateScore && (tempHost.Weight() > candidate.Weight() || (tempHost.Weight() == candidate.Weight() && lb.rand.Intn(2) == 0))) {
-			candidate = tempHost
-			candidateScore = tempScore
-		}
-	}
-
-	return candidate
 }
 
 func (lb *shortestResponseLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
@@ -707,13 +671,68 @@ func (lb *shortestResponseLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int
 	return lb.hosts.Size()
 }
 
+func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
+	var candidate types.Host
+	var candidateScore float64
+
+	lb.hosts.Range(func(temp types.Host) bool {
+		tempScore := shortestResponseScore(temp)
+		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+			candidate = temp
+			candidateScore = tempScore
+		}
+
+		return true
+	})
+
+	log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+	return candidate
+}
+
+// Choose `choice` times and return the best one.
+// See The Power of Two Random Choices: A Survey of Techniques and Results
+//
+//	http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
+	total := lb.hosts.Size()
+
+	var candidate types.Host
+	var candidateScore float64
+
+	for i := 0; i < int(lb.choice); i++ {
+		lb.mutex.Lock()
+		idx := lb.rand.Intn(total)
+		lb.mutex.Unlock()
+
+		temp := lb.hosts.Get(idx)
+
+		tempScore := shortestResponseScore(temp)
+		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+			candidate = temp
+			candidateScore = tempScore
+		}
+	}
+
+	log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+	return candidate
+}
+
 const minSuccessRate = 0.1
 
 func shortestResponseScore(h types.Host) float64 {
 	stats := h.HostStats()
-	successRate := (float64(stats.UpstreamResponseSuccess.Count())) / float64(stats.UpstreamRequestTotal.Count())
-	if successRate == 0 {
-		successRate = minSuccessRate // avoid starvation
+
+	var responseSuccessRate float64
+
+	if stats.UpstreamResponseSuccess.Count() == 0 || stats.UpstreamRequestTotal.Count() == 0 {
+		responseSuccessRate = minSuccessRate
+	} else {
+		rate := float64(stats.UpstreamResponseSuccess.Count()) / float64(stats.UpstreamRequestTotal.Count())
+		if rate < minSuccessRate {
+			rate = minSuccessRate
+		}
+		responseSuccessRate = rate
 	}
-	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1) / successRate
+
+	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1) / responseSuccessRate
 }
