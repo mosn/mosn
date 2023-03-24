@@ -224,9 +224,7 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 
 		ch := cval.(chan api.Connection)
 		ch <- conn
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[network] [new server connection] NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
-		}
+		log.DefaultLogger.Infof("[network] [new server connection] NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
 	}
 
 	conn.filterManager = NewFilterManager(conn)
@@ -259,9 +257,7 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 }
 
 func (c *connection) OnConnectionEvent(event api.ConnectionEvent) {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
-	}
+	log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
 	for _, listener := range c.connCallbacks {
 		listener.OnEvent(event)
 	}
@@ -340,10 +336,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 				}
 
 				if err == io.EOF {
-					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-						log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-					}
+					log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s", c.id, c.RemoteAddr().String(), err)
 					c.Close(api.NoFlush, api.RemoteClose)
 				} else {
 					log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
@@ -401,10 +394,7 @@ func (c *connection) checkUseWriteLoop() bool {
 		}
 
 		if ip.IsLoopback() {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
-					c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
-			}
+							log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",					c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 			return true
 		}
 		return false
@@ -480,10 +470,7 @@ func (c *connection) startReadLoop() {
 
 					// normal close or health check, modify log level
 					if c.lastBytesSizeRead == 0 || err == io.EOF {
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[network] [read loop] Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
-								c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
-						}
+						log.DefaultLogger.Debugf("[network] [read loop] Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v", c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
 					} else {
 						log.DefaultLogger.Errorf("[network] [read loop] Error on read. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %v",
 							c.id, c.rawConnection.LocalAddr(), c.RemoteAddr(), err)
@@ -712,10 +699,7 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	if err != nil {
 
 		if err == buffer.EOF {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-					c.id, c.RemoteAddr().String(), err, c)
-			}
+			log.DefaultLogger.Debugf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p", c.id, c.RemoteAddr().String(), err, c)
 			c.Close(api.NoFlush, api.LocalClose)
 		} else {
 			log.DefaultLogger.Errorf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
@@ -785,10 +769,7 @@ func (c *connection) startWriteLoop() {
 		if err != nil {
 
 			if err == buffer.EOF {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-						c.id, c.RemoteAddr().String(), err, c)
-				}
+				log.DefaultLogger.Debugf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p", c.id, c.RemoteAddr().String(), err, c)
 				c.Close(api.NoFlush, api.LocalClose)
 			} else {
 				log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
@@ -929,9 +910,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 
 	// shutdown read first
 	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
-		}
+		log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
 		rawc.CloseRead()
 	}
 
@@ -957,9 +936,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 
 	c.rawConnection.Close()
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[network] [close connection] Close connection %d, event %s, type %s", c.id, eventType, ccType)
-	}
+	log.DefaultLogger.Debugf("[network] [close connection] Close connection %d, event %s, type %s", c.id, eventType, ccType)
 
 	c.updateReadBufStats(0, 0)
 	c.updateWriteBuffStats(0, 0)
@@ -1234,9 +1211,7 @@ func (cc *clientConnection) Connect() (err error) {
 		if err == nil {
 			cc.Start(context.TODO())
 		}
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
-		}
+		log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
 
 		for _, cccb := range cc.connCallbacks {
 			cccb.OnEvent(event)

@@ -114,9 +114,7 @@ func (m commonHeaderMatcherImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria
 }
 
 func (m commonHeaderMatcherImpl) Matches(_ context.Context, headers api.HeaderMap) bool {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", headers)
 	for _, headerData := range m {
 		cfgName := headerData.Name
 		// if a condition is not matched, return false
@@ -157,9 +155,7 @@ func (m *httpHeaderMatcherImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria 
 }
 
 func (m *httpHeaderMatcherImpl) Matches(ctx context.Context, headers api.HeaderMap) bool {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match http header", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match http header", headers)
 	// check http variables
 	for vkey, vvalue := range m.variables {
 		value, err := variable.GetString(ctx, vkey)
@@ -199,9 +195,7 @@ func CreateHTTPHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 type queryParameterMatcherImpl []*KeyValueData
 
 func (m queryParameterMatcherImpl) Matches(ctx context.Context, queryParams types.QueryParams) bool {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match query params", queryParams)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match query params", queryParams)
 	for _, configQueryParam := range m {
 		cfgName := configQueryParam.Name
 		value, ok := queryParams[cfgName]

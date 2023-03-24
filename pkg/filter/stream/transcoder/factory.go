@@ -67,9 +67,7 @@ func MustRegister(typ string, transcoder TranscoderFactory) {
 }
 
 func GetTranscoderFactory(typ string) TranscoderFactory {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream filter][transcoder] GetTranscoder, typ %s, transcoderFactory %+v", typ, transcoderFactory)
-	}
+	log.DefaultLogger.Debugf("[stream filter][transcoder] GetTranscoder, typ %s, transcoderFactory %+v", typ, transcoderFactory)
 
 	if tf, ok := transcoderFactory[typ]; ok {
 		return tf

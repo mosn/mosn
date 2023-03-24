@@ -30,9 +30,7 @@ import (
 )
 
 func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyDecodeBufferBytes contextID: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyDecodeBufferBytes contextID: %v", contextId)
 
 	instance := a.GetInstance()
 	ff, err := instance.GetExportsFunc("proxy_decode_buffer_bytes")
@@ -77,9 +75,7 @@ func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) 
 }
 
 func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFrame) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
 
 	req := cmd.(*Request)
 
@@ -167,17 +163,13 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFram
 		return errors.New(fmt.Sprintf("plugin %s encode request buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode request, contextId: %d , rawId: %d, cmdId: %d \n", contextId, req.RpcId, req.GetRequestId())
-	}
+	log.DefaultLogger.Debugf("encode request, contextId: %d , rawId: %d, cmdId: %d \n", contextId, req.RpcId, req.GetRequestId())
 
 	return nil
 }
 
 func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRespFrame) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextId: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextId: %v", contextId)
 
 	resp := cmd.(*Response)
 
@@ -262,17 +254,13 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRes
 		return errors.New(fmt.Sprintf("plugin %s encode response buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode response, contextId: %d, rawId: %d, cmdId: %d \n", contextId, resp.RpcId, cmd.GetRequestId())
-	}
+	log.DefaultLogger.Debugf("encode response, contextId: %d, rawId: %d, cmdId: %d \n", contextId, resp.RpcId, cmd.GetRequestId())
 
 	return nil
 }
 
 func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyKeepAliveBufferBytes contextId: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyKeepAliveBufferBytes contextId: %v", contextId)
 
 	instance := a.GetInstance()
 	ctx := getInstanceCallback(instance).(*Context)
@@ -297,9 +285,7 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 }
 
 func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd api.XFrame) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextId: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextId: %v", contextId)
 
 	req := cmd.(*Request)
 
@@ -329,9 +315,7 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd api.XFra
 }
 
 func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd api.XFrame, statusCode uint32) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextId: %v", contextId)
-	}
+	log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextId: %v", contextId)
 
 	req := cmd.(*Request)
 

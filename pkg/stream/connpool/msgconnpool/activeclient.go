@@ -85,9 +85,7 @@ func (ac *activeClient) reconnect(event api.ConnectionEvent) {
 	}
 
 	if ac.connectTryTimes >= ac.pool.connTryTimes {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[connpool] retry time exceed pool config %v", ac.pool.connTryTimes)
-		}
+		log.DefaultLogger.Warnf("[connpool] retry time exceed pool config %v", ac.pool.connTryTimes)
 		return
 	}
 
@@ -142,20 +140,14 @@ func (ac *activeClient) initConnectionLocked(initReason string) {
 			ac.connData.Store(&createConnData)
 		}
 
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[connpool] connect failed %v times, host: %v, connData: %v, init reason: %v",
-				ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
-		}
+		log.DefaultLogger.Warnf("[connpool] connect failed %v times, host: %v, connData: %v, init reason: %v", ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
 		return
 	}
 
 	// atomic store, avoid partial write
 	ac.connData.Store(&createConnData)
 
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[connpool] connect succeed after %v tries, host: %v, connData: %v, init reason: %v",
-			ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
-	}
+	log.DefaultLogger.Infof("[connpool] connect succeed after %v tries, host: %v, connData: %v, init reason: %v", ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
 
 	// two scenes
 	//   1. destroyed == true, there is no problem
@@ -184,17 +176,11 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 RECONNECT:
 	if ac.pool.autoReconnectWhenClose {
 		// auto reconnect when close
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[connpool] reconnect after event: %v, connData: %v, host: %v",
-				event, ac.connData, ac.pool.Host().AddressString())
-		}
+		log.DefaultLogger.Warnf("[connpool] reconnect after event: %v, connData: %v, host: %v", event, ac.connData, ac.pool.Host().AddressString())
 
 		ac.reconnect(event)
 	} else {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[connpool] auto reconnect is closed, event : %v, connData : %v, clear heartbeat",
-				event, ac.connData)
-		}
+		log.DefaultLogger.Warnf("[connpool] auto reconnect is closed, event : %v, connData : %v, clear heartbeat", event, ac.connData)
 
 		utils.GoWithRecover(func() {
 			ac.pool.connectingMux.Lock()

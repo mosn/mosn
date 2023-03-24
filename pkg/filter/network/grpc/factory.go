@@ -56,9 +56,7 @@ var _ api.NetworkFilterChainFactory = (*grpcServerFilterFactory)(nil)
 var _ api.FactoryInitializer = (*grpcServerFilterFactory)(nil)
 
 func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("create a new grpc filter")
-	}
+	log.DefaultLogger.Debugf("create a new grpc filter")
 	rf := NewGrpcFilter(ctx, f.server.ln)
 	callbacks.AddReadFilter(rf)
 }

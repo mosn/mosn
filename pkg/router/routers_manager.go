@@ -74,9 +74,7 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 		rw.routers = routers
 		rw.routersConfig = routerConfig
 		rw.mux.Unlock()
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "update router: "+routerConfig.RouterConfigName)
-		}
+		log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "update router: "+routerConfig.RouterConfigName)
 	} else {
 		// adds new router
 		// if a routerConfig with no routes, it is a valid config
@@ -87,9 +85,7 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 			routers:       routers,
 			routersConfig: routerConfig,
 		})
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "add router: "+routerConfig.RouterConfigName)
-		}
+		log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "add router: "+routerConfig.RouterConfigName)
 	}
 	// update admin stored config for admin api dump
 	configmanager.SetRouter(*routerConfig)

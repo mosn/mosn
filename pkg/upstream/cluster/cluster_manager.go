@@ -49,12 +49,8 @@ func refreshHostsConfig(c types.Cluster) {
 		return true
 	})
 	configmanager.SetHosts(name, hostsConfig)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, hostSet.Size())
-	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hostSet)
-	}
+	log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, hostSet.Size())
+	log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hostSet)
 }
 
 const globalTLSMetrics = "global"
@@ -232,9 +228,7 @@ func (cm *clusterManager) UpdateCluster(cluster v2.Cluster, clusterHandler types
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
 	refreshHostsConfig(newCluster)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
-	}
+	log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	return nil
 
 }
@@ -277,9 +271,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 
 		cm.clustersMap.Delete(clusterName)
 		configmanager.SetRemoveClusterConfig(clusterName)
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
-		}
+		log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
 	}
 	return nil
 }
@@ -493,9 +485,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 
 		addr := host.AddressString()
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
-		}
+		log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
 		value, ok := cm.protocolConnPool.Load(proto)
 		if !ok {
 			return nil, nil, errUnknownProtocol
@@ -522,9 +512,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pool, loaded := loadOrStoreConnPool()
 		if loaded {
 			if !pool.TLSHashValue().Equal(host.TLSHashValue()) {
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
-				}
+				log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()
@@ -575,9 +563,7 @@ func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr 
 			pool := connPool.(types.ConnectionPool)
 			connectionPool.Delete(addr)
 			pool.Shutdown()
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
-			}
+			log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
 		}
 	}
 	if proto == "" {
@@ -588,9 +574,7 @@ func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr 
 	} else {
 		value, ok := cm.protocolConnPool.Load(proto)
 		if !ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
-			}
+			log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
 			return
 		}
 		shutdown(value)

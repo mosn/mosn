@@ -75,10 +75,7 @@ func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
 }
 
 func (p *proxy) OnData(buffer buffer.IoBuffer) api.FilterStatus {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[%s proxy] [ondata] read data , len = %v, local addr:%s, upstream addr:%s",
-			p.network, buffer.Len(), p.readCallbacks.Connection().LocalAddr().String(), p.upstreamConnection.RemoteAddr().String())
-	}
+	log.DefaultLogger.Debugf("[%s proxy] [ondata] read data , len = %v, local addr:%s, upstream addr:%s", p.network, buffer.Len(), p.readCallbacks.Connection().LocalAddr().String(), p.upstreamConnection.RemoteAddr().String())
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -88,9 +85,7 @@ func (p *proxy) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 }
 
 func (p *proxy) OnNewConnection() api.FilterStatus {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[%s proxy] [new conn] accept new connection", p.network)
-	}
+	log.DefaultLogger.Debugf("[%s proxy] [new conn] accept new connection", p.network)
 	return p.initializeUpstreamConnection()
 }
 

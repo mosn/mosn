@@ -57,17 +57,12 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 		host, hostChosen := sslb.tryChooseHostFromContext(ctx)
 		// if a subset's hosts are all deleted, it will return a nil host and a true flag
 		if hostChosen && host != nil {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match subset entry success, "+
-					"choose hostaddr = %s", host.AddressString())
-			}
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match subset entry success, "+"choose hostaddr = %s", host.AddressString())
 			return host
 		}
 	}
 	if sslb.fallbackSubset == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: failure, fallback subset is nil")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: failure, fallback subset is nil")
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
@@ -77,9 +72,7 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 // if metadata is nil, use all hosts as results
 func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
 		return sslb.fullLb.IsExistsHosts(metadata)
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
@@ -90,9 +83,7 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria
 	}
 
 	if sslb.fallbackSubset != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] IsExistsHosts failed, do fallback")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] IsExistsHosts failed, do fallback")
 		return sslb.fallbackSubset.LoadBalancer().IsExistsHosts(metadata)
 	}
 
@@ -102,9 +93,7 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria
 // if metadata is nil, use all hosts as results
 func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
 		return sslb.fullLb.HostNum(metadata)
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
@@ -115,9 +104,7 @@ func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int 
 	}
 
 	if sslb.fallbackSubset != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] HostNum failed, do fallback")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] HostNum failed, do fallback")
 		return sslb.fallbackSubset.LoadBalancer().HostNum(metadata)
 	}
 
@@ -128,17 +115,13 @@ func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int 
 func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerContext) (types.Host, bool) {
 	metadata := ctx.MetadataMatchCriteria()
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
 		return sslb.fullLb.ChooseHost(ctx), true
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
 	entry := sslb.findSubset(matchCriteria)
 	if entry == nil || !entry.Active() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match entry failure")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match entry failure")
 		return nil, false
 	}
 	return entry.LoadBalancer().ChooseHost(ctx), true
@@ -173,9 +156,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, pol
 	hostSet := sslb.hostSet
 	switch policy {
 	case types.NoFallBack:
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
 		return
 	case types.AnyEndPoint:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{

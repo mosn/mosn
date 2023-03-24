@@ -26,9 +26,7 @@ import (
 
 func (ads *AdsStreamClient) handleEds(resp *envoy_service_discovery_v3.DiscoveryResponse) error {
 	endpoints := HandleEndpointResponse(resp)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
-	}
+	log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 	ads.config.converter.ConvertUpdateEndpoints(endpoints)
 	info := &responseInfo{
 		VersionInfo:   resp.VersionInfo,

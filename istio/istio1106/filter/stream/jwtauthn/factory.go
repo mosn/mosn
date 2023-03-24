@@ -24,9 +24,7 @@ type FilterConfigFactory struct {
 
 // CreateJwtAuthnFilterFactory creates a new JwtAuthnFilterFactory.
 func CreateJwtAuthnFilterFactory(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("create jwt authn stream filter factory")
-	}
+	log.DefaultLogger.Debugf("create jwt authn stream filter factory")
 	c, err := ParseJWTAuthnFilter(cfg)
 	if err != nil {
 		return nil, err

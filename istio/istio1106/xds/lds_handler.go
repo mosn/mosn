@@ -26,9 +26,7 @@ import (
 
 func (ads *AdsStreamClient) handleLds(resp *envoy_service_discovery_v3.DiscoveryResponse) error {
 	listeners := HandleListenerResponse(resp)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
-	}
+	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 	ads.config.converter.ConvertAddOrUpdateListeners(listeners)
 	info := &responseInfo{
 		ResponseNonce: resp.Nonce,

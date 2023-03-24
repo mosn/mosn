@@ -218,10 +218,10 @@ func (s *downStream) endStream() {
 
 // Clean up on the very end of the stream: end stream or reset stream
 // Resources to clean up / reset:
-// 	+ upstream request
-// 	+ all timers
-// 	+ all filters
-//  + remove stream in proxy context
+//   - upstream request
+//   - all timers
+//   - all filters
+//   - remove stream in proxy context
 func (s *downStream) cleanStream() {
 	if !atomic.CompareAndSwapUint32(&s.downstreamCleaned, 0, 1) {
 		return
@@ -348,9 +348,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.WARN {
-		log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
-	}
+	log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	s.resetReason.Store(reason)
 
 	s.sendNotify()

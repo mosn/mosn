@@ -606,9 +606,7 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 		idx := id % total
 		target := hs.Get(idx)
 		if target.Health() {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", target.AddressString())
-			}
+			log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", target.AddressString())
 			variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(idx))
 			return target
 		}

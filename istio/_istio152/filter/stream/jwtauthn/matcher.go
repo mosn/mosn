@@ -77,9 +77,7 @@ func (p *prefixMatcher) Matches(headers api.HeaderMap, requestPath string) bool 
 	prefixMatch := strings.HasPrefix(path, prefix)
 
 	if p.baseMatcher.matchRoutes(headers, requestPath) && prefixMatch {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("Prefix requirement '%s' matched.", p.prefix)
-		}
+		log.DefaultLogger.Debugf("Prefix requirement '%s' matched.", p.prefix)
 		return true
 	}
 	return false
@@ -109,9 +107,7 @@ func (p *pathMatcher) Matches(headers api.HeaderMap, requestPath string) bool {
 		pathMatch = strings.EqualFold(strings.ToLower(p.path), strings.ToLower(requestPath))
 	}
 	if p.baseMatcher.matchRoutes(headers, requestPath) && pathMatch {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("Path requirement '%s' matched.", p.path)
-		}
+		log.DefaultLogger.Debugf("Path requirement '%s' matched.", p.path)
 		return true
 	}
 	return false

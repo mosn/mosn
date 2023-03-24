@@ -165,9 +165,7 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
-	}
+	log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -186,9 +184,7 @@ func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
 		return
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
-	}
+	log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
 
 	kp.heartbeatFailCount.Inc()
 	kp.previousIsSucc.Store(false)
@@ -212,9 +208,7 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 		return
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
-	}
+	log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
 
 	timeout.timer.Stop()
 

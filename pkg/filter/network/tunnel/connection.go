@@ -188,9 +188,7 @@ func (a *connection) OnEvent(event api.ConnectionEvent) {
 	case event.IsClose(), event.ConnectFailure():
 		break
 	default:
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[agent] receive %s event, ignore it", event)
-		}
+		log.DefaultLogger.Debugf("[agent] receive %s event, ignore it", event)
 		return
 	}
 

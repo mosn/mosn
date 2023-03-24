@@ -381,10 +381,7 @@ func AddOrUpdateListenerFilterFactories(listenerName string, configs []v2.Filter
 	}
 
 	listenerFilterFactoryMap.Store(listenerName, factories)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[config] AddOrUpdateListenerFilterFactories store listener factory, name: %v, config: %v",
-			listenerName, configs)
-	}
+	log.DefaultLogger.Debugf("[config] AddOrUpdateListenerFilterFactories store listener factory, name: %v, config: %v", listenerName, configs)
 
 	return factories
 }
@@ -436,9 +433,7 @@ func AddOrUpdateNetworkFilterFactories(listenerName string, ln *v2.Listener) []a
 	}
 
 	networkFilterFactoryMap.Store(listenerName, factories)
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[config] AddOrUpdateNetworkFilterFactories store network filter factories, name: %v", listenerName)
-	}
+	log.DefaultLogger.Debugf("[config] AddOrUpdateNetworkFilterFactories store network filter factories, name: %v", listenerName)
 
 	return factories
 }
