@@ -199,7 +199,7 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 			}).(gometrics.Histogram)
 		}
 	} else {
-		if log.DefaultLogger.GetLogLevel() > log.WARN {
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
 			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
 		}
 		construct = func() gometrics.Histogram {
