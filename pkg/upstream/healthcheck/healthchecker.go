@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -57,6 +58,7 @@ type healthChecker struct {
 	initialDelay       time.Duration
 	unhealthyThreshold uint32
 	rander             rand.Rand
+	mux                sync.Mutex
 	hostCheckCallbacks []types.HealthCheckCb
 	logger             types.HealthCheckLog
 }
@@ -237,7 +239,9 @@ func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy b
 func (hc *healthChecker) getCheckInterval() time.Duration {
 	interval := hc.intervalBase
 	if hc.intervalJitter > 0 {
+		hc.mux.Lock()
 		interval += time.Duration(hc.rander.Int63n(int64(hc.intervalJitter)))
+		hc.mux.Unlock()
 	}
 	// TODO: support jitter percentage
 	return interval
