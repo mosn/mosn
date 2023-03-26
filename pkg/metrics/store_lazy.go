@@ -188,3 +188,43 @@ func (lh *lazyHistogram) Variance() float64 {
 	lh.preFunc()
 	return lh.histogram.Variance()
 }
+
+type lazyEWMA struct {
+	once sync.Once
+	ctor func() gometrics.EWMA
+	ewma gometrics.EWMA
+}
+
+// NewLazyEWMA build lazyEWMA
+func NewLazyEWMA(ctor func() gometrics.EWMA) (gometrics.EWMA, error) {
+	if ctor == nil {
+		return nil, errors.New("build lazygauge ctor is empty")
+	}
+	return &lazyEWMA{ctor: ctor}, nil
+}
+
+func (le *lazyEWMA) preFunc() {
+	le.once.Do(func() {
+		le.ewma = le.ctor()
+	})
+}
+
+func (le *lazyEWMA) Rate() float64 {
+	le.preFunc()
+	return le.ewma.Rate()
+}
+
+func (le *lazyEWMA) Snapshot() gometrics.EWMA {
+	le.preFunc()
+	return le.ewma.Snapshot()
+}
+
+func (le *lazyEWMA) Tick() {
+	le.preFunc()
+	le.ewma.Tick()
+}
+
+func (le *lazyEWMA) Update(i int64) {
+	le.preFunc()
+	le.ewma.Update(i)
+}

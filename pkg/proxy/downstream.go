@@ -218,10 +218,10 @@ func (s *downStream) endStream() {
 
 // Clean up on the very end of the stream: end stream or reset stream
 // Resources to clean up / reset:
-// 	+ upstream request
-// 	+ all timers
-// 	+ all filters
-//  + remove stream in proxy context
+//   - upstream request
+//   - all timers
+//   - all filters
+//   - remove stream in proxy context
 func (s *downStream) cleanStream() {
 	if !atomic.CompareAndSwapUint32(&s.downstreamCleaned, 0, 1) {
 		return
@@ -1137,7 +1137,10 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		if retryCheck == api.ShouldRetry && s.setupRetry(true) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.HostStats().UpstreamResponseFailedEWMA.Update(1)
+
 				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(1)
 			}
 
 			// setup retry timer and return
@@ -1187,7 +1190,10 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 		if retryCheck == api.ShouldRetry && s.setupRetry(endStream) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.HostStats().UpstreamResponseFailedEWMA.Update(1)
+
 				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(1)
 			}
 
 			return
@@ -1221,10 +1227,16 @@ func (s *downStream) handleUpstreamStatusCode() {
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 		if s.requestInfo.ResponseCode() >= http.InternalServerError {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailedEWMA.Update(1)
+
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(1)
 		} else {
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
+			s.upstreamRequest.host.HostStats().UpstreamResponseFailedEWMA.Update(0)
+
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(0)
 		}
 	}
 }

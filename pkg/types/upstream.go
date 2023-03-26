@@ -153,7 +153,7 @@ type Host interface {
 	api.HostInfo
 
 	// HostStats returns the host stats metrics
-	HostStats() HostStats
+	HostStats() *HostStats
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
@@ -274,9 +274,11 @@ type HostStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseFailedEWMA                     metrics.EWMA
 }
 
 // ClusterStats defines a cluster's statistics information
@@ -303,9 +305,11 @@ type ClusterStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseFailedEWMA                     metrics.EWMA
 	LBSubSetsFallBack                              metrics.Counter
 	LBSubsetsCreated                               metrics.Gauge
 }

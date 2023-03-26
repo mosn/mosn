@@ -693,10 +693,10 @@ func (mr *MockHostMockRecorder) HealthFlag() *gomock.Call {
 }
 
 // HostStats mocks base method.
-func (m *MockHost) HostStats() types.HostStats {
+func (m *MockHost) HostStats() *types.HostStats {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HostStats")
-	ret0, _ := ret[0].(types.HostStats)
+	ret0, _ := ret[0].(*types.HostStats)
 	return ret0
 }
 

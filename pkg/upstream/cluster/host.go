@@ -95,8 +95,8 @@ func (sh *simpleHost) AddressString() string {
 	return sh.addressString
 }
 
-func (sh *simpleHost) HostStats() types.HostStats {
-	return sh.stats
+func (sh *simpleHost) HostStats() *types.HostStats {
+	return &sh.stats
 }
 
 func (sh *simpleHost) Weight() uint32 {
