@@ -167,6 +167,8 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 		failReason   types.PoolFailureReason
 	)
 
+	r.startTime = time.Now()
+
 	if r.downStream.oneway {
 		_, streamSender, failReason = r.connPool.NewStream(r.downStream.context, nil)
 	} else {
@@ -232,8 +234,6 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender) {
 
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
-	// start a upstream send
-	r.startTime = time.Now()
 
 	if trace.IsEnabled() {
 		span := trace.SpanFromContext(r.downStream.context)
