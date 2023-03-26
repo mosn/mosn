@@ -40,7 +40,7 @@ func newAuthenticator(provider string, jwksCache JwksCache, fetcher JwksFetcher,
 }
 
 func (a *authenticator) Verify(headers api.HeaderMap, tokens []JwtLocation) error {
-	log.DefaultLogger.Infof("JWT authentication starts, tokens size=%d", len(tokens))
+	log.DefaultLogger.Debugf("JWT authentication starts, tokens size=%d", len(tokens))
 	if len(tokens) == 0 {
 		return a.done(ErrJwtNotFound)
 	}
