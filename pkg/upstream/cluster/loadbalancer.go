@@ -687,11 +687,10 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerCon
 	} else {
 		log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
 		candidate = lb.randomChoose()
-	}
-
-	if candidate == nil {
-		log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
-		return lb.wrrLoadBalancer.ChooseHost(context)
+		if candidate == nil {
+			log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
+			return lb.wrrLoadBalancer.ChooseHost(context)
+		}
 	}
 
 	return candidate
