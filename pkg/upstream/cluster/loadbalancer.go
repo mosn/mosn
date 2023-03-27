@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
@@ -631,18 +632,38 @@ type shortestResponseLoadBalancer struct {
 	rand   *rand.Rand
 	mutex  sync.Mutex
 	choice uint32
+
+	wrrLoadBalancer types.LoadBalancer
+	fallback        bool
 }
 
-func newShortestResponseLoadBalancer(_ types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newShortestResponseLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	fallback := false
+	hosts.Range(func(host types.Host) bool {
+		// Check whether `UpstreamRequestDuration` is enabled,
+		// or fallback to WRR because all hosts have same duration.
+		if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
+			fallback = true
+			return false
+		}
+		return true
+	})
+
 	lb := &shortestResponseLoadBalancer{
-		hosts:  hosts,
-		rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
-		choice: default_choice,
+		hosts:           hosts,
+		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
+		choice:          default_choice,
+		wrrLoadBalancer: newWRRLoadBalancer(info, hosts),
+		fallback:        fallback,
 	}
 	return lb
 }
 
-func (lb *shortestResponseLoadBalancer) ChooseHost(_ types.LoadBalancerContext) types.Host {
+func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	if lb.fallback {
+		return lb.wrrLoadBalancer.ChooseHost(context)
+	}
+
 	hs := lb.hosts
 	total := hs.Size()
 
@@ -650,17 +671,30 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(_ types.LoadBalancerContext) 
 		return nil
 	}
 	if total == 1 {
-		return hs.Get(0)
+		host := hs.Get(0)
+		if host.Health() {
+			return host
+		}
+		return nil
 	}
+
+	var candidate types.Host
 
 	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
 	if total <= int(lb.choice) {
 		log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
-		return lb.iterateChoose()
+		candidate = lb.iterateChoose()
 	} else {
 		log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
-		return lb.randomChoose()
+		candidate = lb.randomChoose()
 	}
+
+	if candidate == nil {
+		log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
+		return lb.wrrLoadBalancer.ChooseHost(context)
+	}
+
+	return candidate
 }
 
 func (lb *shortestResponseLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
@@ -676,6 +710,10 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 	var candidateScore float64
 
 	lb.hosts.Range(func(temp types.Host) bool {
+		if !temp.Health() {
+			return false
+		}
+
 		tempScore := shortestResponseScore(temp)
 		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
 			candidate = temp
@@ -685,7 +723,9 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 		return true
 	})
 
-	log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+	if candidate != nil {
+		log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+	}
 	return candidate
 }
 
@@ -705,6 +745,9 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 		lb.mutex.Unlock()
 
 		temp := lb.hosts.Get(idx)
+		if !temp.Health() {
+			continue
+		}
 
 		tempScore := shortestResponseScore(temp)
 		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
@@ -713,7 +756,9 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 		}
 	}
 
-	log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+	if candidate != nil {
+		log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+	}
 	return candidate
 }
 
@@ -724,7 +769,9 @@ func shortestResponseScore(h types.Host) float64 {
 
 	var responseSuccessRate float64
 
-	if stats.UpstreamResponseSuccess.Count() == 0 || stats.UpstreamRequestTotal.Count() == 0 {
+	if stats.UpstreamRequestTotal.Count() == 0 {
+		responseSuccessRate = 1
+	} else if stats.UpstreamResponseSuccess.Count() == 0 {
 		responseSuccessRate = minSuccessRate
 	} else {
 		rate := float64(stats.UpstreamResponseSuccess.Count()) / float64(stats.UpstreamRequestTotal.Count())

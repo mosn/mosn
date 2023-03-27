@@ -21,6 +21,7 @@ import (
 	"context"
 	"math"
 	"math/rand"
+	"mosn.io/mosn/pkg/metrics"
 	"reflect"
 	"sync"
 	"testing"
@@ -951,107 +952,126 @@ func TestNewLACBalancer(t *testing.T) {
 }
 
 func Test_shortestResponseLoadBalancer(t *testing.T) {
-	var mh *mockHost
-	var hs types.HostSet
-	var lb types.LoadBalancer
-
-	// case: no host
-	hs = &hostSet{allHosts: mockHostList(0, "")}
-	lb = newShortestResponseLoadBalancer(nil, hs)
-	assert.False(t, lb.IsExistsHosts(nil))
-	assert.Equal(t, 0, lb.HostNum(nil))
-	h := lb.ChooseHost(nil)
-	if h != nil {
-		t.Fatalf("case:%s, excepted nil, but got %v", "no host", h)
-	}
-
-	// case: only 1 host
-	hs = &hostSet{allHosts: mockHostList(1, "")}
-	lb = newShortestResponseLoadBalancer(nil, hs)
-	assert.True(t, lb.IsExistsHosts(nil))
-	assert.Equal(t, 1, lb.HostNum(nil))
-	h = lb.ChooseHost(nil)
-	if h.Hostname() != "0" {
-		t.Fatalf("case:%s, excepted %s, but get: %s", "only 1 host", "0", h.Hostname())
-	}
-
-	// case: should choose with total 0
-	hs = &hostSet{allHosts: mockHostList(2, "")}
-	mh = hs.Get(0).(*mockHost)
-	mh.stats = newHostStats("mock", mh.addr)
-	mh.stats.UpstreamRequestDuration.Update(1)
-	mh.stats.UpstreamRequestActive.Inc(1)
-	mh.stats.UpstreamResponseSuccess.Inc(1)
-	mh.stats.UpstreamRequestTotal.Inc(1)
-	mh = hs.Get(1).(*mockHost)
-	mh.stats = newHostStats("mock", mh.addr)
-	lb = newShortestResponseLoadBalancer(nil, hs)
-	assert.True(t, lb.IsExistsHosts(nil))
-	assert.Equal(t, 2, lb.HostNum(nil))
-	h = lb.ChooseHost(nil)
-	if h.Hostname() != "1" {
-		t.Fatalf("case:%s, excepted %s, but get: %s", "should choose with total 0", "1", h.Hostname())
-	}
-
-	// case: should choose average shortest in small cluster
-	hs = NewHostSet(mockHostList(2, ""))
-	mh = hs.Get(0).(*mockHost)
-	mh.w = 1
-	mh.stats = newHostStats("mock", mh.addr)
-	mh.stats.UpstreamRequestDuration.Update(1)
-	mh.stats.UpstreamRequestDuration.Update(2)
-	mh.stats.UpstreamRequestActive.Inc(1)
-	mh.stats.UpstreamResponseSuccess.Inc(2)
-	mh.stats.UpstreamRequestTotal.Inc(2)
-	mh = hs.Get(1).(*mockHost)
-	mh.w = 1
-	mh.stats = newHostStats("mock", mh.addr)
-	mh.stats.UpstreamRequestDuration.Update(2)
-	mh.stats.UpstreamRequestDuration.Update(4)
-	mh.stats.UpstreamRequestActive.Inc(1)
-	mh.stats.UpstreamResponseSuccess.Inc(2)
-	mh.stats.UpstreamRequestTotal.Inc(2)
-	lb = newShortestResponseLoadBalancer(nil, hs)
-	assert.True(t, lb.IsExistsHosts(nil))
-	assert.Equal(t, 2, lb.HostNum(nil))
-	h = lb.ChooseHost(nil)
-	if h.Hostname() != "0" {
-		t.Fatalf("case:%s, excepted %s, but get: %s",
-			"should choose with average shortest in small cluster", "0", h.Hostname())
-	}
-
-	// case: should choose average not worst in large cluster
-	hs = NewHostSet(mockHostList(10, ""))
-	for i := 0; i < 10; i++ {
-		mh = hs.Get(i).(*mockHost)
-		mh.w = uint32(rand.Intn(10) + 1)
-		mh.stats = newHostStats("mock", mh.addr)
-		for j, rnd := 0, rand.Intn(10)+1; j < rnd; j++ {
-			mh.stats.UpstreamRequestDuration.Update(int64(rand.Intn(5)))
-			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
-			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
-			mh.stats.UpstreamRequestTotal.Inc(1)
-			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
-			mh.stats.UpstreamConnectionTotal.Inc(1)
-		}
-	}
-	lb = newShortestResponseLoadBalancer(nil, hs)
-	assert.True(t, lb.IsExistsHosts(nil))
-	assert.Equal(t, 10, lb.HostNum(nil))
-	h = lb.ChooseHost(nil)
-	worst := true
-	hs.Range(func(host types.Host) bool {
-		if shortestResponseScore(host) > shortestResponseScore(h) {
-			worst = false
-			return false
-		}
-		return true
+	t.Run("no host", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(0, "")}
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.False(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 0, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Nil(t, h)
 	})
-	if worst {
-		t.Fatalf("case:%s, excepted not worst, but got %s with score %f",
-			"should choose with average not worst in large set", h.Hostname(), shortestResponseScore(h))
-	}
 
+	t.Run("only 1 host", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(1, "")}
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 1, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "0", h.Hostname())
+	})
+
+	t.Run("should choose with total 0", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(2, "")}
+		mh := hs.Get(0).(*mockHost)
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDuration.Update(1)
+		mh.stats.UpstreamRequestActive.Inc(1)
+		mh.stats.UpstreamResponseSuccess.Inc(1)
+		mh.stats.UpstreamRequestTotal.Inc(1)
+		mh = hs.Get(1).(*mockHost)
+		mh.stats = newHostStats("mock", mh.addr)
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 2, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "1", h.Hostname())
+	})
+
+	t.Run("should choose average shortest in small cluster", func(t *testing.T) {
+		hs := NewHostSet(mockHostList(2, ""))
+		mh := hs.Get(0).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDuration.Update(1)
+		mh.stats.UpstreamRequestDuration.Update(2)
+		mh.stats.UpstreamRequestActive.Inc(1)
+		mh.stats.UpstreamResponseSuccess.Inc(2)
+		mh.stats.UpstreamRequestTotal.Inc(2)
+		mh = hs.Get(1).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDuration.Update(2)
+		mh.stats.UpstreamRequestDuration.Update(4)
+		mh.stats.UpstreamRequestActive.Inc(1)
+		mh.stats.UpstreamResponseSuccess.Inc(2)
+		mh.stats.UpstreamRequestTotal.Inc(2)
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 2, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "0", h.Hostname())
+	})
+
+	t.Run("should choose average not worst in large cluster", func(t *testing.T) {
+		hs := NewHostSet(mockHostList(10, ""))
+		for i := 0; i < 10; i++ {
+			mh := hs.Get(i).(*mockHost)
+			mh.w = uint32(rand.Intn(10) + 1)
+			mh.stats = newHostStats("mock", mh.addr)
+			for j, rnd := 0, rand.Intn(10)+1; j < rnd; j++ {
+				mh.stats.UpstreamRequestDuration.Update(int64(rand.Intn(5)))
+				mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
+				mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
+				mh.stats.UpstreamRequestTotal.Inc(1)
+				mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+				mh.stats.UpstreamConnectionTotal.Inc(1)
+			}
+		}
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 10, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		worst := true
+		hs.Range(func(host types.Host) bool {
+			if shortestResponseScore(host) > shortestResponseScore(h) {
+				worst = false
+				return false
+			}
+			return true
+		})
+		assert.False(t, worst)
+	})
+
+	t.Run("fallback if metrics is disabled", func(t *testing.T) {
+		metrics.SetStatsMatcher(true, nil, nil)
+		hs := NewHostSet(mockHostList(10, ""))
+		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = 1
+			mh.stats = newHostStats("mock", mh.addr)
+			return true
+		})
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		assert.True(t, lb.(*shortestResponseLoadBalancer).fallback)
+		h := lb.ChooseHost(nil)
+		assert.NotNil(t, h)
+		metrics.SetStatsMatcher(false, nil, nil)
+	})
+
+	t.Run("fallback if most hosts are unhealthy", func(t *testing.T) {
+		hs := NewHostSet(mockHostList(10, ""))
+		hs.Range(func(host types.Host) bool {
+			if rand.Intn(2) == 0 {
+				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
+			}
+			return true
+		})
+		lb := newShortestResponseLoadBalancer(nil, hs)
+		for i := 0; i < 100; i++ {
+			h := lb.ChooseHost(nil)
+			assert.NotNil(t, h)
+		}
+	})
 }
 
 func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
