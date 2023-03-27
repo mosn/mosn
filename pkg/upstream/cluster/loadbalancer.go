@@ -628,13 +628,14 @@ func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria)
 }
 
 type shortestResponseLoadBalancer struct {
-	hosts  types.HostSet
-	rand   *rand.Rand
-	mutex  sync.Mutex
-	choice uint32
+	hosts types.HostSet
+	rand  *rand.Rand
+	mutex sync.Mutex
 
 	wrrLoadBalancer types.LoadBalancer
 	fallback        bool
+
+	choice uint32
 }
 
 func newShortestResponseLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
