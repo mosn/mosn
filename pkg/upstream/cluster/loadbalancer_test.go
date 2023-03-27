@@ -1061,6 +1061,9 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 	t.Run("fallback if most hosts are unhealthy", func(t *testing.T) {
 		hs := NewHostSet(mockHostList(10, ""))
 		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = 1
+			mh.stats = newHostStats("mock", mh.addr)
 			if rand.Intn(2) == 0 {
 				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 			}
