@@ -68,10 +68,12 @@ func TestEdfFixedWeight(t *testing.T) {
 func mockHostList(count int, name string) []types.Host {
 	hosts := make([]types.Host, 0, count)
 	for i := 0; i < count; i++ {
+		healthFlag := uint64(0)
 		hosts = append(hosts, &mockHost{
-			name: fmt.Sprintf("%s%d", name, i),
-			addr: fmt.Sprintf("127.0.0.%d", i),
-			w:    uint32(i + 1),
+			name:       fmt.Sprintf("%s%d", name, i),
+			addr:       fmt.Sprintf("127.0.0.%d", i),
+			w:          uint32(i + 1),
+			healthFlag: &healthFlag,
 		})
 	}
 	return hosts
