@@ -387,7 +387,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = ctx
 	_ = variable.Set(clientStream.ctx, types.VariableStreamID, clientStream.id)
-	_ = variable.Set(clientStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
+	_ = variable.Set(clientStream.ctx, types.VariableUpstreamProtocol, sc.protocol.Name())
 	clientStream.sc = sc
 
 	return clientStream
