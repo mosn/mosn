@@ -762,24 +762,8 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 	return candidate
 }
 
-const minSuccessRate = 0.1
-
 func shortestResponseScore(h types.Host) float64 {
 	stats := h.HostStats()
 
-	var responseSuccessRate float64
-
-	if stats.UpstreamRequestTotal.Count() == 0 {
-		responseSuccessRate = 1
-	} else if stats.UpstreamResponseSuccess.Count() == 0 {
-		responseSuccessRate = minSuccessRate
-	} else {
-		rate := float64(stats.UpstreamResponseSuccess.Count()) / float64(stats.UpstreamRequestTotal.Count())
-		if rate < minSuccessRate {
-			rate = minSuccessRate
-		}
-		responseSuccessRate = rate
-	}
-
-	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1) / responseSuccessRate
+	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1)
 }
