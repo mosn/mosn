@@ -723,6 +723,11 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 		return true
 	})
 
+	if candidate != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][shortest_response] iterate choose host %s with score %d", candidate.AddressString(), candidateScore)
+		}
+	}
 	return candidate
 }
 
@@ -761,7 +766,7 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][shortest_response] random choose host %s with score %f", candidate.AddressString(), candidateScore)
 		}
 	}
 	return candidate
