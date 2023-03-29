@@ -54,16 +54,12 @@ func (c *connection) newIdleChecker(readTimeout time.Duration, idleTimeout time.
 		conn:         c,
 		maxIdleCount: getIdleCount(readTimeout, idleTimeout),
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, c.id)
-	}
+	log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, c.id)
 	c.AddConnectionEventListener(checker)
 }
 
 func (c *idleChecker) closeConnection() {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[network] [server idle checker] close the idle connection %d", c.conn.id)
-	}
+	log.DefaultLogger.Debugf("[network] [server idle checker] close the idle connection %d", c.conn.id)
 	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
@@ -83,19 +79,15 @@ func (c *idleChecker) OnEvent(event api.ConnectionEvent) {
 			c.closeConnection()
 			return
 		}
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [server idle checker] connection idle %d times, maxIdleCount:%d", atomic.LoadUint32(&c.idleCount), c.maxIdleCount)
-		}
+		log.DefaultLogger.Debugf("[network] [server idle checker] connection idle %d times, maxIdleCount:%d", atomic.LoadUint32(&c.idleCount), c.maxIdleCount)
 	} else {
 		atomic.StoreUint32(&c.idleCount, 1)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [server idle checker] connection have read/write data before this read timeout: %d, %d, %d, %d",
-				atomic.LoadInt64(&c.lastRead),
-				read,
-				atomic.LoadInt64(&c.lastWrite),
-				write,
-			)
-		}
+		log.DefaultLogger.Debugf("[network] [server idle checker] connection have read/write data before this read timeout: %d, %d, %d, %d",
+			atomic.LoadInt64(&c.lastRead),
+			read,
+			atomic.LoadInt64(&c.lastWrite),
+			write,
+		)
 	}
 	atomic.StoreInt64(&c.lastWrite, write)
 	atomic.StoreInt64(&c.lastRead, read)

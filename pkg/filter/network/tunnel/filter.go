@@ -42,9 +42,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		// hand it over to the next filter directly
 		return api.Continue
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len: %v", buffer.Len())
-	}
+	log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len: %v", buffer.Len())
 	data, err := DecodeFromBuffer(buffer)
 	if data == nil && err == nil {
 		// Not enough data was read.

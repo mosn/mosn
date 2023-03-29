@@ -101,9 +101,7 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 		return api.Continue
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("%s remote addr: %s:%d", logTag, ip, port)
-	}
+	log.DefaultLogger.Debugf("%s remote addr: %s:%d", logTag, ip, port)
 
 	if filter.FallbackToLocal {
 		ctx := cb.GetOriContext()

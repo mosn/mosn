@@ -99,8 +99,6 @@ func (hs *hostSet) setFinalHost(hosts []types.Host) {
 			allHosts = append(allHosts, h)
 		}
 		hs.allHosts = allHosts
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [host set] update host, final host total: %d", len(hs.allHosts))
-		}
+		log.DefaultLogger.Infof("[upstream] [host set] update host, final host total: %d", len(hs.allHosts))
 	})
 }

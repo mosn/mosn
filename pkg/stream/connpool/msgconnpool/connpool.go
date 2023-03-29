@@ -76,7 +76,7 @@ func NewConn(hostAddr string, connectTryTimes int,
 	}
 
 	p := &connpool{
-		host: host,
+		host:                      host,
 		autoReconnectWhenClose:    autoReconnectWhenClose,
 		connTryTimes:              connectTryTimes,
 		getReadFilterAndKeepalive: getReadFilterAndKeepalive,
@@ -110,9 +110,7 @@ func (p *connpool) State() State {
 // Destroy the pool
 func (p *connpool) Destroy() {
 	if !atomic.CompareAndSwapUint64(&p.destroyed, 0, 1) {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[connpool] duplicate destroy call, host: %v", p.Host().AddressString())
-		}
+		log.DefaultLogger.Warnf("[connpool] duplicate destroy call, host: %v", p.Host().AddressString())
 		return
 	}
 

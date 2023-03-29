@@ -25,9 +25,7 @@ import (
 
 func (ads *AdsStreamClient) handleCds(resp *envoy_api_v2.DiscoveryResponse) error {
 	clusters := HandleClusterResponse(resp)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
-	}
+	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 	ads.config.converter.ConvertUpdateClusters(clusters)
 	ads.AckResponse(resp)
 

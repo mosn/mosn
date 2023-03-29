@@ -58,9 +58,7 @@ var _ net.Conn = (*Connection)(nil)
 func (c *Connection) Read(b []byte) (n int, err error) {
 	data, ok := <-c.r
 	if !ok { // connection closed
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("grpc connection read error: %s", c.event)
-		}
+		log.DefaultLogger.Debugf("grpc connection read error: %s", c.event)
 		if c.event == api.RemoteClose {
 			return 0, io.EOF
 		}
@@ -76,9 +74,7 @@ func (c *Connection) Read(b []byte) (n int, err error) {
 	n = copy(b, data.Bytes())
 	data.Drain(n)
 	c.endRead <- struct{}{}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection read data:  %d, %v", n, err)
-	}
+	log.DefaultLogger.Debugf("grpc connection read data:  %d, %v", n, err)
 	return
 }
 
@@ -89,9 +85,7 @@ func (c *Connection) Write(b []byte) (n int, err error) {
 	n = len(b)
 	buf := buffer.NewIoBufferBytes(b)
 	err = c.raw.Write(buf) // write directly to raw connection
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection write data: %d, %v", n, err)
-	}
+	log.DefaultLogger.Debugf("grpc connection write data: %d, %v", n, err)
 	return
 }
 
@@ -103,9 +97,7 @@ func (c *Connection) Close() error {
 	if !c.closed.CAS(false, true) {
 		return syscall.EINVAL
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection: closed")
-	}
+	log.DefaultLogger.Debugf("grpc connection: closed")
 	close(c.r)
 	close(c.endRead)
 	c.raw.Close(api.NoFlush, api.LocalClose)
@@ -124,23 +116,17 @@ func (c *Connection) RemoteAddr() net.Addr {
 // This connection's timeout takes no effect on real connection.
 // If the real connection reads timeout, no data send to this connection
 func (c *Connection) SetDeadline(t time.Time) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection: set a deadline: %v", t)
-	}
+	log.DefaultLogger.Debugf("grpc connection: set a deadline: %v", t)
 	return nil
 }
 
 func (c *Connection) SetReadDeadline(t time.Time) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection: set a read deadline: %v", t)
-	}
+	log.DefaultLogger.Debugf("grpc connection: set a read deadline: %v", t)
 	return nil
 }
 
 func (c *Connection) SetWriteDeadline(t time.Time) error {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("grpc connection: set a write deadline: %v", t)
-	}
+	log.DefaultLogger.Debugf("grpc connection: set a write deadline: %v", t)
 	return nil
 }
 

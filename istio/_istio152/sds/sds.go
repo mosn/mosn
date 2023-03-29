@@ -179,9 +179,7 @@ func (sc *SdsStreamClientImpl) ackResponse(resp *xdsapi.DiscoveryResponse) error
 		},
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("send a ack request to server: %v", req)
-	}
+	log.DefaultLogger.Infof("send a ack request to server: %v", req)
 
 	return sc.streamSecretsClient.Send(req)
 }

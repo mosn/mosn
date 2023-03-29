@@ -167,9 +167,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 		// set update label to true, do not start the listener again
 		al.updatedLabel = true
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn handler] [update listener] update listener: %s", lc.AddrConfig)
-		}
+		log.DefaultLogger.Infof("[server] [conn handler] [update listener] update listener: %s", lc.AddrConfig)
 
 	} else {
 		// listener doesn't exist, add the listener
@@ -202,9 +200,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
-		}
+		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
 
@@ -464,9 +460,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		if al.tlsMng != nil && ch == nil {
 			conn, err := al.tlsMng.Conn(rawc)
 			if err != nil {
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof("[server] [listener] accept connection failed, error: %v", err)
-				}
+				log.DefaultLogger.Infof("[server] [listener] accept connection failed, error: %v", err)
 				rawc.Close()
 				return
 			}
@@ -536,18 +530,14 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
-	}
+	log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 
 	filterManager.InitializeReadFilters()
 
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
-		}
+		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}
@@ -599,16 +589,10 @@ func (al *activeListener) waitConnectionsClose(maxWaitTime time.Duration) {
 		al.activeStreamSize(), time.Since(current) {
 		// sleep 10ms
 		time.Sleep(10 * time.Millisecond)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms",
-				al.listener.Name(), remainStream, Milliseconds(waited))
-		}
+		log.DefaultLogger.Debugf("[activeListener] listener %s waiting connections close, remaining stream count %d, waited time %dms", al.listener.Name(), remainStream, Milliseconds(waited))
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms",
-			al.listener.Name(), remainStream, Milliseconds(waited))
-	}
+	log.DefaultLogger.Infof("[activeListener] listener %s wait connections close complete, remaining stream count %d, waited time %dms", al.listener.Name(), remainStream, Milliseconds(waited))
 }
 
 // PreStopHook used for graceful stop
@@ -696,9 +680,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
 	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[server] [conn] conn set origin addr:%s:%d", ip, port)
-	}
+	log.DefaultLogger.Infof("[server] [conn] conn set origin addr:%s:%d", ip, port)
 }
 
 func init() {
@@ -740,25 +722,19 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
-		}
+		log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 		return
 	}
 
 	if localListener != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
-		}
+		log.DefaultLogger.Infof("[server] [conn] use fallback listener for original dest:%s:%d", localListener.listenIP, localListener.listenPort)
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 		return
 	}
 
 	// If it can’t find any matching listeners and should use the self listener.
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
-	}
+	log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
 }
 
@@ -820,9 +796,7 @@ func newActiveConnection(listener *activeListener, conn api.Connection) *activeC
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
-		}
+		log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
 		if bytesSent > 0 {
 			listener.stats.DownstreamBytesWriteTotal.Inc(int64(bytesSent))
 		}

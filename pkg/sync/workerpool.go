@@ -52,9 +52,7 @@ func (p *workerPool) ScheduleAlways(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[syncpool] workerpool new goroutine")
-		}
+		log.DefaultLogger.Debugf("[syncpool] workerpool new goroutine")
 		utils.GoWithRecover(func() {
 			task()
 		}, nil)
@@ -73,9 +71,7 @@ func (p *workerPool) ScheduleAuto(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[syncpool] workerpool new goroutine")
-		}
+		log.DefaultLogger.Debugf("[syncpool] workerpool new goroutine")
 		utils.GoWithRecover(func() {
 			task()
 		}, nil)

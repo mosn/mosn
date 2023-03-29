@@ -82,9 +82,7 @@ func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 
 func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
 	utils.GoWithRecover(func() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
-		}
+		log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
 
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()

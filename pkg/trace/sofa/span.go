@@ -93,9 +93,7 @@ func (s *SofaRPCSpan) FinishSpan() {
 	s.endTime = time.Now()
 	err := s.log()
 	if err == types.ErrChanFull {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
-		}
+		log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
 	}
 }
 

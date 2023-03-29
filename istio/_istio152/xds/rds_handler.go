@@ -25,9 +25,7 @@ import (
 
 func (ads *AdsStreamClient) handleRds(resp *envoy_api_v2.DiscoveryResponse) error {
 	routes := HandleRouteResponse(resp)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
-	}
+	log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
 	ads.config.converter.ConvertAddOrUpdateRouters(routes)
 
 	ads.AckResponse(resp)
@@ -38,9 +36,7 @@ func (ads *AdsStreamClient) handleRds(resp *envoy_api_v2.DiscoveryResponse) erro
 func CreateRdsRequest(config *AdsConfig) *envoy_api_v2.DiscoveryRequest {
 	routerNames := config.converter.GetRouterNames()
 	if len(routerNames) < 1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("no routers, skip rds request")
-		}
+		log.DefaultLogger.Debugf("no routers, skip rds request")
 		return nil
 	}
 	return &envoy_api_v2.DiscoveryRequest{

@@ -126,9 +126,7 @@ func (p *connPool) Shutdown() {
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
-	}
+	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
 	host := p.Host()
 	if event.IsClose() {
 		host.HostStats().UpstreamConnectionClose.Inc(1)
@@ -229,9 +227,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac.host = data
 
 	if err := data.Connection.Connect(); err != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("http2 underlying connection error: %v", err)
-		}
+		log.DefaultLogger.Debugf("http2 underlying connection error: %v", err)
 		return nil
 	}
 

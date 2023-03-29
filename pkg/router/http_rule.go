@@ -53,9 +53,7 @@ func (rri *BaseHTTPRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
 func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
 	// 1. match headers' KV
 	if !rri.configHeaders.Matches(ctx, headers) {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
 		return false
 	}
 	// 2. match query parameters
@@ -67,9 +65,7 @@ func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.Header
 		}
 		if len(queryParams) != 0 {
 			if !rri.configQueryParameters.Matches(ctx, queryParams) {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-				}
+				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
 				return false
 			}
 		}
@@ -117,9 +113,7 @@ func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 			}
 		}
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
 	return nil
 }
 
@@ -162,9 +156,7 @@ func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMa
 			}
 		}
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
 	return nil
 }
 
@@ -205,8 +197,6 @@ func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap
 			}
 		}
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
 	return nil
 }

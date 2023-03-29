@@ -175,9 +175,7 @@ func (b *subsetLoadBalancerBuilder) createFallbackSubset(fullLb types.LoadBalanc
 	policy := b.info.LbSubsetInfo().FallbackPolicy()
 	switch policy {
 	case types.NoFallBack:
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
-		}
+		log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
 		return nil
 	case types.AnyEndPoint:
 		return &LBSubsetEntryImpl{

@@ -61,9 +61,7 @@ func LoadAndRegisterStreamFilters(path string) {
 		content = bytes
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[streamfilter] LoadAndRegisterStreamFilters load config from file: %v", absPath)
-	}
+	log.DefaultLogger.Debugf("[streamfilter] LoadAndRegisterStreamFilters load config from file: %v", absPath)
 
 	ParseAndRegisterStreamFilters(content)
 }
@@ -98,9 +96,7 @@ func RegisterStreamFilters(configs []StreamFilters) {
 			continue
 		}
 
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[streamfilter] RegisterStreamFilters name: %v, config: %v", config.Name, config.Filters)
-		}
+		log.DefaultLogger.Debugf("[streamfilter] RegisterStreamFilters name: %v, config: %v", config.Name, config.Filters)
 
 		err := GetStreamFilterManager().AddOrUpdateStreamFilterConfig(config.Name, config.Filters)
 		if err != nil {

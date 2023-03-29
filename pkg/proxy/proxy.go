@@ -189,9 +189,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			return api.Stop
 		}
 
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", proto)
-		}
+		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", proto)
 
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, proto, p.readCallbacks.Connection(), p)
 	}
@@ -200,7 +198,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 	return api.Stop
 }
 
-//rpc realize upstream on event
+// rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.DownstreamConnectionDestroy.Inc(1)
@@ -227,9 +225,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	}
 	if event == api.OnReadTimeout {
 		if p.shouldFallback() {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[proxy] wait for fallback timeout, do fallback")
-			}
+			log.DefaultLogger.Debugf("[proxy] wait for fallback timeout, do fallback")
 
 			p.fallback = true
 			p.readCallbacks.ContinueReading()

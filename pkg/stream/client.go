@@ -113,9 +113,7 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
 	// oneway
 	if respReceiver == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("oneway client NewStream")
-		}
+		log.DefaultLogger.Debugf("oneway client NewStream")
 		return c.ClientStreamConnection.NewStream(context, nil)
 	}
 
@@ -141,9 +139,7 @@ func (c *client) OnGoAway() {
 // types.ConnectionEventListener
 // conn callbacks
 func (c *client) OnEvent(event api.ConnectionEvent) {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("client OnEvent %v, connected %v", event, c.ConnectedFlag)
-	}
+	log.DefaultLogger.Debugf("client OnEvent %v, connected %v", event, c.ConnectedFlag)
 	switch event {
 	case api.Connected:
 		c.ConnectedFlag = true

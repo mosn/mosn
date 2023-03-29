@@ -172,9 +172,7 @@ func (pp *pemProvider) addOrUpdateSdsProvider(index string, cfg *v2.TLSConfig) *
 	}
 	// update sds provider
 	p.updateConfig(cfg)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[mtls] [sds provider] add or update sds provider %s", index)
-	}
+	log.DefaultLogger.Infof("[mtls] [sds provider] add or update sds provider %s", index)
 	return p
 }
 
@@ -190,9 +188,7 @@ func (pp *pemProvider) setCertificate(name string, secret *types.SdsSecret) {
 
 	for index, p := range pp.sdsProviders {
 		p.setCertificate(pp.cert, pp.key)
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[mtls] [pem provider] provider %s receive a cerificate set, set to %s", name, index)
-		}
+		log.DefaultLogger.Infof("[mtls] [pem provider] provider %s receive a cerificate set, set to %s", name, index)
 	}
 }
 
@@ -237,18 +233,14 @@ func (p *sdsProvider) update() {
 	}
 	v := p.config.Load()
 	cfg, _ := v.(*v2.TLSConfig)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[mtls] [sds provider] sds provider update a tls context by config: %v", cfg)
-	}
+	log.DefaultLogger.Infof("[mtls] [sds provider] sds provider update a tls context by config: %v", cfg)
 	ctx, err := newTLSContext(cfg, p.info)
 	if err != nil {
 		log.DefaultLogger.Alertf("sds.update", "[mtls] [sds] update tls context failed: %v", err)
 		return
 	}
 	p.value.Store(ctx)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[mtls] [sds] update tls context success")
-	}
+	log.DefaultLogger.Infof("[mtls] [sds] update tls context success")
 	// notify certificates updates
 	for _, cb := range cfg.Callbacks {
 		if f, ok := sdsCallbacks[cb]; ok {

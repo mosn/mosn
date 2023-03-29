@@ -67,15 +67,11 @@ func (drri *DslExpressionRouteRuleImpl) Match(ctx context.Context, headers api.H
 	for i, dslExpression := range drri.DslExpressions {
 		res, err := dslExpression.Evaluate(bag)
 		if err != nil {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf(RouterLogFormat, "dsl route rule", "match failed", err, drri.originalExpression[i])
-			}
+			log.DefaultLogger.Debugf(RouterLogFormat, "dsl route rule", "match failed", err, drri.originalExpression[i])
 			return nil
 		}
 		if !res.(bool) {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf(RouterLogFormat, "dsl route rule", "not match", drri.originalExpression[i])
-			}
+			log.DefaultLogger.Debugf(RouterLogFormat, "dsl route rule", "not match", drri.originalExpression[i])
 			return nil
 		}
 	}

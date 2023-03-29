@@ -120,9 +120,7 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
 
 			if err != nil {
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof("[network] [dns] resolve addr: %s failed, server: %s, err: %s", addr, server, err)
-				}
+				log.DefaultLogger.Infof("[network] [dns] resolve addr: %s failed, server: %s, err: %s", addr, server, err)
 				if strings.Contains(err.Error(), "i/o timeout") {
 					break
 				}

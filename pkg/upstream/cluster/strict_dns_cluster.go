@@ -148,9 +148,7 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts types.HostSet) {
 		utils.GoWithRecover(func() {
 			rt.StartResolve()
 		}, nil)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] create a resolver for address: %s", rt.dnsAddress)
-		}
+		log.DefaultLogger.Debugf("[upstream] [strict dns cluster] create a resolver for address: %s", rt.dnsAddress)
 		return true
 	})
 
@@ -234,14 +232,10 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 	hostNotChanged := hostEqual(NewNoDistinctHostSet(allHosts), sdc.hostSet)
 	if !hostNotChanged {
 		for _, h := range newHosts {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns new address:%s", h.AddressString())
-			}
+			log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns new address:%s", h.AddressString())
 		}
 		sdc.simpleCluster.UpdateHosts(NewHostSet(allHosts))
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns result updated, cluster_name:%s, address:%s", sdc.simpleCluster.info.Name(), rt.dnsAddress)
-		}
+		log.DefaultLogger.Infof("[upstream] [strict dns cluster] resolve dns result updated, cluster_name:%s, address:%s", sdc.simpleCluster.info.Name(), rt.dnsAddress)
 	}
 }
 
@@ -263,31 +257,23 @@ func (rt *ResolveTarget) StartResolve() {
 	for {
 		select {
 		case <-rt.stop:
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
-			}
+			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
 			return
 		default:
 			select {
 			case <-rt.stop:
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
-				}
+				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s", rt.dnsAddress)
 				return
 			case <-rt.timeout:
 				rt.resolveTimer.Stop()
 				// if timeout, start a new timer
 				rt.resolveTimer = utils.NewTimer(time.Second, rt.OnResolve)
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] timeout received when resolve dns address :%s", rt.dnsAddress)
-				}
+				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] timeout received when resolve dns address :%s", rt.dnsAddress)
 			case ttl := <-rt.dnsRefreshRate:
 				rt.resolveTimeout.Stop()
 				// next resolve timer
 				rt.resolveTimer = utils.NewTimer(ttl, rt.OnResolve)
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] start next resolve dns timer, address:%s, ttl:%d", rt.dnsAddress, ttl)
-				}
+				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] start next resolve dns timer, address:%s, ttl:%d", rt.dnsAddress, ttl)
 			}
 		}
 	}
@@ -304,9 +290,7 @@ func (rt *ResolveTarget) OnResolve() {
 	dnsResponse := sdc.dnsResolver.DnsResolve(rt.dnsAddress, sdc.dnsLookupFamily)
 	if dnsResponse == nil {
 		rt.dnsRefreshRate <- sdc.calculateNextResolveInterval(0)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] resolve failed and start a new task")
-		}
+		log.DefaultLogger.Debugf("[upstream] [strict dns cluster] resolve failed and start a new task")
 		return
 	}
 	// record min ttl value in responses
@@ -330,9 +314,7 @@ func (rt *ResolveTarget) OnResolve() {
 		}
 		host.clusterInfo.Store(sdc.info)
 		hosts = append(hosts, host)
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] resolve dns result, address:%s, addr:%s, ttl:%.3f", rt.dnsAddress, newAddr, rsp.Ttl.Seconds())
-		}
+		log.DefaultLogger.Debugf("[upstream] [strict dns cluster] resolve dns result, address:%s, addr:%s, ttl:%.3f", rt.dnsAddress, newAddr, rsp.Ttl.Seconds())
 	}
 	sdc.updateDynamicHosts(hosts, rt)
 

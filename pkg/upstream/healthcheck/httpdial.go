@@ -176,9 +176,7 @@ func (s *HTTPDialSession) CheckHealth() bool {
 	if !result {
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s failed, statuscode: %+v", s.request.URL.String(), resp.StatusCode)
 	} else {
-		if log.DefaultLogger.GetLogLevel() > log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.request.URL.String())
-		}
+		log.DefaultLogger.Debugf("[upstream] [health check] [httpdial session] http check for host %s succeed", s.request.URL.String())
 	}
 
 	return result

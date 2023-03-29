@@ -26,9 +26,7 @@ import (
 
 func (ads *AdsStreamClient) handleRds(resp *envoy_service_discovery_v3.DiscoveryResponse) error {
 	routes := HandleRouteResponse(resp)
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
-	}
+	log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
 	ads.config.converter.ConvertAddOrUpdateRouters(routes)
 	resourceNames := make([]string, 0, len(routes))
 	for _, rt := range routes {
@@ -48,9 +46,7 @@ func (ads *AdsStreamClient) handleRds(resp *envoy_service_discovery_v3.Discovery
 func CreateRdsRequest(config *AdsConfig) *envoy_service_discovery_v3.DiscoveryRequest {
 	routerNames := config.converter.GetRouterNames()
 	if len(routerNames) < 1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("no routers, skip rds request")
-		}
+		log.DefaultLogger.Debugf("no routers, skip rds request")
 		return nil
 	}
 	info := config.previousInfo.Find(EnvoyRoute)

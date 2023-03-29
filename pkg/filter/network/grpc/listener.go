@@ -58,9 +58,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 	if !ok {
 		return nil, syscall.EINVAL
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[grpc] listener %s receive a connection", l.addr.String())
-	}
+	log.DefaultLogger.Debugf("[grpc] listener %s receive a connection", l.addr.String())
 	return c, nil
 }
 
@@ -80,9 +78,7 @@ func (l *Listener) NewConnection(conn net.Conn) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[grpc] listener has been closed, send on closed channel")
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[grpc] listener has been closed, %v", r)
-			}
+			log.DefaultLogger.Debugf("[grpc] listener has been closed, %v", r)
 			conn.Close()
 			err = errors.New("listener closed")
 		}
@@ -91,9 +87,7 @@ func (l *Listener) NewConnection(conn net.Conn) (err error) {
 	select {
 	case l.accepts <- conn:
 		timer.Stop()
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[grpc] listener %s new a connection, wait to accept", l.addr.String())
-		}
+		log.DefaultLogger.Debugf("[grpc] listener %s new a connection, wait to accept", l.addr.String())
 	case <-timer.C:
 		log.DefaultLogger.Errorf("[grpc] connection buffer full, and timeout")
 		conn.Close()

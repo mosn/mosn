@@ -63,67 +63,49 @@ func (a WildcardVirtualHostWithPortSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
-//realization is not the same as normal less, simplify the reverse op
+// realization is not the same as normal less, simplify the reverse op
 func (a WildcardVirtualHostWithPortSlice) Less(i, j int) bool {
 	return a[j].hostLen < a[i].hostLen
 }
 
 func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
 		return nil
 	}
 	router := virtualHost.GetRouteFromEntries(ctx, headers)
 	if router == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
 	}
 	return router
 }
 
 func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
 		return nil
 	}
 	routers := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 	if len(routers) == 0 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")
 	}
 	return routers
 }
 
 func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key string, value string) api.Route {
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
 		return nil
 	}
 	router := virtualHost.GetRouteFromHeaderKV(key, value)
 	if router == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no route found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no route found")
 	}
 	return router
 }
@@ -149,9 +131,7 @@ func (ri *routersImpl) AddRoute(domain string, route *v2.Router) int {
 		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "AddRoute", msg)
 		return -1
 	}
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof(RouterLogFormat, "routers", "AddRoute", "adds a new route into domain: "+domain)
-	}
+	log.DefaultLogger.Infof(RouterLogFormat, "routers", "AddRoute", "adds a new route into domain: "+domain)
 	return index
 }
 
@@ -163,9 +143,7 @@ func (ri *routersImpl) RemoveAllRoutes(domain string) int {
 	}
 	vh := ri.virtualHosts[index]
 	vh.RemoveAllRoutes()
-	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof(RouterLogFormat, "routers", "RemoveAllRoutes", "clear all routes in domain: "+domain)
-	}
+	log.DefaultLogger.Infof(RouterLogFormat, "routers", "RemoveAllRoutes", "clear all routes in domain: "+domain)
 	return index
 }
 
@@ -173,9 +151,7 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 	// optimize, if there is only a default, use it
 	if len(ri.virtualHostPortsMap) == 0 && len(ri.portWildcardVirtualHost) == 0 &&
 		ri.defaultVirtualHostIndex != -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
 		return ri.virtualHosts[ri.defaultVirtualHostIndex]
 	}
 	hostHeader, err := variable.GetString(ctx, types.VarHost)
@@ -186,9 +162,7 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 		index = ri.findVirtualHostIndex(host)
 	}
 	if index == -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
-		}
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
 		return nil
 	}
 	return ri.virtualHosts[index]
@@ -258,9 +232,7 @@ func (ri *routersImpl) findHighestPriorityIndex(host, port string) int {
 	}
 
 	//priority 5: default
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
-	}
+	log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
 	return ri.defaultVirtualHostIndex
 }
 
@@ -376,10 +348,8 @@ func splitHostPortGraceful(hostPort string) (host, port string, err error) {
 		if addrErr, ok := err.(*net.AddrError); ok && addrErr.Err == "missing port in address" {
 			return hostPort, port, nil
 		} else {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				msg := fmt.Sprintf("host invalid : %s, error: %v", hostPort, err)
-				log.DefaultLogger.Debugf(RouterLogFormat, "routers", "SplitHostPortGraceful", msg)
-			}
+			msg := fmt.Sprintf("host invalid : %s, error: %v", hostPort, err)
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "SplitHostPortGraceful", msg)
 			return "", "", err
 		}
 	}
