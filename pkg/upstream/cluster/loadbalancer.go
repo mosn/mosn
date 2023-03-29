@@ -721,7 +721,7 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 		}
 
 		tempScore := shortestResponseScore(temp)
-		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
 		}
@@ -758,7 +758,7 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 		}
 
 		tempScore := shortestResponseScore(temp)
-		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
 		}
@@ -786,5 +786,5 @@ func shortestResponseScore(h types.Host) float64 {
 	}
 
 	// All factors cannot be 0 to ensure that other factors can take effect normally
-	return duration * float64(stats.UpstreamRequestActive.Count()+1) / responseSuccessRate
+	return duration * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight()) / responseSuccessRate
 }
