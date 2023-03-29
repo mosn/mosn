@@ -22,17 +22,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cch123/supermonkey"
 	"github.com/stretchr/testify/assert"
 )
 
-var now time.Time
-
-func mockNowFunc() time.Time {
-	return now
-}
-
 func TestEWMA_decay(t *testing.T) {
-	nowFunc = mockNowFunc
+	var now time.Time
+	supermonkey.Patch(time.Now, func() time.Time {
+		return now
+	})
 
 	var startTime time.Time
 	tests := []struct {
@@ -71,7 +69,11 @@ func TestEWMA_decay(t *testing.T) {
 }
 
 func TestEWMA_reduceTick(t *testing.T) {
-	nowFunc = mockNowFunc
+	var now time.Time
+	supermonkey.Patch(time.Now, func() time.Time {
+		return now
+	})
+
 	now = time.Now()
 
 	alpha := Alpha(math.Exp(-5), time.Second)

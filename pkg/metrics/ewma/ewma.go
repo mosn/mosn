@@ -25,8 +25,6 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 )
 
-var nowFunc = time.Now
-
 const (
 	minDecayDuration = time.Second
 )
@@ -49,12 +47,12 @@ type EWMA struct {
 func NewEWMA(alpha float64) gometrics.EWMA {
 	return &EWMA{
 		alpha:        alpha,
-		lastTickTime: nowFunc(),
+		lastTickTime: time.Now(),
 	}
 }
 
 func (e *EWMA) Rate() float64 {
-	e.flush(nowFunc())
+	e.flush(time.Now())
 	return e.lastEWMA
 }
 
@@ -63,7 +61,7 @@ func (e *EWMA) Snapshot() gometrics.EWMA {
 }
 
 func (e *EWMA) Tick() {
-	e.flush(nowFunc())
+	e.flush(time.Now())
 }
 
 func (e *EWMA) Update(i int64) {
