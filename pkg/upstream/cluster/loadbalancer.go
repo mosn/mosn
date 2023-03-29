@@ -683,14 +683,8 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerCon
 
 	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
 	if total <= int(lb.choice) {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
-		}
 		candidate = lb.iterateChoose()
 	} else {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
-		}
 		candidate = lb.randomChoose()
 		if candidate == nil {
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
@@ -729,11 +723,6 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 		return true
 	})
 
-	if candidate != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
-		}
-	}
 	return candidate
 }
 
