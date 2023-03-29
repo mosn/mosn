@@ -683,13 +683,19 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerCon
 
 	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
 	if total <= int(lb.choice) {
-		log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
+		}
 		candidate = lb.iterateChoose()
 	} else {
-		log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
+		}
 		candidate = lb.randomChoose()
 		if candidate == nil {
-			log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
+			if log.DefaultLogger.GetLogLevel() >= log.WARN {
+				log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
+			}
 			return lb.wrrLoadBalancer.ChooseHost(context)
 		}
 	}
@@ -715,7 +721,7 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 		}
 
 		tempScore := shortestResponseScore(temp)
-		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
 		}
@@ -724,7 +730,9 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 	})
 
 	if candidate != nil {
-		log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+		}
 	}
 	return candidate
 }
@@ -756,14 +764,16 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 		}
 
 		tempScore := shortestResponseScore(temp)
-		if candidate == nil || (tempScore < candidateScore || (tempScore == candidateScore && (temp.Weight() >= candidate.Weight()))) {
+		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
 		}
 	}
 
 	if candidate != nil {
-		log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+		}
 	}
 	return candidate
 }
@@ -771,5 +781,5 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 func shortestResponseScore(h types.Host) float64 {
 	stats := h.HostStats()
 
-	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1)
+	return stats.UpstreamRequestDuration.Mean() * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight())
 }
