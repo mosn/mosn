@@ -79,8 +79,8 @@ func (ci *fakeClusterInfo) ConnBufferLimitBytes() uint32 {
 	return 0
 }
 
-func (ci *fakeClusterInfo) Stats() types.ClusterStats {
-	return types.ClusterStats{
+func (ci *fakeClusterInfo) Stats() *types.ClusterStats {
+	return &types.ClusterStats{
 		UpstreamRequestPendingOverflow:                 metrics.NewCounter(),
 		UpstreamConnectionRemoteCloseWithActiveRequest: metrics.NewCounter(),
 		UpstreamConnectionTotal:                        metrics.NewCounter(),
