@@ -747,10 +747,16 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
-	for i := 0; i < int(lb.choice); i++ {
+	lastIdx := 0
+
+	for choice := int(lb.choice); choice > 0; choice-- {
+		n := total - lastIdx - choice + 1
+
 		lb.mutex.Lock()
-		idx := lb.rand.Intn(total)
+		idx := lb.rand.Intn(n) + lastIdx
 		lb.mutex.Unlock()
+
+		lastIdx = idx
 
 		temp := lb.hosts.Get(idx)
 		if !temp.Health() {
