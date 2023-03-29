@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.5.0
+
+### New Features
+
+- EdfLoadBalancer supports slow start mode (#2178) @jizhuozhi
+
+### Changes
+
+- README update partners & users (#2245) @doujiang24
+
+### Optimization
+
+- Use logical clock to make edf scheduler more stable (#2229) @jizhuozhi
+- Changes log level on missing proxy_on_delete from error to warn in proxywasm (#2246) @codefromthecrypt
+- Receiver names are different for connection object (#2262) @diannaowa
+- Disable over strict linters in workflow (#2259) @jizhuozhi
+- Disable workflow when PR in draft mode (#2269) @diannaowa
+- Use pointer to avoid overhead of duffcopy and duffzero (#2272) @jizhuozhi
+
+### Bug fixes
+
+- Fix panic caused by different hosts using the same rander during health check (#2240) @dengqian
+- Fix connpool binding conn id (#2263) @antJack 
+- Fix saved client stream protocol information to DownStreamProtocol in the context (#2270) @nejisama
+
 ## v1.4.0
 
 ### New Features

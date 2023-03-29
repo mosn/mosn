@@ -1,5 +1,30 @@
 # 更新日志
 
+## v1.5.0
+
+### 新功能
+
+- EdfLoadBalancer 支持慢启动 (#2178) @jizhuozhi
+
+### 变更
+
+- README 更新 partners & users (#2245) @doujiang24
+
+### 优化
+
+- 使用逻辑时钟使 edf 调度器更加稳定 (#2229) @jizhuozhi
+- proxywasm 中缺少 proxy_on_delete 的日志级别从 error 更改为 warn (#2246) @codefromthecrypt
+- 修正 connection 对象接收者命名不同的问题 (#2262) @diannaowa
+- 禁用 workflow 中过于严格的 linters (#2259) @jizhuozhi
+- 当 PR 是未完成状态时不启用 workflow (#2269) @diannaowa
+- 使用指针减少 duffcopy 和 duffzero 开销 (#2272) @jizhuozhi
+
+### Bug 修复
+
+- 修复健康检查时多个 host 使用同一个 rander 引发的异常 (#2240) @dengqian
+- 修复连接池绑定连接标识错误 (#2263) @antJack 
+- 修复在上下文中将 client stream 协议信息保存到 DownStreamProtocol 的错误 (#2270) @nejisama
+
 ## v1.4.0
 
 ### 新功能
