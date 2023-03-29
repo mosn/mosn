@@ -29,7 +29,7 @@ import (
 
 type subsetLoadBalancer struct {
 	lbType         types.LoadBalancerType
-	stats          types.ClusterStats
+	stats          *types.ClusterStats
 	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
 	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
 	hostSet        types.HostSet

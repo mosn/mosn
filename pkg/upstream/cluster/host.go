@@ -38,7 +38,7 @@ type simpleHost struct {
 	hostname                string
 	addressString           string
 	clusterInfo             atomic.Value // store types.ClusterInfo
-	stats                   types.HostStats
+	stats                   *types.HostStats
 	metaData                api.Metadata
 	tlsDisable              bool
 	weight                  uint32
@@ -96,7 +96,7 @@ func (sh *simpleHost) AddressString() string {
 }
 
 func (sh *simpleHost) HostStats() *types.HostStats {
-	return &sh.stats
+	return sh.stats
 }
 
 func (sh *simpleHost) Weight() uint32 {

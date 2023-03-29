@@ -200,7 +200,7 @@ type ClusterInfo interface {
 	Mark() uint32
 
 	// Stats returns the cluster's stats metrics
-	Stats() ClusterStats
+	Stats() *ClusterStats
 
 	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager

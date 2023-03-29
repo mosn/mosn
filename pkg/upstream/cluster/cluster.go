@@ -212,7 +212,7 @@ type clusterInfo struct {
 	maxRequestsPerConn   uint32
 	mark                 uint32
 	resourceManager      types.ResourceManager
-	stats                types.ClusterStats
+	stats                *types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
 	clusterManagerTLS    bool
@@ -247,7 +247,7 @@ func (ci *clusterInfo) Mark() uint32 {
 	return ci.mark
 }
 
-func (ci *clusterInfo) Stats() types.ClusterStats {
+func (ci *clusterInfo) Stats() *types.ClusterStats {
 	return ci.stats
 }
 

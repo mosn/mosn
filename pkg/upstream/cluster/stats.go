@@ -30,10 +30,10 @@ const (
 	defaultDecayDuration = 1 * time.Minute
 )
 
-func newHostStats(clustername string, addr string) types.HostStats {
+func newHostStats(clustername string, addr string) *types.HostStats {
 	s := metrics.NewHostStats(clustername, addr)
 
-	return types.HostStats{
+	return &types.HostStats{
 		UpstreamConnectionTotal:                        s.Counter(metrics.UpstreamConnectionTotal),
 		UpstreamConnectionClose:                        s.Counter(metrics.UpstreamConnectionClose),
 		UpstreamConnectionActive:                       s.Counter(metrics.UpstreamConnectionActive),
@@ -59,9 +59,9 @@ func newHostStats(clustername string, addr string) types.HostStats {
 	}
 }
 
-func newClusterStats(clustername string) types.ClusterStats {
+func newClusterStats(clustername string) *types.ClusterStats {
 	s := metrics.NewClusterStats(clustername)
-	return types.ClusterStats{
+	return &types.ClusterStats{
 		UpstreamConnectionTotal:                        s.Counter(metrics.UpstreamConnectionTotal),
 		UpstreamConnectionClose:                        s.Counter(metrics.UpstreamConnectionClose),
 		UpstreamConnectionActive:                       s.Counter(metrics.UpstreamConnectionActive),

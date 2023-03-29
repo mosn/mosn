@@ -79,7 +79,7 @@ type mockHost struct {
 	w          uint32
 	healthFlag *uint64
 	types.Host
-	stats   types.HostStats
+	stats   *types.HostStats
 	hostSet types.HostSet
 }
 
@@ -125,7 +125,7 @@ func (h *mockHost) HealthFlag() api.HealthFlag {
 	return api.HealthFlag(atomic.LoadUint64(h.healthFlag))
 }
 func (h *mockHost) HostStats() *types.HostStats {
-	return &h.stats
+	return h.stats
 }
 
 func (h *mockHost) Weight() uint32 {

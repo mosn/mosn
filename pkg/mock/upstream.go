@@ -1032,10 +1032,10 @@ func (mr *MockClusterInfoMockRecorder) SlowStart() *gomock.Call {
 }
 
 // Stats mocks base method.
-func (m *MockClusterInfo) Stats() types.ClusterStats {
+func (m *MockClusterInfo) Stats() *types.ClusterStats {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stats")
-	ret0, _ := ret[0].(types.ClusterStats)
+	ret0, _ := ret[0].(*types.ClusterStats)
 	return ret0
 }
 
