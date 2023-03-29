@@ -717,7 +717,7 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 
 	lb.hosts.Range(func(temp types.Host) bool {
 		if !temp.Health() {
-			return false
+			return true
 		}
 
 		tempScore := shortestResponseScore(temp)
