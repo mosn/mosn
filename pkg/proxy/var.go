@@ -36,6 +36,7 @@ var (
 		variable.NewStringVariable(types.VarRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
 		variable.NewStringVariable(types.VarResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
 		variable.NewStringVariable(types.VarRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewStringVariable(types.VarProcessTimeDuration, nil, processTimeDurationGetter, nil, 0),
 		variable.NewStringVariable(types.VarBytesSent, nil, bytesSentGetter, nil, 0),
 		variable.NewStringVariable(types.VarBytesReceived, nil, bytesReceivedGetter, nil, 0),
 		variable.NewStringVariable(types.VarProtocol, nil, protocolGetter, nil, 0),
@@ -112,6 +113,14 @@ func requestFinishedDurationGetter(ctx context.Context, value *variable.IndexedV
 	info := proxyBuffers.info
 
 	return info.RequestFinishedDuration().String(), nil
+}
+
+// ProcessTimeDurationGetter gets the duration between request arriving and request request forwarding, plus the duration between resposne arriving and response sending
+func processTimeDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	info := proxyBuffers.info
+
+	return info.ProcessTimeDuration().String(), nil
 }
 
 // BytesSentGetter

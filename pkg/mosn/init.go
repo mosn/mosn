@@ -20,6 +20,7 @@ package mosn
 import (
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	goplugin "plugin"
 
@@ -28,9 +29,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/metrics"
-	"mosn.io/mosn/pkg/metrics/shm"
-	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
@@ -44,10 +42,14 @@ import (
 func InitDebugServe(c *v2.MOSNConfig) {
 	if c.Debug.StartDebug {
 		port := 9090 //default use 9090
+		endpoint := "0.0.0.0"
 		if c.Debug.Port != 0 {
 			port = c.Debug.Port
 		}
-		addr := fmt.Sprintf("0.0.0.0:%d", port)
+		if c.Debug.Endpoint != "" {
+			endpoint = c.Debug.Endpoint
+		}
+		addr := fmt.Sprintf("%s:%d", endpoint, port)
 		s := &http.Server{Addr: addr, Handler: nil}
 		store.AddService(s, "pprof", nil, nil)
 	}
@@ -74,30 +76,6 @@ func initializeTracing(config v2.TracingConfig) {
 	}
 }
 
-func InitializeMetrics(m *Mosn) {
-	metrics.FlushMosnMetrics = true
-	config := m.Config.Metrics
-
-	// init shm zone
-	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), !m.IsFromUpgrade())
-	}
-
-	// set metrics package
-	statsMatcher := config.StatsMatcher
-	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
-	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
-	// create sinks
-	for _, cfg := range config.SinkConfigs {
-		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
-		// abort
-		if err != nil {
-			log.StartLogger.Errorf("[mosn] [init metrics] %s. %v metrics sink is turned off", err, cfg.Type)
-			return
-		}
-		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
-	}
-}
 
 func InitDefaultPath(c *v2.MOSNConfig) {
 	types.InitDefaultPath(configmanager.GetConfigPath(), c.UDSDir)

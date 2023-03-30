@@ -153,7 +153,7 @@ type Host interface {
 	api.HostInfo
 
 	// HostStats returns the host stats metrics
-	HostStats() HostStats
+	HostStats() *HostStats
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
@@ -172,6 +172,12 @@ type Host interface {
 	Address() net.Addr
 	// Config creates a host config by the host attributes
 	Config() v2.Host
+
+	// LastHealthCheckPassTime returns the timestamp when host has translated from unhealthy to healthy state
+	LastHealthCheckPassTime() time.Time
+	// SetLastHealthCheckPassTime updates the timestamp when host has translated from unhealthy to healthy state,
+	// or translated from other host
+	SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time)
 }
 
 // ClusterInfo defines a cluster's information
@@ -194,7 +200,7 @@ type ClusterInfo interface {
 	Mark() uint32
 
 	// Stats returns the cluster's stats metrics
-	Stats() ClusterStats
+	Stats() *ClusterStats
 
 	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager
@@ -219,6 +225,9 @@ type ClusterInfo interface {
 
 	//  Optional configuration for some cluster description
 	SubType() string
+
+	// SlowStart returns the slow start configurations
+	SlowStart() SlowStart
 }
 
 // ResourceManager manages different types of Resource
@@ -304,6 +313,13 @@ type ClusterStats struct {
 type CreateConnectionData struct {
 	Connection ClientConnection
 	Host       Host
+}
+
+type SlowStart struct {
+	Mode              SlowStartMode
+	SlowStartDuration time.Duration
+	Aggression        float64
+	MinWeightPercent  float64
 }
 
 // SimpleCluster is a simple cluster in memory

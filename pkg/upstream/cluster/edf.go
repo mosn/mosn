@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"sync"
-	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
 )
@@ -28,6 +27,7 @@ type edfScheduler struct {
 	lock        sync.Mutex
 	items       *edfHeap
 	currentTime float64
+	clock       int64
 }
 
 func newEdfScheduler(cap int) *edfScheduler {
@@ -41,7 +41,7 @@ type edfEntry struct {
 	deadline   float64
 	weight     float64
 	item       WeightItem
-	queuedTime time.Time
+	queuedTime int64
 }
 
 type WeightItem interface {
@@ -57,7 +57,7 @@ func (edf *edfScheduler) Add(item WeightItem, weight float64) {
 		deadline:   edf.currentTime + 1.0/weight,
 		weight:     weight,
 		item:       item,
-		queuedTime: time.Now(),
+		queuedTime: edf.tick(),
 	}
 	edf.items.Push(&entry)
 }
@@ -77,9 +77,14 @@ func (edf *edfScheduler) NextAndPush(weightFunc func(item WeightItem) float64) i
 	// update the entry.deadline and put into priorityQueue again
 	entry.deadline = entry.deadline + 1.0/weight
 	entry.weight = weight
-	entry.queuedTime = time.Now()
+	entry.queuedTime = edf.tick()
 	edf.items.Fix(0)
 	return entry.item
+}
+
+func (edf *edfScheduler) tick() int64 {
+	edf.clock++
+	return edf.clock
 }
 
 func edfFixedWeight(weight float64) float64 {

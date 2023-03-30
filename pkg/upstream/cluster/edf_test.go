@@ -18,7 +18,9 @@
 package cluster
 
 import (
+	"fmt"
 	"math"
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -139,5 +141,49 @@ func Benchmark_edfSchduler_NextAndPush(b *testing.B) {
 			}
 			b.StopTimer()
 		})
+	}
+}
+
+func TestEdfSchedulerDistribution(t *testing.T) {
+	var weights []uint32
+	totalWeights := uint32(0)
+
+	rnd := func(low, high int) int {
+		return rand.Intn(high-low) + low
+	}
+
+	checkDistribution := func(seq []string) {
+		dist := make(map[string]int)
+		for _, s := range seq {
+			dist[s]++
+		}
+		for i, w := range weights {
+			d := dist[fmt.Sprintf("host-%d", i)]
+			assert.Equal(t, uint32(d), w)
+		}
+	}
+
+	// number of hosts in [2*MaxHostWeight, 4*MaxHostWeight) to make sure
+	// always have two hosts with same weight
+	for i := rnd(2*int(v2.MaxHostWeight), 4*int(v2.MaxHostWeight)); i >= 0; i-- {
+		w := uint32(rnd(int(v2.MinHostWeight), int(v2.MaxHostWeight)))
+		weights = append(weights, w)
+		totalWeights += w
+	}
+
+	scheduler := newEdfScheduler(len(weights))
+	for i, w := range weights {
+		scheduler.Add(&mockHost{name: fmt.Sprintf("host-%d", i), w: w}, float64(w))
+	}
+
+	for i := 0; i < 128; i++ {
+		seq := make([]string, 0)
+		for i := uint32(0); i < totalWeights; i++ {
+			h := scheduler.NextAndPush(func(item WeightItem) float64 {
+				return float64(item.Weight())
+			}).(*mockHost)
+			seq = append(seq, h.name)
+		}
+		checkDistribution(seq)
 	}
 }

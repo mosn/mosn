@@ -98,7 +98,7 @@ func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, er
 	//4. copy data for io multiplexing
 	response.Payload = buffer.NewIoBufferBytes(bytes[ResponseHeaderLen:])
 
-	fmt.Printf("[out decodeRequest] payload: %s\n", response.Payload)
+	fmt.Printf("[out decodeResponse] payload: %s\n", response.Payload)
 
 	return response, nil
 }

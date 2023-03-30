@@ -1,0 +1,20 @@
+{
+  "servers": [
+    {
+      "default_log_path": "stdout"
+    }
+  ],
+  "stream_filters": [
+    {
+      "name": "demo",
+      "stream_filters": [
+        {
+          "type": "demo",
+          "config": {
+            "foo": "bar"
+          }
+        }
+      ]
+    }
+  ]
+}

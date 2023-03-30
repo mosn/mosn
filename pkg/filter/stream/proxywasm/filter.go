@@ -126,7 +126,9 @@ func (f *Filter) OnDestroy() {
 
 		err = f.exports.ProxyOnDelete(f.contextID)
 		if err != nil {
-			log.DefaultLogger.Errorf("[proxywasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
+			// warn instead of error as some proxy_abi_version_0_1_0 wasm don't
+			// export proxy_on_delete
+			log.DefaultLogger.Warnf("[proxywasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
 		}
 
 		f.instance.Unlock()

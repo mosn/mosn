@@ -1,5 +1,19 @@
-//go:build wasmer
-// +build wasmer
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package wasm_test
 
@@ -22,9 +36,14 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/proxywasm"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
-	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
+	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm020"
 	"mosn.io/mosn/test/util/mosn"
+	"mosn.io/pkg/log"
 )
+
+func init() {
+	log.DefaultLogger.SetLogLevel(log.ERROR)
+}
 
 type testMosn struct {
 	url     string
@@ -34,7 +53,7 @@ type testMosn struct {
 
 const pathResponseHeaderV1 = "testdata/req-header-v1/main.wasm"
 
-func Test_ProxyWasmV1(t *testing.T) {
+func test_ProxyWasmV1(t *testing.T, engine string) {
 	// Ensure the module was compiled with the correct ABI as this is hard to verify at runtime.
 	requireModuleExport(t, pathResponseHeaderV1, "proxy_abi_version_0_1_0")
 
@@ -46,7 +65,7 @@ func Test_ProxyWasmV1(t *testing.T) {
 	defer backend.Close()
 	logPath := filepath.Join(t.TempDir(), "mosn.log")
 
-	mosn, err := startMosn(backend.Listener.Addr().String(), pathResponseHeaderV1, logPath)
+	mosn, err := startMosn(backend.Listener.Addr().String(), engine, pathResponseHeaderV1, logPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,19 +79,19 @@ func Test_ProxyWasmV1(t *testing.T) {
 }
 
 func Benchmark_BaseCase(b *testing.B) {
-	benchmark(b, "")
+	benchmark(b, "", "")
 }
 
-func Benchmark_ProxyWasmV1(b *testing.B) {
-	benchmark(b, pathResponseHeaderV1)
+func benchmark_ProxyWasmV1(b *testing.B, engine string) {
+	benchmark(b, engine, pathResponseHeaderV1)
 }
 
-func benchmark(b *testing.B, wasmPath string) {
+func benchmark(b *testing.B, engine, wasmPath string) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer backend.Close()
 	logPath := filepath.Join(b.TempDir(), "mosn.log")
 
-	mosn, err := startMosn(backend.Listener.Addr().String(), wasmPath, logPath)
+	mosn, err := startMosn(backend.Listener.Addr().String(), engine, wasmPath, logPath)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -88,7 +107,7 @@ func benchmark(b *testing.B, wasmPath string) {
 	}
 }
 
-func startMosn(backendAddr string, wasmPath, logPath string) (testMosn, error) {
+func startMosn(backendAddr string, engine, wasmPath, logPath string) (testMosn, error) {
 	port := freePort()
 	adminPort := freePort()
 	c := &config.MOSNConfig{
@@ -185,7 +204,7 @@ func startMosn(backendAddr string, wasmPath, logPath string) (testMosn, error) {
 				Config: map[string]interface{}{
 					"instance_num": 1,
 					"vm_config": map[string]interface{}{
-						"engine": "wasmer",
+						"engine": engine,
 						"path":   wasmPath,
 					},
 				},

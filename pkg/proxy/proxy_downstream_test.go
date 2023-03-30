@@ -85,9 +85,9 @@ func TestProxyWithFilters(t *testing.T) {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				h := mock.NewMockHost(ctrl)
-				h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
+				h.EXPECT().HostStats().DoAndReturn(func() *types.HostStats {
 					s := metrics.NewHostStats("mockhost", "mockhost")
-					return types.HostStats{
+					return &types.HostStats{
 						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
