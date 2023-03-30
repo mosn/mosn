@@ -640,15 +640,17 @@ type shortestResponseLoadBalancer struct {
 
 func newShortestResponseLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	fallback := false
-	hosts.Range(func(host types.Host) bool {
-		// Check whether `UpstreamRequestDuration` is enabled,
-		// or fallback to WRR because all hosts have same duration.
-		if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
-			fallback = true
-			return false
-		}
-		return true
-	})
+	if hosts.Size() > 1 {
+		hosts.Range(func(host types.Host) bool {
+			// Check whether `UpstreamRequestDuration` is enabled,
+			// or fallback to WRR because all hosts have same duration.
+			if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
+				fallback = true
+				return false
+			}
+			return true
+		})
+	}
 
 	lb := &shortestResponseLoadBalancer{
 		hosts:           hosts,
