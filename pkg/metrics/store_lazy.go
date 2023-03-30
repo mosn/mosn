@@ -24,6 +24,13 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 )
 
+var (
+	ErrLazyCounterCtorEmpty   = errors.New("build lazy Counter ctor is empty")
+	ErrLazyGaugeCtorEmpty     = errors.New("build lazy Gauge ctor is empty")
+	ErrLazyHistogramCtorEmpty = errors.New("build lazy Histogram ctor is empty")
+	ErrLazyEWMACtorEmpty      = errors.New("build lazy EWMA ctor is empty")
+)
+
 type lazyCounter struct {
 	once    sync.Once
 	ctor    func() gometrics.Counter
@@ -33,7 +40,7 @@ type lazyCounter struct {
 // NewLazyCounter build lazyCounter
 func NewLazyCounter(ctor func() gometrics.Counter) (gometrics.Counter, error) {
 	if ctor == nil {
-		return nil, errors.New("build lazycounter ctor is empty")
+		return nil, ErrLazyCounterCtorEmpty
 	}
 	return &lazyCounter{ctor: ctor}, nil
 }
@@ -78,7 +85,7 @@ type lazyGauge struct {
 // NewLazyGauge build lazyGauge
 func NewLazyGauge(ctor func() gometrics.Gauge) (gometrics.Gauge, error) {
 	if ctor == nil {
-		return nil, errors.New("build lazygauge ctor is empty")
+		return nil, ErrLazyGaugeCtorEmpty
 	}
 	return &lazyGauge{ctor: ctor}, nil
 }
@@ -113,7 +120,7 @@ type lazyHistogram struct {
 // NewLazyHistogram build lazyHistogram
 func NewLazyHistogram(ctor func() gometrics.Histogram) (gometrics.Histogram, error) {
 	if ctor == nil {
-		return nil, errors.New("build lazygauge ctor is empty")
+		return nil, ErrLazyHistogramCtorEmpty
 	}
 	return &lazyHistogram{ctor: ctor}, nil
 }
@@ -198,7 +205,7 @@ type lazyEWMA struct {
 // NewLazyEWMA build lazyEWMA
 func NewLazyEWMA(ctor func() gometrics.EWMA) (gometrics.EWMA, error) {
 	if ctor == nil {
-		return nil, errors.New("build lazygauge ctor is empty")
+		return nil, ErrLazyEWMACtorEmpty
 	}
 	return &lazyEWMA{ctor: ctor}, nil
 }

@@ -19,6 +19,7 @@ package ewma
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -85,4 +86,50 @@ func TestEWMA_reduceTick(t *testing.T) {
 
 	now = now.Add(time.Second)
 	assert.Equal(t, 0.9932620530009145, ewma.Rate())
+}
+
+func TestEWMA_uncounted(t *testing.T) {
+	var now time.Time
+	supermonkey.Patch(time.Now, func() time.Time {
+		return now
+	})
+
+	var startTime time.Time
+	tests := []struct {
+		duration     time.Duration
+		exceptedRate float64
+	}{
+		{duration: 0, exceptedRate: 0.9933071470283565},
+		{duration: 1 * time.Second, exceptedRate: 0.9933071470283565},
+		{duration: 5 * time.Second, exceptedRate: 0.6336874290396695},
+		{duration: 15 * time.Second, exceptedRate: 0.2848372620835774},
+		{duration: 1 * time.Minute, exceptedRate: 0.0804512468752463},
+		{duration: 5 * time.Minute, exceptedRate: 0.016638073887636218},
+		{duration: 15 * time.Minute, exceptedRate: 0.005577274435891465},
+	}
+
+	for _, tt := range tests {
+		now = startTime
+		alpha := Alpha(math.Exp(-5), tt.duration)
+
+		ewma := NewEWMA(alpha)
+		ewma.Update(1)
+		now = now.Add(time.Second)
+		assert.Equal(t, alpha, ewma.Rate())
+
+		if tt.duration == 0 {
+			now = now.Add(minDecayDuration)
+		} else {
+			now = now.Add(tt.duration)
+		}
+
+		ewma.Tick()
+
+		for i := 0; i < rand.Intn(10)+1; i++ {
+			ewma.Update(1)
+		}
+
+		assert.Equal(t, tt.exceptedRate, ewma.Rate())
+	}
+
 }

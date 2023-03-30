@@ -54,7 +54,7 @@ require (
 	istio.io/api v0.0.0-20211103171850-665ed2b92d52
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f
 	k8s.io/klog v1.0.0
-	mosn.io/api v1.4.0
+	mosn.io/api v1.4.1-0.20230330015557-e6165bcfef00
 	mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7
 	mosn.io/holmes v1.1.0
 	mosn.io/pkg v1.4.0

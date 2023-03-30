@@ -19,11 +19,14 @@ package proxy
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -37,8 +40,11 @@ func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 		return &types.ClusterStats{
 			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
-			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+			UpstreamRequestDurationEWMA:  s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+
+			UpstreamResponseSuccess:    s.Counter(metrics.UpstreamResponseSuccess),
+			UpstreamResponseFailed:     s.Counter(metrics.UpstreamResponseFailed),
+			UpstreamResponseFailedEWMA: s.EWMA(metrics.UpstreamResponseFailedEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
 		}
 	}).AnyTimes()
 	info.EXPECT().ResourceManager().DoAndReturn(func() types.ResourceManager {

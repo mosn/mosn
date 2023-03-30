@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cch123/supermonkey"
 	"github.com/stretchr/testify/assert"
 
 	"mosn.io/api"
@@ -951,10 +952,14 @@ func TestNewLACBalancer(t *testing.T) {
 	assert.IsType(t, &leastActiveConnectionLoadBalancer{}, balancer)
 }
 
-func Test_shortestResponseLoadBalancer(t *testing.T) {
+func Test_IntelliLoadBalancer(t *testing.T) {
+	supermonkey.Patch(time.Now, func() time.Time {
+		return time.Time{}
+	})
+
 	t.Run("no host", func(t *testing.T) {
 		hs := &hostSet{allHosts: mockHostList(0, "")}
-		lb := newShortestResponseLoadBalancer(nil, hs)
+		lb := newIntelliLoadBalancer(nil, hs)
 		assert.False(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 0, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
@@ -963,28 +968,11 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 
 	t.Run("only 1 host", func(t *testing.T) {
 		hs := &hostSet{allHosts: mockHostList(1, "")}
-		lb := newShortestResponseLoadBalancer(nil, hs)
+		lb := newIntelliLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 1, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
 		assert.Equal(t, "0", h.Hostname())
-	})
-
-	t.Run("should choose with total 0", func(t *testing.T) {
-		hs := &hostSet{allHosts: mockHostList(2, "")}
-		mh := hs.Get(0).(*mockHost)
-		mh.stats = newHostStats("mock", mh.addr)
-		mh.stats.UpstreamRequestDuration.Update(1)
-		mh.stats.UpstreamRequestActive.Inc(1)
-		mh.stats.UpstreamResponseSuccess.Inc(1)
-		mh.stats.UpstreamRequestTotal.Inc(1)
-		mh = hs.Get(1).(*mockHost)
-		mh.stats = newHostStats("mock", mh.addr)
-		lb := newShortestResponseLoadBalancer(nil, hs)
-		assert.True(t, lb.IsExistsHosts(nil))
-		assert.Equal(t, 2, lb.HostNum(nil))
-		h := lb.ChooseHost(nil)
-		assert.Equal(t, "1", h.Hostname())
 	})
 
 	t.Run("should choose average shortest in small cluster", func(t *testing.T) {
@@ -1005,7 +993,11 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 		mh.stats.UpstreamRequestActive.Inc(1)
 		mh.stats.UpstreamResponseSuccess.Inc(2)
 		mh.stats.UpstreamRequestTotal.Inc(2)
-		lb := newShortestResponseLoadBalancer(nil, hs)
+
+		// Wait for the EWMA to tick
+		time.Sleep(time.Second)
+
+		lb := newIntelliLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 2, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
@@ -1027,13 +1019,17 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 				mh.stats.UpstreamConnectionTotal.Inc(1)
 			}
 		}
-		lb := newShortestResponseLoadBalancer(nil, hs)
+
+		// Wait for the EWMA to tick
+		time.Sleep(time.Second)
+
+		lb := newIntelliLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 10, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
 		worst := true
 		hs.Range(func(host types.Host) bool {
-			if shortestResponseScore(host) > shortestResponseScore(h) {
+			if intelliScore(host) > intelliScore(h) {
 				worst = false
 				return false
 			}
@@ -1051,8 +1047,8 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 			mh.stats = newHostStats("mock", mh.addr)
 			return true
 		})
-		lb := newShortestResponseLoadBalancer(nil, hs)
-		assert.True(t, lb.(*shortestResponseLoadBalancer).fallback)
+		lb := newIntelliLoadBalancer(nil, hs)
+		assert.True(t, lb.(*intelliLoadBalancer).fallback)
 		h := lb.ChooseHost(nil)
 		assert.NotNil(t, h)
 		metrics.SetStatsMatcher(false, nil, nil)
@@ -1069,7 +1065,7 @@ func Test_shortestResponseLoadBalancer(t *testing.T) {
 			}
 			return true
 		})
-		lb := newShortestResponseLoadBalancer(nil, hs)
+		lb := newIntelliLoadBalancer(nil, hs)
 		for i := 0; i < 100; i++ {
 			h := lb.ChooseHost(nil)
 			assert.NotNil(t, h)
@@ -1095,7 +1091,7 @@ func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
 		return true
 	})
 
-	lb := newShortestResponseLoadBalancer(nil, hs)
+	lb := newIntelliLoadBalancer(nil, hs)
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {

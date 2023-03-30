@@ -44,6 +44,7 @@ type EWMA struct {
 	mutex        sync.Mutex
 }
 
+// NewEWMA constructs a new EWMA with the given alpha.
 func NewEWMA(alpha float64) gometrics.EWMA {
 	return &EWMA{
 		alpha:        alpha,
@@ -51,28 +52,54 @@ func NewEWMA(alpha float64) gometrics.EWMA {
 	}
 }
 
+// Rate returns the moving average mean of events per second.
 func (e *EWMA) Rate() float64 {
-	e.flush(time.Now())
-	return e.lastEWMA
+	e.mutex.Lock()
+
+	flushed := e.flush()
+	ewma := e.lastEWMA
+	sum := e.uncountedSum
+	count := e.uncountedCount
+
+	e.mutex.Unlock()
+
+	if flushed {
+		return ewma
+	}
+
+	// Calculate uncounted values
+	if count == 0 {
+		return (1 - e.alpha) * ewma
+	}
+
+	return e.alpha*float64(sum)/float64(count) + (1-e.alpha)*ewma
 }
 
+// Snapshot returns a read-only copy of the EWMA.
 func (e *EWMA) Snapshot() gometrics.EWMA {
 	return gometrics.EWMASnapshot(e.Rate())
 }
 
+// Tick ticks the clock to update the moving average.
+// There is no need to use an additional timer to Tick in this implementation,
+// because Rate also calculates the latest value when it is updated or queried.
 func (e *EWMA) Tick() {
-	e.flush(time.Now())
+	e.mutex.Lock()
+	e.flush()
+	e.mutex.Unlock()
 }
 
+// Update adds an uncounted event with value `i`, and tries to flush.
 func (e *EWMA) Update(i int64) {
 	e.mutex.Lock()
+	e.flush()
 	e.uncountedSum += i
 	e.uncountedCount++
 	e.mutex.Unlock()
 }
 
-func (e *EWMA) flush(now time.Time) {
-	e.mutex.Lock()
+func (e *EWMA) flush() bool {
+	now := time.Now()
 	duration := now.Sub(e.lastTickTime)
 
 	if duration >= time.Second {
@@ -88,20 +115,24 @@ func (e *EWMA) flush(now time.Time) {
 		}
 
 		e.lastTickTime = now
+
+		return true
 	}
-	e.mutex.Unlock()
+
+	return false
 }
 
 func (e *EWMA) ewma(i float64, now time.Time) float64 {
-	return i*e.alpha + math.Pow(1-e.alpha, float64(now.Sub(e.lastTickTime)/time.Second))*e.lastEWMA
+	return i*e.alpha + math.Pow(1-e.alpha, float64(now.Sub(e.lastTickTime))/float64(time.Second))*e.lastEWMA
 }
 
 // Alpha the alpha needed to decay 1 to negligible (less than target) over a given duration.
 //
-// (1 - alpha) ^ duration = target     ==>     alpha = 1 - target ^ (1 / duration)
+// (1 - alpha) ^ duration = target     ==>     alpha = 1 - target ^ (1 / duration).
 func Alpha(target float64, duration time.Duration) float64 {
 	if duration < minDecayDuration {
 		duration = minDecayDuration
 	}
+
 	return 1 - math.Pow(target, 1/float64(duration/time.Second))
 }

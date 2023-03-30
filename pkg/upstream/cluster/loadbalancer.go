@@ -70,7 +70,7 @@ func init() {
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
 	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
-	RegisterLBType(types.ShortestResponse, newShortestResponseLoadBalancer)
+	RegisterLBType(types.Intelli, newIntelliLoadBalancer)
 
 	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
@@ -627,7 +627,7 @@ func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria)
 	return lb.hosts.Size()
 }
 
-type shortestResponseLoadBalancer struct {
+type intelliLoadBalancer struct {
 	hosts types.HostSet
 	rand  *rand.Rand
 	mutex sync.Mutex
@@ -638,19 +638,21 @@ type shortestResponseLoadBalancer struct {
 	choice uint32
 }
 
-func newShortestResponseLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newIntelliLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	fallback := false
-	hosts.Range(func(host types.Host) bool {
-		// Check whether `UpstreamRequestDuration` is enabled,
-		// or fallback to WRR because all hosts have same duration.
-		if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
-			fallback = true
-			return false
-		}
-		return true
-	})
+	if hosts.Size() > 1 {
+		hosts.Range(func(host types.Host) bool {
+			// Check whether `UpstreamRequestDuration` is enabled,
+			// or fallback to WRR because all hosts have same duration.
+			if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
+				fallback = true
+				return false
+			}
+			return true
+		})
+	}
 
-	lb := &shortestResponseLoadBalancer{
+	lb := &intelliLoadBalancer{
 		hosts:           hosts,
 		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
 		choice:          default_choice,
@@ -660,7 +662,7 @@ func newShortestResponseLoadBalancer(info types.ClusterInfo, hosts types.HostSet
 	return lb
 }
 
-func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *intelliLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	if lb.fallback {
 		return lb.wrrLoadBalancer.ChooseHost(context)
 	}
@@ -683,18 +685,12 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerCon
 
 	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
 	if total <= int(lb.choice) {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] total %d <= choice %d, using iterate", total, lb.choice)
-		}
 		candidate = lb.iterateChoose()
 	} else {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] total %d > choice %d, using random", total, lb.choice)
-		}
 		candidate = lb.randomChoose()
 		if candidate == nil {
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
-				log.DefaultLogger.Warnf("[lb][shortest_response] no host chosen after %d choice, fallback to WRR", lb.choice)
+				log.DefaultLogger.Warnf("[lb][intelli] no host chosen after %d choice, fallback to WRR", lb.choice)
 			}
 			return lb.wrrLoadBalancer.ChooseHost(context)
 		}
@@ -703,24 +699,24 @@ func (lb *shortestResponseLoadBalancer) ChooseHost(context types.LoadBalancerCon
 	return candidate
 }
 
-func (lb *shortestResponseLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
+func (lb *intelliLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
 	return lb.hosts.Size() > 0
 }
 
-func (lb *shortestResponseLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
+func (lb *intelliLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
 }
 
-func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
+func (lb *intelliLoadBalancer) iterateChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
 	lb.hosts.Range(func(temp types.Host) bool {
 		if !temp.Health() {
-			return false
+			return true
 		}
 
-		tempScore := shortestResponseScore(temp)
+		tempScore := intelliScore(temp)
 		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
@@ -731,7 +727,7 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %d", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][intelli] iterate choose host %s with score %d", candidate.AddressString(), candidateScore)
 		}
 	}
 	return candidate
@@ -741,7 +737,7 @@ func (lb *shortestResponseLoadBalancer) iterateChoose() types.Host {
 // See The Power of Two Random Choices: A Survey of Techniques and Results
 //
 //	http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
+func (lb *intelliLoadBalancer) randomChoose() types.Host {
 	total := lb.hosts.Size()
 
 	var candidate types.Host
@@ -750,10 +746,10 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 	lastIdx := 0
 
 	for choice := int(lb.choice); choice > 0; choice-- {
-		n := total - lastIdx - choice + 1
+		n := total - lastIdx - choice
 
 		lb.mutex.Lock()
-		idx := lb.rand.Intn(n) + lastIdx
+		idx := lb.rand.Intn(n) + 1 + lastIdx
 		lb.mutex.Unlock()
 
 		lastIdx = idx
@@ -763,7 +759,7 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 			continue
 		}
 
-		tempScore := shortestResponseScore(temp)
+		tempScore := intelliScore(temp)
 		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
@@ -772,25 +768,38 @@ func (lb *shortestResponseLoadBalancer) randomChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][shortest_response] choose host %s with score %f", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][intelli] random choose host %s with score %f", candidate.AddressString(), candidateScore)
 		}
 	}
 	return candidate
 }
 
-func shortestResponseScore(h types.Host) float64 {
+// All factors cannot be 0 to ensure that other factors can take effect normally
+const defaultFactorValue = 1e-6
+
+func intelliScore(h types.Host) float64 {
 	stats := h.HostStats()
 
 	responseSuccessRate := 1 - stats.UpstreamResponseFailedEWMA.Rate()
 	if responseSuccessRate == 0 {
-		responseSuccessRate = 1e-6
+		responseSuccessRate = defaultFactorValue
+	}
+
+	activeRequests := float64(stats.UpstreamRequestActive.Count())
+	if activeRequests == 0 {
+		activeRequests = defaultFactorValue
+	} else {
+		// Usually, more weights mean more computing resources,
+		// so calculate the number of active requests per unit of
+		// computing resources in the upstream through the weights,
+		// and then use `math.Log` to reduce impact.
+		activeRequests = math.Log((activeRequests + 1) / float64(h.Weight()))
 	}
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
 	if duration == 0 {
-		duration = 1e-6
+		duration = defaultFactorValue
 	}
 
-	// All factors cannot be 0 to ensure that other factors can take effect normally
-	return duration * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight()) / responseSuccessRate
+	return duration * activeRequests / responseSuccessRate
 }
