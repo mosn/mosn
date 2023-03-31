@@ -54,14 +54,7 @@ func NewEWMA(alpha float64) gometrics.EWMA {
 
 // Rate returns the moving average mean of events per second.
 func (e *EWMA) Rate() float64 {
-	e.mutex.Lock()
-
-	flushed := e.flush()
-	ewma := e.lastEWMA
-	sum := e.uncountedSum
-	count := e.uncountedCount
-
-	e.mutex.Unlock()
+	flushed, ewma, sum, count := e.flushAndGet()
 
 	if flushed {
 		return ewma
@@ -96,6 +89,17 @@ func (e *EWMA) Update(i int64) {
 	e.uncountedSum += i
 	e.uncountedCount++
 	e.mutex.Unlock()
+}
+
+func (e *EWMA) flushAndGet() (bool, float64, int64, int64) {
+	e.mutex.Lock()
+	flushed := e.flush()
+	ewma := e.lastEWMA
+	sum := e.uncountedSum
+	count := e.uncountedCount
+	e.mutex.Unlock()
+
+	return flushed, ewma, sum, count
 }
 
 func (e *EWMA) flush() bool {
