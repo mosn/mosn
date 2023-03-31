@@ -46,8 +46,11 @@ type upstreamRequest struct {
 	trailerSent  bool
 	setupRetry   bool
 
-	// time at send upstream request
-	startTime time.Time
+	// time at request initiated
+	requestStartTime time.Time
+
+	// time at request ready to be sent
+	proxyStartTime time.Time
 
 	// list element
 	element *list.Element
@@ -84,11 +87,19 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 func (r *upstreamRequest) OnDestroyStream() {}
 
 func (r *upstreamRequest) endStream() {
-	upstreamResponseDurationNs := time.Now().Sub(r.startTime).Nanoseconds()
-	r.host.HostStats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
-	r.host.HostStats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
-	r.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
-	r.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
+	now := time.Now()
+	requestDurationTimeNs := now.Sub(r.requestStartTime).Nanoseconds()
+	proxyDurationTimeNs := now.Sub(r.proxyStartTime).Nanoseconds()
+
+	r.host.HostStats().UpstreamRequestDuration.Update(requestDurationTimeNs)
+	r.host.HostStats().UpstreamRequestDurationTotal.Inc(requestDurationTimeNs)
+	r.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(requestDurationTimeNs)
+	r.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(requestDurationTimeNs)
+
+	r.host.HostStats().UpstreamProxyDuration.Update(proxyDurationTimeNs)
+	r.host.HostStats().UpstreamProxyDurationTotal.Inc(proxyDurationTimeNs)
+	r.host.ClusterInfo().Stats().UpstreamProxyDuration.Update(proxyDurationTimeNs)
+	r.host.ClusterInfo().Stats().UpstreamProxyDurationTotal.Inc(proxyDurationTimeNs)
 
 	// todo: record upstream process time in request info
 }
@@ -167,7 +178,7 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 		failReason   types.PoolFailureReason
 	)
 
-	r.startTime = time.Now()
+	r.requestStartTime = time.Now()
 
 	if r.downStream.oneway {
 		_, streamSender, failReason = r.connPool.NewStream(r.downStream.context, nil)
@@ -234,6 +245,8 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender) {
 
 	r.requestSender = sender
 	r.requestSender.GetStream().AddEventListener(r)
+	// start a upstream send
+	r.proxyStartTime = time.Now()
 
 	if trace.IsEnabled() {
 		span := trace.SpanFromContext(r.downStream.context)

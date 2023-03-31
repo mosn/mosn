@@ -37,6 +37,8 @@ func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 		return types.ClusterStats{
 			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+			UpstreamProxyDuration:        s.Histogram(metrics.UpstreamProxyDuration),
+			UpstreamProxyDurationTotal:   s.Counter(metrics.UpstreamProxyDurationTotal),
 			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
 		}
@@ -95,7 +97,7 @@ func gomockStreamSender(ctrl *gomock.Controller) types.StreamSender {
 
 }
 
-//  mock a simple route rule that route a request to a cluster
+// mock a simple route rule that route a request to a cluster
 func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.Route {
 	r := mock.NewMockRoute(ctrl)
 	// mock route rule returns cluster name : mock_cluster

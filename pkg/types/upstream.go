@@ -275,6 +275,8 @@ type HostStats struct {
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
 	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamProxyDuration                          metrics.Histogram
+	UpstreamProxyDurationTotal                     metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
 }
@@ -304,6 +306,8 @@ type ClusterStats struct {
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
 	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamProxyDuration                          metrics.Histogram
+	UpstreamProxyDurationTotal                     metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
