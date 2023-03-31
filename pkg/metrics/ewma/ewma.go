@@ -54,9 +54,18 @@ func NewEWMA(alpha float64) gometrics.EWMA {
 
 // Rate returns the moving average mean of events per second.
 func (e *EWMA) Rate() float64 {
-	flushed, ewma, sum, count := e.flushAndGet()
+	now := time.Now()
 
-	if flushed {
+	e.mutex.Lock()
+	e.flush(now)
+	sum := e.uncountedSum
+	count := e.uncountedCount
+	ewma := e.lastEWMA
+	tickTime := e.lastTickTime
+	e.mutex.Unlock()
+
+	// Still belongs to the previous interval, no decay required.
+	if now == tickTime && count == 0 {
 		return ewma
 	}
 
@@ -77,33 +86,25 @@ func (e *EWMA) Snapshot() gometrics.EWMA {
 // There is no need to use an additional timer to Tick in this implementation,
 // because Rate also calculates the latest value when it is updated or queried.
 func (e *EWMA) Tick() {
+	now := time.Now()
+
 	e.mutex.Lock()
-	e.flush()
+	e.flush(now)
 	e.mutex.Unlock()
 }
 
 // Update adds an uncounted event with value `i`, and tries to flush.
 func (e *EWMA) Update(i int64) {
+	now := time.Now()
+
 	e.mutex.Lock()
-	e.flush()
+	e.flush(now)
 	e.uncountedSum += i
 	e.uncountedCount++
 	e.mutex.Unlock()
 }
 
-func (e *EWMA) flushAndGet() (bool, float64, int64, int64) {
-	e.mutex.Lock()
-	flushed := e.flush()
-	ewma := e.lastEWMA
-	sum := e.uncountedSum
-	count := e.uncountedCount
-	e.mutex.Unlock()
-
-	return flushed, ewma, sum, count
-}
-
-func (e *EWMA) flush() bool {
-	now := time.Now()
+func (e *EWMA) flush(now time.Time) {
 	duration := now.Sub(e.lastTickTime)
 
 	if duration >= time.Second {
@@ -119,11 +120,7 @@ func (e *EWMA) flush() bool {
 		}
 
 		e.lastTickTime = now
-
-		return true
 	}
-
-	return false
 }
 
 func (e *EWMA) ewma(i float64, now time.Time) float64 {

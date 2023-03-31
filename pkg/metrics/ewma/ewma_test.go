@@ -116,6 +116,8 @@ func TestEWMA_uncounted(t *testing.T) {
 		ewma.Update(1)
 		now = now.Add(time.Second)
 		assert.Equal(t, alpha, ewma.Rate())
+		// flushed but still previous belongs to the interval
+		assert.Equal(t, alpha, ewma.Rate())
 
 		if tt.duration == 0 {
 			now = now.Add(minDecayDuration)
@@ -130,6 +132,12 @@ func TestEWMA_uncounted(t *testing.T) {
 		}
 
 		assert.Equal(t, tt.exceptedRate, ewma.Rate())
+		assert.Equal(t, tt.exceptedRate, ewma.Snapshot().Rate())
 	}
 
+	now = startTime
+	alpha := Alpha(math.Exp(-5), time.Second)
+	ewma := NewEWMA(alpha)
+	now = now.Add(time.Nanosecond)
+	assert.Equal(t, float64(0), ewma.Rate())
 }
