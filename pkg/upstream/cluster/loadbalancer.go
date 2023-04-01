@@ -743,16 +743,20 @@ func (lb *intelliLoadBalancer) randomChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
-	lastIdx := 0
+	// ceil(total / choice), the number of segments for random selection
+	s := (total + int(lb.choice) - 1) / int(lb.choice)
 
-	for choice := int(lb.choice); choice > 0; choice-- {
-		n := total - lastIdx - choice
+	for i := 0; i < int(lb.choice); i++ {
+		begin := i * s
+		end := begin + s
+
+		if end > total {
+			end = total
+		}
 
 		lb.mutex.Lock()
-		idx := lb.rand.Intn(n) + 1 + lastIdx
+		idx := randRangeInt(lb.rand, begin, end)
 		lb.mutex.Unlock()
-
-		lastIdx = idx
 
 		temp := lb.hosts.Get(idx)
 		if !temp.Health() {
@@ -774,6 +778,10 @@ func (lb *intelliLoadBalancer) randomChoose() types.Host {
 	return candidate
 }
 
+func randRangeInt(rand *rand.Rand, start, end int) int {
+	return rand.Intn(end-start) + start
+}
+
 // All factors cannot be 0 to ensure that other factors can take effect normally
 const defaultFactorValue = 1e-6
 
@@ -793,7 +801,7 @@ func intelliScore(h types.Host) float64 {
 		// so calculate the number of active requests per unit of
 		// computing resources in the upstream through the weights,
 		// and then use `math.Log` to reduce impact.
-		activeRequests = math.Log((activeRequests + 1) / float64(h.Weight()))
+		activeRequests = math.Log(activeRequests/float64(h.Weight()) + 1)
 	}
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()

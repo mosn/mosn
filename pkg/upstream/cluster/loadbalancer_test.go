@@ -953,8 +953,9 @@ func TestNewLACBalancer(t *testing.T) {
 }
 
 func Test_IntelliLoadBalancer(t *testing.T) {
+	now := time.Time{}
 	supermonkey.Patch(time.Now, func() time.Time {
-		return time.Time{}
+		return now
 	})
 
 	t.Run("no host", func(t *testing.T) {
@@ -1011,7 +1012,9 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 			mh.w = uint32(rand.Intn(10) + 1)
 			mh.stats = newHostStats("mock", mh.addr)
 			for j, rnd := 0, rand.Intn(10)+1; j < rnd; j++ {
-				mh.stats.UpstreamRequestDuration.Update(int64(rand.Intn(5)))
+				duration := int64(rand.Intn(5) + 1)
+				mh.stats.UpstreamRequestDuration.Update(duration)
+				mh.stats.UpstreamRequestDurationEWMA.Update(duration)
 				mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
 				mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
 				mh.stats.UpstreamRequestTotal.Inc(1)
@@ -1020,8 +1023,7 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 			}
 		}
 
-		// Wait for the EWMA to tick
-		time.Sleep(time.Second)
+		now = now.Add(time.Second)
 
 		lb := newIntelliLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
