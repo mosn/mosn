@@ -51,12 +51,12 @@ func TestEWMA_decay(t *testing.T) {
 	for _, tt := range tests {
 		now = startTime
 		alpha := Alpha(math.Exp(-5), tt.duration)
-		assert.Equal(t, tt.exceptedAlpha, alpha)
+		assert.InDelta(t, tt.exceptedAlpha, alpha, 1e-6)
 
 		ewma := NewEWMA(alpha)
 		ewma.Update(1)
 		now = now.Add(time.Second)
-		assert.Equal(t, alpha, ewma.Rate())
+		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
 
 		if tt.duration == 0 {
 			now = now.Add(minDecayDuration)
@@ -64,7 +64,7 @@ func TestEWMA_decay(t *testing.T) {
 			now = now.Add(tt.duration)
 		}
 
-		assert.Equal(t, tt.exceptedRate, ewma.Rate())
+		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), 1e-6)
 	}
 
 }
@@ -85,7 +85,7 @@ func TestEWMA_reduceTick(t *testing.T) {
 	}
 
 	now = now.Add(time.Second)
-	assert.Equal(t, 0.9932620530009145, ewma.Rate())
+	assert.InDelta(t, 0.9932620530009145, ewma.Rate(), 1e-6)
 }
 
 func TestEWMA_uncounted(t *testing.T) {
@@ -115,9 +115,9 @@ func TestEWMA_uncounted(t *testing.T) {
 		ewma := NewEWMA(alpha)
 		ewma.Update(1)
 		now = now.Add(time.Second)
-		assert.Equal(t, alpha, ewma.Rate())
+		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
 		// flushed but still previous belongs to the interval
-		assert.Equal(t, alpha, ewma.Rate())
+		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
 
 		if tt.duration == 0 {
 			now = now.Add(minDecayDuration)
@@ -131,13 +131,29 @@ func TestEWMA_uncounted(t *testing.T) {
 			ewma.Update(1)
 		}
 
-		assert.Equal(t, tt.exceptedRate, ewma.Rate())
-		assert.Equal(t, tt.exceptedRate, ewma.Snapshot().Rate())
+		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), 1e-6)
+		assert.InDelta(t, tt.exceptedRate, ewma.Snapshot().Rate(), 1e-6)
 	}
 
 	now = startTime
 	alpha := Alpha(math.Exp(-5), time.Second)
 	ewma := NewEWMA(alpha)
 	now = now.Add(time.Nanosecond)
-	assert.Equal(t, float64(0), ewma.Rate())
+	assert.InDelta(t, float64(0), ewma.Rate(), 1e-6)
+}
+
+func TestAlpha(t *testing.T) {
+	tests := []time.Duration{
+		1 * time.Second,
+		5 * time.Second,
+		15 * time.Second,
+		1 * time.Minute,
+		5 * time.Minute,
+		15 * time.Minute,
+	}
+
+	for _, tt := range tests {
+		alpha := Alpha(0.001, tt)
+		assert.InDelta(t, 0.001, math.Pow(1-alpha, float64(tt/time.Second)), 1e-6)
+	}
 }
