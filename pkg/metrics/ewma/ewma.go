@@ -29,15 +29,11 @@ const (
 	minDecayDuration = time.Second
 )
 
-// EWMA is the two level implementation of an EWMA.
-// The first level will be counted according to the second time interval to get the arithmetic mean,
-// and then decay it through the exponential moving weighted average (EWMA).
+// EWMA is the standard EWMA implementation, it updates in real time
+// and when queried it always returns the decayed value.
 // See: https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
 type EWMA struct {
 	alpha float64
-
-	uncountedSum   int64
-	uncountedCount int64
 
 	lastEWMA     float64
 	lastTickTime time.Time
@@ -54,27 +50,7 @@ func NewEWMA(alpha float64) gometrics.EWMA {
 
 // Rate returns the moving average mean of events per second.
 func (e *EWMA) Rate() float64 {
-	now := time.Now()
-
-	e.mutex.Lock()
-	e.flush(now)
-	sum := e.uncountedSum
-	count := e.uncountedCount
-	ewma := e.lastEWMA
-	tickTime := e.lastTickTime
-	e.mutex.Unlock()
-
-	// Still belongs to the previous interval, no decay required.
-	if now == tickTime && count == 0 {
-		return ewma
-	}
-
-	// Calculate uncounted values
-	if count == 0 {
-		return (1 - e.alpha) * ewma
-	}
-
-	return e.alpha*float64(sum)/float64(count) + (1-e.alpha)*ewma
+	return e.ewma(0, time.Now())
 }
 
 // Snapshot returns a read-only copy of the EWMA.
@@ -86,11 +62,7 @@ func (e *EWMA) Snapshot() gometrics.EWMA {
 // There is no need to use an additional timer to Tick in this implementation,
 // because Rate also calculates the latest value when it is updated or queried.
 func (e *EWMA) Tick() {
-	now := time.Now()
-
-	e.mutex.Lock()
-	e.flush(now)
-	e.mutex.Unlock()
+	e.Update(0)
 }
 
 // Update adds an uncounted event with value `i`, and tries to flush.
@@ -98,29 +70,9 @@ func (e *EWMA) Update(i int64) {
 	now := time.Now()
 
 	e.mutex.Lock()
-	e.flush(now)
-	e.uncountedSum += i
-	e.uncountedCount++
+	e.lastEWMA = e.ewma(float64(i), now)
+	e.lastTickTime = now
 	e.mutex.Unlock()
-}
-
-func (e *EWMA) flush(now time.Time) {
-	duration := now.Sub(e.lastTickTime)
-
-	if duration >= time.Second {
-		sum := e.uncountedSum
-		count := e.uncountedCount
-
-		if count > 0 {
-			e.uncountedSum = 0
-			e.uncountedCount = 0
-			e.lastEWMA = e.ewma(float64((sum+count-1)/count), now)
-		} else {
-			e.lastEWMA = e.ewma(0, now)
-		}
-
-		e.lastTickTime = now
-	}
 }
 
 func (e *EWMA) ewma(i float64, now time.Time) float64 {
