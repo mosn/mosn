@@ -746,7 +746,7 @@ func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
-	// ceil(total / choice), the number of segments for random selection
+	// ceil(total / choice), the length of each segment for random selection
 	s := (total + int(lb.choice) - 1) / int(lb.choice)
 
 	for i := 0; i < int(lb.choice); i++ {
