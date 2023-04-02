@@ -793,16 +793,10 @@ func intelliScore(h types.Host) float64 {
 		responseSuccessRate = defaultFactorValue
 	}
 
-	activeRequests := float64(stats.UpstreamRequestActive.Count())
-	if activeRequests == 0 {
-		activeRequests = defaultFactorValue
-	} else {
-		// Usually, more weights mean more computing resources,
-		// so calculate the number of active requests per unit of
-		// computing resources in the upstream through the weights,
-		// and then use `math.Log` to reduce impact.
-		activeRequests = math.Log(activeRequests/float64(h.Weight()) + 1)
-	}
+	// Usually, more weights mean more computing resources,
+	// so calculate the number of active requests per unit of
+	// computing resources in the upstream through the weights
+	activeRequests := float64(stats.UpstreamRequestActive.Count())/float64(h.Weight()) + 1
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
 	if duration == 0 {
