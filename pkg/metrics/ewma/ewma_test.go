@@ -27,6 +27,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const delta = 1e-6
+
 func TestEWMA_decay(t *testing.T) {
 	var now time.Time
 	supermonkey.Patch(time.Now, func() time.Time {
@@ -51,12 +53,12 @@ func TestEWMA_decay(t *testing.T) {
 	for _, tt := range tests {
 		now = startTime
 		alpha := Alpha(math.Exp(-5), tt.duration)
-		assert.InDelta(t, tt.exceptedAlpha, alpha, 1e-6)
+		assert.InDelta(t, tt.exceptedAlpha, alpha, delta)
 
 		ewma := NewEWMA(alpha)
 		ewma.Update(1)
 		now = now.Add(time.Second)
-		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
+		assert.InDelta(t, alpha, ewma.Rate(), delta)
 
 		if tt.duration == 0 {
 			now = now.Add(minDecayDuration)
@@ -64,7 +66,7 @@ func TestEWMA_decay(t *testing.T) {
 			now = now.Add(tt.duration)
 		}
 
-		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), 1e-6)
+		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), delta)
 	}
 
 }
@@ -85,7 +87,7 @@ func TestEWMA_reduceTick(t *testing.T) {
 	}
 
 	now = now.Add(time.Second)
-	assert.InDelta(t, 0.9932620530009145, ewma.Rate(), 1e-6)
+	assert.InDelta(t, 0.9932620530009145, ewma.Rate(), delta)
 }
 
 func TestEWMA_uncounted(t *testing.T) {
@@ -115,9 +117,9 @@ func TestEWMA_uncounted(t *testing.T) {
 		ewma := NewEWMA(alpha)
 		ewma.Update(1)
 		now = now.Add(time.Second)
-		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
+		assert.InDelta(t, alpha, ewma.Rate(), delta)
 		// flushed but still previous belongs to the interval
-		assert.InDelta(t, alpha, ewma.Rate(), 1e-6)
+		assert.InDelta(t, alpha, ewma.Rate(), delta)
 
 		if tt.duration == 0 {
 			now = now.Add(minDecayDuration)
@@ -131,15 +133,15 @@ func TestEWMA_uncounted(t *testing.T) {
 			ewma.Update(1)
 		}
 
-		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), 1e-6)
-		assert.InDelta(t, tt.exceptedRate, ewma.Snapshot().Rate(), 1e-6)
+		assert.InDelta(t, tt.exceptedRate, ewma.Rate(), delta)
+		assert.InDelta(t, tt.exceptedRate, ewma.Snapshot().Rate(), delta)
 	}
 
 	now = startTime
 	alpha := Alpha(math.Exp(-5), time.Second)
 	ewma := NewEWMA(alpha)
 	now = now.Add(time.Nanosecond)
-	assert.InDelta(t, float64(0), ewma.Rate(), 1e-6)
+	assert.InDelta(t, float64(0), ewma.Rate(), delta)
 }
 
 func TestAlpha(t *testing.T) {
@@ -154,6 +156,6 @@ func TestAlpha(t *testing.T) {
 
 	for _, tt := range tests {
 		alpha := Alpha(0.001, tt)
-		assert.InDelta(t, 0.001, math.Pow(1-alpha, float64(tt/time.Second)), 1e-6)
+		assert.InDelta(t, 0.001, math.Pow(1-alpha, float64(tt/time.Second)), delta)
 	}
 }
