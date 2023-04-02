@@ -788,20 +788,15 @@ const defaultFactorValue = 1e-6
 func intelliScore(h types.Host) float64 {
 	stats := h.HostStats()
 
-	responseSuccessRate := 1 - stats.UpstreamResponseFailedEWMA.Rate()
-	if responseSuccessRate == 0 {
-		responseSuccessRate = defaultFactorValue
-	}
-
-	// Usually, more weights mean more computing resources,
-	// so calculate the number of active requests per unit of
-	// computing resources in the upstream through the weights
-	activeRequests := float64(stats.UpstreamRequestActive.Count())/float64(h.Weight()) + 1
-
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
 	if duration == 0 {
 		duration = defaultFactorValue
 	}
 
-	return duration * activeRequests / responseSuccessRate
+	responseSuccessRate := 1 - stats.UpstreamResponseFailedEWMA.Rate()
+	if responseSuccessRate == 0 {
+		responseSuccessRate = defaultFactorValue
+	}
+
+	return duration * float64(stats.UpstreamRequestActive.Count()) / float64(h.Weight()+1) / (responseSuccessRate * responseSuccessRate)
 }
