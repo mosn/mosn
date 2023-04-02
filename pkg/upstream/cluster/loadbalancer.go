@@ -798,5 +798,5 @@ func intelliScore(h types.Host) float64 {
 		responseSuccessRate = defaultFactorValue
 	}
 
-	return duration * float64(stats.UpstreamRequestActive.Count()) / float64(h.Weight()+1) / (responseSuccessRate * responseSuccessRate)
+	return duration * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight()) / (responseSuccessRate * responseSuccessRate)
 }
