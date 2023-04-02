@@ -70,7 +70,7 @@ func init() {
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
 	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
-	RegisterLBType(types.Intelli, newIntelliLoadBalancer)
+	RegisterLBType(types.PeakEwma, newPeakEwmaLoadBalancer)
 
 	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
@@ -627,7 +627,8 @@ func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria)
 	return lb.hosts.Size()
 }
 
-type intelliLoadBalancer struct {
+type peakEwmaLoadBalancer struct {
+	info  types.ClusterInfo
 	hosts types.HostSet
 	rand  *rand.Rand
 	mutex sync.Mutex
@@ -638,7 +639,7 @@ type intelliLoadBalancer struct {
 	choice uint32
 }
 
-func newIntelliLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	fallback := false
 	if hosts.Size() > 1 {
 		hosts.Range(func(host types.Host) bool {
@@ -651,8 +652,10 @@ func newIntelliLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.L
 			return true
 		})
 	}
+	info.IdleTimeout()
 
-	lb := &intelliLoadBalancer{
+	lb := &peakEwmaLoadBalancer{
+		info:            info,
 		hosts:           hosts,
 		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
 		choice:          default_choice,
@@ -662,7 +665,7 @@ func newIntelliLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.L
 	return lb
 }
 
-func (lb *intelliLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	if lb.fallback {
 		return lb.wrrLoadBalancer.ChooseHost(context)
 	}
@@ -690,7 +693,7 @@ func (lb *intelliLoadBalancer) ChooseHost(context types.LoadBalancerContext) typ
 		candidate = lb.randomChoose()
 		if candidate == nil {
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
-				log.DefaultLogger.Warnf("[lb][intelli] no host chosen after %d choice, fallback to WRR", lb.choice)
+				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to WRR", lb.choice)
 			}
 			return lb.wrrLoadBalancer.ChooseHost(context)
 		}
@@ -699,15 +702,15 @@ func (lb *intelliLoadBalancer) ChooseHost(context types.LoadBalancerContext) typ
 	return candidate
 }
 
-func (lb *intelliLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
+func (lb *peakEwmaLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
 	return lb.hosts.Size() > 0
 }
 
-func (lb *intelliLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
+func (lb *peakEwmaLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
 }
 
-func (lb *intelliLoadBalancer) iterateChoose() types.Host {
+func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
@@ -716,7 +719,7 @@ func (lb *intelliLoadBalancer) iterateChoose() types.Host {
 			return true
 		}
 
-		tempScore := intelliScore(temp)
+		tempScore := lb.peakEwmaScore(temp)
 		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
@@ -727,7 +730,7 @@ func (lb *intelliLoadBalancer) iterateChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][intelli] iterate choose host %s with score %d", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %d", candidate.AddressString(), candidateScore)
 		}
 	}
 	return candidate
@@ -737,7 +740,7 @@ func (lb *intelliLoadBalancer) iterateChoose() types.Host {
 // See The Power of Two Random Choices: A Survey of Techniques and Results
 //
 //	http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-func (lb *intelliLoadBalancer) randomChoose() types.Host {
+func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 	total := lb.hosts.Size()
 
 	var candidate types.Host
@@ -763,7 +766,7 @@ func (lb *intelliLoadBalancer) randomChoose() types.Host {
 			continue
 		}
 
-		tempScore := intelliScore(temp)
+		tempScore := lb.peakEwmaScore(temp)
 		if candidate == nil || tempScore < candidateScore {
 			candidate = temp
 			candidateScore = tempScore
@@ -772,7 +775,7 @@ func (lb *intelliLoadBalancer) randomChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][intelli] random choose host %s with score %f", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][PeakEwma] random choose host %s with score %f", candidate.AddressString(), candidateScore)
 		}
 	}
 	return candidate
@@ -782,21 +785,22 @@ func randRangeInt(rand *rand.Rand, start, end int) int {
 	return rand.Intn(end-start) + start
 }
 
-// All factors cannot be 0 to ensure that other factors can take effect normally
-const defaultFactorValue = 1e-6
+const minPeakEwmaResponseSuccessRate = 0.001
 
-func intelliScore(h types.Host) float64 {
+func (lb *peakEwmaLoadBalancer) peakEwmaScore(h types.Host) float64 {
 	stats := h.HostStats()
+
+	perWeightRequestActive := float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight())
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
 	if duration == 0 {
-		duration = defaultFactorValue
+		duration = float64(lb.info.ConnectTimeout() + lb.info.IdleTimeout())
 	}
 
-	responseSuccessRate := 1 - stats.UpstreamResponseFailedEWMA.Rate()
-	if responseSuccessRate == 0 {
-		responseSuccessRate = defaultFactorValue
+	successRate := 1 - stats.UpstreamResponseFailedEWMA.Rate()
+	if successRate < minPeakEwmaResponseSuccessRate {
+		successRate = minPeakEwmaResponseSuccessRate
 	}
 
-	return duration * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight()) / (responseSuccessRate * responseSuccessRate)
+	return perWeightRequestActive * duration / (successRate * successRate)
 }

@@ -952,7 +952,7 @@ func TestNewLACBalancer(t *testing.T) {
 	assert.IsType(t, &leastActiveConnectionLoadBalancer{}, balancer)
 }
 
-func Test_IntelliLoadBalancer(t *testing.T) {
+func Test_PeakEwmaLoadBalancer(t *testing.T) {
 	now := time.Time{}
 	supermonkey.Patch(time.Now, func() time.Time {
 		return now
@@ -960,7 +960,7 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 
 	t.Run("no host", func(t *testing.T) {
 		hs := &hostSet{allHosts: mockHostList(0, "")}
-		lb := newIntelliLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
 		assert.False(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 0, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
@@ -969,7 +969,7 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 
 	t.Run("only 1 host", func(t *testing.T) {
 		hs := &hostSet{allHosts: mockHostList(1, "")}
-		lb := newIntelliLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 1, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
@@ -998,7 +998,7 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 		// Wait for the EWMA to tick
 		time.Sleep(time.Second)
 
-		lb := newIntelliLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 2, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
@@ -1025,13 +1025,13 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 
 		now = now.Add(time.Second)
 
-		lb := newIntelliLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 10, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
 		worst := true
 		hs.Range(func(host types.Host) bool {
-			if intelliScore(host) > intelliScore(h) {
+			if peakEwmaScore(host) > peakEwmaScore(h) {
 				worst = false
 				return false
 			}
@@ -1049,8 +1049,8 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 			mh.stats = newHostStats("mock", mh.addr)
 			return true
 		})
-		lb := newIntelliLoadBalancer(nil, hs)
-		assert.True(t, lb.(*intelliLoadBalancer).fallback)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
+		assert.True(t, lb.(*peakEwmaLoadBalancer).fallback)
 		h := lb.ChooseHost(nil)
 		assert.NotNil(t, h)
 		metrics.SetStatsMatcher(false, nil, nil)
@@ -1067,7 +1067,7 @@ func Test_IntelliLoadBalancer(t *testing.T) {
 			}
 			return true
 		})
-		lb := newIntelliLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs)
 		for i := 0; i < 100; i++ {
 			h := lb.ChooseHost(nil)
 			assert.NotNil(t, h)
@@ -1093,7 +1093,7 @@ func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
 		return true
 	})
 
-	lb := newIntelliLoadBalancer(nil, hs)
+	lb := newPeakEwmaLoadBalancer(nil, hs)
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
