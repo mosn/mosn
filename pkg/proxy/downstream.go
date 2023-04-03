@@ -1233,10 +1233,7 @@ func (s *downStream) handleUpstreamStatusCode() {
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(1)
 		} else {
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
-			s.upstreamRequest.host.HostStats().UpstreamResponseFailedEWMA.Update(0)
-
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
-			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailedEWMA.Update(0)
 		}
 	}
 }
