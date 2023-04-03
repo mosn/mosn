@@ -18,8 +18,16 @@
 package cluster
 
 import (
+	"time"
+
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/types"
+)
+
+const (
+	defaultDecayTarget   = 1e-6
+	defaultDecayDuration = 1 * time.Minute
 )
 
 func newHostStats(clustername string, addr string) *types.HostStats {
@@ -43,6 +51,7 @@ func newHostStats(clustername string, addr string) *types.HostStats {
 		UpstreamRequestFailureEject:                    s.Counter(metrics.UpstreamRequestFailureEject),
 		UpstreamRequestPendingOverflow:                 s.Counter(metrics.UpstreamRequestPendingOverflow),
 		UpstreamRequestDuration:                        s.Histogram(metrics.UpstreamRequestDuration),
+		UpstreamRequestDurationEWMA:                    s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(defaultDecayTarget, defaultDecayDuration)),
 		UpstreamRequestDurationTotal:                   s.Counter(metrics.UpstreamRequestDurationTotal),
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
@@ -74,6 +83,7 @@ func newClusterStats(clustername string) *types.ClusterStats {
 		UpstreamRequestFailureEject:                    s.Counter(metrics.UpstreamRequestFailureEject),
 		UpstreamRequestPendingOverflow:                 s.Counter(metrics.UpstreamRequestPendingOverflow),
 		UpstreamRequestDuration:                        s.Histogram(metrics.UpstreamRequestDuration),
+		UpstreamRequestDurationEWMA:                    s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(defaultDecayTarget, defaultDecayDuration)),
 		UpstreamRequestDurationTotal:                   s.Counter(metrics.UpstreamRequestDurationTotal),
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
