@@ -1025,13 +1025,13 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 
 		now = now.Add(time.Second)
 
-		lb := newPeakEwmaLoadBalancer(nil, hs)
+		lb := newPeakEwmaLoadBalancer(nil, hs).(*peakEwmaLoadBalancer)
 		assert.True(t, lb.IsExistsHosts(nil))
 		assert.Equal(t, 10, lb.HostNum(nil))
 		h := lb.ChooseHost(nil)
 		worst := true
 		hs.Range(func(host types.Host) bool {
-			if peakEwmaScore(host) > peakEwmaScore(h) {
+			if lb.peakEwmaScore(host) > lb.peakEwmaScore(h) {
 				worst = false
 				return false
 			}
