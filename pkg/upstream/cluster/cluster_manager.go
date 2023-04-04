@@ -61,11 +61,12 @@ const globalTLSMetrics = "global"
 
 // types.ClusterManager
 type clusterManager struct {
-	clustersMap      sync.Map
-	protocolConnPool sync.Map // protocolname: { address : connpool }
-	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSClientContextManager
-	mux              sync.Mutex
+	clustersMap       sync.Map
+	clusterPoolEnable bool
+	protocolConnPool  sync.Map // if clusterPoolEnable protocolname: { cluster: {address : connpool} } else protocolname: { address : connpool }
+	tlsMetrics        *mtls.TLSStats
+	tlsMng            atomic.Value // store types.TLSClientContextManager
+	mux               sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -79,13 +80,27 @@ func (singleton *clusterManagerSingleton) Destroy() {
 	clusterManagerInstance.clusterManager = nil
 }
 
+type InitClusterManagerOptionsFunc func(types.ClusterManager)
+
+func WithClusterPoolEnable(clusterPoolEnable bool) InitClusterManagerOptionsFunc {
+	return func(cm types.ClusterManager) {
+		if c, ok := cm.(*clusterManagerSingleton); ok {
+			c.clusterPoolEnable = clusterPoolEnable
+		}
+	}
+}
+
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig, initFns ...func(types.ClusterManager)) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
+	}
+	// execute init clusterManager functions
+	for _, optFn := range initFns {
+		optFn(clusterManagerInstance)
 	}
 
 	clusterManagerInstance.clusterManager = &clusterManager{
@@ -499,6 +514,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		value, ok := cm.protocolConnPool.Load(proto)
 		if !ok {
 			return nil, nil, errUnknownProtocol
+		}
+
+		if cm.clusterPoolEnable {
+			value, _ = value.(*sync.Map).LoadOrStore(clusterSnapshot.ClusterInfo().Name(), &sync.Map{})
 		}
 
 		connectionPool := value.(*sync.Map)
