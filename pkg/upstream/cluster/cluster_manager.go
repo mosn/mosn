@@ -98,13 +98,13 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
 	}
-	// execute init clusterManager functions
-	for _, optFn := range initFns {
-		optFn(clusterManagerInstance)
-	}
 
 	clusterManagerInstance.clusterManager = &clusterManager{
 		tlsMetrics: mtls.NewStats(globalTLSMetrics),
+	}
+	// execute init clusterManager functions
+	for _, optFn := range initFns {
+		optFn(clusterManagerInstance)
 	}
 	// set global tls
 	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
