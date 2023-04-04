@@ -25,7 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	gometrics "github.com/rcrowley/go-metrics"
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
@@ -634,41 +633,22 @@ type peakEwmaLoadBalancer struct {
 	mutex sync.Mutex
 
 	wrrLoadBalancer types.LoadBalancer
-	fallback        bool
 
 	choice uint32
 }
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	fallback := false
-	if hosts.Size() > 1 {
-		hosts.Range(func(host types.Host) bool {
-			// Check whether `UpstreamRequestDuration` is enabled,
-			// or fallback to WRR because all hosts have same duration.
-			if _, ok := host.HostStats().UpstreamRequestDuration.(gometrics.NilHistogram); ok {
-				fallback = true
-				return false
-			}
-			return true
-		})
-	}
-
 	lb := &peakEwmaLoadBalancer{
 		info:            info,
 		hosts:           hosts,
 		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
 		choice:          default_choice,
 		wrrLoadBalancer: newWRRLoadBalancer(info, hosts),
-		fallback:        fallback,
 	}
 	return lb
 }
 
 func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	if lb.fallback {
-		return lb.wrrLoadBalancer.ChooseHost(context)
-	}
-
 	hs := lb.hosts
 	total := hs.Size()
 

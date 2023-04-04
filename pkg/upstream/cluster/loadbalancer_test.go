@@ -1066,7 +1066,6 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 			return true
 		})
 		lb := newPeakEwmaLoadBalancer(info, hs)
-		assert.True(t, lb.(*peakEwmaLoadBalancer).fallback)
 		h := lb.ChooseHost(nil)
 		assert.NotNil(t, h)
 		metrics.SetStatsMatcher(false, nil, nil)
