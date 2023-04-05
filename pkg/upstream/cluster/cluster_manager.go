@@ -80,9 +80,9 @@ func (singleton *clusterManagerSingleton) Destroy() {
 	clusterManagerInstance.clusterManager = nil
 }
 
-type ClusterManagerOptions func(types.ClusterManager)
+type ClusterManagerOption func(types.ClusterManager)
 
-func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOptions {
+func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOption {
 	return func(cm types.ClusterManager) {
 		if c, ok := cm.(*clusterManagerSingleton); ok {
 			c.clusterPoolEnable = clusterPoolEnable
@@ -92,7 +92,7 @@ func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOptions {
 
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig, initFns ...ClusterManagerOptions) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig, opts ...ClusterManagerOption) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
@@ -103,8 +103,8 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 		tlsMetrics: mtls.NewStats(globalTLSMetrics),
 	}
 	// execute init clusterManager functions
-	for _, optFn := range initFns {
-		optFn(clusterManagerInstance)
+	for _, opt := range opts {
+		opt(clusterManagerInstance)
 	}
 	// set global tls
 	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
