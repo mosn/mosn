@@ -672,7 +672,7 @@ func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		candidate = lb.randomChoose()
 		if candidate == nil {
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
-				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to WRR", lb.choice)
+				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to RR", lb.choice)
 			}
 			return lb.rrLB.ChooseHost(context)
 		}
