@@ -21,15 +21,8 @@ import (
 	"mosn.io/api"
 )
 
-type LeastRequestLbConfig struct {
-	ChoiceCount uint32
-}
-
-func (lbconfig *LeastRequestLbConfig) isCluster_LbConfig() {
-}
-
-type IsCluster_LbConfig interface {
-	isCluster_LbConfig()
+type LbConfig struct {
+	ChoiceCount uint32 `json:"choice_count,omitempty"`
 }
 
 type HashPolicy struct {

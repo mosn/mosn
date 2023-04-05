@@ -906,10 +906,10 @@ func (mr *MockClusterInfoMockRecorder) IdleTimeout() *gomock.Call {
 }
 
 // LbConfig mocks base method.
-func (m *MockClusterInfo) LbConfig() v2.IsCluster_LbConfig {
+func (m *MockClusterInfo) LbConfig() *v2.LbConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LbConfig")
-	ret0, _ := ret[0].(v2.IsCluster_LbConfig)
+	ret0, _ := ret[0].(*v2.LbConfig)
 	return ret0
 }
 

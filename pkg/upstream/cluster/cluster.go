@@ -219,7 +219,7 @@ type clusterInfo struct {
 	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
-	lbConfig             v2.IsCluster_LbConfig
+	lbConfig             *v2.LbConfig
 	slowStart            types.SlowStart
 }
 
@@ -278,7 +278,7 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
 }
 
-func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
+func (ci *clusterInfo) LbConfig() *v2.LbConfig {
 	return ci.lbConfig
 }
 
