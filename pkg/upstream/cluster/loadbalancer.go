@@ -693,9 +693,16 @@ func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 	var candidate types.Host
 	var candidateScore float64
 
-	lb.hosts.Range(func(temp types.Host) bool {
+	total := lb.hosts.Size()
+
+	lb.mutex.Lock()
+	idx := lb.rand.Intn(total)
+	lb.mutex.Unlock()
+
+	for i := 0; i < total; i++ {
+		temp := lb.hosts.Get((i + idx) % total)
 		if !temp.Health() {
-			return true
+			continue
 		}
 
 		tempScore := lb.peakEwmaScore(temp)
@@ -703,9 +710,7 @@ func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 			candidate = temp
 			candidateScore = tempScore
 		}
-
-		return true
-	})
+	}
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
