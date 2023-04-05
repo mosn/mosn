@@ -237,7 +237,7 @@ func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext)
 	return lb.rrLB.ChooseHost(context)
 }
 
-const default_choice = 2
+const defaultChoice = 2
 
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
@@ -250,7 +250,7 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
 	} else {
-		lb.choice = default_choice
+		lb.choice = defaultChoice
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
@@ -632,18 +632,18 @@ type peakEwmaLoadBalancer struct {
 	rand  *rand.Rand
 	mutex sync.Mutex
 
-	wrrLoadBalancer types.LoadBalancer
+	rrLB types.LoadBalancer
 
 	choice uint32
 }
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &peakEwmaLoadBalancer{
-		info:            info,
-		hosts:           hosts,
-		rand:            rand.New(rand.NewSource(time.Now().UnixNano())),
-		choice:          default_choice,
-		wrrLoadBalancer: newWRRLoadBalancer(info, hosts),
+		info:   info,
+		hosts:  hosts,
+		rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		choice: defaultChoice,
+		rrLB:   rrFactory.newRoundRobinLoadBalancer(info, hosts),
 	}
 	return lb
 }
@@ -674,7 +674,7 @@ func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
 				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to WRR", lb.choice)
 			}
-			return lb.wrrLoadBalancer.ChooseHost(context)
+			return lb.rrLB.ChooseHost(context)
 		}
 	}
 
