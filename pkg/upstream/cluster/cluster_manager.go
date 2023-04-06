@@ -594,7 +594,11 @@ func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr 
 			cs := cm.GetClusterSnapshot(context.Background(), clusterName.(string))
 			if cm.isClusterPoolEnable(cs) {
 				// avoid cluster pool is never used
-				value, _ = value.(*sync.Map).LoadOrStore(clusterName.(string), &sync.Map{})
+				var exists bool
+				value, exists = value.(*sync.Map).Load(clusterName.(string))
+				if !exists {
+					return true
+				}
 			}
 			connectionPool := value.(*sync.Map)
 			if connPool, ok := connectionPool.Load(addr); ok {
