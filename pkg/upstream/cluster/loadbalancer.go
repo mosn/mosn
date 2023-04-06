@@ -626,47 +626,57 @@ func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria)
 	return lb.hosts.Size()
 }
 
-type peakEwmaLoadBalancer struct {
-	info  types.ClusterInfo
-	hosts types.HostSet
-	rand  *rand.Rand
-	mutex sync.Mutex
+const defaultPeakEwmaDuration = 10 * time.Second
 
+type peakEwmaLoadBalancer struct {
+	*EdfLoadBalancer
 	rrLB types.LoadBalancer
 
-	choice uint32
+	choice          uint32
+	defaultDuration time.Duration
 }
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &peakEwmaLoadBalancer{
-		info:   info,
-		hosts:  hosts,
-		rand:   rand.New(rand.NewSource(time.Now().UnixNano())),
-		choice: defaultChoice,
-		rrLB:   rrFactory.newRoundRobinLoadBalancer(info, hosts),
+		rrLB: rrFactory.newRoundRobinLoadBalancer(info, hosts),
+
+		choice:          defaultChoice,
+		defaultDuration: info.ConnectTimeout() + info.IdleTimeout(),
 	}
+
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
+
+	if lb.defaultDuration == 0 {
+		lb.defaultDuration = defaultPeakEwmaDuration
+	}
+
 	return lb
 }
 
-func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	hs := lb.hosts
-	total := hs.Size()
+func (lb *peakEwmaLoadBalancer) hostWeight(item WeightItem) float64 {
+	host, ok := item.(types.Host)
+	if !ok {
+		return 1.0
+	}
 
-	if total == 0 {
-		return nil
+	stats := host.HostStats()
+
+	duration := stats.UpstreamRequestDurationEWMA.Rate()
+	// None of the active requests returned, or the metrics is disabled
+	if duration == 0 {
+		duration = float64(lb.defaultDuration)
 	}
-	if total == 1 {
-		host := hs.Get(0)
-		if host.Health() {
-			return host
-		}
-		return nil
-	}
+
+	return float64(host.Weight()) / (duration * float64(stats.UpstreamRequestActive.Count()+1))
+}
+
+func (lb *peakEwmaLoadBalancer) unweightedChoose(context types.LoadBalancerContext) types.Host {
+	hs := lb.hosts
 
 	var candidate types.Host
 
 	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
-	if total <= int(lb.choice) {
+	if hs.Size() <= int(lb.choice) {
 		candidate = lb.iterateChoose()
 	} else {
 		candidate = lb.randomChoose()
@@ -674,6 +684,7 @@ func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 			if log.DefaultLogger.GetLogLevel() >= log.WARN {
 				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to RR", lb.choice)
 			}
+
 			return lb.rrLB.ChooseHost(context)
 		}
 	}
@@ -681,20 +692,12 @@ func (lb *peakEwmaLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 	return candidate
 }
 
-func (lb *peakEwmaLoadBalancer) IsExistsHosts(_ api.MetadataMatchCriteria) bool {
-	return lb.hosts.Size() > 0
-}
-
-func (lb *peakEwmaLoadBalancer) HostNum(_ api.MetadataMatchCriteria) int {
-	return lb.hosts.Size()
-}
-
 func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
-	var candidate types.Host
-	var candidateScore float64
-
 	total := lb.hosts.Size()
 
+	var candidate types.Host
+
+	// avoid always choosing the same host when the score is the same
 	lb.mutex.Lock()
 	idx := lb.rand.Intn(total)
 	lb.mutex.Unlock()
@@ -705,18 +708,18 @@ func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 			continue
 		}
 
-		tempScore := lb.peakEwmaScore(temp)
-		if candidate == nil || tempScore < candidateScore {
+		if candidate == nil || lb.unweightedPeakEwmaScore(temp) < lb.unweightedPeakEwmaScore(candidate) {
 			candidate = temp
-			candidateScore = tempScore
 		}
 	}
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %d", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %d",
+				candidate.AddressString(), lb.unweightedPeakEwmaScore(candidate))
 		}
 	}
+
 	return candidate
 }
 
@@ -728,21 +731,10 @@ func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 	total := lb.hosts.Size()
 
 	var candidate types.Host
-	var candidateScore float64
-
-	// ceil(total / choice), the length of each segment for random selection
-	s := (total + int(lb.choice) - 1) / int(lb.choice)
 
 	for i := 0; i < int(lb.choice); i++ {
-		begin := i * s
-		end := begin + s
-
-		if end > total {
-			end = total
-		}
-
 		lb.mutex.Lock()
-		idx := randRangeInt(lb.rand, begin, end)
+		idx := lb.rand.Intn(total)
 		lb.mutex.Unlock()
 
 		temp := lb.hosts.Get(idx)
@@ -750,32 +742,29 @@ func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 			continue
 		}
 
-		tempScore := lb.peakEwmaScore(temp)
-		if candidate == nil || tempScore < candidateScore {
+		if candidate == nil || lb.unweightedPeakEwmaScore(temp) < lb.unweightedPeakEwmaScore(candidate) {
 			candidate = temp
-			candidateScore = tempScore
 		}
 	}
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][PeakEwma] random choose host %s with score %f", candidate.AddressString(), candidateScore)
+			log.DefaultLogger.Debugf("[lb][PeakEwma] random choose host %s with score %f",
+				candidate.AddressString(), lb.unweightedPeakEwmaScore(candidate))
 		}
 	}
+
 	return candidate
 }
 
-func randRangeInt(rand *rand.Rand, start, end int) int {
-	return rand.Intn(end-start) + start
-}
-
-func (lb *peakEwmaLoadBalancer) peakEwmaScore(h types.Host) float64 {
+func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	stats := h.HostStats()
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
+	// None of the active requests returned, or the metrics is disabled
 	if duration == 0 {
-		duration = float64(lb.info.ConnectTimeout() + lb.info.IdleTimeout())
+		duration = float64(lb.defaultDuration)
 	}
 
-	return duration * float64(stats.UpstreamRequestActive.Count()+1) / float64(h.Weight())
+	return duration * float64(stats.UpstreamRequestActive.Count()+1)
 }

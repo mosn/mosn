@@ -1047,7 +1047,7 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 		h := lb.ChooseHost(nil)
 		worst := true
 		hs.Range(func(host types.Host) bool {
-			if lb.peakEwmaScore(host) > lb.peakEwmaScore(h) {
+			if lb.unweightedPeakEwmaScore(host) > lb.unweightedPeakEwmaScore(h) {
 				worst = false
 				return false
 			}
