@@ -1113,8 +1113,39 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 	})
 }
 
-func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
+func BenchmarkShortestResponseLoadBalancer_ChooseHost_Weighted(b *testing.B) {
 	b.StopTimer()
+	info := &clusterInfo{connectTimeout: time.Second, idleTimeout: time.Second}
+
+	hs := NewHostSet(mockHostList(10, ""))
+	hs.Range(func(host types.Host) bool {
+		mh := host.(*mockHost)
+		mh.w = uint32(rand.Intn(10) + 1)
+		mh.stats = newHostStats("mock", mh.addr)
+		for i, n := 0, rand.Intn(1000)+1; i < n; i++ {
+			mh.stats.UpstreamRequestDurationEWMA.Update(int64(rand.Intn(5)))
+			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamRequestTotal.Inc(1)
+			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamConnectionTotal.Inc(1)
+		}
+		return true
+	})
+
+	lb := newPeakEwmaLoadBalancer(info, hs)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		lb.ChooseHost(nil)
+	}
+	b.StopTimer()
+}
+
+func BenchmarkShortestResponseLoadBalancer_ChooseHost_Unweighted(b *testing.B) {
+	b.StopTimer()
+	info := &clusterInfo{connectTimeout: time.Second, idleTimeout: time.Second}
+
 	hs := NewHostSet(mockHostList(10, ""))
 	hs.Range(func(host types.Host) bool {
 		mh := host.(*mockHost)
@@ -1131,7 +1162,7 @@ func BenchmarkShortestResponseLoadBalancer_ChooseHost(b *testing.B) {
 		return true
 	})
 
-	lb := newPeakEwmaLoadBalancer(nil, hs)
+	lb := newPeakEwmaLoadBalancer(info, hs)
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
