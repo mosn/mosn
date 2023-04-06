@@ -22,7 +22,8 @@ import (
 )
 
 type LeastRequestLbConfig struct {
-	ChoiceCount uint32
+	ChoiceCount       uint32
+	ActiveRequestBias float64 `json:"active_request_bias,omitempty"`
 }
 
 func (lbconfig *LeastRequestLbConfig) isCluster_LbConfig() {

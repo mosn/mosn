@@ -241,13 +241,15 @@ const default_choice = 2
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
-	choice uint32
+	choice            uint32
+	activeRequestBias float64
 }
 
 func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+		lb.activeRequestBias = info.LbConfig().(*v2.LeastRequestLbConfig).ActiveRequestBias
 	} else {
 		lb.choice = default_choice
 	}
@@ -257,7 +259,16 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 
 func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
-	return float64(host.Weight()) / float64(host.HostStats().UpstreamRequestActive.Count()+1)
+
+	weight := float64(host.Weight())
+
+	if lb.activeRequestBias == 1.0 {
+		weight /= float64(host.HostStats().UpstreamRequestActive.Count() + 1)
+	} else if lb.activeRequestBias != 0.0 {
+		weight /= math.Pow(float64(host.HostStats().UpstreamRequestActive.Count()+1), lb.activeRequestBias)
+	}
+
+	return weight
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
