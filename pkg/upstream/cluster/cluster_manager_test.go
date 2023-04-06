@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -111,5 +112,33 @@ func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
 	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
 	mockLbCtx := newMockLbContext(nil)
 	GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+	m, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.Load(mockProtocol)
+	_, ok := m.(*sync.Map).Load(h.Address)
+	require.True(t, ok)
 	clusterManagerInstance.ShutdownConnectionPool(mockProtocol, snap1.HostSet().Get(0).AddressString())
+	_, ok = m.(*sync.Map).Load(h.Address)
+	require.False(t, ok)
+
+	GetClusterMngAdapterInstance().Destroy()
+	_createClusterManager()
+	GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(v2.Cluster{
+		Name:              "test1",
+		ClusterPoolEnable: true,
+	}, []v2.Host{h})
+	snap1 = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+	m, _ = GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.Load(mockProtocol)
+	_, ok = m.(*sync.Map).Load(h.Address)
+	require.False(t, ok)
+	clusterPoolMap, ok := m.(*sync.Map).Load(snap1.ClusterInfo().Name())
+	require.True(t, ok)
+	_, ok = clusterPoolMap.(*sync.Map).Load(h.Address)
+	require.True(t, ok)
+
+	clusterManagerInstance.ShutdownConnectionPool(mockProtocol, snap1.HostSet().Get(0).AddressString())
+	_, ok = m.(*sync.Map).Load(h.Address)
+	require.False(t, ok)
+	clusterPoolMap, _ = m.(*sync.Map).Load(snap1.ClusterInfo().Name())
+	_, ok = clusterPoolMap.(*sync.Map).Load(h.Address)
+	require.False(t, ok)
 }
