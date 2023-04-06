@@ -84,3 +84,32 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 		return true
 	})
 }
+
+func TestClusterManager_ConnPoolForCluster(t *testing.T) {
+	_createClusterManager()
+	config := v2.Cluster{
+		Name:              "test1",
+		ClusterPoolEnable: true,
+	}
+	GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(config)
+	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	mockLbCtx := newMockLbContext(nil)
+	p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+	if p == nil {
+		t.Fatal("get conn pool failed")
+	}
+}
+
+func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
+	_createClusterManager()
+	h := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10000",
+		},
+	}
+	GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	mockLbCtx := newMockLbContext(nil)
+	GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+	clusterManagerInstance.ShutdownConnectionPool(mockProtocol, snap1.HostSet().Get(0).AddressString())
+}

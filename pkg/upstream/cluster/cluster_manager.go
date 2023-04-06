@@ -516,7 +516,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			return nil, nil, errUnknownProtocol
 		}
 
-		if cm.clusterPoolEnable {
+		if cm.isClusterPoolEnable(clusterSnapshot) {
 			value, _ = value.(*sync.Map).LoadOrStore(clusterSnapshot.ClusterInfo().Name(), &sync.Map{})
 		}
 
@@ -589,15 +589,25 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 
 func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
 	shutdown := func(value interface{}) {
-		connectionPool := value.(*sync.Map)
-		if connPool, ok := connectionPool.Load(addr); ok {
-			pool := connPool.(types.ConnectionPool)
-			connectionPool.Delete(addr)
-			pool.Shutdown()
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
+		// value is {addr: pool} or {clusterName: {addr: pool}}
+		cm.clustersMap.Range(func(clusterName, _ interface{}) bool {
+			cs := cm.GetClusterSnapshot(context.Background(), clusterName.(string))
+			if cm.isClusterPoolEnable(cs) {
+				// avoid cluster pool is never used
+				value, _ = value.(*sync.Map).LoadOrStore(clusterName.(string), &sync.Map{})
 			}
-		}
+			connectionPool := value.(*sync.Map)
+			if connPool, ok := connectionPool.Load(addr); ok {
+				pool := connPool.(types.ConnectionPool)
+				connectionPool.Delete(addr)
+				pool.Shutdown()
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
+				}
+			}
+			return true
+		})
+
 	}
 	if proto == "" {
 		cm.protocolConnPool.Range(func(_, value interface{}) bool {
@@ -614,4 +624,8 @@ func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr 
 		}
 		shutdown(value)
 	}
+}
+
+func (cm *clusterManager) isClusterPoolEnable(snapshot types.ClusterSnapshot) bool {
+	return cm.clusterPoolEnable || snapshot.ClusterInfo().IsClusterPoolEnable()
 }
