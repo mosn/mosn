@@ -37,7 +37,7 @@ type EWMA struct {
 
 	lastEWMA     float64
 	lastTickTime time.Time
-	mutex        sync.Mutex
+	mutex        sync.RWMutex
 }
 
 // NewEWMA constructs a new EWMA with the given alpha.
@@ -50,7 +50,14 @@ func NewEWMA(alpha float64) gometrics.EWMA {
 
 // Rate returns the moving average mean of events per second.
 func (e *EWMA) Rate() float64 {
-	return e.ewma(0, time.Now())
+	now := time.Now()
+
+	e.mutex.RLock()
+	lastTickTime := e.lastTickTime
+	lastEWMA := e.lastEWMA
+	e.mutex.RUnlock()
+
+	return e.ewma(lastEWMA, 0, lastTickTime, now)
 }
 
 // Snapshot returns a read-only copy of the EWMA.
@@ -70,13 +77,15 @@ func (e *EWMA) Update(i int64) {
 	now := time.Now()
 
 	e.mutex.Lock()
-	e.lastEWMA = e.ewma(float64(i), now)
+	lastEWMA := e.lastEWMA
+	lastTickTime := e.lastTickTime
+	e.lastEWMA = e.ewma(lastEWMA, float64(i), lastTickTime, now)
 	e.lastTickTime = now
 	e.mutex.Unlock()
 }
 
-func (e *EWMA) ewma(i float64, now time.Time) float64 {
-	return i*e.alpha + math.Pow(1-e.alpha, float64(now.Sub(e.lastTickTime))/float64(time.Second))*e.lastEWMA
+func (e *EWMA) ewma(lastEWMA, i float64, lastTickTime, now time.Time) float64 {
+	return i*e.alpha + math.Pow(1-e.alpha, float64(now.Sub(lastTickTime))/float64(time.Second))*lastEWMA
 }
 
 // Alpha the alpha needed to decay 1 to negligible (less than target) over a given duration.
