@@ -733,6 +733,7 @@ func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 	var candidate types.Host
 
 	for i := 0; i < int(lb.choice); i++ {
+		// don't ensure uniqueness because it has high cost
 		lb.mutex.Lock()
 		idx := lb.rand.Intn(total)
 		lb.mutex.Unlock()
