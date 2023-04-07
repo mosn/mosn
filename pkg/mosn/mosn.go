@@ -191,9 +191,13 @@ func (m *Mosn) initClusterManager() {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode := c.Mode(); mode == v2.Xds {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext, cluster.WithClusterPoolEnable(c.ClusterManager.ClusterPoolEnable))
+		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil,
+			cluster.WithTlsConfig(&c.ClusterManager.TLSContext),
+			cluster.WithClusterPoolEnable(c.ClusterManager.ClusterPoolEnable))
 	} else {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext, cluster.WithClusterPoolEnable(c.ClusterManager.ClusterPoolEnable))
+		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap,
+			cluster.WithTlsConfig(&c.ClusterManager.TLSContext),
+			cluster.WithClusterPoolEnable(c.ClusterManager.ClusterPoolEnable))
 	}
 
 }

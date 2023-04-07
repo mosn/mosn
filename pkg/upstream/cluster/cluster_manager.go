@@ -62,11 +62,13 @@ const globalTLSMetrics = "global"
 // types.ClusterManager
 type clusterManager struct {
 	clustersMap       sync.Map
-	clusterPoolEnable bool
-	protocolConnPool  sync.Map // if clusterPoolEnable protocolname: { cluster: {address : connpool} } else protocolname: { address : connpool }
-	tlsMetrics        *mtls.TLSStats
-	tlsMng            atomic.Value // store types.TLSClientContextManager
-	mux               sync.Mutex
+	clusterPoolEnable bool // TODO support modify clusterPoolEnable at runtime
+	// 0: proto: {addr: pool},
+	// 1: proto: {cluster: {addr: pool}}
+	protocolConnPool []sync.Map
+	tlsMetrics       *mtls.TLSStats
+	tlsMng           atomic.Value // store types.TLSClientContextManager
+	mux              sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -82,6 +84,7 @@ func (singleton *clusterManagerSingleton) Destroy() {
 
 type ClusterManagerOption func(types.ClusterManager)
 
+// WithClusterPoolEnable Set cluster pool enable
 func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOption {
 	return func(cm types.ClusterManager) {
 		if c, ok := cm.(*clusterManagerSingleton); ok {
@@ -89,10 +92,17 @@ func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOption {
 		}
 	}
 }
+func WithTlsConfig(tls *v2.TLSConfig) ClusterManagerOption {
+	return func(cm types.ClusterManager) {
+		if c, ok := cm.(*clusterManagerSingleton); ok {
+			c.clusterManager.UpdateTLSManager(tls)
+		}
+	}
+}
 
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig, opts ...ClusterManagerOption) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, opts ...ClusterManagerOption) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
@@ -106,11 +116,11 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	for _, opt := range opts {
 		opt(clusterManagerInstance)
 	}
-	// set global tls
-	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
 	// add conn pool
+	clusterManagerInstance.protocolConnPool = make([]sync.Map, 2)
 	protocol.RangeAllRegisteredProtocol(func(k api.ProtocolName) {
-		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool[0].Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool[1].Store(k, &sync.Map{})
 	})
 
 	//Add cluster to cm
@@ -511,7 +521,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
 		}
-		value, ok := cm.protocolConnPool.Load(proto)
+		value, ok := cm.protocolConnPool[cm.protocolPoolIndex(clusterSnapshot)].Load(proto)
 		if !ok {
 			return nil, nil, errUnknownProtocol
 		}
@@ -588,48 +598,66 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 }
 
 func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
-	shutdown := func(value interface{}) {
-		// value is {addr: pool} or {clusterName: {addr: pool}}
-		cm.clustersMap.Range(func(clusterName, _ interface{}) bool {
-			cs := cm.GetClusterSnapshot(context.Background(), clusterName.(string))
-			if cm.isClusterPoolEnable(cs) {
-				// avoid cluster pool is never used
-				var exists bool
-				value, exists = value.(*sync.Map).Load(clusterName.(string))
-				if !exists {
-					return true
-				}
-			}
-			connectionPool := value.(*sync.Map)
-			if connPool, ok := connectionPool.Load(addr); ok {
-				pool := connPool.(types.ConnectionPool)
-				connectionPool.Delete(addr)
-				pool.Shutdown()
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
-				}
-			}
-			return true
-		})
-
-	}
 	if proto == "" {
-		cm.protocolConnPool.Range(func(_, value interface{}) bool {
-			shutdown(value)
-			return true
-		})
-	} else {
-		value, ok := cm.protocolConnPool.Load(proto)
-		if !ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
-			}
-			return
+		for _, index := range []int{defaultPoolIndex, clusterPoolIndex} {
+			cm.protocolConnPool[index].Range(func(key, value interface{}) bool {
+				if index == defaultPoolIndex {
+					shutdownDefaultPool(value, addr, key.(types.ProtocolName))
+				} else {
+					shutdownClusterPool(value, addr, key.(types.ProtocolName))
+				}
+				return true
+			})
 		}
-		shutdown(value)
+	} else {
+		for _, index := range []int{defaultPoolIndex, clusterPoolIndex} {
+			value, ok := cm.protocolConnPool[index].Load(proto)
+			if !ok {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+				}
+				return
+			}
+			if index == defaultPoolIndex {
+				shutdownDefaultPool(value, addr, proto)
+			} else {
+				shutdownClusterPool(value, addr, proto)
+			}
+		}
 	}
 }
 
 func (cm *clusterManager) isClusterPoolEnable(snapshot types.ClusterSnapshot) bool {
 	return cm.clusterPoolEnable || snapshot.ClusterInfo().IsClusterPoolEnable()
+}
+
+const (
+	defaultPoolIndex = iota
+	clusterPoolIndex
+)
+
+func (cm *clusterManager) protocolPoolIndex(snap types.ClusterSnapshot) int {
+	if cm.isClusterPoolEnable(snap) {
+		return clusterPoolIndex
+	}
+	return defaultPoolIndex
+}
+
+func shutdownClusterPool(value interface{}, addr string, proto types.ProtocolName) {
+	value.(*sync.Map).Range(func(clusterName, connPool interface{}) bool {
+		shutdownDefaultPool(connPool, addr, proto)
+		return true
+	})
+}
+
+func shutdownDefaultPool(value interface{}, addr string, proto types.ProtocolName) {
+	connectionPool := value.(*sync.Map)
+	if cp, ok := connectionPool.Load(addr); ok {
+		pool := cp.(types.ConnectionPool)
+		connectionPool.Delete(addr)
+		pool.Shutdown()
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
+		}
+	}
 }
