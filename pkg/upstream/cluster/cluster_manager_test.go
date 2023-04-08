@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"mosn.io/api"
 	"sync"
 	"testing"
 	"time"
@@ -87,58 +88,250 @@ func TestClusterUpdateAndHosts(t *testing.T) {
 }
 
 func TestClusterManager_ConnPoolForCluster(t *testing.T) {
-	_createClusterManager()
-	config := v2.Cluster{
-		Name:              "test1",
-		ClusterPoolEnable: true,
-	}
-	GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(config)
-	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	mockLbCtx := newMockLbContext(nil)
-	p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
-	if p == nil {
-		t.Fatal("get conn pool failed")
-	}
-}
 
-func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
-	_createClusterManager()
 	h := v2.Host{
 		HostConfig: v2.HostConfig{
 			Address: "127.0.0.1:10000",
 		},
 	}
-	GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
-	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	mockLbCtx := newMockLbContext(nil)
-	GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
-	m, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.Load(mockProtocol)
-	_, ok := m.(*sync.Map).Load(h.Address)
-	require.True(t, ok)
-	clusterManagerInstance.ShutdownConnectionPool(mockProtocol, snap1.HostSet().Get(0).AddressString())
-	_, ok = m.(*sync.Map).Load(h.Address)
-	require.False(t, ok)
 
-	GetClusterMngAdapterInstance().Destroy()
-	_createClusterManager()
-	GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(v2.Cluster{
-		Name:              "test1",
-		ClusterPoolEnable: true,
-	}, []v2.Host{h})
-	snap1 = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
-	m, _ = GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.Load(mockProtocol)
-	_, ok = m.(*sync.Map).Load(h.Address)
-	require.False(t, ok)
-	clusterPoolMap, ok := m.(*sync.Map).Load(snap1.ClusterInfo().Name())
-	require.True(t, ok)
-	_, ok = clusterPoolMap.(*sync.Map).Load(h.Address)
-	require.True(t, ok)
+	t.Run("cluster manager clusterPoolEnable is true, cluster false", func(t *testing.T) {
+		_createClusterManagerWithConfig(&v2.ClusterManagerConfig{
+			ClusterManagerConfigJson: v2.ClusterManagerConfigJson{
+				ClusterPoolEnable: true,
+			},
+		})
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		mockLbCtx := newMockLbContext(nil)
+		p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		if p == nil {
+			t.Fatal("get conn pool failed")
+		}
+		require.False(t, defaultPoolExists(h.Address))
+		require.True(t, clusterPoolExists(h.Address, snap1))
+	})
 
-	clusterManagerInstance.ShutdownConnectionPool(mockProtocol, snap1.HostSet().Get(0).AddressString())
-	_, ok = m.(*sync.Map).Load(h.Address)
-	require.False(t, ok)
-	clusterPoolMap, _ = m.(*sync.Map).Load(snap1.ClusterInfo().Name())
-	_, ok = clusterPoolMap.(*sync.Map).Load(h.Address)
-	require.False(t, ok)
+	t.Run("cluster manager clusterPoolEnable is false, cluster false", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		mockLbCtx := newMockLbContext(nil)
+		p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		if p == nil {
+			t.Fatal("get conn pool failed")
+		}
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+	})
+
+	t.Run("cluster manager clusterPoolEnable is false, cluster true", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		clusterConfig2 := v2.Cluster{
+			Name:              "test2",
+			LbType:            v2.LB_RANDOM,
+			LBSubSetConfig:    v2.LBSubsetConfig{},
+			ClusterPoolEnable: true,
+		}
+		h2 := h
+		h2.Address = "127.0.0.1:10001"
+		GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(clusterConfig2, []v2.Host{h2})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test2")
+		mockLbCtx := newMockLbContext(nil)
+		p1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		p2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap2, mockProtocol)
+		if p1 == nil || p2 == nil {
+			t.Fatal("get conn pool failed")
+		}
+		// cluster1 defaultPool, cluster2 clusterPool
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.False(t, defaultPoolExists(h2.Address))
+		require.True(t, clusterPoolExists(h2.Address, snap2))
+	})
+
+	t.Run("cluster manager clusterPoolEnable is false, cluster true", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		clusterConfig2 := v2.Cluster{
+			Name:           "test2",
+			LbType:         v2.LB_RANDOM,
+			LBSubSetConfig: v2.LBSubsetConfig{},
+		}
+		h2 := h
+		h2.Address = "127.0.0.1:10001"
+		GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(clusterConfig2, []v2.Host{h2})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test2")
+		mockLbCtx := newMockLbContext(nil)
+		p1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		p2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap2, mockProtocol)
+		if p1 == nil || p2 == nil {
+			t.Fatal("get conn pool failed")
+		}
+		// cluster1 defaultPool, cluster2 defaultPool
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.True(t, defaultPoolExists(h2.Address))
+		require.False(t, clusterPoolExists(h2.Address, snap2))
+	})
+
+}
+
+func defaultPoolExists(addr string) bool {
+	defaultPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool[defaultPoolIndex].Load(mockProtocol)
+	_, ok := defaultPoolMap.(*sync.Map).Load(addr)
+	return ok
+}
+
+func clusterPoolExists(addr string, snap types.ClusterSnapshot) bool {
+	clusterPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool[clusterPoolIndex].Load(mockProtocol)
+	connPool, clusterExists := clusterPoolMap.(*sync.Map).Load(snap.ClusterInfo().Name())
+	if !clusterExists {
+		return false
+	}
+	_, hasClusterPool := connPool.(*sync.Map).Load(addr)
+	return hasClusterPool
+}
+
+func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
+	h := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10000",
+		},
+	}
+	t.Run("cluster manager clusterPoolEnable is true, cluster false", func(t *testing.T) {
+		_createClusterManagerWithConfig(&v2.ClusterManagerConfig{
+			ClusterManagerConfigJson: v2.ClusterManagerConfigJson{
+				ClusterPoolEnable: true,
+			},
+		})
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		mockLbCtx := newMockLbContext(nil)
+		p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		if p == nil {
+			t.Fatal("get conn pool failed")
+		}
+		require.False(t, defaultPoolExists(h.Address))
+		require.True(t, clusterPoolExists(h.Address, snap1))
+		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
+		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+	})
+
+	t.Run("cluster manager clusterPoolEnable is false, cluster false", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		mockLbCtx := newMockLbContext(nil)
+		p, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		if p == nil {
+			t.Fatal("get conn pool failed")
+		}
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
+		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+	})
+
+	t.Run("cluster manager clusterPoolEnable is false, cluster true", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		clusterConfig2 := v2.Cluster{
+			Name:              "test2",
+			LbType:            v2.LB_RANDOM,
+			LBSubSetConfig:    v2.LBSubsetConfig{},
+			ClusterPoolEnable: true,
+		}
+		h2 := h
+		GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(clusterConfig2, []v2.Host{h2})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test2")
+		mockLbCtx := newMockLbContext(nil)
+		p1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		p2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap2, mockProtocol)
+		if p1 == nil || p2 == nil {
+			t.Fatal("get conn pool failed")
+		}
+		// cluster1 defaultPool, cluster2 clusterPool
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.True(t, defaultPoolExists(h2.Address)) // h1.addr == h2.addr
+		require.True(t, clusterPoolExists(h2.Address, snap2))
+		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
+		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.False(t, defaultPoolExists(h2.Address))
+		require.False(t, clusterPoolExists(h2.Address, snap2))
+	})
+
+	t.Run("cluster manager clusterPoolEnable is false, cluster true", func(t *testing.T) {
+		_createClusterManager()
+		GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{h})
+		clusterConfig2 := v2.Cluster{
+			Name:           "test2",
+			LbType:         v2.LB_RANDOM,
+			LBSubSetConfig: v2.LBSubsetConfig{},
+		}
+		h2 := h
+		GetClusterMngAdapterInstance().AddOrUpdateClusterAndHost(clusterConfig2, []v2.Host{h2})
+		snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+		snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test2")
+		mockLbCtx := newMockLbContext(nil)
+		p1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap1, mockProtocol)
+		p2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snap2, mockProtocol)
+		if p1 == nil || p2 == nil {
+			t.Fatal("get conn pool failed")
+		}
+		// cluster1 defaultPool, cluster2 clusterPool
+		require.True(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.True(t, defaultPoolExists(h2.Address))
+		require.False(t, clusterPoolExists(h2.Address, snap2))
+		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
+		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, clusterPoolExists(h.Address, snap1))
+		require.False(t, defaultPoolExists(h2.Address))
+		require.False(t, clusterPoolExists(h2.Address, snap2))
+	})
+}
+
+func _createClusterManagerWithConfig(config *v2.ClusterManagerConfig) types.ClusterManager {
+	clusterConfig := v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 1, // AnyEndPoint
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+				[]string{"version", "zone"},
+			},
+		},
+	}
+	host1 := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10000",
+		},
+		MetaData: api.Metadata{
+			"version": "1.0.0",
+			"zone":    "a",
+		},
+	}
+	host2 := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10001",
+		},
+		MetaData: api.Metadata{
+			"version": "2.0.0",
+			"zone":    "a",
+		},
+	}
+	clusterManagerInstance.Destroy() // Destroy for test
+	return NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
+		"test1": []v2.Host{host1, host2},
+	}, config)
 }

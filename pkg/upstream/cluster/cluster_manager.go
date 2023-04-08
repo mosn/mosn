@@ -82,27 +82,9 @@ func (singleton *clusterManagerSingleton) Destroy() {
 	clusterManagerInstance.clusterManager = nil
 }
 
-type ClusterManagerOption func(types.ClusterManager)
-
-// WithClusterPoolEnable Set cluster pool enable
-func WithClusterPoolEnable(clusterPoolEnable bool) ClusterManagerOption {
-	return func(cm types.ClusterManager) {
-		if c, ok := cm.(*clusterManagerSingleton); ok {
-			c.clusterPoolEnable = clusterPoolEnable
-		}
-	}
-}
-func WithTlsConfig(tls *v2.TLSConfig) ClusterManagerOption {
-	return func(cm types.ClusterManager) {
-		if c, ok := cm.(*clusterManagerSingleton); ok {
-			c.clusterManager.UpdateTLSManager(tls)
-		}
-	}
-}
-
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, opts ...ClusterManagerOption) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, config *v2.ClusterManagerConfig) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
@@ -112,15 +94,18 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	clusterManagerInstance.clusterManager = &clusterManager{
 		tlsMetrics: mtls.NewStats(globalTLSMetrics),
 	}
-	// execute init clusterManager functions
-	for _, opt := range opts {
-		opt(clusterManagerInstance)
+	if config == nil {
+		config = &v2.ClusterManagerConfig{}
 	}
+	// set global tls
+	clusterManagerInstance.clusterManager.UpdateTLSManager(&config.TLSContext)
+	// set global clusterPoolEnable
+	clusterManagerInstance.clusterPoolEnable = config.ClusterPoolEnable
 	// add conn pool
 	clusterManagerInstance.protocolConnPool = make([]sync.Map, 2)
 	protocol.RangeAllRegisteredProtocol(func(k api.ProtocolName) {
-		clusterManagerInstance.protocolConnPool[0].Store(k, &sync.Map{})
-		clusterManagerInstance.protocolConnPool[1].Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool[defaultPoolIndex].Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool[clusterPoolIndex].Store(k, &sync.Map{})
 	})
 
 	//Add cluster to cm
@@ -598,31 +583,30 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 }
 
 func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
+	shutdown := func(value interface{}, index int, protocolName types.ProtocolName) {
+		if index == defaultPoolIndex {
+			shutdownDefaultPool(value, addr, protocolName)
+		} else {
+			shutdownClusterPool(value, addr, protocolName)
+		}
+	}
 	if proto == "" {
-		for _, index := range []int{defaultPoolIndex, clusterPoolIndex} {
-			cm.protocolConnPool[index].Range(func(key, value interface{}) bool {
-				if index == defaultPoolIndex {
-					shutdownDefaultPool(value, addr, key.(types.ProtocolName))
-				} else {
-					shutdownClusterPool(value, addr, key.(types.ProtocolName))
-				}
+		for _, poolIdx := range []int{defaultPoolIndex, clusterPoolIndex} {
+			cm.protocolConnPool[poolIdx].Range(func(key, value interface{}) bool {
+				shutdown(value, poolIdx, key.(api.ProtocolName))
 				return true
 			})
 		}
 	} else {
-		for _, index := range []int{defaultPoolIndex, clusterPoolIndex} {
-			value, ok := cm.protocolConnPool[index].Load(proto)
+		for _, poolIdx := range []int{defaultPoolIndex, clusterPoolIndex} {
+			value, ok := cm.protocolConnPool[poolIdx].Load(proto)
 			if !ok {
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 					log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
 				}
 				return
 			}
-			if index == defaultPoolIndex {
-				shutdownDefaultPool(value, addr, proto)
-			} else {
-				shutdownClusterPool(value, addr, proto)
-			}
+			shutdown(value, poolIdx, proto)
 		}
 	}
 }
