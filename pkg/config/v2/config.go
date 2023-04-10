@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
+
+	"mosn.io/api"
 )
 
 // MOSNConfig make up mosn to start the mosn project
@@ -70,6 +72,13 @@ type MetricsConfig struct {
 	ShmSize      datasize.ByteSize `json:"shm_size"`
 	FlushMosn    bool              `json:"flush_mosn"`
 	LazyFlush    bool              `json:"lazy_flush"`
+	EWMAConfig   *EWMAConfig       `json:"ewma,omitempty"`
+}
+
+type EWMAConfig struct {
+	Alpha    float64             `json:"alpha"`
+	Target   float64             `json:"target"`
+	Duration *api.DurationConfig `json:"duration"`
 }
 
 // PluginConfig for plugin config

@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/network"
@@ -171,6 +172,19 @@ func (m *Mosn) initializeMetrics() {
 		}
 		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
 	}
+
+	// set ewma alpha
+	if config.EWMAConfig != nil {
+		switch {
+		case config.EWMAConfig.Alpha > 0 && config.EWMAConfig.Alpha < 1:
+			cluster.SetAlpha(config.EWMAConfig.Alpha)
+		case config.EWMAConfig.Target > 0 && config.EWMAConfig.Target < 1 && config.EWMAConfig.Duration != nil:
+			cluster.SetAlpha(ewma.Alpha(config.EWMAConfig.Alpha, config.EWMAConfig.Duration.Duration))
+		default:
+			log.StartLogger.Errorf("[mosn] [init metrics] invalid EWMA config, use %f as default alpha",
+				cluster.GetAlpha())
+		}
+	}
 }
 
 type clusterManagerFilter struct {
@@ -244,7 +258,7 @@ func (m *Mosn) initServer() {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.Clustermanager)
 
-			for idx, _ := range serverConfig.Listeners {
+			for idx := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn)
 				// Note lc.FilterChains may be a nil value, and there is a check in srv.AddListener
