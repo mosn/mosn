@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
-
 	"mosn.io/api"
 )
 
