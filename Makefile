@@ -51,7 +51,9 @@ coverage-local:
 	sh ${SCRIPT_DIR}/report.sh
 
 coverage:
-	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make coverage-local
+	# Go 1.19+ adds vcs check which will cause error "fatal: detected dubious ownership in repository at '/go/src/mosn.io/mosn'".
+	# So here we disable the error via git configuration when running inside Docker.
+	docker run --rm -v $(shell go env GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} bash -c "git config --global --add safe.directory '*' && make coverage-local"
 
 integrate-local:
 	GO111MODULE=on go test -p 1 -v ./test/integrate/...
