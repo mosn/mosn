@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	defaultDecayTarget   = 1e-6
-	defaultDecayDuration = 1 * time.Minute
+	defaultDecayTarget   = 0.006737946999085467 // e^-5
+	defaultDecayDuration = 30 * time.Second
 )
 
 func newHostStats(clustername string, addr string) *types.HostStats {
