@@ -697,7 +697,13 @@ func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 
 	var candidate types.Host
 
-	// avoid always choosing the same host when the score is the same
+	// There is a special case here, that is, metrics can be disabled,
+	// see `pkg/metrics/matcher#metricsMatcher`. If the metrics used to
+	// calculate the score of PeakEWMA are disabled, all hosts will get
+	// the same score, and will always peek the first host.
+	//
+	// By choosing from a random index, when metrics are disabled,
+	// it can be automatically fallback to random without causing skew.
 	lb.mutex.Lock()
 	idx := lb.rand.Intn(total)
 	lb.mutex.Unlock()
