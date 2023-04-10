@@ -26,7 +26,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-var alpha = ewma.Alpha(math.Exp(-5), 30*time.Second)
+var alpha = ewma.Alpha(math.Exp(-5), 30*time.Second) //nolint:gomnd
 
 func newHostStats(clustername string, addr string) *types.HostStats {
 	s := metrics.NewHostStats(clustername, addr)

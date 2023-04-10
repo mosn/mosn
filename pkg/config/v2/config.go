@@ -75,6 +75,7 @@ type MetricsConfig struct {
 	EWMAConfig   *EWMAConfig       `json:"ewma,omitempty"`
 }
 
+// EWMAConfig for configuring EWMA alpha
 type EWMAConfig struct {
 	Alpha    float64             `json:"alpha"`
 	Target   float64             `json:"target"`
