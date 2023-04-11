@@ -2,7 +2,7 @@ name: actions
 on:
   push:
     branches:
-      - master
+      - test
   pull_request:
     types:
       - opened
@@ -11,7 +11,7 @@ on:
       - ready_for_review
 jobs:
   golangci-lint:
-    if: ${{ !github.event.pull_request.draft }}
+#    if: ${{ !github.event.pull_request.draft }}
     name: runner / golangci-lint
     runs-on: ubuntu-latest
     steps:

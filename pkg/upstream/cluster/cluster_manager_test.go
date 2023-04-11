@@ -181,13 +181,13 @@ func TestClusterManager_ConnPoolForCluster(t *testing.T) {
 }
 
 func defaultPoolExists(addr string) bool {
-	defaultPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool[defaultPoolIndex].Load(mockProtocol)
+	defaultPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.protoConnMap[defaultPoolIndex].Load(mockProtocol)
 	_, ok := defaultPoolMap.(*sync.Map).Load(addr)
 	return ok
 }
 
 func clusterPoolExists(addr string, snap types.ClusterSnapshot) bool {
-	clusterPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool[clusterPoolIndex].Load(mockProtocol)
+	clusterPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.protoConnMap[clusterPoolIndex].Load(mockProtocol)
 	connPool, clusterExists := clusterPoolMap.(*sync.Map).Load(snap.ClusterInfo().Name())
 	if !clusterExists {
 		return false
