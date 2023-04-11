@@ -108,7 +108,7 @@ func TestClusterManager_ConnPoolForCluster(t *testing.T) {
 		if p == nil {
 			t.Fatal("get conn pool failed")
 		}
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.True(t, clusterPoolExists(h.Address, snap1))
 	})
 
@@ -121,7 +121,7 @@ func TestClusterManager_ConnPoolForCluster(t *testing.T) {
 		if p == nil {
 			t.Fatal("get conn pool failed")
 		}
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
 	})
 
@@ -146,9 +146,9 @@ func TestClusterManager_ConnPoolForCluster(t *testing.T) {
 			t.Fatal("get conn pool failed")
 		}
 		// cluster1 defaultPool, cluster2 clusterPool
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.False(t, defaultPoolExists(h2.Address))
+		require.False(t, globalPoolExists(h2.Address))
 		require.True(t, clusterPoolExists(h2.Address, snap2))
 	})
 
@@ -172,27 +172,27 @@ func TestClusterManager_ConnPoolForCluster(t *testing.T) {
 			t.Fatal("get conn pool failed")
 		}
 		// cluster1 defaultPool, cluster2 defaultPool
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.True(t, defaultPoolExists(h2.Address))
+		require.True(t, globalPoolExists(h2.Address))
 		require.False(t, clusterPoolExists(h2.Address, snap2))
 	})
 
 }
 
-func defaultPoolExists(addr string) bool {
-	defaultPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.protoConnMap[defaultPoolIndex].Load(mockProtocol)
-	_, ok := defaultPoolMap.(*sync.Map).Load(addr)
+func globalPoolExists(addr string) bool {
+	globalPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.globalPool.Load(mockProtocol)
+	_, ok := globalPoolMap.(*sync.Map).Load(addr)
 	return ok
 }
 
 func clusterPoolExists(addr string, snap types.ClusterSnapshot) bool {
-	clusterPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.protoConnMap[clusterPoolIndex].Load(mockProtocol)
-	connPool, clusterExists := clusterPoolMap.(*sync.Map).Load(snap.ClusterInfo().Name())
+	clusterPoolMap, _ := GetClusterMngAdapterInstance().ClusterManager.(*clusterManagerSingleton).protocolConnPool.clusterPool.Load(mockProtocol)
+	connectionPool, clusterExists := clusterPoolMap.(*sync.Map).Load(snap.ClusterInfo().Name())
 	if !clusterExists {
 		return false
 	}
-	_, hasClusterPool := connPool.(*sync.Map).Load(addr)
+	_, hasClusterPool := connectionPool.(*sync.Map).Load(addr)
 	return hasClusterPool
 }
 
@@ -215,10 +215,10 @@ func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
 		if p == nil {
 			t.Fatal("get conn pool failed")
 		}
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.True(t, clusterPoolExists(h.Address, snap1))
 		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
 	})
 
@@ -231,10 +231,10 @@ func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
 		if p == nil {
 			t.Fatal("get conn pool failed")
 		}
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
 		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
 	})
 
@@ -258,14 +258,14 @@ func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
 			t.Fatal("get conn pool failed")
 		}
 		// cluster1 defaultPool, cluster2 clusterPool
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.True(t, defaultPoolExists(h2.Address)) // h1.addr == h2.addr
+		require.True(t, globalPoolExists(h2.Address)) // h1.addr == h2.addr
 		require.True(t, clusterPoolExists(h2.Address, snap2))
 		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.False(t, defaultPoolExists(h2.Address))
+		require.False(t, globalPoolExists(h2.Address))
 		require.False(t, clusterPoolExists(h2.Address, snap2))
 	})
 
@@ -288,14 +288,14 @@ func TestClusterManager_ShutdownConnectionPool(t *testing.T) {
 			t.Fatal("get conn pool failed")
 		}
 		// cluster1 defaultPool, cluster2 clusterPool
-		require.True(t, defaultPoolExists(h.Address))
+		require.True(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.True(t, defaultPoolExists(h2.Address))
+		require.True(t, globalPoolExists(h2.Address))
 		require.False(t, clusterPoolExists(h2.Address, snap2))
 		clusterManagerInstance.ShutdownConnectionPool(mockProtocol, h.Address)
-		require.False(t, defaultPoolExists(h.Address))
+		require.False(t, globalPoolExists(h.Address))
 		require.False(t, clusterPoolExists(h.Address, snap1))
-		require.False(t, defaultPoolExists(h2.Address))
+		require.False(t, globalPoolExists(h2.Address))
 		require.False(t, clusterPoolExists(h2.Address, snap2))
 	})
 }
