@@ -125,12 +125,28 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 			}
 		}
 	}
-	clusterProtoPool, globalProtoPool, _ := p.getConnPool(proto)
-	clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
-		shutdownPool(connPool)
-		return true
-	})
-	shutdownPool(globalProtoPool)
+	shutdownAll := func(proto types.ProtocolName, addr string) {
+		clusterProtoPool, globalProtoPool, _ := p.getConnPool(proto)
+		clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
+			shutdownPool(connPool)
+			return true
+		})
+		shutdownPool(globalProtoPool)
+	}
+	if proto == "" {
+		p.clusterPool.Range(func(protocol, _ interface{}) bool {
+			shutdownAll(protocol.(types.ProtocolName), addr)
+			return true
+		})
+	} else {
+		if _, _, ok := p.getConnPool(proto); !ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+			}
+			return
+		}
+		shutdownAll(proto, addr)
+	}
 }
 
 type clusterManagerSingleton struct {
@@ -636,38 +652,5 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 }
 
 func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
-	connectionPool := cm.protocolConnPool
-	if proto == "" {
-		connectionPool.clusterPool.Range(func(protocol, _ interface{}) bool {
-			connectionPool.shutdown(protocol.(api.ProtocolName), addr)
-			return true
-		})
-	} else {
-		if _, _, ok := connectionPool.getConnPool(proto); !ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
-			}
-			return
-		}
-		connectionPool.shutdown(proto, addr)
-	}
-}
-
-func shutdownClusterPool(value interface{}, addr string, proto types.ProtocolName) {
-	value.(*sync.Map).Range(func(_, connPool interface{}) bool {
-		shutdownGlobalPool(connPool, addr, proto)
-		return true
-	})
-}
-
-func shutdownGlobalPool(value interface{}, addr string, proto types.ProtocolName) {
-	connectionPool := value.(*sync.Map)
-	if cp, ok := connectionPool.Load(addr); ok {
-		pool := cp.(types.ConnectionPool)
-		connectionPool.Delete(addr)
-		pool.Shutdown()
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
-		}
-	}
+	cm.protocolConnPool.shutdown(proto, addr)
 }
