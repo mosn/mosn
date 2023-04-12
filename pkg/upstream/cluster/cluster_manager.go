@@ -114,26 +114,23 @@ func (p *connPool) getConnPool(proto types.ProtocolName) (clusterProtoPool inter
 }
 
 func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
-	if proto == "" {
-		p.clusterPool.Range(func(key, value interface{}) bool {
-			shutdownClusterPool(value, addr, key.(api.ProtocolName))
-			return true
-		})
-		p.globalPool.Range(func(key, value interface{}) bool {
-			shutdownGlobalPool(value, addr, key.(api.ProtocolName))
-			return true
-		})
-	} else {
-		clusterProtoPool, globalProtoPool, ok := p.getConnPool(proto)
-		if !ok {
+	shutdownPool := func(value interface{}) {
+		connectionPool := value.(*sync.Map)
+		if cp, ok := connectionPool.Load(addr); ok {
+			pool := cp.(types.ConnectionPool)
+			connectionPool.Delete(addr)
+			pool.Shutdown()
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
 			}
-			return
 		}
-		shutdownClusterPool(clusterProtoPool, addr, proto)
-		shutdownGlobalPool(globalProtoPool, addr, proto)
 	}
+	clusterProtoPool, globalProtoPool, _ := p.getConnPool(proto)
+	clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
+		shutdownPool(connPool)
+		return true
+	})
+	shutdownPool(globalProtoPool)
 }
 
 type clusterManagerSingleton struct {
@@ -639,7 +636,21 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 }
 
 func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
-	cm.protocolConnPool.shutdown(proto, addr)
+	connectionPool := cm.protocolConnPool
+	if proto == "" {
+		connectionPool.clusterPool.Range(func(protocol, _ interface{}) bool {
+			connectionPool.shutdown(protocol.(api.ProtocolName), addr)
+			return true
+		})
+	} else {
+		if _, _, ok := connectionPool.getConnPool(proto); !ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+			}
+			return
+		}
+		connectionPool.shutdown(proto, addr)
+	}
 }
 
 func shutdownClusterPool(value interface{}, addr string, proto types.ProtocolName) {
