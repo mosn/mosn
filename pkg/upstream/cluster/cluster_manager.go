@@ -114,7 +114,19 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 			}
 		}
 	}
-	shutdownAll := func(proto types.ProtocolName, addr string) {
+	if proto == "" {
+		p.clusterPool.Range(func(_, clusterProtoPool interface{}) bool {
+			clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
+				shutdownPool(connPool)
+				return true
+			})
+			return true
+		})
+		p.globalPool.Range(func(_, connPool interface{}) bool {
+			shutdownPool(connPool)
+			return true
+		})
+	} else {
 		clusterProtoPool, clusterExists := p.clusterPool.Load(proto)
 		globalProtoPool, globalExists := p.globalPool.Load(proto)
 		if !clusterExists || !globalExists {
@@ -128,15 +140,6 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 			return true
 		})
 		shutdownPool(globalProtoPool)
-
-	}
-	if proto == "" {
-		p.clusterPool.Range(func(protocol, _ interface{}) bool {
-			shutdownAll(protocol.(types.ProtocolName), addr)
-			return true
-		})
-	} else {
-		shutdownAll(proto, addr)
 	}
 }
 
