@@ -41,8 +41,8 @@ type fakeClusterInfo struct {
 func (ci *fakeClusterInfo) ResourceManager() types.ResourceManager {
 	return ci.mgr
 }
-func (ci *fakeClusterInfo) Stats() types.ClusterStats {
-	return types.ClusterStats{
+func (ci *fakeClusterInfo) Stats() *types.ClusterStats {
+	return &types.ClusterStats{
 		UpstreamRequestRetryOverflow: metrics.NewCounter(),
 		UpstreamRequestRetry:         metrics.NewCounter(),
 	}

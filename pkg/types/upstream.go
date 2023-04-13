@@ -153,7 +153,7 @@ type Host interface {
 	api.HostInfo
 
 	// HostStats returns the host stats metrics
-	HostStats() HostStats
+	HostStats() *HostStats
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
@@ -200,7 +200,7 @@ type ClusterInfo interface {
 	Mark() uint32
 
 	// Stats returns the cluster's stats metrics
-	Stats() ClusterStats
+	Stats() *ClusterStats
 
 	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager

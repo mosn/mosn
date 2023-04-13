@@ -33,8 +33,8 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestPingPong(t *testing.T) {
@@ -94,7 +94,7 @@ func TestPingPongBoundary(t *testing.T) {
 	// set mock host info
 	mockClusterInfo := mock.NewMockClusterInfo(ctrl)
 	s1 := metrics.NewClusterStats("test_clustername")
-	mockClusterInfo.EXPECT().Stats().Return(types.ClusterStats{
+	mockClusterInfo.EXPECT().Stats().Return(&types.ClusterStats{
 		UpstreamRequestPendingOverflow: s1.Counter(metrics.UpstreamRequestPendingOverflow),
 		UpstreamRequestFailureEject:    s1.Counter(metrics.UpstreamRequestFailureEject),
 		UpstreamRequestLocalReset:      s1.Counter(metrics.UpstreamRequestLocalReset),
@@ -102,7 +102,7 @@ func TestPingPongBoundary(t *testing.T) {
 	}).AnyTimes()
 	host.EXPECT().ClusterInfo().Return(mockClusterInfo).AnyTimes()
 	s := metrics.NewHostStats("test_clustername", "test_host_addr")
-	host.EXPECT().HostStats().Return(types.HostStats{
+	host.EXPECT().HostStats().Return(&types.HostStats{
 		UpstreamRequestPendingOverflow: s.Counter(metrics.UpstreamRequestPendingOverflow),
 		UpstreamRequestFailureEject:    s.Counter(metrics.UpstreamRequestFailureEject),
 		UpstreamRequestLocalReset:      s.Counter(metrics.UpstreamRequestLocalReset),
