@@ -102,18 +102,16 @@ func (p *connPool) load(proto types.ProtocolName, snapshot types.ClusterSnapshot
 	return nil, false
 }
 
-// getConnPool return clusterProtoPool and globalProtoPool if proto is valid
-func (p *connPool) getConnPool(proto types.ProtocolName) (clusterProtoPool interface{}, globalProtoPool interface{}, ok bool) {
-	if clusterProtoPool, ok = p.clusterPool.Load(proto); !ok {
-		return
-	}
-	if globalProtoPool, ok = p.globalPool.Load(proto); !ok {
-		return
-	}
-	return
-}
-
 func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
+	getConnPool := func(proto types.ProtocolName) (clusterProtoPool interface{}, globalProtoPool interface{}, ok bool) {
+		if clusterProtoPool, ok = p.clusterPool.Load(proto); !ok {
+			return
+		}
+		if globalProtoPool, ok = p.globalPool.Load(proto); !ok {
+			return
+		}
+		return
+	}
 	shutdownPool := func(value interface{}) {
 		connectionPool := value.(*sync.Map)
 		if cp, ok := connectionPool.Load(addr); ok {
@@ -126,12 +124,19 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 		}
 	}
 	shutdownAll := func(proto types.ProtocolName, addr string) {
-		clusterProtoPool, globalProtoPool, _ := p.getConnPool(proto)
-		clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
-			shutdownPool(connPool)
-			return true
-		})
-		shutdownPool(globalProtoPool)
+		if clusterProtoPool, globalProtoPool, ok := getConnPool(proto); !ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+			}
+			return
+		} else {
+			clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
+				shutdownPool(connPool)
+				return true
+			})
+			shutdownPool(globalProtoPool)
+		}
+
 	}
 	if proto == "" {
 		p.clusterPool.Range(func(protocol, _ interface{}) bool {
@@ -139,12 +144,6 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 			return true
 		})
 	} else {
-		if _, _, ok := p.getConnPool(proto); !ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
-			}
-			return
-		}
 		shutdownAll(proto, addr)
 	}
 }
