@@ -103,15 +103,6 @@ func (p *connPool) load(proto types.ProtocolName, snapshot types.ClusterSnapshot
 }
 
 func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
-	getConnPool := func(proto types.ProtocolName) (clusterProtoPool interface{}, globalProtoPool interface{}, ok bool) {
-		if clusterProtoPool, ok = p.clusterPool.Load(proto); !ok {
-			return
-		}
-		if globalProtoPool, ok = p.globalPool.Load(proto); !ok {
-			return
-		}
-		return
-	}
 	shutdownPool := func(value interface{}) {
 		connectionPool := value.(*sync.Map)
 		if cp, ok := connectionPool.Load(addr); ok {
@@ -124,18 +115,19 @@ func (p *connPool) shutdown(proto types.ProtocolName, addr string) {
 		}
 	}
 	shutdownAll := func(proto types.ProtocolName, addr string) {
-		if clusterProtoPool, globalProtoPool, ok := getConnPool(proto); !ok {
+		clusterProtoPool, clusterExists := p.clusterPool.Load(proto)
+		globalProtoPool, globalExists := p.globalPool.Load(proto)
+		if !clusterExists || !globalExists {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
 			}
 			return
-		} else {
-			clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
-				shutdownPool(connPool)
-				return true
-			})
-			shutdownPool(globalProtoPool)
 		}
+		clusterProtoPool.(*sync.Map).Range(func(_, connPool interface{}) bool {
+			shutdownPool(connPool)
+			return true
+		})
+		shutdownPool(globalProtoPool)
 
 	}
 	if proto == "" {
