@@ -179,7 +179,7 @@ func (m *Mosn) initializeMetrics() {
 		case config.EWMAConfig.Alpha > 0 && config.EWMAConfig.Alpha < 1:
 			cluster.SetAlpha(config.EWMAConfig.Alpha)
 		case config.EWMAConfig.Target > 0 && config.EWMAConfig.Target < 1 && config.EWMAConfig.Duration != nil:
-			cluster.SetAlpha(ewma.Alpha(config.EWMAConfig.Alpha, config.EWMAConfig.Duration.Duration))
+			cluster.SetAlpha(ewma.Alpha(config.EWMAConfig.Target, config.EWMAConfig.Duration.Duration))
 		default:
 			log.StartLogger.Errorf("[mosn] [init metrics] invalid EWMA config, use %f as default alpha",
 				cluster.GetAlpha())
