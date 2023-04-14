@@ -659,15 +659,7 @@ func (lb *peakEwmaLoadBalancer) hostWeight(item WeightItem) float64 {
 		return 1.0
 	}
 
-	stats := host.HostStats()
-
-	duration := stats.UpstreamRequestDurationEWMA.Rate()
-	// None of the active requests returned, or the metrics is disabled
-	if duration == 0 {
-		duration = float64(lb.defaultDuration)
-	}
-
-	return float64(host.Weight()) / (duration * float64(stats.UpstreamRequestActive.Count()+1))
+	return float64(host.Weight()) / lb.unweightedPeakEwmaScore(host)
 }
 
 func (lb *peakEwmaLoadBalancer) unweightedChoose(context types.LoadBalancerContext) types.Host {
