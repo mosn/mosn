@@ -47,9 +47,9 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - "golang:1.19"  # Current Go version
-          - "golang:1.18"
-          - "golang:1.17"  # Floor Go version of Mosn == current - 2
+          - "golang:1.20"  # Current Go version
+          - "golang:1.19"
+          - "golang:1.18"  # Floor Go version of Mosn == current - 2
 
     steps:
       - name: Check out code
