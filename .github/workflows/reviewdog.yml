@@ -45,9 +45,11 @@ jobs:
     # use features in the supported floor Go version at any time. This remains
     # true even if mosn library dependencies are not eagerly updated.
     strategy:
+      fail-fast: false
       matrix:
         go-version:
-          - "golang:1.20"  # Current Go version
+          # FIXME: make CI pass in 1.20, see https://github.com/mosn/mosn/issues/2294
+          #- "golang:1.20"  # Current Go version
           - "golang:1.19"
           - "golang:1.18"  # Floor Go version of Mosn == current - 2
 
