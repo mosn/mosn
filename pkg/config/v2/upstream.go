@@ -112,6 +112,7 @@ type Cluster struct {
 	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
 	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
 	SlowStart            SlowStartConfig     `json:"slow_start,omitempty"`
+	ClusterPoolEnable    bool                `json:"cluster_pool_enable,omitempty"`
 }
 
 type DnsResolverConfig struct {
@@ -233,6 +234,7 @@ type ClusterManagerConfig struct {
 
 type ClusterManagerConfigJson struct {
 	TLSContext        TLSConfig `json:"tls_context,omitempty"`
+	ClusterPoolEnable bool      `json:"cluster_pool_enable,omitempty"`
 	ClusterConfigPath string    `json:"clusters_configs,omitempty"`
 	ClustersJson      []Cluster `json:"clusters,omitempty"`
 }

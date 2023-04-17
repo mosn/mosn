@@ -228,6 +228,9 @@ type ClusterInfo interface {
 
 	// SlowStart returns the slow start configurations
 	SlowStart() SlowStart
+
+	// IsClusterPoolEnable returns the cluster pool enable or not
+	IsClusterPoolEnable() bool
 }
 
 // ResourceManager manages different types of Resource
