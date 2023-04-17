@@ -43,17 +43,24 @@ func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.Ho
 }
 
 func (lb *leastActiveConnectionLoadBalancer) hostWeight(item WeightItem) float64 {
-	host := item.(types.Host)
+	host, ok := item.(types.Host)
+	if !ok {
+		return float64(item.Weight())
+	}
 
 	weight := float64(host.Weight())
 
-	if lb.activeConnectionBias == 1.0 {
-		weight /= float64(host.HostStats().UpstreamConnectionActive.Count() + 1)
-	} else if lb.activeConnectionBias != 0.0 {
-		weight /= math.Pow(float64(host.HostStats().UpstreamConnectionActive.Count()+1), lb.activeConnectionBias)
+	activeConnection := host.HostStats().UpstreamConnectionActive.Count() + 1
+
+	if activeConnection == 1 || lb.activeConnectionBias == 0.0 {
+		return weight
 	}
 
-	return weight
+	if lb.activeConnectionBias == 1.0 {
+		return weight / float64(activeConnection)
+	}
+
+	return weight / math.Pow(float64(activeConnection), lb.activeConnectionBias)
 }
 
 // 1. This LB rely on HostStats, so make sure the host metrics statistic is enabled

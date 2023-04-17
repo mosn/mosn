@@ -258,17 +258,24 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 }
 
 func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
-	host := item.(types.Host)
+	host, ok := item.(types.Host)
+	if !ok {
+		return float64(item.Weight())
+	}
 
 	weight := float64(host.Weight())
 
-	if lb.activeRequestBias == 1.0 {
-		weight /= float64(host.HostStats().UpstreamRequestActive.Count() + 1)
-	} else if lb.activeRequestBias != 0.0 {
-		weight /= math.Pow(float64(host.HostStats().UpstreamRequestActive.Count()+1), lb.activeRequestBias)
+	activeRequest := host.HostStats().UpstreamRequestActive.Count() + 1
+
+	if activeRequest == 1 || lb.activeRequestBias == 0.0 {
+		return weight
 	}
 
-	return weight
+	if lb.activeRequestBias == 1.0 {
+		return weight / float64(activeRequest)
+	}
+
+	return weight / math.Pow(float64(activeRequest), lb.activeRequestBias)
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
