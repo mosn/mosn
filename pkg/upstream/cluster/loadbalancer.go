@@ -656,7 +656,7 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 func (lb *peakEwmaLoadBalancer) hostWeight(item WeightItem) float64 {
 	host, ok := item.(types.Host)
 	if !ok {
-		return 1.0
+		return float64(item.Weight())
 	}
 
 	return float64(host.Weight()) / lb.unweightedPeakEwmaScore(host)
