@@ -5,6 +5,7 @@
 ### 新功能
 
 - EdfLoadBalancer 支持慢启动 (#2178) @jizhuozhi
+- 支持集群独占连接池 (#2281) @yejialiango
 
 ### 变更
 
@@ -18,6 +19,7 @@
 - 禁用 workflow 中过于严格的 linters (#2259) @jizhuozhi
 - 当 PR 是未完成状态时不启用 workflow (#2269) @diannaowa
 - 使用指针减少 duffcopy 和 duffzero 开销 (#2272) @jizhuozhi
+- 删除不必要的导入 (#2292) @spacewander
 
 ### Bug 修复
 

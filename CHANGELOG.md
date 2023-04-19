@@ -5,6 +5,7 @@
 ### New Features
 
 - EdfLoadBalancer supports slow start mode (#2178) @jizhuozhi
+- Support cluster exclusive connectionPool (#2281) @yejialiango
 
 ### Changes
 
@@ -18,6 +19,7 @@
 - Disable over strict linters in workflow (#2259) @jizhuozhi
 - Disable workflow when PR in draft mode (#2269) @diannaowa
 - Use pointer to avoid overhead of duffcopy and duffzero (#2272) @jizhuozhi
+- Remove unnecessary imports (#2292) @spacewander
 
 ### Bug fixes
 
