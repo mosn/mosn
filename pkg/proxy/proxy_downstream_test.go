@@ -24,6 +24,7 @@ import (
 
 	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/metrics"
@@ -92,6 +93,8 @@ func TestProxyWithFilters(t *testing.T) {
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
 						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
+						UpstreamResponseClientError:  s.Counter(metrics.UpstreamResponseClientError),
+						UpstreamResponseServerError:  s.Counter(metrics.UpstreamResponseServerError),
 					}
 				}).AnyTimes()
 				h.EXPECT().AddressString().Return("mockhost").AnyTimes()

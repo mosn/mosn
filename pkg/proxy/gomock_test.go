@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
@@ -39,6 +40,8 @@ func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+			UpstreamResponseClientError:  s.Counter(metrics.UpstreamResponseClientError),
+			UpstreamResponseServerError:  s.Counter(metrics.UpstreamResponseServerError),
 		}
 	}).AnyTimes()
 	info.EXPECT().ResourceManager().DoAndReturn(func() types.ResourceManager {

@@ -24,7 +24,7 @@ import (
 // UpstreamType represents upstream metrics type
 const UpstreamType = "upstream"
 
-//  key in cluster/host
+// key in cluster/host
 const (
 	UpstreamConnectionTotal                        = "connection_total"
 	UpstreamConnectionClose                        = "connection_close"
@@ -47,9 +47,11 @@ const (
 	UpstreamRequestDurationTotal                   = "request_duration_time_total"
 	UpstreamResponseSuccess                        = "response_success"
 	UpstreamResponseFailed                         = "response_failed"
+	UpstreamResponseClientError                    = "response_client_error"
+	UpstreamResponseServerError                    = "response_server_error"
 )
 
-//  key in cluster
+// key in cluster
 const (
 	UpstreamRequestRetry         = "request_retry"
 	UpstreamRequestRetryOverflow = "request_retry_overflow"

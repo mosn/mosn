@@ -46,6 +46,8 @@ func newHostStats(clustername string, addr string) *types.HostStats {
 		UpstreamRequestDurationTotal:                   s.Counter(metrics.UpstreamRequestDurationTotal),
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
+		UpstreamResponseClientError:                    s.Counter(metrics.UpstreamResponseClientError),
+		UpstreamResponseServerError:                    s.Counter(metrics.UpstreamResponseServerError),
 	}
 }
 
@@ -77,6 +79,8 @@ func newClusterStats(clustername string) *types.ClusterStats {
 		UpstreamRequestDurationTotal:                   s.Counter(metrics.UpstreamRequestDurationTotal),
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
+		UpstreamResponseClientError:                    s.Counter(metrics.UpstreamResponseClientError),
+		UpstreamResponseServerError:                    s.Counter(metrics.UpstreamResponseServerError),
 		LBSubSetsFallBack:                              s.Counter(metrics.UpstreamLBSubSetsFallBack),
 		LBSubsetsCreated:                               s.Gauge(metrics.UpstreamLBSubsetsCreated),
 	}

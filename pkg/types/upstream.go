@@ -24,6 +24,7 @@ import (
 	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
@@ -280,6 +281,8 @@ type HostStats struct {
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseClientError                    metrics.Counter
+	UpstreamResponseServerError                    metrics.Counter
 }
 
 // ClusterStats defines a cluster's statistics information
@@ -309,6 +312,8 @@ type ClusterStats struct {
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseClientError                    metrics.Counter
+	UpstreamResponseServerError                    metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
 	LBSubsetsCreated                               metrics.Gauge
 }

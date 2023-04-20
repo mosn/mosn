@@ -31,6 +31,7 @@ import (
 	"time"
 
 	uatomic "go.uber.org/atomic"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -218,10 +219,10 @@ func (s *downStream) endStream() {
 
 // Clean up on the very end of the stream: end stream or reset stream
 // Resources to clean up / reset:
-// 	+ upstream request
-// 	+ all timers
-// 	+ all filters
-//  + remove stream in proxy context
+//   - upstream request
+//   - all timers
+//   - all filters
+//   - remove stream in proxy context
 func (s *downStream) cleanStream() {
 	if !atomic.CompareAndSwapUint32(&s.downstreamCleaned, 0, 1) {
 		return
@@ -1217,11 +1218,22 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 }
 
 func (s *downStream) handleUpstreamStatusCode() {
-	// todo: support config?
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
-		if s.requestInfo.ResponseCode() >= http.InternalServerError {
+		responseCode := s.requestInfo.ResponseCode()
+
+		// 4xx && 5xx
+		if responseCode >= http.BadRequest {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
+
+			if responseCode < http.InternalServerError {
+				s.upstreamRequest.host.HostStats().UpstreamResponseClientError.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseClientError.Inc(1)
+			} else {
+				s.upstreamRequest.host.HostStats().UpstreamResponseServerError.Inc(1)
+				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseServerError.Inc(1)
+			}
+
 		} else {
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
