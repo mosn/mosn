@@ -27,6 +27,7 @@
 - Fix connpool binding conn id (#2263) @antJack 
 - Fix saved client stream protocol information to DownStreamProtocol in the context (#2270) @nejisama
 - Fix not using the correct Go version for testing and upgrade the floor Go version supported by MOSN to 1.18 (#2288) @muyuan0
+- Fix incorrectly assume the variable not found if the real value is '-' (#2174) @3062
 
 ## v1.4.0
 
