@@ -26,7 +26,7 @@
 - 修复健康检查时多个 host 使用同一个 rander 引发的异常 (#2240) @dengqian
 - 修复连接池绑定连接标识错误 (#2263) @antJack 
 - 修复在上下文中将 client stream 协议信息保存到 DownStreamProtocol 的错误 (#2270) @nejisama
-- 修复未使用正确的 go 版本进行测试，并升级 mosn 支持的最低 go 版本至 1.18 (#2288) @muyuan0
+- 修复未使用正确的 Go 版本进行测试，并升级 MOSN 支持的最低 Go 版本至 1.18 (#2288) @muyuan0
 
 ## v1.4.0
 
