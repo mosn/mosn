@@ -105,6 +105,16 @@ func Test_get_header(t *testing.T) {
 	if actual != "http_var_test" {
 		t.Error("request header assert failed, expected: http_var_test, actual is: ", actual)
 	}
+
+	_, err = variable.GetString(ctx,
+		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestHeader, "err_test"))
+	if err == nil {
+		t.Error("request header assert failed, should get an err, actually get a nil")
+	}
+
+	if err.Error() != variable.ErrValueNotFound.Error() {
+		t.Errorf("request header assert failed, the err message should be %s", variable.ErrValueNotFound.Error())
+	}
 }
 
 func Test_get_arg(t *testing.T) {
@@ -118,6 +128,16 @@ func Test_get_arg(t *testing.T) {
 
 	if actual != "foo" {
 		t.Error("request arg assert failed, expected: foo, actual is: ", actual)
+	}
+
+	_, err = variable.GetString(ctx,
+		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestArgPrefix, "err_test"))
+	if err == nil {
+		t.Error("request arg assert failed, should get an err, actually get a nil")
+	}
+
+	if err.Error() != variable.ErrValueNotFound.Error() {
+		t.Errorf("request arg assert failed, the err message should be %s", variable.ErrValueNotFound.Error())
 	}
 }
 
@@ -136,14 +156,14 @@ func Test_get_cookie(t *testing.T) {
 
 	_, err = variable.GetString(
 		ctx,
-		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "env"),
+		fmt.Sprintf("%s%s", types.VarPrefixHttpCookie, "err_test"),
 	)
 
 	if err == nil {
 		t.Error("request cookie assert failed, should get an err, actually get a nil")
 	}
-	if err.Error() != "not found cookie value" {
-		t.Error(`request cookie assert failed, the err message should be "not found cookie value"`)
+	if err.Error() != variable.ErrValueNotFound.Error() {
+		t.Errorf("request cookie assert failed, the err message should be %s", variable.ErrValueNotFound.Error())
 	}
 }
 
