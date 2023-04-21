@@ -20,6 +20,7 @@ package example
 import (
 	"context"
 	"encoding/binary"
+
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/header"
 )

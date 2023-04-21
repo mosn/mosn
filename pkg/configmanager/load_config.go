@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/ghodss/yaml"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 

@@ -98,7 +98,7 @@ func (s *upstreamServer) Addr() string {
 	return s.Address
 }
 
-//Server Implement
+// Server Implement
 type HTTPHandler struct{}
 
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +130,7 @@ func NewUpstreamHTTP2(t *testing.T, addr string, h http.Handler) UpstreamServer 
 	return NewUpstreamServer(t, addr, s.ServeConn)
 }
 
-//Http Server
+// Http Server
 type HTTPServer struct {
 	t       *testing.T
 	server  *httptest.Server

@@ -23,8 +23,8 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/protocol/http"
+	"mosn.io/pkg/variable"
 )
 
 type retryState struct {

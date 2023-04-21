@@ -20,6 +20,7 @@ package wasm
 import (
 	"errors"
 	"fmt"
+
 	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 
 	"mosn.io/api"

@@ -21,8 +21,9 @@
 package wasm_test
 
 import (
-	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	"testing"
+
+	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 )
 
 func Test_ProxyWasmV1_wasmer(t *testing.T) {

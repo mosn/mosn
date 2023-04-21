@@ -1,3 +1,4 @@
+//go:build MOSNTest
 // +build MOSNTest
 
 package shutdown
@@ -7,11 +8,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
-	"mosn.io/mosn/pkg/log"
 	"net"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
+	"mosn.io/mosn/pkg/log"
 
 	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib/mosn"

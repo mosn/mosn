@@ -5,8 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
 	"net"
+
+	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
 )
 
 const reqMessage = "Hello World"

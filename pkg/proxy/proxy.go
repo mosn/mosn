@@ -200,7 +200,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 	return api.Stop
 }
 
-//rpc realize upstream on event
+// rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.DownstreamConnectionDestroy.Inc(1)

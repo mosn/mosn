@@ -34,7 +34,6 @@ func (f *DemoFactory) CreateFilterChain(ctx context.Context, callbacks api.Strea
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 }
 
-
 type DemoFilter struct {
 	config  map[string]string
 	handler api.StreamReceiverFilterHandler

@@ -20,6 +20,7 @@ package ipaccess
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/golang/protobuf/ptypes/any"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -49,7 +50,7 @@ func init() {
 	})
 }
 
-//StructToMap Converts a struct to a map while maintaining the json alias as keys
+// StructToMap Converts a struct to a map while maintaining the json alias as keys
 func StructToMap(obj interface{}) (newMap map[string]interface{}, err error) {
 	data, err := json.Marshal(obj) // Convert to a json string
 
