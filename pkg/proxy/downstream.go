@@ -1218,22 +1218,36 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 }
 
 func (s *downStream) handleUpstreamStatusCode() {
+	// todo: support config?
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 		responseCode := s.requestInfo.ResponseCode()
 
-		switch {
-		case responseCode >= http.BadRequest && responseCode < http.InternalServerError:
-			s.upstreamRequest.host.HostStats().UpstreamResponseClientError.Inc(1)
-			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseClientError.Inc(1)
-		case responseCode >= http.InternalServerError:
-			// TODO(jizhuozhi): `UpstreamResponseFailed` include client errors or configurable?
+		if responseCode >= http.InternalServerError {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
-			s.upstreamRequest.host.HostStats().UpstreamResponseServerError.Inc(1)
-			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseServerError.Inc(1)
-		default:
+		} else {
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
+		}
+
+		switch {
+		case responseCode >= 100 && responseCode < 200:
+			s.upstreamRequest.host.HostStats().UpstreamResponse1xx.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponse1xx.Inc(1)
+		case responseCode >= 200 && responseCode < 300:
+			s.upstreamRequest.host.HostStats().UpstreamResponse2xx.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponse2xx.Inc(1)
+		case responseCode >= 300 && responseCode < 400:
+			s.upstreamRequest.host.HostStats().UpstreamResponse3xx.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponse3xx.Inc(1)
+		case responseCode >= 400 && responseCode < 500:
+			s.upstreamRequest.host.HostStats().UpstreamResponse4xx.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponse4xx.Inc(1)
+		case responseCode >= 500 && responseCode < 600:
+			s.upstreamRequest.host.HostStats().UpstreamResponse5xx.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponse5xx.Inc(1)
+		default:
+			// no-op for unknown HTTP status code
 		}
 	}
 }

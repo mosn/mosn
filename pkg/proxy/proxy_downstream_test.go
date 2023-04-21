@@ -93,8 +93,11 @@ func TestProxyWithFilters(t *testing.T) {
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
 						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
-						UpstreamResponseClientError:  s.Counter(metrics.UpstreamResponseClientError),
-						UpstreamResponseServerError:  s.Counter(metrics.UpstreamResponseServerError),
+						UpstreamResponse1xx:          s.Counter(metrics.UpstreamResponse1xx),
+						UpstreamResponse2xx:          s.Counter(metrics.UpstreamResponse2xx),
+						UpstreamResponse3xx:          s.Counter(metrics.UpstreamResponse3xx),
+						UpstreamResponse4xx:          s.Counter(metrics.UpstreamResponse4xx),
+						UpstreamResponse5xx:          s.Counter(metrics.UpstreamResponse5xx),
 					}
 				}).AnyTimes()
 				h.EXPECT().AddressString().Return("mockhost").AnyTimes()

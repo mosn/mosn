@@ -47,8 +47,11 @@ const (
 	UpstreamRequestDurationTotal                   = "request_duration_time_total"
 	UpstreamResponseSuccess                        = "response_success"
 	UpstreamResponseFailed                         = "response_failed"
-	UpstreamResponseClientError                    = "response_client_error"
-	UpstreamResponseServerError                    = "response_server_error"
+	UpstreamResponse1xx                            = "response_1xx"
+	UpstreamResponse2xx                            = "response_2xx"
+	UpstreamResponse3xx                            = "response_3xx"
+	UpstreamResponse4xx                            = "response_4xx"
+	UpstreamResponse5xx                            = "response_5xx"
 )
 
 // key in cluster

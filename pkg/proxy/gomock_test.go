@@ -40,8 +40,11 @@ func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
-			UpstreamResponseClientError:  s.Counter(metrics.UpstreamResponseClientError),
-			UpstreamResponseServerError:  s.Counter(metrics.UpstreamResponseServerError),
+			UpstreamResponse1xx:          s.Counter(metrics.UpstreamResponse1xx),
+			UpstreamResponse2xx:          s.Counter(metrics.UpstreamResponse2xx),
+			UpstreamResponse3xx:          s.Counter(metrics.UpstreamResponse3xx),
+			UpstreamResponse4xx:          s.Counter(metrics.UpstreamResponse4xx),
+			UpstreamResponse5xx:          s.Counter(metrics.UpstreamResponse5xx),
 		}
 	}).AnyTimes()
 	info.EXPECT().ResourceManager().DoAndReturn(func() types.ResourceManager {
