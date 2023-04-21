@@ -1221,20 +1221,17 @@ func (s *downStream) handleUpstreamStatusCode() {
 	if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 		responseCode := s.requestInfo.ResponseCode()
 
-		// 4xx && 5xx
-		if responseCode >= http.BadRequest {
+		switch {
+		case responseCode >= http.BadRequest && responseCode < http.InternalServerError:
+			s.upstreamRequest.host.HostStats().UpstreamResponseClientError.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseClientError.Inc(1)
+		case responseCode >= http.InternalServerError:
+			// TODO(jizhuozhi): `UpstreamResponseFailed` include client errors or configurable?
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
-
-			if responseCode < http.InternalServerError {
-				s.upstreamRequest.host.HostStats().UpstreamResponseClientError.Inc(1)
-				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseClientError.Inc(1)
-			} else {
-				s.upstreamRequest.host.HostStats().UpstreamResponseServerError.Inc(1)
-				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseServerError.Inc(1)
-			}
-
-		} else {
+			s.upstreamRequest.host.HostStats().UpstreamResponseServerError.Inc(1)
+			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseServerError.Inc(1)
+		default:
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
 		}
