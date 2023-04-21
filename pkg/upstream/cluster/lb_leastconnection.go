@@ -18,7 +18,6 @@
 package cluster
 
 import (
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -31,7 +30,7 @@ type leastActiveConnectionLoadBalancer struct {
 func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+		lb.choice = info.LbConfig().ChoiceCount
 	} else {
 		lb.choice = default_choice
 	}

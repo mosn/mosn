@@ -222,7 +222,7 @@ type ClusterInfo interface {
 	LbOriDstInfo() LBOriDstInfo
 
 	// Optional configuration for the load balancing algorithm selected by
-	LbConfig() v2.IsCluster_LbConfig
+	LbConfig() *v2.LbConfig
 
 	//  Optional configuration for some cluster description
 	SubType() string

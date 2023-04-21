@@ -116,12 +116,12 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng() != nil && sh.ClusterInfo().TLSMng().Enabled()
 }
 
 func (sh *simpleHost) TLSHashValue() *types.HashValue {
 	// check tls_disable config
-	if sh.tlsDisable || !sh.ClusterInfo().TLSMng().Enabled() {
+	if sh.tlsDisable || sh.ClusterInfo().TLSMng() == nil || !sh.ClusterInfo().TLSMng().Enabled() {
 		return disableTLSHashValue
 	}
 	// check global tls
