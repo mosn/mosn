@@ -104,7 +104,7 @@ type Cluster struct {
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
 	IdleTimeout          *api.DurationConfig `json:"idle_timeout,omitempty"`
-	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
+	LbConfig             *LbConfig           `json:"lbconfig,omitempty"`
 	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
 	RespectDnsTTL        bool                `json:"respect_dns_ttl,omitempty"`
 	DnsLookupFamily      DnsLookupFamily     `json:"dns_lookup_family,omitempty"`
