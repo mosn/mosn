@@ -28,7 +28,6 @@ import (
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
@@ -248,8 +247,8 @@ type leastActiveRequestLoadBalancer struct {
 func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
-		lb.activeRequestBias = info.LbConfig().(*v2.LeastRequestLbConfig).ActiveRequestBias
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = default_choice
 	}

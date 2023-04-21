@@ -21,7 +21,7 @@ import (
 	"mosn.io/api"
 )
 
-type LeastRequestLbConfig struct {
+type LbConfig struct {
 	// The number of random healthy hosts from which
 	// the host with the fewest active requests will be chosen.
 	ChoiceCount uint32 `json:"choice_count,omitempty"`
@@ -29,13 +29,6 @@ type LeastRequestLbConfig struct {
 	// The larger the active request bias is, the more aggressively active requests
 	// will lower the effective weight when all host weights are not equal.
 	ActiveRequestBias float64 `json:"active_request_bias,omitempty"`
-}
-
-func (lbconfig *LeastRequestLbConfig) isCluster_LbConfig() {
-}
-
-type IsCluster_LbConfig interface {
-	isCluster_LbConfig()
 }
 
 type HashPolicy struct {

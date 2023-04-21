@@ -92,10 +92,10 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 }
 
 // TODO support more LB converter
-func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+func convertLbConfig(config interface{}) *v2.LbConfig {
 	switch config.(type) {
 	case *envoy_config_cluster_v3.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{
+		return &v2.LbConfig{
 			ChoiceCount:       config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue(),
 			ActiveRequestBias: config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ActiveRequestBias.GetDefaultValue(),
 		}
