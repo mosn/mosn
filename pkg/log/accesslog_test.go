@@ -695,7 +695,7 @@ func bytesReceivedGetter(ctx context.Context, value *variable.IndexedValue, data
 func protocolGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 	if info.Protocol() == "" {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 	return string(info.Protocol()), nil
 }
@@ -741,7 +741,7 @@ func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedVa
 		return info.DownstreamLocalAddress().String(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 // DownstreamRemoteAddressGetter
@@ -753,7 +753,7 @@ func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedV
 		return info.DownstreamRemoteAddress().String(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 // upstreamHostGetter
@@ -765,7 +765,7 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 		return info.UpstreamHost().Hostname(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -774,7 +774,7 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return headerValue, nil
@@ -786,7 +786,7 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return headerValue, nil

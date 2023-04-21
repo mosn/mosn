@@ -42,7 +42,12 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 
 	actual, err := variable.GetProtocolResource(ctx, api.HEADER, headerName)
 	assert.NoErrorf(t, err, "get protocol header failed")
-	assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s")
+	assert.Equalf(t, expect, actual, "header value expect to be (%s), but get (%s)", expect, actual)
+
+	errHeader := "err_test"
+	actual, err = variable.GetProtocolResource(ctx, api.HEADER, errHeader)
+	assert.Errorf(t, err, "get protocol header err test failed")
+	assert.Equalf(t, variable.ErrValueNotFound.Error(), err.Error(), "header error test expect to be (%s), but get (%s)", variable.ErrValueNotFound.Error(), actual)
 
 	// test cookie
 	cookieName := "cookie_key"
@@ -50,7 +55,13 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 	headers.Set("Cookie", "cookie_key=cookie_value; fake_cookie_key=fake_cookie_value;")
 	actual, err = variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
 	assert.NoErrorf(t, err, "get protocol cookie failed")
-	assert.Equalf(t, expect, actual, "cookie value expect to be %s, but get %s")
+	assert.Equalf(t, expect, actual, "cookie value expect to be (%s), but get (%s)", expect, actual)
+
+	errCookie := "err_test"
+	actual, err = variable.GetProtocolResource(ctx, api.COOKIE, errCookie)
+	assert.Errorf(t, err, "get protocol cookie err test failed")
+	assert.Equalf(t, variable.ErrValueNotFound.Error(), err.Error(), "cookie error test expect to be (%s), but get (%s)", variable.ErrValueNotFound.Error(), actual)
+
 }
 
 func Test_get_scheme(t *testing.T) {
@@ -61,6 +72,6 @@ func Test_get_scheme(t *testing.T) {
 
 	variable.SetString(ctx, types.VarScheme, expect)
 	actual, err := variable.GetProtocolResource(ctx, api.SCHEME)
-	assert.NoErrorf(t, err, "get protocol scheme failed")
-	assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s")
+	assert.NoErrorf(t, err, variable.ErrValueNotFound.Error())
+	assert.Equalf(t, expect, actual, "header value expect to be (%s), but get (%s)", expect, actual)
 }
