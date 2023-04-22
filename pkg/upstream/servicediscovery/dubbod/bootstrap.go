@@ -40,14 +40,15 @@ type dubboConfig struct {
 
 /*
 example config :
-   "extends": {
-	   "dubbo_registry": {
-		    "enable" : true,
-		    "server_port" : 20080,
-		    "api_port" : 10022,
-		    "log_path" : "/tmp"
+
+	   "extends": {
+		   "dubbo_registry": {
+			    "enable" : true,
+			    "server_port" : 20080,
+			    "api_port" : 10022,
+			    "log_path" : "/tmp"
+		   }
 	   }
-   }
 */
 func init() {
 	v2.RegisterParseExtendConfig("dubbo_registry", func(config json.RawMessage) error {

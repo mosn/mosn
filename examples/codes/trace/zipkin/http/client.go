@@ -18,16 +18,17 @@
 package main
 
 import (
+	"io/ioutil"
+	"log"
+	"net"
+	"net/http"
+	"time"
+
 	"github.com/openzipkin/zipkin-go"
 	"github.com/openzipkin/zipkin-go/model"
 	"github.com/openzipkin/zipkin-go/propagation/b3"
 	zhttp "github.com/openzipkin/zipkin-go/reporter/http"
-	"io/ioutil"
-	"log"
 	trace "mosn.io/mosn/pkg/trace/zipkin"
-	"net"
-	"net/http"
-	"time"
 )
 
 func main() {

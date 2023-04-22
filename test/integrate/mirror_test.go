@@ -24,7 +24,7 @@ type MirrorCase struct {
 	upstreamAddrs []string
 }
 
-//Server Implement
+// Server Implement
 type mirrorHandler struct {
 	ReqCnt    int
 	LocalAddr string

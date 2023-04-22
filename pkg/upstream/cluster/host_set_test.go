@@ -18,9 +18,10 @@
 package cluster
 
 import (
-	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"

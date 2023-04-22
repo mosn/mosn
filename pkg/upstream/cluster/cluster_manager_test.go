@@ -19,12 +19,13 @@ package cluster
 
 import (
 	"context"
-	"mosn.io/api"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )

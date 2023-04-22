@@ -229,8 +229,9 @@ func (ac *activeClientBinding) addDownConnListenerOnce(ctx context.Context) {
 }
 
 // Close close the client
-//  if err == nil, do nothing, the client is never taken away when GetActiveClient
-//  if err != nil, error occurred on this client, remove it from pool and close the connection
+//
+//	if err == nil, do nothing, the client is never taken away when GetActiveClient
+//	if err != nil, error occurred on this client, remove it from pool and close the connection
 func (ac *activeClientBinding) Close(err error) {
 	if err != nil {
 		ac.removeFromPool()

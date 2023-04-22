@@ -46,7 +46,7 @@ func (proto *Proto) Name() api.ProtocolName {
 	return ProtocolName
 }
 
-//判断是request还是responce对象，然后添加协议部分，比如magic dir type payloadlen ，然后返回二进制流
+// 判断是request还是responce对象，然后添加协议部分，比如magic dir type payloadlen ，然后返回二进制流
 func (proto *Proto) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *Request:
@@ -59,7 +59,7 @@ func (proto *Proto) Encode(ctx context.Context, model interface{}) (api.IoBuffer
 	}
 }
 
-//读取二进制流，然后判断判断是否符合协议，再根据是request 还是responce 读取二进制流信息 返回封装好的request responce对象
+// 读取二进制流，然后判断判断是否符合协议，再根据是request 还是responce 读取二进制流信息 返回封装好的request responce对象
 func (proto *Proto) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() >= MinimalDecodeLen {
 		magic := data.Bytes()[MagicIdx]
