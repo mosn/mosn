@@ -6,6 +6,7 @@
 
 - EdfLoadBalancer supports slow start mode (#2178) @jizhuozhi
 - Support cluster exclusive connectionPool (#2281) @yejialiango
+- LeastActiveRequest and LeastActiveConnection load balancers support setting active_request_bias (#2285) @jizhuozhi
 
 ### Changes
 
@@ -20,6 +21,7 @@
 - Disable workflow when PR in draft mode (#2269) @diannaowa
 - Use pointer to avoid overhead of duffcopy and duffzero (#2272) @jizhuozhi
 - Remove unnecessary imports (#2292) @spacewander
+- CI add goimports check (#2297) @spacewander
 
 ### Bug fixes
 
@@ -28,6 +30,8 @@
 - Fix saved client stream protocol information to DownStreamProtocol in the context (#2270) @nejisama
 - Fix not using the correct Go version for testing and upgrade the floor Go version supported by MOSN to 1.18 (#2288) @muyuan0
 - Fix incorrectly assume the variable not found if the real value is '-' (#2174) @3062
+- Fix nil interface panic (#2291) @3062
+- Fix the interface appears in the configuration (#2284) @jizhuozhi
 
 ## v1.4.0
 

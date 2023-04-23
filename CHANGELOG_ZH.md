@@ -6,6 +6,7 @@
 
 - EdfLoadBalancer 支持慢启动 (#2178) @jizhuozhi
 - 支持集群独占连接池 (#2281) @yejialiango
+- LeastActiveRequest 和 LeastActiveConnection 负载均衡器支持设置 active_request_bias (#2285) @jizhuozhi
 
 ### 变更
 
@@ -20,6 +21,7 @@
 - 当 PR 是未完成状态时不启用 workflow (#2269) @diannaowa
 - 使用指针减少 duffcopy 和 duffzero 开销 (#2272) @jizhuozhi
 - 删除不必要的导入 (#2292) @spacewander
+- CI 增加 goimports 检测 (#2297) @spacewander
 
 ### Bug 修复
 
@@ -28,6 +30,8 @@
 - 修复在上下文中将 client stream 协议信息保存到 DownStreamProtocol 的错误 (#2270) @nejisama
 - 修复未使用正确的 Go 版本进行测试，并升级 MOSN 支持的最低 Go 版本至 1.18 (#2288) @muyuan0
 - 修复无法找到实际值为 '-' 的变量 (#2174) @3062
+- 修复空接口异常 (#2291) @3062
+- 修复配置中使用了接口类型的错误 (#2284) @jizhuozhi
 
 ## v1.4.0
 
