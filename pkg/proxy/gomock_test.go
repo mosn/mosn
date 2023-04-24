@@ -37,6 +37,8 @@ func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 		return &types.ClusterStats{
 			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+			UpstreamProxyDuration:        s.Histogram(metrics.UpstreamProxyDuration),
+			UpstreamProxyDurationTotal:   s.Counter(metrics.UpstreamProxyDurationTotal),
 			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
 		}

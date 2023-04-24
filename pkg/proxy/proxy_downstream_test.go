@@ -90,6 +90,8 @@ func TestProxyWithFilters(t *testing.T) {
 					return &types.HostStats{
 						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+						UpstreamProxyDuration:        s.Histogram(metrics.UpstreamProxyDuration),
+						UpstreamProxyDurationTotal:   s.Counter(metrics.UpstreamProxyDurationTotal),
 						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
 						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 					}

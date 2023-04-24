@@ -45,6 +45,8 @@ const (
 	UpstreamRequestPendingOverflow                 = "request_pending_overflow"
 	UpstreamRequestDuration                        = "request_duration_time"
 	UpstreamRequestDurationTotal                   = "request_duration_time_total"
+	UpstreamProxyDuration                          = "proxy_duration_time"
+	UpstreamProxyDurationTotal                     = "proxy_duration_time_total"
 	UpstreamResponseSuccess                        = "response_success"
 	UpstreamResponseFailed                         = "response_failed"
 )
