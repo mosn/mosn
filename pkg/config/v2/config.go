@@ -70,6 +70,14 @@ type MetricsConfig struct {
 	ShmSize      datasize.ByteSize `json:"shm_size"`
 	FlushMosn    bool              `json:"flush_mosn"`
 	LazyFlush    bool              `json:"lazy_flush"`
+	SampleConfig SampleConfig      `json:"sample"`
+}
+
+// SampleConfig for metrics histogram
+type SampleConfig struct {
+	Type          string  `json:"type"`
+	Size          int     `json:"size"`
+	ExpDecayAlpha float64 `json:"exp_decay_alpha"`
 }
 
 // PluginConfig for plugin config

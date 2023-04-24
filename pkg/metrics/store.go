@@ -18,13 +18,13 @@
 package metrics
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
-	"fmt"
-	"sort"
-
 	gometrics "github.com/rcrowley/go-metrics"
+
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
@@ -184,10 +184,14 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
+	sampleFactory := sampleFactories[sampleType]
+
 	construct := func() gometrics.Histogram {
-		// TODO: notice the histogram only keeps 100 values as we set
-		return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+		return s.registry.GetOrRegister(key, func() gometrics.Histogram {
+			return gometrics.NewHistogram(sampleFactory())
+		}).(gometrics.Histogram)
 	}
+
 	if LazyFlushMetrics {
 		histogram, _ := NewLazyHistogram(construct)
 		return histogram
