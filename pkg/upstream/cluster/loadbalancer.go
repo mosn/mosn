@@ -64,10 +64,10 @@ func init() {
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
 	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
-	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
+	RegisterLBType(types.LeastActiveRequest, newLeastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
-	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
+	RegisterLBType(types.LeastActiveConnection, newLeastActiveConnectionLoadBalancer)
 
 	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
@@ -235,7 +235,8 @@ func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext)
 	return lb.rrLB.ChooseHost(context)
 }
 
-const default_choice = 2
+const defaultChoice = 2
+const defaultActiveRequestBias = 1.0
 
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
@@ -244,13 +245,14 @@ type leastActiveRequestLoadBalancer struct {
 	activeRequestBias float64
 }
 
-func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
-		lb.choice = default_choice
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
