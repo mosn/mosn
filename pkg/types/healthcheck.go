@@ -29,6 +29,7 @@ const (
 
 // HealthCheckCb is the health check's callback function
 type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
+
 // HealthCheckCb is the health check's callback function
 
 type HealthCheckLog interface {

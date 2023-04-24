@@ -19,11 +19,12 @@ package simplematcher
 
 import (
 	"context"
+	"reflect"
+	"testing"
+
 	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/protocol/http"
-	"reflect"
-	"testing"
 
 	"mosn.io/mosn/pkg/types"
 )

@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/plugin/proto"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/config/v2"
 )
 
 func init() {

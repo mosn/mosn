@@ -1,3 +1,4 @@
+//go:build MOSNTest
 // +build MOSNTest
 
 package autoconfig
@@ -7,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib/mosn"
 )

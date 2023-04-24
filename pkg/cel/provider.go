@@ -39,12 +39,12 @@ import (
 //
 // For example, an integer attribute "a.b.c" is modeled as the following proto3 definition:
 //
-// message A {
-//   message B {
-//     google.protobuf.Int64Value c = 1;
-//   }
-//   B b = 1;
-// }
+//	message A {
+//	  message B {
+//	    google.protobuf.Int64Value c = 1;
+//	  }
+//	  B b = 1;
+//	}
 //
 // with root context containing a variable "a" of type "A".
 //

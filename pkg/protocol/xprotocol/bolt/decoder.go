@@ -23,9 +23,9 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
+	"mosn.io/pkg/variable"
 )
 
 func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd interface{}, err error) {

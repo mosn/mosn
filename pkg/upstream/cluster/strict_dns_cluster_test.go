@@ -187,7 +187,7 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 		}
 		host3 = append(host3, host)
 	}
-	if hostEqual(&hostSet{ allHosts: host1}, NewHostSet(host2)) {
+	if hostEqual(&hostSet{allHosts: host1}, NewHostSet(host2)) {
 		t.Errorf("[upstream][strict dns cluster] hosts should not be equal.")
 	}
 	if hostEqual(&hostSet{allHosts: host2}, NewHostSet(host1)) {

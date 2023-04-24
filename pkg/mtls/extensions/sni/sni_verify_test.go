@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/certtool"
 )

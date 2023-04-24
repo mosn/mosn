@@ -28,7 +28,6 @@ import (
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
@@ -241,13 +240,15 @@ const default_choice = 2
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
-	choice uint32
+	choice            uint32
+	activeRequestBias float64
 }
 
 func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = default_choice
 	}
@@ -256,8 +257,24 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 }
 
 func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
-	host := item.(types.Host)
-	return float64(host.Weight()) / float64(host.HostStats().UpstreamRequestActive.Count()+1)
+	host, ok := item.(types.Host)
+	if !ok {
+		return float64(item.Weight())
+	}
+
+	weight := float64(host.Weight())
+
+	activeRequest := host.HostStats().UpstreamRequestActive.Count() + 1
+
+	if activeRequest == 1 || lb.activeRequestBias == 0.0 {
+		return weight
+	}
+
+	if lb.activeRequestBias == 1.0 {
+		return weight / float64(activeRequest)
+	}
+
+	return weight / math.Pow(float64(activeRequest), lb.activeRequestBias)
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {

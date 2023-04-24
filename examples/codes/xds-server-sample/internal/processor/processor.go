@@ -16,11 +16,12 @@ package processor
 
 import (
 	"context"
-	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"math"
 	"math/rand"
 	"os"
 	"strconv"
+
+	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 
 	"github.com/stevesloka/envoy-xds-server/internal/resources"
 

@@ -18,10 +18,11 @@
 package mtls
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
-	"testing"
 )
 
 func mockGenHashValue(_ *tls.Config) *types.HashValue {

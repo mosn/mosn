@@ -32,9 +32,9 @@ import (
 // gomock func wrapper
 func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 	info := mock.NewMockClusterInfo(ctrl)
-	info.EXPECT().Stats().DoAndReturn(func() types.ClusterStats {
+	info.EXPECT().Stats().DoAndReturn(func() *types.ClusterStats {
 		s := metrics.NewClusterStats("mockcluster")
-		return types.ClusterStats{
+		return &types.ClusterStats{
 			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
 			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
@@ -95,7 +95,7 @@ func gomockStreamSender(ctrl *gomock.Controller) types.StreamSender {
 
 }
 
-//  mock a simple route rule that route a request to a cluster
+// mock a simple route rule that route a request to a cluster
 func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.Route {
 	r := mock.NewMockRoute(ctrl)
 	// mock route rule returns cluster name : mock_cluster
