@@ -18,6 +18,8 @@
 package metrics
 
 import (
+	gometrics "github.com/rcrowley/go-metrics"
+
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -58,6 +60,23 @@ var (
 	sampleSize    = defaultSampleSize
 	expDecayAlpha = defaultExpDecayAlpha
 )
+
+type SampleFactory func() gometrics.Sample
+
+var sampleFactories = make(map[SampleType]SampleFactory) //nolint:gochecknoglobals
+
+func RegisterSampleFactory(t SampleType, factory SampleFactory) {
+	sampleFactories[t] = factory
+}
+
+func init() {
+	RegisterSampleFactory(SampleUniform, func() gometrics.Sample {
+		return gometrics.NewUniformSample(sampleSize)
+	})
+	RegisterSampleFactory(SampleExpDecay, func() gometrics.Sample {
+		return gometrics.NewExpDecaySample(sampleSize, expDecayAlpha)
+	})
+}
 
 // NewMosnMetrics returns the basic metrics for mosn
 // export the function for extension

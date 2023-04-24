@@ -18,13 +18,13 @@
 package metrics
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
-	"fmt"
-	"sort"
-
 	gometrics "github.com/rcrowley/go-metrics"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
@@ -185,29 +185,19 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
-	var construct func() gometrics.Histogram
-	switch sampleType {
-	case SampleUniform:
-		construct = func() gometrics.Histogram {
-			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
-				return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize))
-			}).(gometrics.Histogram)
-		}
-	case SampleExpDecay:
-		construct = func() gometrics.Histogram {
-			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
-				return gometrics.NewHistogram(gometrics.NewExpDecaySample(sampleSize, expDecayAlpha))
-			}).(gometrics.Histogram)
-		}
-	default:
+	sampleFactory, ok := sampleFactories[sampleType]
+	if !ok {
 		if log.DefaultLogger.GetLogLevel() >= log.WARN {
 			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
 		}
-		construct = func() gometrics.Histogram {
-			return s.registry.GetOrRegister(key, func() gometrics.Histogram {
-				return gometrics.NewHistogram(gometrics.NewUniformSample(sampleSize))
-			}).(gometrics.Histogram)
-		}
+
+		sampleFactory = sampleFactories[SampleUniform]
+	}
+
+	construct := func() gometrics.Histogram {
+		return s.registry.GetOrRegister(key, func() gometrics.Histogram {
+			return gometrics.NewHistogram(sampleFactory())
+		}).(gometrics.Histogram)
 	}
 
 	if LazyFlushMetrics {

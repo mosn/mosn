@@ -19,11 +19,12 @@ package metrics
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/stretchr/testify/assert"
+
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
