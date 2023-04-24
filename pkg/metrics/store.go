@@ -25,7 +25,6 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
@@ -185,14 +184,7 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
-	sampleFactory, ok := sampleFactories[sampleType]
-	if !ok {
-		if log.DefaultLogger.GetLogLevel() >= log.WARN {
-			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", sampleType)
-		}
-
-		sampleFactory = sampleFactories[SampleUniform]
-	}
+	sampleFactory := sampleFactories[sampleType]
 
 	construct := func() gometrics.Histogram {
 		return s.registry.GetOrRegister(key, func() gometrics.Histogram {

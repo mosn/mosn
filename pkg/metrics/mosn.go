@@ -20,6 +20,7 @@ package metrics
 import (
 	gometrics "github.com/rcrowley/go-metrics"
 
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -118,6 +119,14 @@ func SetMetricsFeature(flushMosn, lazyFlush bool) {
 
 // SetSampleType set sample type for Histogram
 func SetSampleType(t SampleType) {
+	if _, ok := sampleFactories[t]; !ok {
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", t)
+		}
+
+		t = SampleUniform
+	}
+
 	sampleType = t
 }
 
