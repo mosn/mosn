@@ -6,7 +6,7 @@
 
 - EdfLoadBalancer supports slow start mode (#2178) @jizhuozhi
 - Support cluster exclusive connectionPool (#2281) @yejialiango
-- LeastActiveRequest and LeastActiveConnection load balancers support setting active_request_bias (#2285) @jizhuozhi
+- LeastActiveRequest and LeastActiveConnection load balancers support setting active_request_bias (#2286) @jizhuozhi
 
 ### Changes
 

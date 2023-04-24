@@ -6,7 +6,7 @@
 
 - EdfLoadBalancer 支持慢启动 (#2178) @jizhuozhi
 - 支持集群独占连接池 (#2281) @yejialiango
-- LeastActiveRequest 和 LeastActiveConnection 负载均衡器支持设置 active_request_bias (#2285) @jizhuozhi
+- LeastActiveRequest 和 LeastActiveConnection 负载均衡器支持设置 active_request_bias (#2286) @jizhuozhi
 
 ### 变更
 
