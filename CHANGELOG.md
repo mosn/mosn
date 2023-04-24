@@ -11,6 +11,7 @@
 ### Changes
 
 - README update partners & users (#2245) @doujiang24
+- Update dependencies (#2242) (#2248) (#2249) @dependabot
 
 ### Optimization
 

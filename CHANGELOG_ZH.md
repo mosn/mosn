@@ -11,6 +11,7 @@
 ### 变更
 
 - README 更新 partners & users (#2245) @doujiang24
+- 更新依赖 (#2242) (#2248) (#2249) @dependabot
 
 ### 优化
 
