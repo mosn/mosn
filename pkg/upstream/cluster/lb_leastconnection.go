@@ -30,13 +30,14 @@ type leastActiveConnectionLoadBalancer struct {
 	activeConnectionBias float64
 }
 
-func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newLeastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeConnectionBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = defaultChoice
+		lb.activeConnectionBias = defaultActiveRequestBias
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb

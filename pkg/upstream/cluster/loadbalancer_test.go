@@ -471,7 +471,88 @@ func TestLARChooseHost(t *testing.T) {
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual = balancer.ChooseHost(nil)
 	assert.Nil(t, actual)
+}
 
+func TestLeastActiveRequestLoadBalancer_ChooseHost(t *testing.T) {
+	verify := func(t *testing.T, info types.ClusterInfo, delta float64) {
+		bias := 1.0
+		if info != nil && info.LbConfig() != nil {
+			bias = info.LbConfig().ActiveRequestBias
+		}
+
+		hosts := createHostsetWithStats(exampleHostConfigs(), "test")
+		i := 0
+		hosts.Range(func(host types.Host) bool {
+			i++
+			h := host.(*mockHost)
+			h.w = uint32(i)
+			h.HostStats().UpstreamRequestActive.Inc(int64(i))
+			return true
+		})
+
+		lb := newLeastActiveRequestLoadBalancer(info, hosts)
+
+		expect := make(map[types.Host]float64)
+		actual := make(map[types.Host]float64)
+		total := 0.0
+
+		hosts.Range(func(h types.Host) bool {
+			weight := h.Weight()
+			activeRequest := h.HostStats().UpstreamRequestActive.Count()
+			expect[h] = float64(weight) / math.Pow(float64(activeRequest+1), bias)
+			total += float64(weight) / math.Pow(float64(activeRequest+1), bias)
+
+			return true
+		})
+
+		for i := 0.0; i < total*100000; i++ {
+			h := lb.ChooseHost(nil)
+			actual[h]++
+		}
+
+		compareDistribution(t, expect, actual, delta)
+	}
+
+	t.Run("no bias", func(t *testing.T) {
+		verify(t, nil, 0.15)
+	})
+	t.Run("low bias", func(t *testing.T) {
+		verify(t, &clusterInfo{
+			lbConfig: &v2.LbConfig{
+				ActiveRequestBias: 0.5,
+			},
+		}, 0.15)
+	})
+	t.Run("high bias", func(t *testing.T) {
+		verify(t, &clusterInfo{
+			lbConfig: &v2.LbConfig{
+				ActiveRequestBias: 1.5,
+			},
+		}, 0.15)
+	})
+}
+
+func compareDistribution(t *testing.T, expect, actual map[types.Host]float64, delta float64) {
+	normalize := func(counter map[types.Host]float64) map[types.Host]float64 {
+		total := 0.0
+		for _, v := range counter {
+			total += v
+		}
+
+		result := make(map[types.Host]float64)
+		for k, v := range counter {
+			result[k] = v / total
+		}
+
+		return result
+	}
+
+	expect = normalize(expect)
+	actual = normalize(actual)
+
+	for h, e := range expect {
+		assert.InDelta(t, e, actual[h], delta)
+	}
 }
 
 func mockRequest(host types.Host, active bool, times int) {
