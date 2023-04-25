@@ -37,6 +37,7 @@
 - 修复 cluster 证书配置错误导致的空接口异常 (#2291) @3062
 - 修复 leastActiveRequestLoadBalancer 配置中使用了接口类型导致的解析错误 (#2284) @jizhuozhi
 - 修复配置文件 lbConfig 未生效的问题 (#2299) @3062
+- 修复 activeRequestBias 缺少默认值和一些命名大小写错误 (#2298) @jizhuozhi
 
 ## v1.4.0
 

@@ -37,6 +37,7 @@
 - Fix nil interface panic caused by cluster certificate configuration error (#2291) @3062
 - Fix parsing error caused by using interface type in the leastActiveRequestLoadBalancer configuration (#2284) @jizhuozhi
 - Fix configuration lbConfig not effective (#2299) @3062
+- Fix activeRequestBias missing default value and some naming case error (#2298) @jizhuozhi
 
 ## v1.4.0
 
