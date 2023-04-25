@@ -21,7 +21,6 @@ import (
 	"context"
 	"math"
 	"math/rand"
-	"mosn.io/mosn/pkg/log"
 	"reflect"
 	"sync"
 	"testing"
@@ -32,6 +31,7 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
