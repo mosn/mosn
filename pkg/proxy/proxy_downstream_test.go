@@ -19,14 +19,17 @@ package proxy
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
 	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
@@ -90,8 +93,10 @@ func TestProxyWithFilters(t *testing.T) {
 					return &types.HostStats{
 						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
-						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
+						UpstreamRequestDurationEWMA:  s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+
+						UpstreamResponseFailed:  s.Counter(metrics.UpstreamResponseFailed),
+						UpstreamResponseSuccess: s.Counter(metrics.UpstreamResponseSuccess),
 					}
 				}).AnyTimes()
 				h.EXPECT().AddressString().Return("mockhost").AnyTimes()

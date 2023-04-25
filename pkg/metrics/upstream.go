@@ -44,6 +44,7 @@ const (
 	UpstreamRequestFailureEject                    = "request_failure_eject"
 	UpstreamRequestPendingOverflow                 = "request_pending_overflow"
 	UpstreamRequestDuration                        = "request_duration_time"
+	UpstreamRequestDurationEWMA                    = "request_duration_time_ewma"
 	UpstreamRequestDurationTotal                   = "request_duration_time_total"
 	UpstreamResponseSuccess                        = "response_success"
 	UpstreamResponseFailed                         = "response_failed"

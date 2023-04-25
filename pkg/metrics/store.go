@@ -25,6 +25,7 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
@@ -195,6 +196,22 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 	if LazyFlushMetrics {
 		histogram, _ := NewLazyHistogram(construct)
 		return histogram
+	}
+	return construct()
+}
+
+func (s *metrics) EWMA(key string, alpha float64) gometrics.EWMA {
+	// support exclusion only
+	if defaultStore.matcher.isExclusionKey(key) {
+		return gometrics.NilEWMA{}
+	}
+
+	construct := func() gometrics.EWMA {
+		return s.registry.GetOrRegister(key, func() gometrics.EWMA { return ewma.NewEWMA(alpha) }).(gometrics.EWMA)
+	}
+	if LazyFlushMetrics {
+		e, _ := NewLazyEWMA(construct)
+		return e
 	}
 	return construct()
 }

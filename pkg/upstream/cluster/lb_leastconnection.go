@@ -36,7 +36,7 @@ func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.Ho
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeConnectionBias = info.LbConfig().ActiveRequestBias
 	} else {
-		lb.choice = default_choice
+		lb.choice = defaultChoice
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
