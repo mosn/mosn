@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
+
 	"mosn.io/api"
 )
 
@@ -71,7 +72,15 @@ type MetricsConfig struct {
 	ShmSize      datasize.ByteSize `json:"shm_size"`
 	FlushMosn    bool              `json:"flush_mosn"`
 	LazyFlush    bool              `json:"lazy_flush"`
+	SampleConfig SampleConfig      `json:"sample"`
 	EWMAConfig   *EWMAConfig       `json:"ewma,omitempty"`
+}
+
+// SampleConfig for metrics histogram
+type SampleConfig struct {
+	Type          string  `json:"type"`
+	Size          int     `json:"size"`
+	ExpDecayAlpha float64 `json:"exp_decay_alpha"`
 }
 
 // EWMAConfig for configuring EWMA alpha

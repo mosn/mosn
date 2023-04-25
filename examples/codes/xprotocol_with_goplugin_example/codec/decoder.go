@@ -28,7 +28,7 @@ import (
 	"mosn.io/pkg/header"
 )
 
-//根据传入的io流信息（已经符合协议） 封装好request对象并且返回
+// 根据传入的io流信息（已经符合协议） 封装好request对象并且返回
 func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	fmt.Printf("[in decodeRequest]\n")
 
@@ -64,7 +64,7 @@ func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err
 	return request, nil
 }
 
-//根据传入的io流信息（已经符合协议） 封装好response对象并且返回
+// 根据传入的io流信息（已经符合协议） 封装好response对象并且返回
 func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	fmt.Printf("[in decodeResponse]\n")
 

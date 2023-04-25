@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/types"
 )

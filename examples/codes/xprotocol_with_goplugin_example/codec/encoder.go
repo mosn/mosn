@@ -25,7 +25,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-//传入request对象，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
+// 传入request对象，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
 func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) {
 	fmt.Printf("[in encodeRequest] request: %+v\n", request.Payload)
 
@@ -56,7 +56,7 @@ func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) 
 	return buf, nil
 }
 
-//response，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
+// response，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
 func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, error) {
 	// 1. TODO: fast-path, use existed raw data
 	fmt.Printf("[in encodeResponse] response: %+v\n", response.Payload)

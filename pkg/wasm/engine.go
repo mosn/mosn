@@ -24,7 +24,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-//var vmMap = make(map[string]types.WasmVM)
+// var vmMap = make(map[string]types.WasmVM)
 var vmRegistry = sync.Map{}
 
 // RegisterWasmEngine registers a wasm vm(engine).

@@ -234,7 +234,7 @@ const (
 	ConnectionFailure PoolFailureReason = "ConnectionFailure"
 )
 
-//  ConnectionPool is a connection pool interface to extend various of protocols
+// ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
 	Protocol() api.ProtocolName
 

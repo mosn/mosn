@@ -162,6 +162,18 @@ func (m *Mosn) initializeMetrics() {
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
 	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
+
+	// set metrics sample configures
+	if config.SampleConfig.Type != "" {
+		metrics.SetSampleType(metrics.SampleType(config.SampleConfig.Type))
+	}
+	if config.SampleConfig.Size > 0 {
+		metrics.SetSampleSize(config.SampleConfig.Size)
+	}
+	if config.SampleConfig.ExpDecayAlpha > 0 {
+		metrics.SetExpDecayAlpha(config.SampleConfig.ExpDecayAlpha)
+	}
+
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
@@ -205,9 +217,9 @@ func (m *Mosn) initClusterManager() {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode := c.Mode(); mode == v2.Xds {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
+		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager)
 	} else {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
+		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager)
 	}
 
 }

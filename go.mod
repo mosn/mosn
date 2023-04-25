@@ -1,6 +1,6 @@
 module mosn.io/mosn
 
-go 1.17
+go 1.18
 
 require (
 	github.com/SkyAPM/go2sky v0.5.0

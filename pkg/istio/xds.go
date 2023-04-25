@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/utils"
 )
@@ -48,8 +48,8 @@ func NewAdsClient(config *v2.MOSNConfig) (*ADSClient, error) {
 		return nil, err
 	}
 	return &ADSClient{
-		config:   cfg,
-		stopChan: make(chan struct{}),
+		config:    cfg,
+		stopChan:  make(chan struct{}),
 		sendTimer: time.NewTimer(0),
 	}, nil
 }

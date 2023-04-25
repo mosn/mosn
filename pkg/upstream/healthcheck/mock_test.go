@@ -56,11 +56,12 @@ func (c *mockCluster) HostSet() types.HostSet {
 	return c.hs
 }
 
-func newMockHostSet(hosts []types.Host)types.HostSet{
+func newMockHostSet(hosts []types.Host) types.HostSet {
 	return &mockHostSet{hosts: hosts}
 }
 
 var _ types.HostSet = &mockHostSet{}
+
 type mockHostSet struct {
 	hosts []types.Host
 }
@@ -74,8 +75,8 @@ func (hs *mockHostSet) Get(i int) types.Host {
 }
 
 func (hs *mockHostSet) Range(f func(types.Host) bool) {
-	for _, h := range hs.hosts{
-		if !f(h){
+	for _, h := range hs.hosts {
+		if !f(h) {
 			return
 		}
 	}

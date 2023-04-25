@@ -27,9 +27,7 @@ import (
 	v2Host "mosn.io/proxy-wasm-go-host/proxywasm/v2"
 )
 
-//
 // v1 Imports
-//
 type v1Imports struct {
 	proxywasm010.DefaultImportsHandler
 	factory *FilterConfigFactory
@@ -96,9 +94,7 @@ func (v1 *v1Imports) GetHttpResponseTrailer() common.HeaderMap {
 	return &proxywasm010.HeaderMapWrapper{HeaderMap: v1.filter.senderFilterHandler.GetResponseTrailers()}
 }
 
-//
 // v2 Imports
-//
 type v2Imports struct {
 	proxywasm020.DefaultImportsHandler
 	factory *FilterConfigFactory
@@ -165,9 +161,7 @@ func (v2 *v2Imports) GetHttpResponseTrailer() common.HeaderMap {
 	return &proxywasm020.HeaderMapWrapper{HeaderMap: v2.filter.senderFilterHandler.GetResponseTrailers()}
 }
 
-//
 // exports
-//
 type exportAdapter struct {
 	v1 v1Host.Exports
 	v2 v2Host.Exports

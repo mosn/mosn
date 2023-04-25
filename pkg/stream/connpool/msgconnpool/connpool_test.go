@@ -32,8 +32,8 @@ import (
 )
 
 // myFilter implements 2 interfaces
-//    1. KeepAlive -> GetKeepAliveData + Stop + SaveHeartBeatFailCallback
-//    2. ReadFilter -> OnData
+//  1. KeepAlive -> GetKeepAliveData + Stop + SaveHeartBeatFailCallback
+//  2. ReadFilter -> OnData
 type myFilter struct {
 	keepaliveFrameTimeout time.Duration
 	heartbeatTriggerCount int
