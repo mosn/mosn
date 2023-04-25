@@ -8,6 +8,7 @@
 - 支持集群独占连接池 (#2281) @yejialiango
 - LeastActiveRequest 和 LeastActiveConnection 负载均衡器支持设置 active_request_bias (#2286) @jizhuozhi
 - 支持配置指标采样器 (#2261) @jizhuozhi
+- 新增 PeakEWMA 负载均衡器 (#2253) @jizhuozhi
 
 ### 变更
 

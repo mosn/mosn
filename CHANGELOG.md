@@ -8,6 +8,7 @@
 - Support cluster exclusive connectionPool (#2281) @yejialiango
 - LeastActiveRequest and LeastActiveConnection load balancers support setting active_request_bias (#2286) @jizhuozhi
 - Support configuration of metric sampler (#2261) @jizhuozhi
+- Add PeakEWMA load balancer (#2253) @jizhuozhi
 
 ### Changes
 
