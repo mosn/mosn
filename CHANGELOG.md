@@ -35,6 +35,7 @@
 - Fix incorrectly assume the variable not found if the real value is '-' (#2174) @3062
 - Fix nil interface panic caused by cluster certificate configuration error (#2291) @3062
 - Fix parsing error caused by using interface type in the leastActiveRequestLoadBalancer configuration (#2284) @jizhuozhi
+- Fix configuration lbConfig not effective (#2299) @3062
 
 ## v1.4.0
 
