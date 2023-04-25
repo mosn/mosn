@@ -98,14 +98,14 @@ func TestLeastActiveConnectionLoadBalancer_ChooseHost(t *testing.T) {
 	t.Run("no bias", func(t *testing.T) {
 		verify(t, nil, 0.15)
 	})
-	t.Run("bias 0.9", func(t *testing.T) {
+	t.Run("low bias", func(t *testing.T) {
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
 				ActiveRequestBias: 0.5,
 			},
 		}, 0.15)
 	})
-	t.Run("bias 1.1", func(t *testing.T) {
+	t.Run("high bias", func(t *testing.T) {
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
 				ActiveRequestBias: 1.5,
