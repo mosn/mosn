@@ -65,15 +65,16 @@ func TestEdfFixedWeight(t *testing.T) {
 	}
 }
 
-func mockHostList(count int, name string) []types.Host {
+func mockHostList(count int, name string, clusterInfo types.ClusterInfo) []types.Host {
 	hosts := make([]types.Host, 0, count)
 	for i := 0; i < count; i++ {
 		healthFlag := uint64(0)
 		hosts = append(hosts, &mockHost{
-			name:       fmt.Sprintf("%s%d", name, i),
-			addr:       fmt.Sprintf("127.0.0.%d", i),
-			w:          uint32(i + 1),
-			healthFlag: &healthFlag,
+			name:        fmt.Sprintf("%s%d", name, i),
+			addr:        fmt.Sprintf("127.0.0.%d", i),
+			w:           uint32(i + 1),
+			clusterInfo: clusterInfo,
+			healthFlag:  &healthFlag,
 		})
 	}
 	return hosts
@@ -133,7 +134,7 @@ func Benchmark_edfSchduler_NextAndPush(b *testing.B) {
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
 			edf := newEdfScheduler(tt.fields.hostCount)
-			hosts := mockHostList(tt.fields.hostCount, tt.fields.hostName)
+			hosts := mockHostList(tt.fields.hostCount, tt.fields.hostName, nil)
 			for _, h := range hosts {
 				edf.Add(h, float64(h.Weight()))
 			}
