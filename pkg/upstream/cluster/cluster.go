@@ -70,6 +70,7 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
 		clusterPoolEnable:    clusterConfig.ClusterPoolEnable,
+		lbConfig:             clusterConfig.LbConfig,
 	}
 	// set ConnectTimeout
 	if clusterConfig.ConnectTimeout != nil {
