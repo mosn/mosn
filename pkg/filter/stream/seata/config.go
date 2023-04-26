@@ -18,8 +18,9 @@
 package seata
 
 import (
-	"google.golang.org/grpc/keepalive"
 	"time"
+
+	"google.golang.org/grpc/keepalive"
 )
 
 // TransactionInfo transaction info config

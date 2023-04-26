@@ -26,8 +26,8 @@ import (
 	"github.com/juju/errors"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {

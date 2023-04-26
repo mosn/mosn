@@ -681,7 +681,6 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	// https://github.com/mosn/mosn/issues/2223
 	headers.SetProtocol(strHTTP11)
 
-
 	FillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
 
 	// copy headers

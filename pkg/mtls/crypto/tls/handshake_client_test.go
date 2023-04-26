@@ -810,10 +810,10 @@ func TestHandshakeClientCertECDSA(t *testing.T) {
 }
 
 // TestHandshakeClientCertRSAPSS tests a few separate things:
-//  * that our client can serve a PSS-signed certificate
-//  * that our client can validate a PSS-signed certificate
-//  * that our client can use rsa_pss_rsae_sha256 in its CertificateVerify
-//  * that our client can accpet rsa_pss_rsae_sha256 in the server CertificateVerify
+//   - that our client can serve a PSS-signed certificate
+//   - that our client can validate a PSS-signed certificate
+//   - that our client can use rsa_pss_rsae_sha256 in its CertificateVerify
+//   - that our client can accpet rsa_pss_rsae_sha256 in the server CertificateVerify
 func TestHandshakeClientCertRSAPSS(t *testing.T) {
 	issuer, err := x509.ParseCertificate(testRSAPSSCertificate)
 	if err != nil {

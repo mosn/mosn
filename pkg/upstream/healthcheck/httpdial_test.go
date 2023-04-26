@@ -193,8 +193,8 @@ func Test_CheckL7Health(t *testing.T) {
 			expect: true,
 		},
 		{
-			name:       "normal_code_with_querystring",
-			hostAddr:   httpAddr,
+			name:     "normal_code_with_querystring",
+			hostAddr: httpAddr,
 			config: HttpCheckConfig{
 				Path: "/200?test=foo&test1=bar",
 			},
@@ -211,24 +211,24 @@ func Test_CheckL7Health(t *testing.T) {
 			expect: true,
 		},
 		{
-			name:       "normal_code_no_path_and_querystring",
-			hostAddr:   httpAddr,
+			name:     "normal_code_no_path_and_querystring",
+			hostAddr: httpAddr,
 			config: HttpCheckConfig{
 				Path: "?",
 			},
 			expect: true,
 		},
 		{
-			name:       "normal_code_force_query",
-			hostAddr:   httpAddr,
+			name:     "normal_code_force_query",
+			hostAddr: httpAddr,
 			config: HttpCheckConfig{
 				Path: "/200?",
 			},
 			expect: true,
 		},
 		{
-			name:       "abnormal_code_illegal_path",
-			hostAddr:   httpAddr,
+			name:     "abnormal_code_illegal_path",
+			hostAddr: httpAddr,
 			config: HttpCheckConfig{
 				Path: "http://localhost/400?foo=bar",
 				Codes: []CodeRange{

@@ -69,6 +69,8 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
+		clusterPoolEnable:    clusterConfig.ClusterPoolEnable,
+		lbConfig:             clusterConfig.LbConfig,
 	}
 	// set ConnectTimeout
 	if clusterConfig.ConnectTimeout != nil {
@@ -212,15 +214,16 @@ type clusterInfo struct {
 	maxRequestsPerConn   uint32
 	mark                 uint32
 	resourceManager      types.ResourceManager
-	stats                types.ClusterStats
+	stats                *types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
 	clusterManagerTLS    bool
 	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
-	lbConfig             v2.IsCluster_LbConfig
+	lbConfig             *v2.LbConfig
 	slowStart            types.SlowStart
+	clusterPoolEnable    bool
 }
 
 func (ci *clusterInfo) Name() string {
@@ -247,7 +250,7 @@ func (ci *clusterInfo) Mark() uint32 {
 	return ci.mark
 }
 
-func (ci *clusterInfo) Stats() types.ClusterStats {
+func (ci *clusterInfo) Stats() *types.ClusterStats {
 	return ci.stats
 }
 
@@ -278,7 +281,7 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
 }
 
-func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
+func (ci *clusterInfo) LbConfig() *v2.LbConfig {
 	return ci.lbConfig
 }
 
@@ -288,6 +291,10 @@ func (ci *clusterInfo) SubType() string {
 
 func (ci *clusterInfo) SlowStart() types.SlowStart {
 	return ci.slowStart
+}
+
+func (ci *clusterInfo) IsClusterPoolEnable() bool {
+	return ci.clusterPoolEnable
 }
 
 type clusterSnapshot struct {

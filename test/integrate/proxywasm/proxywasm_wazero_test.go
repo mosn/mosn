@@ -18,8 +18,9 @@
 package wasm_test
 
 import (
-	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 	"testing"
+
+	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 )
 
 func Test_ProxyWasmV1_wazero(t *testing.T) {

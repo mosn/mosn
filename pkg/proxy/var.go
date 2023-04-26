@@ -19,7 +19,6 @@ package proxy
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
@@ -187,7 +186,7 @@ func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValu
 		return info.UpstreamLocalAddress(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 // DownstreamLocalAddressGetter
@@ -200,7 +199,7 @@ func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedVa
 		return info.DownstreamLocalAddress().String(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 // DownstreamRemoteAddressGetter
@@ -213,7 +212,7 @@ func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedV
 		return info.DownstreamRemoteAddress().String(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 // upstreamHostGetter
@@ -226,7 +225,7 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 		return info.UpstreamHost().Hostname(), nil
 	}
 
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 func upstreamTransportFailureReasonGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -243,20 +242,20 @@ func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, da
 	if stream.cluster != nil {
 		return stream.cluster.Name(), nil
 	}
-	return variable.ValueNotFound, errors.New("not found clustername")
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	proxyBuffers := proxyBuffersByContext(ctx)
 	headers := proxyBuffers.stream.downstreamReqHeaders
 	if headers == nil {
-		return variable.ValueNotFound, errors.New("not found request headers")
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(headerValue), nil
@@ -266,13 +265,13 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	headers := proxyBuffers.stream.downstreamRespHeaders
 	if headers == nil {
-		return variable.ValueNotFound, errors.New("not found resp headers")
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(headerValue), nil

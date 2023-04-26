@@ -40,6 +40,7 @@ server_config.json // Configure without TLS
 tls_client_config.json    // Configure with TLS
 tls_server_config.json    // Configure with TLS
 ```
+> example configs: 📑 [server_config.json](https://github.com/mosn/mosn/blob/master/examples/codes/http-sample/server_config.json) and  📑 [client_config.json](https://github.com/mosn/mosn/blob/master/examples/codes/http-sample/client_config.json)
 
 ## Operation instructions
 

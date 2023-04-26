@@ -58,7 +58,7 @@ func (s *Span) Tag(key uint64) string {
 	return ""
 }
 
-//SetRequestInfo record current request info to Span
+// SetRequestInfo record current request info to Span
 func (s *Span) SetRequestInfo(reqinfo api.RequestInfo) {
 	span := s.jaegerSpan
 	span.SetTag("request_size", reqinfo.BytesReceived())
@@ -87,7 +87,7 @@ func isErrorResponse(code int) bool {
 	return false
 }
 
-//FinishSpan submit span info to agent
+// FinishSpan submit span info to agent
 func (s *Span) FinishSpan() {
 	s.jaegerSpan.Finish()
 }

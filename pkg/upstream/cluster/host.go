@@ -38,7 +38,7 @@ type simpleHost struct {
 	hostname                string
 	addressString           string
 	clusterInfo             atomic.Value // store types.ClusterInfo
-	stats                   types.HostStats
+	stats                   *types.HostStats
 	metaData                api.Metadata
 	tlsDisable              bool
 	weight                  uint32
@@ -95,7 +95,7 @@ func (sh *simpleHost) AddressString() string {
 	return sh.addressString
 }
 
-func (sh *simpleHost) HostStats() types.HostStats {
+func (sh *simpleHost) HostStats() *types.HostStats {
 	return sh.stats
 }
 
@@ -116,12 +116,12 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng() != nil && sh.ClusterInfo().TLSMng().Enabled()
 }
 
 func (sh *simpleHost) TLSHashValue() *types.HashValue {
 	// check tls_disable config
-	if sh.tlsDisable || !sh.ClusterInfo().TLSMng().Enabled() {
+	if sh.tlsDisable || sh.ClusterInfo().TLSMng() == nil || !sh.ClusterInfo().TLSMng().Enabled() {
 		return disableTLSHashValue
 	}
 	// check global tls
