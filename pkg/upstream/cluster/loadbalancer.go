@@ -213,8 +213,9 @@ type WRRLoadBalancer struct {
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	wrrLB := &WRRLoadBalancer{}
-	wrrLB.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
+	wrrLB.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, wrrLB.unweightedChooseHost, wrrLB.hostWeight, false)
 	wrrLB.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
+
 	return wrrLB
 }
 
@@ -232,7 +233,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 }
 
 // do unweighted (fast) selection
-func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *WRRLoadBalancer) unweightedChooseHost(context types.LoadBalancerContext) types.Host {
 	return lb.rrLB.ChooseHost(context)
 }
 
@@ -248,14 +249,18 @@ type leastActiveRequestLoadBalancer struct {
 
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
+	forceWeighted := false
 	if info != nil && info.LbConfig() != nil {
+		forceWeighted = info.LbConfig().ForceWeighted
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = defaultChoice
 		lb.activeRequestBias = defaultActiveRequestBias
 	}
-	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
+
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChooseHost, lb.hostWeight, forceWeighted)
+
 	return lb
 }
 
@@ -280,7 +285,7 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 	return weight / math.Pow(float64(activeRequest), lb.activeRequestBias)
 }
 
-func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *leastActiveRequestLoadBalancer) unweightedChooseHost(context types.LoadBalancerContext) types.Host {
 
 	hs := lb.hosts
 	total := hs.Size()
@@ -312,8 +317,10 @@ type EdfLoadBalancer struct {
 	rand      *rand.Rand
 	mutex     sync.Mutex
 	// the method to choose host when all host
-	unweightChooseHostFunc func(types.LoadBalancerContext) types.Host
-	hostWeightFunc         func(item WeightItem) float64
+	unweightedChooseHostFunc func(types.LoadBalancerContext) types.Host
+	hostWeightFunc           func(item WeightItem) float64
+
+	forceWeighted bool
 }
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
@@ -345,7 +352,7 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	}
 
 	// Use unweighted round-robin as a fallback while failed to pick a healthy host by weighted round-robin.
-	return lb.unweightChooseHostFunc(context)
+	return lb.unweightedChooseHostFunc(context)
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -356,13 +363,14 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
 }
 
-func newEdfLoadBalancer(info types.ClusterInfo, hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
+func newEdfLoadBalancer(info types.ClusterInfo, hosts types.HostSet, unweightedChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64, forceWeighted bool) *EdfLoadBalancer {
 	hostWeightFunc = slowStartHostWeightFunc(info, hostWeightFunc)
 	lb := &EdfLoadBalancer{
-		hosts:                  hosts,
-		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
-		unweightChooseHostFunc: unWeightChoose,
-		hostWeightFunc:         hostWeightFunc,
+		hosts:                    hosts,
+		rand:                     rand.New(rand.NewSource(time.Now().UnixNano())),
+		unweightedChooseHostFunc: unweightedChoose,
+		hostWeightFunc:           hostWeightFunc,
+		forceWeighted:            forceWeighted,
 	}
 	lb.refresh(info, hosts)
 	return lb
@@ -450,7 +458,8 @@ func (lb *EdfLoadBalancer) refresh(info types.ClusterInfo, hosts types.HostSet) 
 	}
 
 	// Check if the slow-start not configured and original host weights are equal and skip EDF creation if they are
-	if slowStart.Mode == "" && hostWeightsAreEqual(hosts) {
+	// when not force weighted.
+	if !lb.forceWeighted && slowStart.Mode == "" && hostWeightsAreEqual(hosts) {
 		return
 	}
 
@@ -663,7 +672,7 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 		defaultDuration: info.ConnectTimeout() + info.IdleTimeout(),
 	}
 
-	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight, false)
 
 	if lb.defaultDuration == 0 {
 		lb.defaultDuration = defaultPeakEwmaDuration

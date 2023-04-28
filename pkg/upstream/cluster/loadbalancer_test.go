@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/rand"
 	"reflect"
@@ -1250,4 +1251,54 @@ func BenchmarkShortestResponseLoadBalancer_ChooseHost_Unweighted(b *testing.B) {
 		lb.ChooseHost(nil)
 	}
 	b.StopTimer()
+}
+
+func TestEdfForceWeightedEvenAllHostSameWeight(t *testing.T) {
+	dynamicWeights := make(map[WeightItem]int)
+	hosts := make([]types.Host, 0)
+
+	totalWeight := 0
+	for i := 0; i < 10; i++ {
+		h := &mockHost{
+			name: fmt.Sprintf("%d", i),
+			addr: fmt.Sprintf("127.0.0.%d", i),
+			w:    1,
+		}
+		dynamicWeights[h] = i + 1
+		hosts = append(hosts, h)
+		totalWeight += i + 1
+	}
+
+	rand.Shuffle(len(hosts), func(i, j int) {
+		h := hosts[i]
+		hosts[i] = hosts[j]
+		hosts[j] = h
+	})
+
+	hostSet := NewHostSet(hosts)
+
+	panicUnweightedChooseHost := func(_ types.LoadBalancerContext) types.Host {
+		panic("should not be touched")
+	}
+
+	dynamicWeightFunc := func(host WeightItem) float64 {
+		return float64(dynamicWeights[host])
+	}
+
+	edfLoadBalancer := newEdfLoadBalancer(nil, hostSet, panicUnweightedChooseHost, dynamicWeightFunc, true)
+
+	distribution := make(map[types.Host]int)
+
+	for i := 0; i < 100*totalWeight; i++ {
+		h := edfLoadBalancer.ChooseHost(nil)
+		distribution[h]++
+	}
+
+	checkDistribution := func() {
+		for i := 1; i < 10; i++ {
+			assert.InDelta(t, distribution[hosts[0]]/dynamicWeights[hosts[0]], distribution[hosts[i]]/dynamicWeights[hosts[i]], 1e-6)
+		}
+	}
+
+	checkDistribution()
 }

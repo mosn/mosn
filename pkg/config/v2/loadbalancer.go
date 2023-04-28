@@ -22,6 +22,9 @@ import (
 )
 
 type LbConfig struct {
+	// Forces to use weighted load balancing algorithm instead of P2C even if they have the same weight.
+	ForceWeighted bool `json:"force_weighted,omitempty"`
+
 	// The number of random healthy hosts from which
 	// the host with the fewest active requests will be chosen.
 	ChoiceCount uint32 `json:"choice_count,omitempty"`

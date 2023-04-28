@@ -32,14 +32,19 @@ type leastActiveConnectionLoadBalancer struct {
 
 func newLeastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
+	forceWeighted := false
+
 	if info != nil && info.LbConfig() != nil {
+		forceWeighted = info.LbConfig().ForceWeighted
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeConnectionBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = defaultChoice
 		lb.activeConnectionBias = defaultActiveRequestBias
 	}
-	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
+
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight, forceWeighted)
+
 	return lb
 }
 
