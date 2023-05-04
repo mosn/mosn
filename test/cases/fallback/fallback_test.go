@@ -1,3 +1,4 @@
+//go:build MOSNTest
 // +build MOSNTest
 
 package fallback
@@ -18,7 +19,7 @@ var receiveHttpReq bool = false
 var receiveTcpReq bool = true
 
 func startTcpServer(port int) net.Listener {
-	l, err := net.Listen("tcp", "127.0.0.1:" + strconv.Itoa(port))
+	l, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
 	if err != nil || l == nil {
 		fmt.Println("fail to start tcp server")
 		return nil
@@ -103,7 +104,7 @@ func TestProxyFallback(t *testing.T) {
 			// no data, wait until time out
 			_, err = net.Dial("tcp", "127.0.0.1:22163")
 			Verify(err, Equal, nil)
-			time.Sleep(18*time.Second)
+			time.Sleep(18 * time.Second)
 		})
 
 		TearDown(func() {

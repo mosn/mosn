@@ -23,6 +23,8 @@ import (
 	"testing"
 
 	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/stretchr/testify/assert"
+
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/types"
 )
@@ -172,7 +174,7 @@ func TestExclusionKeys(t *testing.T) {
 	// Test reject all
 	ResetAll()
 	SetStatsMatcher(true, nil, nil)
-	for key, _ := range testCases {
+	for key := range testCases {
 		gauge := m.Gauge(key)
 		if _, ok := gauge.(gometrics.NilGauge); !ok {
 			t.Errorf("%s expected get nil in reject all scene, bot not", key)
@@ -212,6 +214,24 @@ func TestLazyFlush(t *testing.T) {
 	}
 
 	metrics.UnregisterAll()
+}
+
+func TestMetrics_Histogram(t *testing.T) {
+	stats, _ := NewMetrics("histogram", map[string]string{"hk": "hv"})
+
+	var h gometrics.Histogram
+	var s gometrics.Sample
+
+	SetSampleType(SampleUniform)
+
+	h = stats.Histogram("uniform")
+	s = h.Sample()
+	assert.IsType(t, &gometrics.UniformSample{}, s)
+
+	SetSampleType(SampleExpDecay)
+	h = stats.Histogram("exp_decay")
+	s = h.Sample()
+	assert.IsType(t, &gometrics.ExpDecaySample{}, s)
 }
 
 func BenchmarkNewMetrics_SameLabels(b *testing.B) {

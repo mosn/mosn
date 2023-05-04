@@ -19,7 +19,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
 	"mosn.io/api"
@@ -93,7 +92,7 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 
 	length := len(request.Header.Header()) + len(request.Body())
 	if length == 0 {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return strconv.Itoa(length), nil
@@ -133,7 +132,7 @@ func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data in
 	headerValue := request.Header.Peek(headerName[headerIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if headerValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(headerValue), nil
@@ -148,7 +147,7 @@ func httpArgGetter(ctx context.Context, value *variable.IndexedValue, data inter
 	argValue := request.URI().QueryArgs().Peek(argName[argIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if argValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(argValue), nil
@@ -162,7 +161,7 @@ func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data in
 	cookieValue := request.Header.Cookie(cookieName[cookieIndex:])
 	// error not nil means that no kv exists
 	if cookieValue == nil {
-		return variable.ValueNotFound, errors.New("not found cookie value")
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(cookieValue), nil

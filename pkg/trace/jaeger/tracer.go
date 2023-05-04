@@ -54,7 +54,7 @@ type Tracer struct {
 	tracer opentracing.Tracer
 }
 
-//NewTracer create new jaeger
+// NewTracer create new jaeger
 func NewTracer(traceCfg map[string]interface{}) (api.Tracer, error) {
 	cfg := config.Configuration{
 		Disabled: false,
@@ -111,7 +111,7 @@ func getServiceName(traceCfg map[string]interface{}) string {
 	return defaultServiceName
 }
 
-//Start init span
+// Start init span
 func (t *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	header, ok := request.(http.RequestHeader)
 

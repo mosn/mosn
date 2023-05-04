@@ -18,7 +18,7 @@
 package ext
 
 type ServerLister interface {
-	List(string) (chan []string)
+	List(string) chan []string
 }
 
 var serverListers = map[string]ServerLister{}
@@ -31,12 +31,10 @@ func GetServerLister(name string) ServerLister {
 	return serverListers[name]
 }
 
-
 // ConnectionValidator
 type ConnectionValidator interface {
 	Validate(credential string, host string, cluster string) bool
 }
-
 
 func RegisterConnectionValidator(name string, validator ConnectionValidator) {
 	connectionValidators[name] = validator
@@ -47,7 +45,6 @@ func GetConnectionValidator(name string) ConnectionValidator {
 }
 
 var connectionValidators = map[string]ConnectionValidator{}
-
 
 // ConnectionCredentialGetter
 type ConnectionCredentialGetter func(cluster string) string

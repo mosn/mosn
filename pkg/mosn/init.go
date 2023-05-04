@@ -76,7 +76,6 @@ func initializeTracing(config v2.TracingConfig) {
 	}
 }
 
-
 func InitDefaultPath(c *v2.MOSNConfig) {
 	types.InitDefaultPath(configmanager.GetConfigPath(), c.UDSDir)
 }

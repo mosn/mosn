@@ -18,6 +18,9 @@
 package metrics
 
 import (
+	gometrics "github.com/rcrowley/go-metrics"
+
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -39,6 +42,42 @@ var (
 	// LazyFlushMetrics marks flush data with lazy mode
 	LazyFlushMetrics bool
 )
+
+type SampleType string
+
+const (
+	SampleUniform  SampleType = "UNIFORM"
+	SampleExpDecay SampleType = "EXP_DECAY"
+)
+
+const (
+	defaultSampleType    = SampleUniform
+	defaultSampleSize    = 100
+	defaultExpDecayAlpha = 0.5
+)
+
+var (
+	sampleType    = defaultSampleType
+	sampleSize    = defaultSampleSize
+	expDecayAlpha = defaultExpDecayAlpha
+)
+
+type SampleFactory func() gometrics.Sample
+
+var sampleFactories = make(map[SampleType]SampleFactory) //nolint:gochecknoglobals
+
+func RegisterSampleFactory(t SampleType, factory SampleFactory) {
+	sampleFactories[t] = factory
+}
+
+func init() {
+	RegisterSampleFactory(SampleUniform, func() gometrics.Sample {
+		return gometrics.NewUniformSample(sampleSize)
+	})
+	RegisterSampleFactory(SampleExpDecay, func() gometrics.Sample {
+		return gometrics.NewExpDecaySample(sampleSize, expDecayAlpha)
+	})
+}
 
 // NewMosnMetrics returns the basic metrics for mosn
 // export the function for extension
@@ -76,4 +115,27 @@ func AddListenerAddr(addr string) {
 func SetMetricsFeature(flushMosn, lazyFlush bool) {
 	FlushMosnMetrics = flushMosn
 	LazyFlushMetrics = lazyFlush
+}
+
+// SetSampleType set sample type for Histogram
+func SetSampleType(t SampleType) {
+	if _, ok := sampleFactories[t]; !ok {
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("[metrics] Unknown sample type %s, will use UNIFORM as default", t)
+		}
+
+		t = SampleUniform
+	}
+
+	sampleType = t
+}
+
+// SetSampleSize set sample size for Histogram
+func SetSampleSize(size int) {
+	sampleSize = size
+}
+
+// SetExpDecayAlpha set alpha of ExpDecaySample for Histogram
+func SetExpDecayAlpha(alpha float64) {
+	expDecayAlpha = alpha
 }
