@@ -267,17 +267,9 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 
 	weight := float64(host.Weight())
 
-	activeRequest := host.HostStats().UpstreamRequestActive.Count() + 1
+	biasedActiveRequest := math.Pow(float64(host.HostStats().UpstreamRequestActive.Count())+1, lb.activeRequestBias)
 
-	if activeRequest == 1 || lb.activeRequestBias == 0.0 {
-		return weight
-	}
-
-	if lb.activeRequestBias == 1.0 {
-		return weight / float64(activeRequest)
-	}
-
-	return weight / math.Pow(float64(activeRequest), lb.activeRequestBias)
+	return weight / biasedActiveRequest
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
@@ -798,12 +790,7 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 		}
 	}
 
-	biasedActiveRequest := float64(stats.UpstreamRequestActive.Count()) + 1
-	if biasedActiveRequest == 1.0 || lb.activeRequestBias == 0.0 {
-		biasedActiveRequest = 1
-	} else if lb.activeRequestBias != 1.0 {
-		biasedActiveRequest = math.Pow(biasedActiveRequest, lb.activeRequestBias)
-	}
+	biasedActiveRequest := math.Pow(float64(stats.UpstreamRequestActive.Count())+1, lb.activeRequestBias)
 
 	return duration * biasedActiveRequest
 }
