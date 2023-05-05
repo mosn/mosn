@@ -250,6 +250,7 @@ type leastActiveRequestLoadBalancer struct {
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	forceWeighted := false
+
 	if info != nil && info.LbConfig() != nil {
 		forceWeighted = info.LbConfig().ForceWeighted
 		lb.choice = info.LbConfig().ChoiceCount
@@ -660,16 +661,19 @@ type peakEwmaLoadBalancer struct {
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &peakEwmaLoadBalancer{}
-	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
-	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight, false)
 
+	forceWeighted := false
 	if info != nil && info.LbConfig() != nil {
+		forceWeighted = info.LbConfig().ForceWeighted
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
 		lb.choice = defaultChoice
 		lb.activeRequestBias = defaultActiveRequestBias
 	}
+
+	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight, forceWeighted)
 
 	if info != nil {
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()

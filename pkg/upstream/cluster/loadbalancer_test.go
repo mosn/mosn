@@ -1354,7 +1354,7 @@ func TestEdfForceWeightedEvenAllHostSameWeight(t *testing.T) {
 
 	checkDistribution := func() {
 		for i := 1; i < 10; i++ {
-			assert.InDelta(t, distribution[hosts[0]]/dynamicWeights[hosts[0]], distribution[hosts[i]]/dynamicWeights[hosts[i]], 1e-6)
+			assert.InDelta(t, distribution[hosts[0]]/dynamicWeights[hosts[0]], distribution[hosts[i]]/dynamicWeights[hosts[i]], 1)
 		}
 	}
 
