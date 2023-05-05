@@ -267,17 +267,9 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 
 	weight := float64(host.Weight())
 
-	activeRequest := host.HostStats().UpstreamRequestActive.Count() + 1
+	biasedActiveRequest := math.Pow(float64(host.HostStats().UpstreamRequestActive.Count())+1, lb.activeRequestBias)
 
-	if activeRequest == 1 || lb.activeRequestBias == 0.0 {
-		return weight
-	}
-
-	if lb.activeRequestBias == 1.0 {
-		return weight / float64(activeRequest)
-	}
-
-	return weight / math.Pow(float64(activeRequest), lb.activeRequestBias)
+	return weight / biasedActiveRequest
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
@@ -651,19 +643,28 @@ type peakEwmaLoadBalancer struct {
 	*EdfLoadBalancer
 	rrLB types.LoadBalancer
 
-	choice          uint32
+	choice            uint32
+	activeRequestBias float64
+
 	defaultDuration time.Duration
 }
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	lb := &peakEwmaLoadBalancer{
-		rrLB: rrFactory.newRoundRobinLoadBalancer(info, hosts),
+	lb := &peakEwmaLoadBalancer{}
+	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
-		choice:          defaultChoice,
-		defaultDuration: info.ConnectTimeout() + info.IdleTimeout(),
+	if info != nil && info.LbConfig() != nil {
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
+	} else {
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
 	}
 
-	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
+	if info != nil {
+		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
+	}
 
 	if lb.defaultDuration == 0 {
 		lb.defaultDuration = defaultPeakEwmaDuration
@@ -732,7 +733,7 @@ func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
 
 	if candidate != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %d",
+			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %f",
 				candidate.AddressString(), lb.unweightedPeakEwmaScore(candidate))
 		}
 	}
@@ -779,10 +780,17 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	stats := h.HostStats()
 
 	duration := stats.UpstreamRequestDurationEWMA.Rate()
-	// None of the active requests returned, or the metrics is disabled
+
+	// None of the active requests returned, try to use cluster duration as default.
 	if duration == 0 {
-		duration = float64(lb.defaultDuration)
+		duration = h.ClusterInfo().Stats().UpstreamRequestDurationEWMA.Rate()
+		// None of the active requests returned in cluster, or the metrics is disabled
+		if duration == 0 {
+			duration = float64(lb.defaultDuration)
+		}
 	}
 
-	return duration * float64(stats.UpstreamRequestActive.Count()+1)
+	biasedActiveRequest := math.Pow(float64(stats.UpstreamRequestActive.Count())+1, lb.activeRequestBias)
+
+	return duration * biasedActiveRequest
 }
