@@ -54,14 +54,14 @@ func Test(t *testing.T) {
 }
 
 func TestEdfFixedWeight(t *testing.T) {
-	if edfFixedWeight(0) != float64(v2.MinHostWeight) {
-		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), edfFixedWeight(0))
+	if fixHostWeight(0) != float64(v2.MinHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), fixHostWeight(0))
 	}
-	if edfFixedWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
-		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
+	if fixHostWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), fixHostWeight(math.MaxFloat64))
 	}
-	if edfFixedWeight(10.0) != 10.0 {
-		t.Fatalf("Except %f but %f", 10.0, edfFixedWeight(10.0))
+	if fixHostWeight(10.0) != 10.0 {
+		t.Fatalf("Except %f but %f", 10.0, fixHostWeight(10.0))
 	}
 }
 

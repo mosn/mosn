@@ -50,7 +50,7 @@ type WeightItem interface {
 
 // Add new item into the edfScheduler
 func (edf *edfScheduler) Add(item WeightItem, weight float64) {
-	weight = edfFixedWeight(weight)
+	weight = fixHostWeight(weight)
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	entry := edfEntry{
@@ -73,7 +73,6 @@ func (edf *edfScheduler) NextAndPush(weightFunc func(item WeightItem) float64) i
 	entry := edf.items.Peek()
 	edf.currentTime = entry.deadline
 	weight := weightFunc(entry.item)
-	weight = edfFixedWeight(weight)
 	// update the entry.deadline and put into priorityQueue again
 	entry.deadline = entry.deadline + 1.0/weight
 	entry.weight = weight
@@ -87,7 +86,7 @@ func (edf *edfScheduler) tick() int64 {
 	return edf.clock
 }
 
-func edfFixedWeight(weight float64) float64 {
+func fixHostWeight(weight float64) float64 {
 	if weight <= float64(v2.MinHostWeight) {
 		return float64(v2.MinHostWeight)
 	}

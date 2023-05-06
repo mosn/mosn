@@ -128,7 +128,7 @@ func testWRRLBCase(t *testing.T, hostNum int, weightFunc func(int) int) {
 		for i := 0; i < hostNum; i++ {
 			addr := hosts[i].AddressString()
 			rate := float64(results[addr]) / float64(subTotal)
-			expected := edfFixedWeight(float64(weightFunc(i))) / allWeight
+			expected := fixHostWeight(float64(weightFunc(i))) / allWeight
 			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
@@ -514,21 +514,21 @@ func TestLeastActiveRequestLoadBalancer_ChooseHost(t *testing.T) {
 	}
 
 	t.Run("no bias", func(t *testing.T) {
-		verify(t, nil, 0.15)
+		verify(t, nil, 1e-4)
 	})
 	t.Run("low bias", func(t *testing.T) {
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
 				ActiveRequestBias: 0.5,
 			},
-		}, 0.15)
+		}, 1e-4)
 	})
 	t.Run("high bias", func(t *testing.T) {
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
 				ActiveRequestBias: 1.5,
 			},
-		}, 0.15)
+		}, 1e-4)
 	})
 }
 
