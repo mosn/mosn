@@ -1317,10 +1317,12 @@ func TestEdfForceWeightedEvenAllHostSameWeight(t *testing.T) {
 
 	totalWeight := 0
 	for i := 0; i < 10; i++ {
+		healthFlag := uint64(0)
 		h := &mockHost{
-			name: fmt.Sprintf("%d", i),
-			addr: fmt.Sprintf("127.0.0.%d", i),
-			w:    1,
+			name:       fmt.Sprintf("%d", i),
+			addr:       fmt.Sprintf("127.0.0.%d", i),
+			w:          1,
+			healthFlag: &healthFlag,
 		}
 		dynamicWeights[h] = i + 1
 		hosts = append(hosts, h)
