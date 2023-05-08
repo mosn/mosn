@@ -50,7 +50,6 @@ type WeightItem interface {
 
 // Add new item into the edfScheduler
 func (edf *edfScheduler) Add(item WeightItem, weight float64) {
-	weight = fixHostWeight(weight)
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	entry := edfEntry{

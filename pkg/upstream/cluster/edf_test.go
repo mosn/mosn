@@ -190,3 +190,44 @@ func TestEdfSchedulerDistribution(t *testing.T) {
 		checkDistribution(seq)
 	}
 }
+
+func TestEdfSchedulerWhenWeightsVerySmall(t *testing.T) {
+	dynamicWeights := make(map[WeightItem]float64)
+	scheduler := newEdfScheduler(10)
+	for i := 0; i < 10; i++ {
+		healthFlag := uint64(0)
+		h := &mockHost{
+			name:       fmt.Sprintf("%d", i),
+			addr:       fmt.Sprintf("127.0.0.%d", i),
+			w:          uint32(i + 1), // just for constructing scheduler when refresh
+			healthFlag: &healthFlag,
+		}
+		w := float64(i+1) / 1000
+		dynamicWeights[h] = w // a very small value
+		scheduler.Add(h, w)
+	}
+
+	normalize := func(m map[WeightItem]float64) map[WeightItem]float64 {
+		total := 0.0
+		r := make(map[WeightItem]float64)
+		for _, v := range m {
+			total += v
+		}
+		for k, v := range m {
+			r[k] = v / total
+		}
+		return r
+	}
+
+	result := make(map[WeightItem]float64)
+	for i := 0; i < 1000000; i++ {
+		h := scheduler.NextAndPush(func(item WeightItem) float64 {
+			return dynamicWeights[item]
+		}).(types.Host)
+		result[h]++
+	}
+
+	expected := normalize(dynamicWeights)
+	actual := normalize(result)
+	assert.InDeltaMapValues(t, expected, actual, 1e-6)
+}
