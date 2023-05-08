@@ -191,7 +191,7 @@ func TestEdfSchedulerDistribution(t *testing.T) {
 	}
 }
 
-func TestEdfSchedulerWhenWeightsVerySmall(t *testing.T) {
+func TestEdfSchedulerWhenDynamicWeightsVerySmall(t *testing.T) {
 	dynamicWeights := make(map[WeightItem]float64)
 	scheduler := newEdfScheduler(10)
 	for i := 0; i < 10; i++ {
