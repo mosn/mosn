@@ -228,7 +228,7 @@ func (lb *WRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
-	return float64(host.Weight())
+	return fixHostWeight(float64(host.Weight()))
 }
 
 // do unweighted (fast) selection
@@ -265,7 +265,7 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 		return float64(item.Weight())
 	}
 
-	weight := float64(host.Weight())
+	weight := fixHostWeight(float64(host.Weight()))
 
 	biasedActiveRequest := math.Pow(float64(host.HostStats().UpstreamRequestActive.Count())+1, lb.activeRequestBias)
 
@@ -676,10 +676,10 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 func (lb *peakEwmaLoadBalancer) hostWeight(item WeightItem) float64 {
 	host, ok := item.(types.Host)
 	if !ok {
-		return float64(item.Weight())
+		return fixHostWeight(float64(item.Weight()))
 	}
 
-	return float64(host.Weight()) / lb.unweightedPeakEwmaScore(host)
+	return fixHostWeight(float64(host.Weight())) / lb.unweightedPeakEwmaScore(host)
 }
 
 func (lb *peakEwmaLoadBalancer) unweightedChoose(context types.LoadBalancerContext) types.Host {

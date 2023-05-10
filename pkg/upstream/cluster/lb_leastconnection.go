@@ -49,7 +49,7 @@ func (lb *leastActiveConnectionLoadBalancer) hostWeight(item WeightItem) float64
 		return float64(item.Weight())
 	}
 
-	weight := float64(host.Weight())
+	weight := fixHostWeight(float64(host.Weight()))
 
 	biasedActiveConnection := math.Pow(float64(host.HostStats().UpstreamConnectionActive.Count())+1, lb.activeConnectionBias)
 
