@@ -34,13 +34,16 @@ type Listener struct {
 	addr    net.Addr
 }
 
-func NewListener(address string) (*Listener, error) {
+func NewListener(network string, address string) (*Listener, error) {
 	var (
 		addr net.Addr
 		err  error
 	)
-	// TODO: support unix
-	addr, err = net.ResolveTCPAddr("tcp", address)
+	if network == "unix" {
+		addr, err = net.ResolveUnixAddr("unix", address)
+	} else {
+		addr, err = net.ResolveTCPAddr("tcp", address)
+	}
 	if err != nil {
 		log.DefaultLogger.Errorf("invalid server address info: %s, error: %v", address, err)
 		return nil, err

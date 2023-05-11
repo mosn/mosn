@@ -69,6 +69,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		return ErrInvalidConfig
 	}
 	addr := cfg.AddrConfig
+	network := cfg.Network
 	if addr == "" {
 		addr = cfg.Addr.String()
 	}
@@ -81,7 +82,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
-	sw, err := f.handler.New(addr, f.config.GrpcConfig, opts...)
+	sw, err := f.handler.New(addr, network, f.config.GrpcConfig, opts...)
 	if err != nil {
 		return err
 	}
@@ -220,7 +221,7 @@ type Handler struct {
 }
 
 // New a grpc server with address. Same address returns same server, which can be start only once.
-func (s *Handler) New(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
+func (s *Handler) New(addr string, network string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	sw, ok := s.servers[addr]
