@@ -228,7 +228,7 @@ func (s *Handler) New(addr string, network string, conf json.RawMessage, options
 	if ok {
 		return sw, nil
 	}
-	ln, err := NewListener(addr)
+	ln, err := NewListener(network, addr)
 	if err != nil {
 		log.DefaultLogger.Errorf("create a listener failed: %v", err)
 		return nil, err
