@@ -20,7 +20,7 @@ package configmanager
 import (
 	"encoding/json"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // effectiveConfig represents mosn's runtime config model

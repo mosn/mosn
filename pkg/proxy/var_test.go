@@ -23,8 +23,8 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestResponseFlag(t *testing.T) {
@@ -84,5 +84,58 @@ func TestRequestHeaderNotFound(t *testing.T) {
 	val, err := variable.GetString(ctx, "request_header_not_exists")
 	if val != "" || err == nil {
 		t.Fatalf("unexpected variable value, expect not found while got: %v", val)
+	}
+}
+
+func TestReturnError(t *testing.T) {
+
+	type testFunc func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error)
+	testCases := []struct {
+		name     string
+		testFunc testFunc
+		want     string
+	}{
+		{
+			name:     "upstreamLocalAddressGetter",
+			testFunc: upstreamLocalAddressGetter,
+		},
+		{
+			name:     "downstreamLocalAddressGetter",
+			testFunc: downstreamLocalAddressGetter,
+		},
+		{
+			name:     "downstreamRemoteAddressGetter",
+			testFunc: downstreamRemoteAddressGetter,
+		},
+		{
+			name:     "upstreamHostGetter",
+			testFunc: upstreamHostGetter,
+		},
+		{
+			name:     "upstreamClusterGetter",
+			testFunc: upstreamClusterGetter,
+		},
+		{
+			name:     "requestHeaderMapGetter",
+			testFunc: requestHeaderMapGetter,
+		},
+		{
+			name:     "responseHeaderMapGetter",
+			testFunc: responseHeaderMapGetter,
+		},
+	}
+
+	var ctx context.Context
+	ctx = buffer.NewBufferPoolContext(ctx)
+
+	for _, tc := range testCases {
+		var ctx context.Context
+		ctx = buffer.NewBufferPoolContext(ctx)
+
+		_, err := tc.testFunc(ctx, nil, nil)
+
+		if err.Error() != variable.ErrValueNotFound.Error() {
+			t.Errorf("%s: response flag expected (%s), but got (%s)", tc.name, tc.want, err.Error())
+		}
 	}
 }

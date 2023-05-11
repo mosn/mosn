@@ -35,12 +35,13 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mtls"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/types"
 )
 
 // Network related const
@@ -257,11 +258,11 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 	c.newIdleChecker(readTimeout, idleTimeout)
 }
 
-func (conn *connection) OnConnectionEvent(event api.ConnectionEvent) {
+func (c *connection) OnConnectionEvent(event api.ConnectionEvent) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
 	}
-	for _, listener := range conn.connCallbacks {
+	for _, listener := range c.connCallbacks {
 		listener.OnEvent(event)
 	}
 }

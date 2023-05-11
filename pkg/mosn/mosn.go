@@ -19,7 +19,6 @@ package mosn
 
 import (
 	"errors"
-	"mosn.io/mosn/pkg/server/pid"
 	"net"
 	"time"
 
@@ -28,9 +27,14 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
+	"mosn.io/mosn/pkg/metrics/shm"
+	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -80,6 +84,9 @@ func (m *Mosn) Init(c *v2.MOSNConfig) error {
 
 	log.StartLogger.Infof("[mosn start] init the members of the mosn")
 
+	// after inherit config,
+	// since metrics need the isFromUpgrade flag in Mosn
+	m.initializeMetrics()
 	m.initClusterManager()
 	m.initServer()
 
@@ -136,10 +143,60 @@ func (m *Mosn) inheritConfig(c *v2.MOSNConfig) (err error) {
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 	// start init services
-	if err = store.StartService(nil); err != nil {
+	if err = store.StartService(m.Upgrade.InheritListeners); err != nil {
 		log.StartLogger.Errorf("[mosn] [NewMosn] start service failed: %v, exit", err)
 	}
 	return
+}
+
+func (m *Mosn) initializeMetrics() {
+	metrics.FlushMosnMetrics = true
+	config := m.Config.Metrics
+
+	// init shm zone
+	if config.ShmZone != "" && config.ShmSize > 0 {
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), !m.IsFromUpgrade())
+	}
+
+	// set metrics package
+	statsMatcher := config.StatsMatcher
+	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
+	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
+
+	// set metrics sample configures
+	if config.SampleConfig.Type != "" {
+		metrics.SetSampleType(metrics.SampleType(config.SampleConfig.Type))
+	}
+	if config.SampleConfig.Size > 0 {
+		metrics.SetSampleSize(config.SampleConfig.Size)
+	}
+	if config.SampleConfig.ExpDecayAlpha > 0 {
+		metrics.SetExpDecayAlpha(config.SampleConfig.ExpDecayAlpha)
+	}
+
+	// create sinks
+	for _, cfg := range config.SinkConfigs {
+		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)
+		// abort
+		if err != nil {
+			log.StartLogger.Errorf("[mosn] [init metrics] %s. %v metrics sink is turned off", err, cfg.Type)
+			return
+		}
+		log.StartLogger.Infof("[mosn] [init metrics] create metrics sink: %v", cfg.Type)
+	}
+
+	// set ewma alpha
+	if config.EWMAConfig != nil {
+		switch {
+		case config.EWMAConfig.Alpha > 0 && config.EWMAConfig.Alpha < 1:
+			cluster.SetAlpha(config.EWMAConfig.Alpha)
+		case config.EWMAConfig.Target > 0 && config.EWMAConfig.Target < 1 && config.EWMAConfig.Duration != nil:
+			cluster.SetAlpha(ewma.Alpha(config.EWMAConfig.Target, config.EWMAConfig.Duration.Duration))
+		default:
+			log.StartLogger.Errorf("[mosn] [init metrics] invalid EWMA config, use %f as default alpha",
+				cluster.GetAlpha())
+		}
+	}
 }
 
 type clusterManagerFilter struct {
@@ -160,9 +217,9 @@ func (m *Mosn) initClusterManager() {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode := c.Mode(); mode == v2.Xds {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
+		m.Clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager)
 	} else {
-		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
+		m.Clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager)
 	}
 
 }
@@ -213,7 +270,7 @@ func (m *Mosn) initServer() {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.Clustermanager)
 
-			for idx, _ := range serverConfig.Listeners {
+			for idx := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn)
 				// Note lc.FilterChains may be a nil value, and there is a check in srv.AddListener

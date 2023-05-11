@@ -55,26 +55,27 @@ type State int
 // There are 11 main stages:
 // 1. The parameters parsed stage. In this stage, parse different parameters from cli.Context,
 // and finally call config load to create a MOSNConfig.
-// 2. The initialize stage. In this stage, do some init actions based on config, and finally call Application.Init.
-// 3. The pre-startup stage. In this stage, creates some basic instance after executing Application.Init.
-// 4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
-// 5. The after-start stage. In this stage, do some other init actions after startup.
-// 6. The running stage.
-// 7. The before-stop stage. In this stage, do actions depend on the "stop action" before stopping service actually,
-//    like: unpub from registry or checking the unpub status, make sure it's safer for graceful stop.
-// 8. The graceful stop stage. In this stage, stop listen and graceful stop the existing connections.
-// 9. The stop stage. In this stage, executing Application.Close.
-// 10. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
-// 11. The stopped stage. everything is closed.
+//  2. The initialize stage. In this stage, do some init actions based on config, and finally call Application.Init.
+//  3. The pre-startup stage. In this stage, creates some basic instance after executing Application.Init.
+//  4. The startup stage. In this stage, do some startup actions such as connections transfer for smooth upgrade and so on.
+//  5. The after-start stage. In this stage, do some other init actions after startup.
+//  6. The running stage.
+//  7. The before-stop stage. In this stage, do actions depend on the "stop action" before stopping service actually,
+//     like: unpub from registry or checking the unpub status, make sure it's safer for graceful stop.
+//  8. The graceful stop stage. In this stage, stop listen and graceful stop the existing connections.
+//  9. The stop stage. In this stage, executing Application.Close.
+//  10. The after-stop stage. In this stage, do some clean up actions after executing Application.Close
+//  11. The stopped stage. everything is closed.
+//
 // The difference between pre-startup stage and startup stage is that startup stage has already accomplished the resources
 // that used to startup application.
 //
 // And, there are 2 additional stages:
-// 1. Starting a new server. It's for the old server only.
-//    The current server will fork a new server when it receives the HUP signal.
-// 2. Upgrading. It's for the old server only too.
-//    It means that the new server already started, and the old server is transferring the config
-//    and existing connections to the new server.
+//  1. Starting a new server. It's for the old server only.
+//     The current server will fork a new server when it receives the HUP signal.
+//  2. Upgrading. It's for the old server only too.
+//     It means that the new server already started, and the old server is transferring the config
+//     and existing connections to the new server.
 const (
 	Nil State = iota
 	ParamsParsed
@@ -106,8 +107,8 @@ type Application interface {
 	// Shutdown means graceful stop
 	Shutdown() error
 	// Close means stop working immediately
-	// It will skip stop reconfigure domain socket when is not upgrading
-	Close(bool)
+	// It will skip stop reconfigure domain socket when is upgrading
+	Close(isUpgrade bool)
 	// IsFromUpgrade application start from upgrade mode,
 	// means inherit connections and configuration(if enabled) from old application.
 	IsFromUpgrade() bool
@@ -390,7 +391,9 @@ func (stm *StageManager) Stop() {
 	stm.SetState(Stopping)
 
 	// close application
-	stm.app.Close(preState != Upgrading)
+	// preState == Upgrading : old Mosn exits after new Mosn starts successfully
+	// preState < Starting && stm.app.IsFromUpgrade() : new Mosn exits when starting from upgrade mode fails
+	stm.app.Close(preState == Upgrading || preState < Starting && stm.app.IsFromUpgrade())
 
 	// other cleanup actions
 	stm.runAfterStopStage()

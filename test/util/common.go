@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//tools
+// tools
 var r *rand.Rand
 
 func init() {

@@ -19,7 +19,7 @@ package jaeger
 
 import "mosn.io/mosn/pkg/protocol/http"
 
-//HTTPHeadersCarrier
+// HTTPHeadersCarrier
 type HTTPHeadersCarrier http.RequestHeader
 
 // ForeachKey conforms to the HTTPHeadersCarrier interface.

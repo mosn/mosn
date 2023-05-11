@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // Test Dump Action with extensions

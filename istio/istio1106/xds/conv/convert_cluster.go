@@ -60,9 +60,10 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			ConnectTimeout:       &api.DurationConfig{Duration: ConvertDuration(xdsCluster.GetConnectTimeout())},
 			// OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Spec:     convertSpec(xdsCluster),
-			TLS:      convertTLS(xdsTLSContext),
-			LbConfig: convertLbConfig(xdsCluster.LbConfig),
+			Spec:      convertSpec(xdsCluster),
+			TLS:       convertTLS(xdsTLSContext),
+			LbConfig:  convertLbConfig(xdsCluster.LbConfig),
+			SlowStart: convertSlowStart(xdsCluster),
 		}
 
 		// TODO: We have not implemented the upstream_bind_config yet
@@ -91,10 +92,13 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 }
 
 // TODO support more LB converter
-func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+func convertLbConfig(config interface{}) *v2.LbConfig {
 	switch config.(type) {
 	case *envoy_config_cluster_v3.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+		return &v2.LbConfig{
+			ChoiceCount:       config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue(),
+			ActiveRequestBias: config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ActiveRequestBias.GetDefaultValue(),
+		}
 	default:
 		return nil
 	}
@@ -359,5 +363,28 @@ func convertSpec(xdsCluster *envoy_config_cluster_v3.Cluster) v2.ClusterSpecInfo
 	specs = append(specs, spec)
 	return v2.ClusterSpecInfo{
 		Subscribes: specs,
+	}
+}
+
+func convertSlowStart(xdsCluster *envoy_config_cluster_v3.Cluster) v2.SlowStartConfig {
+	var ss *envoy_config_cluster_v3.Cluster_SlowStartConfig
+	if xdsCluster.GetLbPolicy() == envoy_config_cluster_v3.Cluster_LEAST_REQUEST {
+		if xdsCluster.GetLeastRequestLbConfig() != nil && xdsCluster.GetLeastRequestLbConfig().GetSlowStartConfig() != nil {
+			ss = xdsCluster.GetLeastRequestLbConfig().GetSlowStartConfig()
+		}
+	} else if xdsCluster.GetLbPolicy() == envoy_config_cluster_v3.Cluster_ROUND_ROBIN {
+		if xdsCluster.GetRoundRobinLbConfig() != nil && xdsCluster.GetRoundRobinLbConfig().GetSlowStartConfig() != nil {
+			ss = xdsCluster.GetRoundRobinLbConfig().GetSlowStartConfig()
+		}
+	}
+
+	if ss == nil {
+		return v2.SlowStartConfig{}
+	}
+
+	return v2.SlowStartConfig{
+		Mode:              v2.SlowStartDurationMode,
+		SlowStartDuration: &api.DurationConfig{Duration: ss.SlowStartWindow.AsDuration()},
+		Aggression:        ss.GetAggression().GetDefaultValue(),
 	}
 }

@@ -30,6 +30,7 @@ import (
 )
 
 var _ types.HostSet = &mockHostSet{}
+
 type mockHostSet struct {
 	hosts                   []types.Host
 	healthCheckVisitedCount int
@@ -40,8 +41,8 @@ func (hs *mockHostSet) Get(i int) types.Host {
 }
 
 func (hs *mockHostSet) Range(f func(types.Host) bool) {
-	for _, h := range hs.hosts{
-		if !f(h){
+	for _, h := range hs.hosts {
+		if !f(h) {
 			break
 		}
 	}
@@ -50,7 +51,7 @@ func (hs *mockHostSet) Range(f func(types.Host) bool) {
 func (hs *mockHostSet) Hosts() []types.Host {
 	return hs.hosts
 }
-func (hs *mockHostSet)Size()int{
+func (hs *mockHostSet) Size() int {
 	return len(hs.hosts)
 }
 
@@ -72,13 +73,15 @@ func getMockHostSet(count int) *mockHostSet {
 }
 
 type mockHost struct {
-	name       string
-	addr       string
-	meta       api.Metadata
-	w          uint32
+	name        string
+	addr        string
+	meta        api.Metadata
+	w           uint32
+	clusterInfo types.ClusterInfo
+
 	healthFlag *uint64
 	types.Host
-	stats   types.HostStats
+	stats   *types.HostStats
 	hostSet types.HostSet
 }
 
@@ -92,6 +95,10 @@ func (h *mockHost) AddressString() string {
 
 func (h *mockHost) Metadata() api.Metadata {
 	return h.meta
+}
+
+func (h *mockHost) ClusterInfo() types.ClusterInfo {
+	return h.clusterInfo
 }
 
 func (h *mockHost) Health() bool {
@@ -123,7 +130,7 @@ func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
 func (h *mockHost) HealthFlag() api.HealthFlag {
 	return api.HealthFlag(atomic.LoadUint64(h.healthFlag))
 }
-func (h *mockHost) HostStats() types.HostStats {
+func (h *mockHost) HostStats() *types.HostStats {
 	return h.stats
 }
 

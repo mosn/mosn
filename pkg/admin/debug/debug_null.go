@@ -1,3 +1,4 @@
+//go:build !mosn_debug
 // +build !mosn_debug
 
 /*

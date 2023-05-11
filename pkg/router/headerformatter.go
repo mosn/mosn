@@ -19,8 +19,9 @@ package router
 
 import (
 	"context"
-	"mosn.io/pkg/variable"
 	"strings"
+
+	"mosn.io/pkg/variable"
 )
 
 func getHeaderFormatter(value string, append bool) headerFormatter {

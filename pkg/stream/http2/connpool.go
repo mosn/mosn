@@ -80,7 +80,7 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 		p.mux.Lock()
 		defer p.mux.Unlock()
 		if p.activeClient != nil && atomic.LoadUint32(&p.activeClient.goaway) == 1 {
-			p.activeClient = nil
+			p.deleteActiveClient()
 		}
 		if p.activeClient == nil {
 			p.activeClient = newActiveClient(ctx, p)
@@ -131,6 +131,20 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 	}
 	host := p.Host()
 	if event.IsClose() {
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+
+		switch event {
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
+		}
+
 		if client.closeWithActiveReq {
 			if event == api.LocalClose {
 				host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
@@ -144,7 +158,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 			return
 		}
 		p.mux.Lock()
-		p.activeClient = nil
+		p.deleteActiveClient()
 		p.mux.Unlock()
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
@@ -179,6 +193,12 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.Host)
+}
+
+func (p *connPool) deleteActiveClient() {
+	p.Host().HostStats().UpstreamConnectionActive.Dec(1)
+	p.Host().ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+	p.activeClient = nil
 }
 
 // types.StreamEventListener

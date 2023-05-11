@@ -56,6 +56,7 @@ const defaultMaxHeaderSize = 8 * 1024
 var (
 	errConnClose = errors.New("connection closed")
 
+	strHTTP11           = "HTTP/1.1"
 	strResponseContinue = []byte("HTTP/1.1 100 Continue\r\n\r\n")
 	strErrorResponse    = []byte("HTTP/1.1 400 Bad Request\r\n\r\n")
 
@@ -676,6 +677,9 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	if headers.ConnectionClose() {
 		headers.Del("Connection")
 	}
+	// rewrite protocol for keepalive too
+	// https://github.com/mosn/mosn/issues/2223
+	headers.SetProtocol(strHTTP11)
 
 	FillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
 

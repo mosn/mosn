@@ -19,14 +19,17 @@ package proxy
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
 	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
@@ -85,13 +88,15 @@ func TestProxyWithFilters(t *testing.T) {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				h := mock.NewMockHost(ctrl)
-				h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
+				h.EXPECT().HostStats().DoAndReturn(func() *types.HostStats {
 					s := metrics.NewHostStats("mockhost", "mockhost")
-					return types.HostStats{
+					return &types.HostStats{
 						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
-						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
+						UpstreamRequestDurationEWMA:  s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+
+						UpstreamResponseFailed:  s.Counter(metrics.UpstreamResponseFailed),
+						UpstreamResponseSuccess: s.Counter(metrics.UpstreamResponseSuccess),
 					}
 				}).AnyTimes()
 				h.EXPECT().AddressString().Return("mockhost").AnyTimes()
