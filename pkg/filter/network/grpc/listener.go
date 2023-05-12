@@ -34,7 +34,11 @@ type Listener struct {
 	addr    net.Addr
 }
 
-func NewListener(network string, address string) (*Listener, error) {
+func NewListener(address string) (*Listener, error) {
+	return createListener("tcp", address)
+}
+
+func createListener(network, address string) (*Listener, error) {
 	var (
 		addr net.Addr
 		err  error
@@ -52,6 +56,10 @@ func NewListener(network string, address string) (*Listener, error) {
 		accepts: make(chan net.Conn, 10),
 		addr:    addr,
 	}, nil
+}
+
+func NewUnixListener(address string) (*Listener, error) {
+	return createListener("unix", address)
 }
 
 var _ net.Listener = (*Listener)(nil)
