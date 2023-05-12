@@ -73,7 +73,6 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		return ErrInvalidConfig
 	}
 	addr := cfg.AddrConfig
-	network := cfg.Network
 	if addr == "" {
 		addr = cfg.Addr.String()
 	}
@@ -85,7 +84,7 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
-	if network == "unix" {
+	if cfg.Network == unixNetwork {
 		sw, err = f.handler.NewUnix(addr, f.config.GrpcConfig, opts...)
 	} else {
 		sw, err = f.handler.New(addr, f.config.GrpcConfig, opts...)
@@ -230,11 +229,11 @@ type Handler struct {
 
 // New a grpc server with address. Same address returns same server, which can be start only once.
 func (s *Handler) New(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
-	return s.newGRPCServer(addr, "tcp", conf, options...)
+	return s.newGRPCServer(addr, tcpNetwork, conf, options...)
 }
 
 func (s *Handler) NewUnix(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
-	return s.newGRPCServer(addr, "unix", conf, options...)
+	return s.newGRPCServer(addr, unixNetwork, conf, options...)
 }
 
 func (s *Handler) newGRPCServer(addr string, network string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
@@ -248,7 +247,7 @@ func (s *Handler) newGRPCServer(addr string, network string, conf json.RawMessag
 	if ok {
 		return sw, nil
 	}
-	if network == "unix" {
+	if network == unixNetwork {
 		ln, err = NewUnixListener(addr)
 	} else {
 		ln, err = NewListener(addr)

@@ -35,7 +35,7 @@ type Listener struct {
 }
 
 func NewListener(address string) (*Listener, error) {
-	return createListener("tcp", address)
+	return createListener(tcpNetwork, address)
 }
 
 func createListener(network, address string) (*Listener, error) {
@@ -43,10 +43,10 @@ func createListener(network, address string) (*Listener, error) {
 		addr net.Addr
 		err  error
 	)
-	if network == "unix" {
-		addr, err = net.ResolveUnixAddr("unix", address)
+	if network == unixNetwork {
+		addr, err = net.ResolveUnixAddr(unixNetwork, address)
 	} else {
-		addr, err = net.ResolveTCPAddr("tcp", address)
+		addr, err = net.ResolveTCPAddr(tcpNetwork, address)
 	}
 	if err != nil {
 		log.DefaultLogger.Errorf("invalid server address info: %s, error: %v", address, err)
@@ -59,7 +59,7 @@ func createListener(network, address string) (*Listener, error) {
 }
 
 func NewUnixListener(address string) (*Listener, error) {
-	return createListener("unix", address)
+	return createListener(unixNetwork, address)
 }
 
 var _ net.Listener = (*Listener)(nil)
