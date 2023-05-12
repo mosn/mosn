@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	unixNetwork = "unix"
-	tcpNetwork  = "tcp"
+	networkUnix = "unix"
+	networkTcp  = "tcp"
 )
 const (
 	grpcName             = "gRPC"
