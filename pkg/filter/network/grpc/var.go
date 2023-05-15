@@ -23,6 +23,10 @@ import (
 )
 
 const (
+	networkUnix = "unix"
+	networkTcp  = "tcp"
+)
+const (
 	grpcName             = "gRPC"
 	grpcServiceName      = "serviceName"
 	VarGrpcRequestResult = "requestResult"
