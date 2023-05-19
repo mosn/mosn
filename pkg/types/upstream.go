@@ -221,13 +221,16 @@ type ClusterInfo interface {
 	LbOriDstInfo() LBOriDstInfo
 
 	// Optional configuration for the load balancing algorithm selected by
-	LbConfig() v2.IsCluster_LbConfig
+	LbConfig() *v2.LbConfig
 
 	//  Optional configuration for some cluster description
 	SubType() string
 
 	// SlowStart returns the slow start configurations
 	SlowStart() SlowStart
+
+	// IsClusterPoolEnable returns the cluster pool enable or not
+	IsClusterPoolEnable() bool
 }
 
 // ResourceManager manages different types of Resource
@@ -274,6 +277,7 @@ type HostStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
@@ -303,6 +307,7 @@ type ClusterStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter

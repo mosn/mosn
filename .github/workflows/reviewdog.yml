@@ -10,6 +10,31 @@ on:
       - synchronize
       - ready_for_review
 jobs:
+  misc-lint:
+    if: ${{ !github.event.pull_request.draft }}
+    name: runner / misc-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+      - name: run goimports
+        working-directory: ./
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          export PATH=$PATH:$(go env GOPATH)/bin/
+          dirs="$(find . -mindepth 1 -maxdepth 1 -type d ! -name 'istio')"
+          # we don't have a directory contains whitespace, so it is fine to use for loop
+          for dir in $dirs; do
+              diffs=$(goimports -d $dir)
+              if [[ -n $diffs ]]; then
+                  echo "Files are not formatted by goimport:"
+                  echo $diffs
+                  exit 1
+              fi
+          done
+
   golangci-lint:
     if: ${{ !github.event.pull_request.draft }}
     name: runner / golangci-lint
@@ -45,23 +70,21 @@ jobs:
     # use features in the supported floor Go version at any time. This remains
     # true even if mosn library dependencies are not eagerly updated.
     strategy:
+      fail-fast: false
       matrix:
         go-version:
-          - "1.19"  # Current Go version
-          - "1.18"
-          - "1.17"  # Floor Go version of Mosn == current - 2
+          # FIXME: make CI pass in 1.20, see https://github.com/mosn/mosn/issues/2294
+          #- "golang:1.20"  # Current Go version
+          - "golang:1.19"
+          - "golang:1.18"  # Floor Go version of Mosn == current - 2
 
     steps:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
-
       - name: Run Unit tests.
+        env:
+          BUILD_IMAGE: ${{ matrix.go-version }}
         run: make coverage
 
       - name: Coverage

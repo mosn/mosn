@@ -18,30 +18,42 @@
 package cluster
 
 import (
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"math"
+
 	"mosn.io/mosn/pkg/types"
 )
 
-// leastActiveConnectiontLoadBalancer choose the host with the least active connection
+// leastActiveConnectionLoadBalancer choose the host with the least active connection
 type leastActiveConnectionLoadBalancer struct {
 	*EdfLoadBalancer
-	choice uint32
+	choice               uint32
+	activeConnectionBias float64
 }
 
-func newleastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newLeastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeConnectionBias = info.LbConfig().ActiveRequestBias
 	} else {
-		lb.choice = default_choice
+		lb.choice = defaultChoice
+		lb.activeConnectionBias = defaultActiveRequestBias
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
 }
 
 func (lb *leastActiveConnectionLoadBalancer) hostWeight(item WeightItem) float64 {
-	host := item.(types.Host)
-	return float64(host.Weight()) / float64(host.HostStats().UpstreamConnectionActive.Count()+1)
+	host, ok := item.(types.Host)
+	if !ok {
+		return float64(item.Weight())
+	}
+
+	weight := fixHostWeight(float64(host.Weight()))
+
+	biasedActiveConnection := math.Pow(float64(host.HostStats().UpstreamConnectionActive.Count())+1, lb.activeConnectionBias)
+
+	return weight / biasedActiveConnection
 }
 
 // 1. This LB rely on HostStats, so make sure the host metrics statistic is enabled

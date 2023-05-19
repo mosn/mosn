@@ -37,6 +37,7 @@ const (
 	Maglev                LoadBalancerType = "LB_MAGLEV"
 	RequestRoundRobin     LoadBalancerType = "LB_REQUEST_ROUNDROBIN"
 	LeastActiveConnection LoadBalancerType = "LB_LEAST_CONNECTION"
+	PeakEwma              LoadBalancerType = "LB_PEAK_EWMA"
 )
 
 type SlowStartMode string

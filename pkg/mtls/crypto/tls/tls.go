@@ -10,9 +10,9 @@
 // options) such that it includes "tls13=1". To enable it from within
 // the process, set the environment variable before any use of TLS:
 //
-//     func init() {
-//         os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
-//     }
+//	func init() {
+//	    os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
+//	}
 package tls
 
 // BUG(agl): The crypto/tls package only implements some countermeasures

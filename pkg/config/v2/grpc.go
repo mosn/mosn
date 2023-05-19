@@ -19,8 +19,9 @@ package v2
 
 import (
 	"encoding/json"
-	"mosn.io/api"
 	"time"
+
+	"mosn.io/api"
 )
 
 var GrpcDefaultGracefulStopTimeout = time.Second * 30

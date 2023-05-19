@@ -73,10 +73,12 @@ func getMockHostSet(count int) *mockHostSet {
 }
 
 type mockHost struct {
-	name       string
-	addr       string
-	meta       api.Metadata
-	w          uint32
+	name        string
+	addr        string
+	meta        api.Metadata
+	w           uint32
+	clusterInfo types.ClusterInfo
+
 	healthFlag *uint64
 	types.Host
 	stats   *types.HostStats
@@ -93,6 +95,10 @@ func (h *mockHost) AddressString() string {
 
 func (h *mockHost) Metadata() api.Metadata {
 	return h.meta
+}
+
+func (h *mockHost) ClusterInfo() types.ClusterInfo {
+	return h.clusterInfo
 }
 
 func (h *mockHost) Health() bool {

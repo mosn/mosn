@@ -28,7 +28,6 @@ import (
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
@@ -65,10 +64,11 @@ func init() {
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
 	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
-	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
+	RegisterLBType(types.LeastActiveRequest, newLeastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
-	RegisterLBType(types.LeastActiveConnection, newleastActiveConnectionLoadBalancer)
+	RegisterLBType(types.LeastActiveConnection, newLeastActiveConnectionLoadBalancer)
+	RegisterLBType(types.PeakEwma, newPeakEwmaLoadBalancer)
 
 	RegisterSlowStartMode(types.ModeDuration, slowStartDurationFactorFunc)
 
@@ -228,7 +228,7 @@ func (lb *WRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
-	return float64(host.Weight())
+	return fixHostWeight(float64(host.Weight()))
 }
 
 // do unweighted (fast) selection
@@ -236,28 +236,40 @@ func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext)
 	return lb.rrLB.ChooseHost(context)
 }
 
-const default_choice = 2
+const defaultChoice = 2
+const defaultActiveRequestBias = 1.0
 
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
-	choice uint32
+	choice            uint32
+	activeRequestBias float64
 }
 
-func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
 	} else {
-		lb.choice = default_choice
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
 	}
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
 }
 
 func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
-	host := item.(types.Host)
-	return float64(host.Weight()) / float64(host.HostStats().UpstreamRequestActive.Count()+1)
+	host, ok := item.(types.Host)
+	if !ok {
+		return float64(item.Weight())
+	}
+
+	weight := fixHostWeight(float64(host.Weight()))
+
+	biasedActiveRequest := math.Pow(float64(host.HostStats().UpstreamRequestActive.Count())+1, lb.activeRequestBias)
+
+	return weight / biasedActiveRequest
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
@@ -623,4 +635,162 @@ func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCri
 
 func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return lb.hosts.Size()
+}
+
+const defaultPeakEwmaDuration = 10 * time.Second
+
+type peakEwmaLoadBalancer struct {
+	*EdfLoadBalancer
+	rrLB types.LoadBalancer
+
+	choice            uint32
+	activeRequestBias float64
+
+	defaultDuration time.Duration
+}
+
+func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	lb := &peakEwmaLoadBalancer{}
+	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
+	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
+
+	if info != nil && info.LbConfig() != nil {
+		lb.choice = info.LbConfig().ChoiceCount
+		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
+	} else {
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
+	}
+
+	if info != nil {
+		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
+	}
+
+	if lb.defaultDuration == 0 {
+		lb.defaultDuration = defaultPeakEwmaDuration
+	}
+
+	return lb
+}
+
+func (lb *peakEwmaLoadBalancer) hostWeight(item WeightItem) float64 {
+	host, ok := item.(types.Host)
+	if !ok {
+		return fixHostWeight(float64(item.Weight()))
+	}
+
+	return fixHostWeight(float64(host.Weight())) / lb.unweightedPeakEwmaScore(host)
+}
+
+func (lb *peakEwmaLoadBalancer) unweightedChoose(context types.LoadBalancerContext) types.Host {
+	hs := lb.hosts
+
+	var candidate types.Host
+
+	// If `total` is less than or equal to `choice`, we can iterate over all elements directly.
+	if hs.Size() <= int(lb.choice) {
+		candidate = lb.iterateChoose()
+	} else {
+		candidate = lb.randomChoose()
+		if candidate == nil {
+			if log.DefaultLogger.GetLogLevel() >= log.WARN {
+				log.DefaultLogger.Warnf("[lb][PeakEwma] no host chosen after %d choice, fallback to RR", lb.choice)
+			}
+
+			return lb.rrLB.ChooseHost(context)
+		}
+	}
+
+	return candidate
+}
+
+func (lb *peakEwmaLoadBalancer) iterateChoose() types.Host {
+	total := lb.hosts.Size()
+
+	var candidate types.Host
+
+	// There is a special case here, that is, metrics can be disabled,
+	// see `pkg/metrics/matcher#metricsMatcher`. If the metrics used to
+	// calculate the score of PeakEWMA are disabled, all hosts will get
+	// the same score, and will always peek the first host.
+	//
+	// By choosing from a random index, when metrics are disabled,
+	// it can be automatically fallback to random without causing skew.
+	lb.mutex.Lock()
+	idx := lb.rand.Intn(total)
+	lb.mutex.Unlock()
+
+	for i := 0; i < total; i++ {
+		temp := lb.hosts.Get((i + idx) % total)
+		if !temp.Health() {
+			continue
+		}
+
+		if candidate == nil || lb.unweightedPeakEwmaScore(temp) < lb.unweightedPeakEwmaScore(candidate) {
+			candidate = temp
+		}
+	}
+
+	if candidate != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][PeakEwma] iterate choose host %s with score %f",
+				candidate.AddressString(), lb.unweightedPeakEwmaScore(candidate))
+		}
+	}
+
+	return candidate
+}
+
+// Choose `choice` times and return the best one.
+// See The Power of Two Random Choices: A Survey of Techniques and Results
+//
+//	http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
+	total := lb.hosts.Size()
+
+	var candidate types.Host
+
+	for i := 0; i < int(lb.choice); i++ {
+		// don't ensure uniqueness because it has high cost
+		lb.mutex.Lock()
+		idx := lb.rand.Intn(total)
+		lb.mutex.Unlock()
+
+		temp := lb.hosts.Get(idx)
+		if !temp.Health() {
+			continue
+		}
+
+		if candidate == nil || lb.unweightedPeakEwmaScore(temp) < lb.unweightedPeakEwmaScore(candidate) {
+			candidate = temp
+		}
+	}
+
+	if candidate != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[lb][PeakEwma] random choose host %s with score %f",
+				candidate.AddressString(), lb.unweightedPeakEwmaScore(candidate))
+		}
+	}
+
+	return candidate
+}
+
+func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
+	stats := h.HostStats()
+
+	duration := stats.UpstreamRequestDurationEWMA.Rate()
+
+	// None of the active requests returned, try to use cluster duration as default.
+	if duration == 0 {
+		duration = h.ClusterInfo().Stats().UpstreamRequestDurationEWMA.Rate()
+		// None of the active requests returned in cluster, or the metrics is disabled
+		if duration == 0 {
+			duration = float64(lb.defaultDuration)
+		}
+	}
+
+	biasedActiveRequest := math.Pow(float64(stats.UpstreamRequestActive.Count())+1, lb.activeRequestBias)
+
+	return duration * biasedActiveRequest
 }

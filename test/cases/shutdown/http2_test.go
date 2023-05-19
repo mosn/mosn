@@ -1,3 +1,4 @@
+//go:build MOSNTest
 // +build MOSNTest
 
 package shutdown
@@ -7,11 +8,12 @@ import (
 	"context"
 	"crypto/tls"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/log"
 	"net"
 	goHttp "net/http"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/log"
 
 	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/module/http2/h2c"

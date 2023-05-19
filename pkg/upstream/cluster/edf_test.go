@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -55,23 +54,27 @@ func Test(t *testing.T) {
 }
 
 func TestEdfFixedWeight(t *testing.T) {
-	if edfFixedWeight(0) != float64(v2.MinHostWeight) {
-		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), edfFixedWeight(0))
+	if fixHostWeight(0) != float64(v2.MinHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MinHostWeight), fixHostWeight(0))
 	}
-	if edfFixedWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
-		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), edfFixedWeight(math.MaxFloat64))
+	if fixHostWeight(math.MaxFloat64) != float64(v2.MaxHostWeight) {
+		t.Fatalf("Except %f but %f", float64(v2.MaxHostWeight), fixHostWeight(math.MaxFloat64))
 	}
-	if edfFixedWeight(10.0) != 10.0 {
-		t.Fatalf("Except %f but %f", 10.0, edfFixedWeight(10.0))
+	if fixHostWeight(10.0) != 10.0 {
+		t.Fatalf("Except %f but %f", 10.0, fixHostWeight(10.0))
 	}
 }
 
-func mockHostList(count int, name string) []types.Host {
+func mockHostList(count int, name string, clusterInfo types.ClusterInfo) []types.Host {
 	hosts := make([]types.Host, 0, count)
 	for i := 0; i < count; i++ {
+		healthFlag := uint64(0)
 		hosts = append(hosts, &mockHost{
-			name: "A" + strconv.Itoa(i),
-			w:    uint32(i + 1),
+			name:        fmt.Sprintf("%s%d", name, i),
+			addr:        fmt.Sprintf("127.0.0.%d", i),
+			w:           uint32(i + 1),
+			clusterInfo: clusterInfo,
+			healthFlag:  &healthFlag,
 		})
 	}
 	return hosts
@@ -131,7 +134,7 @@ func Benchmark_edfSchduler_NextAndPush(b *testing.B) {
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
 			edf := newEdfScheduler(tt.fields.hostCount)
-			hosts := mockHostList(tt.fields.hostCount, tt.fields.hostName)
+			hosts := mockHostList(tt.fields.hostCount, tt.fields.hostName, nil)
 			for _, h := range hosts {
 				edf.Add(h, float64(h.Weight()))
 			}
@@ -186,4 +189,45 @@ func TestEdfSchedulerDistribution(t *testing.T) {
 		}
 		checkDistribution(seq)
 	}
+}
+
+func TestEdfSchedulerWhenDynamicWeightsVerySmall(t *testing.T) {
+	dynamicWeights := make(map[WeightItem]float64)
+	scheduler := newEdfScheduler(10)
+	for i := 0; i < 10; i++ {
+		healthFlag := uint64(0)
+		h := &mockHost{
+			name:       fmt.Sprintf("%d", i),
+			addr:       fmt.Sprintf("127.0.0.%d", i),
+			w:          uint32(i + 1), // just for constructing scheduler when refresh
+			healthFlag: &healthFlag,
+		}
+		w := float64(i+1) / 1000
+		dynamicWeights[h] = w // a very small value
+		scheduler.Add(h, w)
+	}
+
+	normalize := func(m map[WeightItem]float64) map[WeightItem]float64 {
+		total := 0.0
+		r := make(map[WeightItem]float64)
+		for _, v := range m {
+			total += v
+		}
+		for k, v := range m {
+			r[k] = v / total
+		}
+		return r
+	}
+
+	result := make(map[WeightItem]float64)
+	for i := 0; i < 1000000; i++ {
+		h := scheduler.NextAndPush(func(item WeightItem) float64 {
+			return dynamicWeights[item]
+		}).(types.Host)
+		result[h]++
+	}
+
+	expected := normalize(dynamicWeights)
+	actual := normalize(result)
+	assert.InDeltaMapValues(t, expected, actual, 1e-6)
 }

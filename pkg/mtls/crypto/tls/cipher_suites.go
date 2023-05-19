@@ -1,3 +1,4 @@
+//go:build !BabaSSL
 // +build !BabaSSL
 
 // Copyright 2010 The Go Authors. All rights reserved.

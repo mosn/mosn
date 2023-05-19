@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
 )
@@ -30,7 +31,7 @@ func (r Codec) HTTPMapping() api.HTTPMapping {
 	return &r.exampleStatusMapping
 }
 
-//loader_func_name that go-Plugin use,LoadCodec is default name
+// loader_func_name that go-Plugin use,LoadCodec is default name
 func LoadCodec() api.XProtocolCodec {
 	return &Codec{}
 }

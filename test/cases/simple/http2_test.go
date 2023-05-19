@@ -1,3 +1,4 @@
+//go:build MOSNTest
 // +build MOSNTest
 
 package simple
@@ -336,7 +337,7 @@ func TestHttp2TransferResetStream(t *testing.T) {
 			// Initiate the stream with a context that supports cancellation.
 			ctx, cancel := context.WithCancel(context.Background())
 			go func() {
-				time.Sleep(500*time.Millisecond)
+				time.Sleep(500 * time.Millisecond)
 				cancel()
 			}()
 			_, err = c.UnaryEcho(ctx, &pb.EchoRequest{
@@ -346,7 +347,7 @@ func TestHttp2TransferResetStream(t *testing.T) {
 			select {
 			case <-serverEvent:
 				t.Log("context transferred successfully")
-			case <-time.After(500*time.Millisecond):
+			case <-time.After(500 * time.Millisecond):
 				t.Fatalf("error context not transferred")
 			}
 		})

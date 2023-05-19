@@ -32,7 +32,6 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("response body from external http server"))
 }
 
-
 func main() {
 	http.HandleFunc("/", ServeHTTP)
 	http.ListenAndServe("127.0.0.1:8090", nil)

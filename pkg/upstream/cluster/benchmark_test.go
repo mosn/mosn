@@ -303,7 +303,7 @@ func BenchmarkLeastActiveRequestLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster": ""})
 	hostSet.setFinalHost(hosts)
-	lb := newleastActiveRequestLoadBalancer(nil, hostSet)
+	lb := newLeastActiveRequestLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)

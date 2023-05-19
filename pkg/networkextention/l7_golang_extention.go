@@ -41,10 +41,11 @@ import "C"
 
 import (
 	"context"
-	"mosn.io/api"
 	"reflect"
 	"runtime/debug"
 	"unsafe"
+
+	"mosn.io/api"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/networkextention/l7/stream"

@@ -104,7 +104,7 @@ type Cluster struct {
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
 	IdleTimeout          *api.DurationConfig `json:"idle_timeout,omitempty"`
-	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
+	LbConfig             *LbConfig           `json:"lbconfig,omitempty"`
 	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
 	RespectDnsTTL        bool                `json:"respect_dns_ttl,omitempty"`
 	DnsLookupFamily      DnsLookupFamily     `json:"dns_lookup_family,omitempty"`
@@ -112,6 +112,7 @@ type Cluster struct {
 	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
 	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
 	SlowStart            SlowStartConfig     `json:"slow_start,omitempty"`
+	ClusterPoolEnable    bool                `json:"cluster_pool_enable,omitempty"`
 }
 
 type DnsResolverConfig struct {
@@ -233,6 +234,7 @@ type ClusterManagerConfig struct {
 
 type ClusterManagerConfigJson struct {
 	TLSContext        TLSConfig `json:"tls_context,omitempty"`
+	ClusterPoolEnable bool      `json:"cluster_pool_enable,omitempty"`
 	ClusterConfigPath string    `json:"clusters_configs,omitempty"`
 	ClustersJson      []Cluster `json:"clusters,omitempty"`
 }
