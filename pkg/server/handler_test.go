@@ -20,16 +20,15 @@ package server
 import (
 	"encoding/json"
 	"io/ioutil"
-	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 
-	"mosn.io/mosn/pkg/types"
-
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestInheritConfig(t *testing.T) {

@@ -124,7 +124,7 @@ func (m *Mosn) inheritHandler() error {
 }
 
 // replace your own inherit func with default inherit func
-func InitInheritFunc(f func (c *v2.MOSNConfig) error) {
+func InitInheritFunc(f func(c *v2.MOSNConfig) error) {
 	inheritFunc = f
 }
 
