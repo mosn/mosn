@@ -118,7 +118,7 @@ func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
 	}
 	// set default proxy router name
 	if proxyConfig.RouterHandlerName == "" {
-		proxyConfig.RouterHandlerName = router.DefaultRouteHandlerName
+		proxyConfig.RouterHandlerName = router.GetDefaultRouteHandlerName()
 	}
 	if !router.MakeHandlerFuncExists(proxyConfig.RouterHandlerName) {
 		log.DefaultLogger.Alertf(types.ErrorKeyConfigParse, "proxy router handler is not exists, will use default handler instead")
