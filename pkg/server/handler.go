@@ -20,7 +20,6 @@ package server
 import (
 	"container/list"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1005,7 +1004,7 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	return listeners, packetConn, uc, nil
 }
 
-func GetInheritConfig() (*v2.MOSNConfig, error) {
+func GetInheritConfig() ([]byte, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.StartLogger.Errorf("[server] GetInheritConfig panic %v", r)
@@ -1046,11 +1045,5 @@ func GetInheritConfig() (*v2.MOSNConfig, error) {
 
 	// log.StartLogger.Infof("[server] inherit mosn config data: %v", string(configData))
 
-	oldConfig := &v2.MOSNConfig{}
-	err = json.Unmarshal(configData, oldConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return oldConfig, nil
+	return configData, nil
 }

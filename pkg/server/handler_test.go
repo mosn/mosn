@@ -20,6 +20,8 @@ package server
 import (
 	"encoding/json"
 	"io/ioutil"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -35,35 +37,100 @@ func TestInheritConfig(t *testing.T) {
 		name           string
 		testConfigPath string
 		mosnConfig     string
+		inheritFunc    func(config *v2.MOSNConfig) error
+		configData     func(configPath, configStr string) []byte
 		wantErr        bool
 	}{
 		{
 			name:           "test Inherit Config",
 			testConfigPath: "/tmp/mosn/mosn_admin.json",
 			mosnConfig:     mosnConfig,
-			wantErr:        false,
+			inheritFunc: func(c *v2.MOSNConfig) error {
+				// inherit old mosn config
+				configData, err := GetInheritConfig()
+				if err != nil {
+					return nil
+				}
+
+				oldMosnConfig := &v2.MOSNConfig{}
+				err = json.Unmarshal(configData, oldMosnConfig)
+				if err != nil {
+					return err
+				}
+
+				log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+				c.Servers = oldMosnConfig.Servers
+				c.InheritOldMosnconfig = oldMosnConfig.InheritOldMosnconfig
+				c.ClusterManager = oldMosnConfig.ClusterManager
+				c.RawAdmin = oldMosnConfig.RawAdmin
+
+				return nil
+			},
+			configData: func(configPath, configStr string) []byte {
+				configmanager.Reset()
+				createMosnConfig(configPath, configStr)
+				if cfg := configmanager.Load(configPath); cfg != nil {
+					configmanager.SetMosnConfig(cfg)
+					ln := cfg.Servers[0].Listeners[0]
+					configmanager.SetListenerConfig(ln)
+					cluster := cfg.ClusterManager.Clusters[0]
+					configmanager.SetClusterConfig(cluster)
+					router := cfg.Servers[0].Routers[0]
+					configmanager.SetRouter(*router)
+				}
+				types.InitDefaultPath(configmanager.GetConfigPath(), "")
+				dumpConfigBytes, err := configmanager.InheritMosnconfig()
+				if err != nil {
+					t.Errorf("Dump config error: %v", err)
+				}
+				return dumpConfigBytes
+			},
+			wantErr: false,
+		},
+		{
+			name:           "test Inherit Config with inherit func",
+			testConfigPath: "/tmp/mosn/mosn_admin_1.json",
+			mosnConfig:     mosnConfig,
+			inheritFunc: func(c *v2.MOSNConfig) error {
+				// inherit old mosn config
+				configData, err := GetInheritConfig()
+				if err != nil {
+					return err
+				}
+				oldMosnConfig := &v2.MOSNConfig{}
+				err = json.Unmarshal(configData, oldMosnConfig)
+				if err != nil {
+					return err
+				}
+				c.Servers = oldMosnConfig.Servers
+				c.InheritOldMosnconfig = oldMosnConfig.InheritOldMosnconfig
+				c.RawAdmin = oldMosnConfig.RawAdmin
+				return nil
+			},
+			configData: func(configPath, configStr string) []byte {
+				configmanager.Reset()
+				createMosnConfig(configPath, configStr)
+				if cfg := configmanager.Load(configPath); cfg != nil {
+					configmanager.SetMosnConfig(cfg)
+					ln := cfg.Servers[0].Listeners[0]
+					configmanager.SetListenerConfig(ln)
+					router := cfg.Servers[0].Routers[0]
+					configmanager.SetRouter(*router)
+				}
+				types.InitDefaultPath(configmanager.GetConfigPath(), "")
+				dumpConfigBytes, err := configmanager.InheritMosnconfig()
+				if err != nil {
+					t.Errorf("Dump config error: %v", err)
+				}
+				return dumpConfigBytes
+			},
+
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			configmanager.Reset()
-			createMosnConfig(tt.testConfigPath, tt.mosnConfig)
-			if cfg := configmanager.Load(tt.testConfigPath); cfg != nil {
-				configmanager.SetMosnConfig(cfg)
-				// init set
-				ln := cfg.Servers[0].Listeners[0]
-				configmanager.SetListenerConfig(ln)
-				cluster := cfg.ClusterManager.Clusters[0]
-				configmanager.SetClusterConfig(cluster)
-				router := cfg.Servers[0].Routers[0]
-				configmanager.SetRouter(*router)
-			}
-			types.InitDefaultPath(configmanager.GetConfigPath(), "")
-			dumpConfigBytes, err := configmanager.InheritMosnconfig()
-			if err != nil {
-				t.Errorf("Dump config error: %v", err)
-			}
-
+			dumpConfigBytes := tt.configData(tt.testConfigPath, tt.mosnConfig)
 			mosnConfigBytes := make([]byte, 0)
 			wg := &sync.WaitGroup{}
 			wg.Add(2)
@@ -77,9 +144,10 @@ func TestInheritConfig(t *testing.T) {
 
 			go func() {
 				defer wg.Done()
-				effectiveConfig, err := GetInheritConfig()
+				effectiveConfig := &v2.MOSNConfig{}
+				err := tt.inheritFunc(effectiveConfig)
 				if err != nil {
-					t.Errorf("GetInheritConfig error: %v", err)
+					t.Errorf("json marshal effective Config error: %v", err)
 				}
 				mosnConfigBytes, err = json.MarshalIndent(effectiveConfig, "", "  ")
 				if err != nil {
