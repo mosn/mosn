@@ -141,6 +141,9 @@ func (hc *healthChecker) Stop() {
 }
 
 func (hc *healthChecker) stop() {
+	if hc.hosts == nil {
+		return
+	}
 	hc.hosts.Range(func(h types.Host) bool {
 		hc.stopCheck(h)
 		return true
