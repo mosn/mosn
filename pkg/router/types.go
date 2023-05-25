@@ -47,6 +47,12 @@ var (
 	ErrUnexpected           = errors.New("an unexpected error occurs")
 )
 
+var defaultRouteHandlerName = types.DefaultRouteHandler
+
+func GetDefaultRouteHandlerName() string {
+	return defaultRouteHandlerName
+}
+
 type headerFormatter interface {
 	format(ctx context.Context) string
 	append() bool
@@ -160,6 +166,7 @@ func (f *handlerFactories) add(name string, h MakeHandlerFunc, isDefault bool) {
 	defer f.mutex.Unlock()
 	f.factories[name] = h
 	if isDefault {
+		defaultRouteHandlerName = name
 		f.defaultFactory = h
 	}
 }
