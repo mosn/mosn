@@ -135,3 +135,5 @@ require (
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
+
+replace mosn.io/pkg => github.com/antJack/pkg v0.0.0-20230525060132-5159502f07af

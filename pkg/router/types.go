@@ -35,7 +35,7 @@ import (
 )
 
 // [sub module] & [function] & msg
-const RouterLogFormat = "[router] [%s] [%s] %v"
+const RouterLogFormat = "[router] [%s] [%s] %+v"
 
 var (
 	ErrNilRouterConfig      = errors.New("router config is nil")
