@@ -67,6 +67,16 @@ func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interfa
 	}
 }
 
+func (l *proxyLogger) Tracef(ctx context.Context, format string, args ...interface{}) {
+	if l.Disable() {
+		return
+	}
+	if l.GetLogLevel() >= log.TRACE {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Tracef(s, args...)
+	}
+}
+
 func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
 	if l.Disable() {
 		return

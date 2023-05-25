@@ -70,7 +70,8 @@ func (a WildcardVirtualHostWithPortSlice) Less(i, j int) bool {
 
 func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
@@ -90,7 +91,8 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) ap
 
 func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
@@ -110,7 +112,8 @@ func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap
 
 func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key string, value string) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
