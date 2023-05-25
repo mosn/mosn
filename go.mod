@@ -57,7 +57,7 @@ require (
 	mosn.io/api v1.5.0
 	mosn.io/envoy-go-extension v0.0.0-20221230083446-5b8dd13435c7
 	mosn.io/holmes v1.1.0
-	mosn.io/pkg v1.5.0
+	mosn.io/pkg v1.5.1-0.20230525074748-e3528eae50d9
 	mosn.io/proxy-wasm-go-host v0.2.1-0.20230303015731-d5007ceaba4f
 	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
 )
@@ -135,5 +135,3 @@ require (
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.10.0
 
 replace istio.io/api => istio.io/api v0.0.0-20211103171850-665ed2b92d52
-
-replace mosn.io/pkg => github.com/antJack/pkg v0.0.0-20230525060132-5159502f07af
