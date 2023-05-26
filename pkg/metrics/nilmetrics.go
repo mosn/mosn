@@ -49,6 +49,10 @@ func (m *NilMetrics) Histogram(key string) gometrics.Histogram {
 	return gometrics.NilHistogram{}
 }
 
+func (m *NilMetrics) EWMA(key string, alpha float64) gometrics.EWMA {
+	return gometrics.NilEWMA{}
+}
+
 func (m *NilMetrics) Each(f func(string, interface{})) {
 	// do nothing
 }
