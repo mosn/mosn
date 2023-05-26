@@ -378,6 +378,10 @@ func (l *listener) listen(lctx context.Context) error {
 		}
 		l.packetConn = rconn
 	case "unix":
+		// delete the unix socket file prior to binding, only 'failsafe' way
+		if err := os.Remove(l.localAddress.String()); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove unix socket file: %v", err)
+		}
 		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
 			return err
 		}
