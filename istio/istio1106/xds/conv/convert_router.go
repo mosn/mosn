@@ -18,6 +18,7 @@
 package conv
 
 import (
+	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"strings"
 
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3" // some config contains this protobuf, mosn does not parse it yet.
@@ -212,6 +213,7 @@ func convertRouteAction(xdsRouteAction *envoy_config_route_v3.RouteAction) v2.Ro
 	if xdsRouteAction == nil {
 		return v2.RouteAction{}
 	}
+
 	return v2.RouteAction{
 		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName:      xdsRouteAction.GetCluster(),
@@ -221,6 +223,8 @@ func convertRouteAction(xdsRouteAction *envoy_config_route_v3.RouteAction) v2.Ro
 			RetryPolicy:      convertRetryPolicy(xdsRouteAction.GetRetryPolicy()),
 			PrefixRewrite:    xdsRouteAction.GetPrefixRewrite(),
 			AutoHostRewrite:  xdsRouteAction.GetAutoHostRewrite().GetValue(),
+			RegexRewrite:     convertRegexRewrite(xdsRouteAction.GetRegexRewrite()),
+
 			//RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteAction.GetRequestHeadersToAdd()),
 			//
 			//ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
@@ -229,6 +233,19 @@ func convertRouteAction(xdsRouteAction *envoy_config_route_v3.RouteAction) v2.Ro
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       ConvertDuration(xdsRouteAction.GetTimeout()),
 	}
+}
+
+func convertRegexRewrite(regexRewrite *envoy_type_matcher_v3.RegexMatchAndSubstitute) *v2.RegexRewrite {
+	var v2RegexRewrite *v2.RegexRewrite
+	if regexRewrite != nil && regexRewrite.GetPattern() != nil {
+		v2RegexRewrite = &v2.RegexRewrite{
+			Pattern: v2.PatternConfig{
+				Regex: regexRewrite.GetPattern().Regex,
+			},
+			Substitution: regexRewrite.Substitution,
+		}
+	}
+	return v2RegexRewrite
 }
 
 func convertHeadersToAdd(headerValueOption []*envoy_config_core_v3.HeaderValueOption) []*v2.HeaderValueOption {
