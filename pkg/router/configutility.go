@@ -115,7 +115,8 @@ func (m commonHeaderMatcherImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria
 
 func (m commonHeaderMatcherImpl) Matches(_ context.Context, headers api.HeaderMap) bool {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "config utility", "try match header", headers)
 	}
 	for _, headerData := range m {
 		cfgName := headerData.Name

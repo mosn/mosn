@@ -15,34 +15,35 @@
  * limitations under the License.
  */
 
-package grpc
+package metrics
 
 import (
+	"testing"
+
+	gometrics "github.com/rcrowley/go-metrics"
+	"github.com/stretchr/testify/assert"
+
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
 )
 
-const (
-	networkUnix = "unix"
-	networkTcp  = "tcp"
-)
-const (
-	grpcName             = "gRPC"
-	grpcServiceName      = "serviceName"
-	VarGrpcRequestResult = "requestResult"
-	VarGrpcServiceName   = grpcName + "_" + grpcServiceName
-)
+func TestNilMetricsIsMetrics(t *testing.T) {
+	m, err := NewNilMetrics(MosnMetaType, nil)
+	assert.NoError(t, err)
+	_, ok := m.(api.Metrics)
+	assert.True(t, ok)
+}
 
-var (
-	builtinVariables = []variable.Variable{
-		variable.NewStringVariable(VarGrpcServiceName, nil, nil, variable.DefaultStringSetter, 0),
-		variable.NewVariable(VarGrpcRequestResult, nil, nil, variable.DefaultSetter, 0),
-	}
-)
+func TestNilMetricsSuppliers(t *testing.T) {
+	m, _ := NewNilMetrics(MosnMetaType, nil)
+	c := m.Counter("counter")
+	assert.IsType(t, gometrics.NilCounter{}, c)
 
-func init() {
-	for idx := range builtinVariables {
-		variable.Register(builtinVariables[idx])
-	}
-	variable.RegisterProtocolResource(grpcName, api.PATH, grpcServiceName)
+	g := m.Gauge("gauge")
+	assert.IsType(t, gometrics.NilGauge{}, g)
+
+	h := m.Histogram("histogram")
+	assert.IsType(t, gometrics.NilHistogram{}, h)
+
+	e := m.EWMA("ewma", 0.1)
+	assert.IsType(t, gometrics.NilEWMA{}, e)
 }

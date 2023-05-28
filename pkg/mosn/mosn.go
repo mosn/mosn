@@ -18,6 +18,7 @@
 package mosn
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"time"
@@ -101,29 +102,50 @@ func (m *Mosn) inheritHandler() error {
 	var err error
 	m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn, m.Upgrade.ListenSockConn, err = server.GetInheritListeners()
 	if err != nil {
-		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exiting, err:%v", err)
 		return err
 	}
 	log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 	// parse MOSNConfig again
 	c := configmanager.Load(configmanager.GetConfigPath())
 	if c.InheritOldMosnconfig {
-		// inherit old mosn config
-		oldMosnConfig, err := server.GetInheritConfig()
+		err = inheritFunc(c)
 		if err != nil {
 			m.Upgrade.ListenSockConn.Close()
-			log.StartLogger.Errorf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			log.StartLogger.Errorf("[mosn] [NewMosn] InheritConfig failed, exiting, err: %v", err)
 			return err
 		}
-		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
-		c.Servers = oldMosnConfig.Servers
-		c.ClusterManager = oldMosnConfig.ClusterManager
-		c.Extends = oldMosnConfig.Extends
 	}
 	if c.CloseGraceful {
 		c.DisableUpgrade = true
 	}
 	m.Config = c
+	return nil
+}
+
+// replace your own inherit func with default inherit func
+func InitInheritFunc(f func(c *v2.MOSNConfig) error) {
+	inheritFunc = f
+}
+
+var inheritFunc = func(c *v2.MOSNConfig) error {
+	// inherit old mosn config
+	configData, err := server.GetInheritConfig()
+	if err != nil {
+		return nil
+	}
+
+	oldMosnConfig := &v2.MOSNConfig{}
+	err = json.Unmarshal(configData, oldMosnConfig)
+	if err != nil {
+		return err
+	}
+
+	log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+	c.Servers = oldMosnConfig.Servers
+	c.ClusterManager = oldMosnConfig.ClusterManager
+	c.Extends = oldMosnConfig.Extends
+
 	return nil
 }
 

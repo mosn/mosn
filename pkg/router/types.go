@@ -35,7 +35,7 @@ import (
 )
 
 // [sub module] & [function] & msg
-const RouterLogFormat = "[router] [%s] [%s] %v"
+const RouterLogFormat = "[router] [%s] [%s] %+v"
 
 var (
 	ErrNilRouterConfig      = errors.New("router config is nil")
@@ -46,6 +46,12 @@ var (
 	ErrNoVirtualHostPort    = errors.New("virtual host port is invalid")
 	ErrUnexpected           = errors.New("an unexpected error occurs")
 )
+
+var defaultRouteHandlerName = types.DefaultRouteHandler
+
+func GetDefaultRouteHandlerName() string {
+	return defaultRouteHandlerName
+}
 
 type headerFormatter interface {
 	format(ctx context.Context) string
@@ -160,6 +166,7 @@ func (f *handlerFactories) add(name string, h MakeHandlerFunc, isDefault bool) {
 	defer f.mutex.Unlock()
 	f.factories[name] = h
 	if isDefault {
+		defaultRouteHandlerName = name
 		f.defaultFactory = h
 	}
 }
