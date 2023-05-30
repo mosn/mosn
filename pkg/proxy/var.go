@@ -60,6 +60,7 @@ var (
 		variable.NewStringVariable(types.VarHeaderStatus, nil, nil, variable.DefaultStringSetter, 0),
 		variable.NewStringVariable(types.VarHeaderRPCMethod, nil, nil, variable.DefaultStringSetter, 0),
 		variable.NewStringVariable(types.VarHeaderRPCService, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewVariable(types.VarStreamResponseBytes, nil, nil, variable.DefaultSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{

@@ -628,6 +628,11 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
 				s.printPhaseInfo(phase, id)
+				if v, vErr := variable.Get(s.context, types.VarStreamResponseBytes); vErr == nil {
+					if b, ok := v.(uint64); ok {
+						s.requestInfo.SetBytesSent(b)
+					}
+				}
 
 				_ = variable.Set(s.context, types.VariableDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
@@ -1116,7 +1121,11 @@ func (s *downStream) appendData(endStream bool) {
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	s.responseSender.AppendData(s.context, data, endStream)
-
+	if v, vErr := variable.Get(s.context, types.VarStreamResponseBytes); vErr == nil {
+		if b, ok := v.(uint64); ok {
+			s.requestInfo.SetBytesSent(b)
+		}
+	}
 	if endStream {
 		s.endStream()
 	}
