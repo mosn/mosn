@@ -23,7 +23,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
