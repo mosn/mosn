@@ -48,6 +48,9 @@ const (
 	UpstreamRequestDurationTotal                   = "request_duration_time_total"
 	UpstreamResponseSuccess                        = "response_success"
 	UpstreamResponseFailed                         = "response_failed"
+	UpstreamResponseTotalEWMA                      = "response_total_ewma"
+	UpstreamResponseClientErrorEWMA                = "response_client_error_ewma"
+	UpstreamResponseServerErrorEWMA                = "response_server_error_ewma"
 )
 
 // key in cluster

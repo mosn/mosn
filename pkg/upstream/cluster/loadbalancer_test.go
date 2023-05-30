@@ -1106,7 +1106,7 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 		mh.stats.UpstreamRequestTotal.Inc(2)
 
 		// Wait for the EWMA to tick
-		time.Sleep(time.Second)
+		now = now.Add(time.Second)
 
 		lb := newPeakEwmaLoadBalancer(info, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
@@ -1142,7 +1142,7 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 		mh.stats.UpstreamRequestActive.Inc(1)
 
 		// Wait for the EWMA to tick
-		time.Sleep(time.Second)
+		now = now.Add(time.Second)
 
 		lb := newPeakEwmaLoadBalancer(info, hs)
 		assert.True(t, lb.IsExistsHosts(nil))
@@ -1248,6 +1248,39 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			h := lb.ChooseHost(nil)
 			assert.NotNil(t, h)
+		}
+	})
+
+	t.Run("ewma is not fixed if no errors", func(t *testing.T) {
+		h1 := &mockHost{stats: newHostStats("mock", "127.0.0.1")}
+		h1.HostStats().UpstreamRequestDurationEWMA.Update(1)
+
+		h2 := &mockHost{stats: newHostStats("mock", "127.0.0.2")}
+		h2.HostStats().UpstreamRequestDurationEWMA.Update(1)
+
+		lb := peakEwmaLoadBalancer{} // just for `unweightedPeakEwmaScore`
+
+		for i := 0; i < 10; i++ {
+			now = now.Add(time.Second)
+			assert.Equal(t, lb.unweightedPeakEwmaScore(h1), lb.unweightedPeakEwmaScore(h2))
+		}
+	})
+
+	t.Run("ewma error rate is still decaying", func(t *testing.T) {
+		host := &mockHost{stats: newHostStats("mock", "127.0.0.1")}
+		host.HostStats().UpstreamRequestDurationEWMA.Update(1)
+		host.HostStats().UpstreamResponseTotalEWMA.Update(10)
+		host.HostStats().UpstreamResponseClientErrorEWMA.Update(1)
+		host.HostStats().UpstreamResponseServerErrorEWMA.Update(1)
+
+		lb := peakEwmaLoadBalancer{} // just for `unweightedPeakEwmaScore`
+
+		prescore := 100.0
+		for i := 0; i < 10; i++ {
+			now = now.Add(time.Second)
+			score := lb.unweightedPeakEwmaScore(host)
+			assert.Less(t, score, prescore)
+			prescore = score
 		}
 	})
 }

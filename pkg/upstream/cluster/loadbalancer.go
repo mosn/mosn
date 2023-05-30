@@ -776,6 +776,8 @@ func (lb *peakEwmaLoadBalancer) randomChoose() types.Host {
 	return candidate
 }
 
+const minPeakEwmaSuccessRate = 0.1
+
 func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	stats := h.HostStats()
 
@@ -792,5 +794,18 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 
 	biasedActiveRequest := math.Pow(float64(stats.UpstreamRequestActive.Count())+1, lb.activeRequestBias)
 
-	return duration * biasedActiveRequest
+	responseTotal := stats.UpstreamResponseTotalEWMA.Rate()
+	responseClientError := stats.UpstreamResponseClientErrorEWMA.Rate()
+	responseServerError := stats.UpstreamResponseServerErrorEWMA.Rate()
+
+	// add 1 to make sure the error rate is always decaying
+	clientErrorRate := responseClientError / (responseTotal + 1)
+	serverErrorRate := responseServerError / (responseTotal + 1)
+
+	successRate := (1 - clientErrorRate) * (1 - serverErrorRate)
+	if successRate < minPeakEwmaSuccessRate {
+		successRate = minPeakEwmaSuccessRate
+	}
+
+	return duration * biasedActiveRequest / successRate
 }

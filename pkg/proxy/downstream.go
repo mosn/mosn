@@ -1229,6 +1229,14 @@ func (s *downStream) handleUpstreamStatusCode() {
 			s.upstreamRequest.host.HostStats().UpstreamResponseSuccess.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseSuccess.Inc(1)
 		}
+
+		s.upstreamRequest.host.HostStats().UpstreamResponseTotalEWMA.Update(1)
+		switch {
+		case s.requestInfo.ResponseCode() >= 400 && s.requestInfo.ResponseCode() < 500:
+			s.upstreamRequest.host.HostStats().UpstreamResponseClientErrorEWMA.Update(1)
+		case s.requestInfo.ResponseCode() >= 500 && s.requestInfo.ResponseCode() < 600:
+			s.upstreamRequest.host.HostStats().UpstreamResponseServerErrorEWMA.Update(1)
+		}
 	}
 }
 

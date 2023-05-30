@@ -53,6 +53,9 @@ func newHostStats(clustername string, addr string) *types.HostStats {
 		UpstreamRequestDurationTotal:                   s.Counter(metrics.UpstreamRequestDurationTotal),
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
+		UpstreamResponseTotalEWMA:                      s.EWMA(metrics.UpstreamResponseTotalEWMA, alpha),
+		UpstreamResponseClientErrorEWMA:                s.EWMA(metrics.UpstreamResponseClientErrorEWMA, alpha),
+		UpstreamResponseServerErrorEWMA:                s.EWMA(metrics.UpstreamResponseServerErrorEWMA, alpha),
 	}
 }
 

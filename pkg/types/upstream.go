@@ -23,7 +23,7 @@ import (
 	"sort"
 	"time"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
@@ -281,6 +281,9 @@ type HostStats struct {
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseTotalEWMA                      metrics.EWMA
+	UpstreamResponseClientErrorEWMA                metrics.EWMA
+	UpstreamResponseServerErrorEWMA                metrics.EWMA
 }
 
 // ClusterStats defines a cluster's statistics information
