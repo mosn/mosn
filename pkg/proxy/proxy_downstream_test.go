@@ -97,6 +97,10 @@ func TestProxyWithFilters(t *testing.T) {
 
 						UpstreamResponseFailed:  s.Counter(metrics.UpstreamResponseFailed),
 						UpstreamResponseSuccess: s.Counter(metrics.UpstreamResponseSuccess),
+
+						UpstreamResponseTotalEWMA:       s.EWMA(metrics.UpstreamResponseTotalEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+						UpstreamResponseClientErrorEWMA: s.EWMA(metrics.UpstreamResponseClientErrorEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+						UpstreamResponseServerErrorEWMA: s.EWMA(metrics.UpstreamResponseServerErrorEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
 					}
 				}).AnyTimes()
 				h.EXPECT().AddressString().Return("mockhost").AnyTimes()

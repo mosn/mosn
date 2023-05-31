@@ -281,6 +281,9 @@ type HostStats struct {
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
+	UpstreamResponseTotalEWMA                      metrics.EWMA
+	UpstreamResponseClientErrorEWMA                metrics.EWMA
+	UpstreamResponseServerErrorEWMA                metrics.EWMA
 }
 
 // ClusterStats defines a cluster's statistics information
