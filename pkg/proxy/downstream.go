@@ -628,11 +628,6 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
 				s.printPhaseInfo(phase, id)
-				if v, vErr := variable.Get(s.context, types.VarStreamResponseBytes); vErr == nil {
-					if b, ok := v.(uint64); ok {
-						s.requestInfo.SetBytesSent(b)
-					}
-				}
 
 				_ = variable.Set(s.context, types.VariableDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
