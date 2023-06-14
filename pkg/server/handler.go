@@ -261,7 +261,7 @@ func (ch *connHandler) GracefulStopListener(lctx context.Context, name string) e
 	for _, l := range ch.listeners {
 		if l.listener.Name() == name {
 			log.DefaultLogger.Infof("graceful closing listener %v", name)
-			if err := l.listener.Shutdown(); err != nil {
+			if err := l.listener.Shutdown(lctx); err != nil {
 				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
 				errGlobal = err
 			}
@@ -275,7 +275,7 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 	for _, l := range ch.listeners {
 		if l.listener.Name() == name {
 			log.DefaultLogger.Infof("graceful closing listener %v", name)
-			if err := l.listener.Shutdown(); err != nil {
+			if err := l.listener.Shutdown(lctx); err != nil {
 				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", l.listener.Name(), err)
 				errGlobal = err
 			}
@@ -290,7 +290,7 @@ func (ch *connHandler) GracefulCloseListener(lctx context.Context, name string) 
 
 // GracefulStopListeners stop accept new connections
 // and graceful close all the existing connections.
-func (ch *connHandler) GracefulStopListeners() error {
+func (ch *connHandler) GracefulStopListeners(lctx context.Context) error {
 	var failed bool
 	listeners := ch.listeners
 	wg := sync.WaitGroup{}
@@ -301,7 +301,7 @@ func (ch *connHandler) GracefulStopListeners() error {
 		// Shutdown listener in parallel
 		utils.GoWithRecover(func() {
 			defer wg.Done()
-			if err := al.listener.Shutdown(); err != nil {
+			if err := al.listener.Shutdown(lctx); err != nil {
 				log.DefaultLogger.Errorf("failed to shutdown listener %v: %v", al.listener.Name(), err)
 				failed = true
 			}
