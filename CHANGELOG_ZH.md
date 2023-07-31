@@ -6,13 +6,13 @@
 
 - PeakEWMA 支持配置 activeRequestBias (#2301) @jizhuozhi
 - gRPC filter 支持 UDS (#2309) @wenxuwan
-- 支持初始化热升级时 config 继承函数 (#2241) @dengqian (#2313) @spacewander
+- 支持初始化热升级时 config 继承函数 (#2241) @dengqian
 - 允许自定义 proxy defaultRouteHandlerName (#2308) @fibbery
 
 ### 变更
 
 - 示例 http-sample README 增加配置文件链接 (#2226) @mimani68
-- 将 wazero 更新到 1.2.1 (#2254) @Crypt Keeper
+- 将 wazero 更新到 1.2.1 (#2254) @codefromthecrypt
 - 更新依赖 (#2230) (#2233) (#2247) (#2302) (#2326) (#2332) (#2333) @dependabot
 
 ### 重构
@@ -33,6 +33,7 @@
 - 修复 MOSN 异常退出时 UDS 套接字文件未删除导致重启失败 (#2318) @wenxuwan
 - 修复 xDS 状态码未转换错误。修复未处理 istio inbound IPv6 地址错误 (#2144) @kkrrsq
 - 修复非热升级优雅退出时 Listener 未直接关闭导致新建连接报错 (#2234) @hui-cha
+- 修复 goimports lint 错误 (#2313) @spacewander
 
 ## v1.5.0
 

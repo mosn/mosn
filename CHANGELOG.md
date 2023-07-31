@@ -6,13 +6,13 @@
 
 - PeakEWMA supports configuring activeRequestBias (#2301) @jizhuozhi
 - gRPC filter supports UDS (#2309) @wenxuwan
-- Support init inherit old mosn config function (#2241) @dengqian (#2313) @spacewander
+- Support init inherit old mosn config function (#2241) @dengqian
 - Allow custom proxy defaultRouteHandlerName (#2308) @fibbery
 
 ### Changes
 
 - Example http-sample README adding configuration file link (#2226) @mimani68
-- Update wazero to 1.2.1 (#2254) @Crypt Keeper
+- Update wazero to 1.2.1 (#2254) @codefromthecrypt
 - Update dependencies (#2230) (#2233) (#2247) (#2302) (#2326) (#2332) (#2333) @dependabot
 
 ### Refactoring
@@ -32,7 +32,8 @@
 - Fix panic caused by empty cluster hosts when xDS is updated (#2314) @dengqian
 - Fix reboot failure due to undeleted UDS socket file when MOSN exits abnormally (#2318) @wenxuwan
 - Fix xDS status code not converted error. Fix unhandled istio inbound IPv6 address error (#2144) @kkrrsq
-- Fix new connection error when Listener does not close directly during graceful exit of non-hot upgrade. (#2234) @hui-cha
+- Fix new connection error when Listener does not close directly during graceful exit of non-hot upgrade (#2234) @hui-cha
+- Fix goimports lint error (#2313) @spacewander
 
 ## v1.5.0
 
