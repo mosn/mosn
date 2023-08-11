@@ -238,6 +238,8 @@ func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext)
 
 const defaultChoice = 2
 const defaultActiveRequestBias = 1.0
+const defaultClientErrorBias = 1.0
+const defaultServerErrorBias = 1.0
 
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
@@ -645,8 +647,9 @@ type peakEwmaLoadBalancer struct {
 
 	choice            uint32
 	activeRequestBias float64
-
-	defaultDuration time.Duration
+	clientErrorBias   float64
+	serverErrorBias   float64
+	defaultDuration   time.Duration
 }
 
 func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
@@ -657,9 +660,13 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
+		lb.clientErrorBias = info.LbConfig().ClientErrorBias
+		lb.serverErrorBias = info.LbConfig().ServerErrorBias
 	} else {
 		lb.choice = defaultChoice
 		lb.activeRequestBias = defaultActiveRequestBias
+		lb.clientErrorBias = defaultClientErrorBias
+		lb.serverErrorBias = defaultServerErrorBias
 	}
 
 	if info != nil {
@@ -802,7 +809,7 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	clientErrorRate := responseClientError / (responseTotal + 1)
 	serverErrorRate := responseServerError / (responseTotal + 1)
 
-	successRate := (1 - clientErrorRate) * (1 - serverErrorRate)
+	successRate := math.Pow(1-clientErrorRate, lb.clientErrorBias) * math.Pow(1-serverErrorRate, lb.serverErrorBias)
 	if successRate < minPeakEwmaSuccessRate {
 		successRate = minPeakEwmaSuccessRate
 	}
