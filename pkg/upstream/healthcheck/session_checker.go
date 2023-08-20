@@ -153,16 +153,31 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 func (c *sessionChecker) OnCheck() {
 	// record current id
 	id := atomic.LoadUint64(&c.checkID)
+	onTimeout := func() {
+		currentID := atomic.LoadUint64(&c.checkID)
+		if currentID == id {
+			c.OnTimeout()
+		}
+	}
+
 	c.HealthChecker.stats.attempt.Inc(1)
 	// start a timeout before check health
 	c.checkTimeout.Stop()
-	c.checkTimeout = utils.NewTimer(c.HealthChecker.timeout, c.OnTimeout)
-	c.resp <- checkResponse{
+	c.checkTimeout = utils.NewTimer(c.HealthChecker.timeout, onTimeout)
+	checkResp := checkResponse{
 		ID:      id,
 		Healthy: c.Session.CheckHealth(),
+	}
+
+	select {
+	case c.resp <- checkResp:
+	case <-c.stop: // avoid goroutine leak https://github.com/mosn/mosn/issues/2336
 	}
 }
 
 func (c *sessionChecker) OnTimeout() {
-	c.timeout <- true
+	select {
+	case c.timeout <- true:
+	case <-c.stop: // avoid goroutine leak https://github.com/mosn/mosn/issues/2336
+	}
 }
