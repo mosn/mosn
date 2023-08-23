@@ -1283,6 +1283,24 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 			prescore = score
 		}
 	})
+
+	t.Run("ewma error rate is affected by bias", func(t *testing.T) {
+		host := &mockHost{stats: newHostStats("mock", "127.0.0.1")}
+		host.HostStats().UpstreamRequestDurationEWMA.Update(1)
+		host.HostStats().UpstreamResponseTotalEWMA.Update(10)
+		host.HostStats().UpstreamResponseClientErrorEWMA.Update(1)
+		host.HostStats().UpstreamResponseServerErrorEWMA.Update(1)
+
+		lb := peakEwmaLoadBalancer{}                                            // for `host` and `unweightedPeakEwmaScore`
+		lb2 := peakEwmaLoadBalancer{serverErrorBias: 2.0, clientErrorBias: 2.0} // for `host2` and `unweightedPeakEwmaScore`
+
+		for i := 0; i < 10; i++ {
+			now = now.Add(time.Second)
+			score := lb.unweightedPeakEwmaScore(host)
+			score2 := lb2.unweightedPeakEwmaScore(host)
+			assert.Less(t, score, score2)
+		}
+	})
 }
 
 func BenchmarkShortestResponseLoadBalancer_ChooseHost_Weighted(b *testing.B) {

@@ -29,6 +29,14 @@ type LbConfig struct {
 	// The larger the active request bias is, the more aggressively active requests
 	// will lower the effective weight when all host weights are not equal.
 	ActiveRequestBias float64 `json:"active_request_bias,omitempty"`
+
+	// The larger the client error bias,
+	// the smaller the reduction effect of the client error on the success rate
+	ClientErrorBias float64 `json:"client_error_bias,omitempty"`
+
+	// The larger the server error bias,
+	// the smaller the reduction effect of the server error on the success rate
+	ServerErrorBias float64 `json:"server_error_bias,omitempty"`
 }
 
 type HashPolicy struct {
