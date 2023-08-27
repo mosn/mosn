@@ -17,6 +17,8 @@
 
 package types
 
+import "context"
+
 // FailureType is the type of a failure
 type FailureType string
 
@@ -55,8 +57,9 @@ type HealthChecker interface {
 // The default session implementation is tcp dial, for all non-registered protocol.
 type HealthCheckSession interface {
 	// CheckHealth returns true if session checks the server is ok, or returns false
-	CheckHealth() bool
+	CheckHealth(ctx context.Context) bool
 	// OnTimeout is called when a check health does not return after timeout duration
+	// Deprecated: use CheckHealth ctx to set check timeout
 	OnTimeout()
 }
 

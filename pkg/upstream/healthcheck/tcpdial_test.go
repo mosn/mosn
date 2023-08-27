@@ -18,9 +18,11 @@
 package healthcheck
 
 import (
+	"context"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTCPDial(t *testing.T) {
@@ -31,11 +33,15 @@ func TestTCPDial(t *testing.T) {
 	}
 	dialfactory := &TCPDialSessionFactory{}
 	session := dialfactory.NewSession(nil, host)
-	if !session.CheckHealth() {
+	ctx1, cancel1 := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel1()
+	if !session.CheckHealth(ctx1) {
 		t.Error("tcp dial check health failed")
 	}
 	s.Close()
-	if session.CheckHealth() {
+	ctx2, cancel2 := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel2()
+	if session.CheckHealth(ctx2) {
 		t.Error("tcp dial a closed server, but returns ok")
 	}
 }

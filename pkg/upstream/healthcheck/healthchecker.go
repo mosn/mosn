@@ -207,7 +207,7 @@ func (hc *healthChecker) startCheck(host types.Host) {
 			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] Create Health Check Session Error, Remote Address = %s", addr)
 			return
 		}
-		c := newChecker(s, host, hc)
+		c := newChecker(s, host, hc, GetWorkPool())
 		hc.checkers[addr] = c
 		utils.GoWithRecover(func() {
 			c.Start()

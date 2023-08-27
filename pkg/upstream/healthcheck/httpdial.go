@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -163,9 +164,9 @@ func (s *HTTPDialSession) verifyCode(code int) bool {
 	return false
 }
 
-func (s *HTTPDialSession) CheckHealth() bool {
+func (s *HTTPDialSession) CheckHealth(ctx context.Context) bool {
 	// default dial timeout, maybe already timeout by checker
-	resp, err := s.client.Do(s.request)
+	resp, err := s.client.Do(s.request.WithContext(ctx))
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [health check] [httpdial session] http check for host %s error: %v", s.request.URL.String(), err)
 		return false

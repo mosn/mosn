@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 	"testing"
@@ -134,7 +135,9 @@ func Test_CheckHealth(t *testing.T) {
 	}
 	hcs := hdsf.NewSession(cfg, h1)
 	hds := hcs.(*HTTPDialSession)
-	h := hds.CheckHealth()
+	ctx1, cancel1 := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel1()
+	h := hds.CheckHealth(ctx1)
 	if h {
 		t.Errorf("Test_CheckHealth Error")
 	}
@@ -148,14 +151,17 @@ func Test_CheckHealth(t *testing.T) {
 	})
 	go server.ListenAndServe()
 	time.Sleep(time.Second)
-
-	h = hds.CheckHealth()
+	ctx2, cancel2 := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel2()
+	h = hds.CheckHealth(ctx2)
 	if !h {
 		t.Errorf("Test_CheckHealth Error")
 	}
 
 	code = 500
-	h = hds.CheckHealth()
+	ctx3, cancel3 := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel3()
+	h = hds.CheckHealth(ctx3)
 	if h {
 		t.Errorf("Test_CheckHealth Error")
 	}
@@ -166,12 +172,14 @@ func Test_CheckHealth(t *testing.T) {
 func Test_CheckL7Health(t *testing.T) {
 	httpAddr := "127.0.0.1:22222"
 	testCases := []struct {
-		name       string
-		serverCode int
-		serverPath string
-		hostAddr   string
-		config     HttpCheckConfig
-		expect     bool
+		name              string
+		serverCode        int
+		serverPath        string
+		hostAddr          string
+		config            HttpCheckConfig
+		expect            bool
+		serverHandleDelay time.Duration
+		checkTimeout      time.Duration
 	}{
 		{
 			name:       "connect failed",
@@ -277,12 +285,28 @@ func Test_CheckL7Health(t *testing.T) {
 			},
 			expect: false,
 		},
+		{
+			name:              "check timeout fail",
+			serverCode:        200,
+			serverPath:        "/http_timeout_fail",
+			hostAddr:          httpAddr,
+			serverHandleDelay: time.Second,
+			checkTimeout:      time.Millisecond * 500,
+			config: HttpCheckConfig{
+				Path:   "/http_timeout_fail",
+				Scheme: "http",
+			},
+			expect: false,
+		},
 	}
 
 	mux := http.NewServeMux()
-	addPath := func(path string, code int) {
+	addPath := func(path string, code int, delay time.Duration) {
 		mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(code)
+			if delay > 0 {
+				time.Sleep(delay)
+			}
 		})
 	}
 
@@ -300,10 +324,14 @@ func Test_CheckL7Health(t *testing.T) {
 		hds := hcs.(*HTTPDialSession)
 
 		if tc.serverPath != "" {
-			addPath(tc.serverPath, tc.serverCode)
+			addPath(tc.serverPath, tc.serverCode, tc.serverHandleDelay)
+		}
+		var ctx = context.TODO()
+		if tc.checkTimeout > 0 {
+			ctx, _ = context.WithTimeout(ctx, tc.checkTimeout)
 		}
 
-		h := hds.CheckHealth()
+		h := hds.CheckHealth(ctx)
 		if h != tc.expect {
 			t.Errorf("Test_CheckHealth Error, case:%s", tc.name)
 		}

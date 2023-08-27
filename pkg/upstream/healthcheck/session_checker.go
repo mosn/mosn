@@ -18,15 +18,43 @@
 package healthcheck
 
 import (
+	"context"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
+
+var workpool *ants.Pool
+var oneInitPool sync.Once
+
+// InitCheckWorkPool init health check work pool
+// In a large-scale types.Host scenario, the goroutine worker pool can reduce the number of
+// goroutines used for health checking, and reduce the consumption of memory and go runtime scheduling
+func InitCheckWorkPool(size int, options ...ants.Option) error {
+	var err error
+	oneInitPool.Do(func() {
+		options = append(options, ants.WithPanicHandler(func(i interface{}) {
+			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [session checker] panic %v\n%s", i, string(debug.Stack()))
+		}))
+		workpool, err = ants.NewPool(size, options...)
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetWorkPool could dynamic set pool size according to the size of the types.Cluster or types.Host
+func GetWorkPool() *ants.Pool {
+	return workpool
+}
 
 // sessionChecker is a wrapper of types.HealthCheckSession for health check
 type sessionChecker struct {
@@ -34,29 +62,23 @@ type sessionChecker struct {
 	Host          types.Host
 	HealthChecker *healthChecker
 	//
-	resp          chan checkResponse
-	timeout       chan bool
-	checkID       uint64
-	stop          chan struct{}
-	checkTimer    *utils.Timer
-	checkTimeout  *utils.Timer
+	checkID uint64
+	stop    chan struct{}
+	//checkTimer    *utils.Timer
+	checkTimer    atomic.Value // value is checkTimer
 	unHealthCount uint32
 	healthCount   uint32
+	checkingState uint32 // 0: not-checking, 1: checking
+	workpool      *ants.Pool
 }
 
-type checkResponse struct {
-	ID      uint64
-	Healthy bool
-}
-
-func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *sessionChecker {
+func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker, workpool *ants.Pool) *sessionChecker {
 	c := &sessionChecker{
 		Session:       s,
 		Host:          h,
 		HealthChecker: hc,
-		resp:          make(chan checkResponse),
-		timeout:       make(chan bool),
 		stop:          make(chan struct{}),
+		workpool:      workpool,
 	}
 	return c
 }
@@ -64,60 +86,29 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 var firstInterval = time.Second
 
 func (c *sessionChecker) Start() {
-	defer func() {
-		if r := recover(); r != nil {
-			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [session checker] panic %v\n%s", r, string(debug.Stack()))
-		}
-		// stop all the timer when start is finished
-		c.checkTimer.Stop()
-		c.checkTimeout.Stop()
-	}()
-	c.checkTimer = utils.NewTimer(c.HealthChecker.initialDelay, c.OnCheck)
-	for {
-		select {
-		case <-c.stop:
-			return
-		default:
-			// prepare a check
-			currentID := atomic.AddUint64(&c.checkID, 1)
-			select {
-			case <-c.stop:
-				return
-			case resp := <-c.resp:
-				// if the ID is not equal, means we receive a timeout for this ID, ignore the response
-				if resp.ID == currentID {
-					c.checkTimeout.Stop()
-					if resp.Healthy {
-						c.HandleSuccess()
-					} else {
-						c.HandleFailure(types.FailureActive)
-					}
-					// next health checker
-					c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
-					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-						log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a response id: %d", resp.ID)
-					}
-				} else {
-					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-						log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a expired id response, response id: %d, currentID: %d", resp.ID, currentID)
-					}
-				}
-			case <-c.timeout:
-				c.checkTimer.Stop()
-				c.Session.OnTimeout() // session timeout callbacks
-				c.HandleFailure(types.FailureNetwork)
-				// next health checker
-				c.checkTimer = utils.NewTimer(c.HealthChecker.getCheckInterval(), c.OnCheck)
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [health check] [session checker] receive a timeout response at id: %d", currentID)
-				}
-			}
-		}
-	}
+	// TODO use time wheel
+	c.checkTimer.Store(utils.NewTimer(c.HealthChecker.initialDelay, c.putCheckTask))
 }
 
 func (c *sessionChecker) Stop() {
 	close(c.stop)
+	c.checkTimer.Load().(*utils.Timer).Stop()
+}
+
+func (c *sessionChecker) putCheckTask() {
+	if c.workpool != nil {
+		err := c.workpool.Submit(c.OnCheck)
+		if err != nil {
+			log.DefaultLogger.Warnf("[upstream] [health check] [session checker] [putCheckTask] "+
+				"submit check task error: %+v, check id: %d", err, atomic.LoadUint64(&c.checkID))
+		}
+		c.checkTimer.Load().(*utils.Timer).Reset(c.HealthChecker.getCheckInterval())
+		return
+	}
+	// new goroutime to check
+	go c.OnCheck()
+	c.checkTimer.Load().(*utils.Timer).Reset(c.HealthChecker.getCheckInterval())
+	return
 }
 
 func (c *sessionChecker) HandleSuccess() {
@@ -151,33 +142,50 @@ func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 }
 
 func (c *sessionChecker) OnCheck() {
+	if !atomic.CompareAndSwapUint32(&c.checkingState, 0, 1) {
+		return // not concurrency check health
+	}
+	defer func() {
+		atomic.StoreUint32(&c.checkingState, 0)
+	}()
+	var isStop bool
 	// record current id
-	id := atomic.LoadUint64(&c.checkID)
-	onTimeout := func() {
-		currentID := atomic.LoadUint64(&c.checkID)
-		if currentID == id {
-			c.OnTimeout()
-		}
+	id := atomic.AddUint64(&c.checkID, 1)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[upstream] [health check] [session checker] [OnCheck] "+
+			"begin new checkign, check id: %d, host: %v", id, c.Host.AddressString())
 	}
-
 	c.HealthChecker.stats.attempt.Inc(1)
-	// start a timeout before check health
-	c.checkTimeout.Stop()
-	c.checkTimeout = utils.NewTimer(c.HealthChecker.timeout, onTimeout)
-	checkResp := checkResponse{
-		ID:      id,
-		Healthy: c.Session.CheckHealth(),
+	ctx, cancel := context.WithTimeout(context.Background(), c.HealthChecker.timeout)
+	defer cancel()
+	checkResult := c.Session.CheckHealth(ctx)
+
+	isStop = c.isStop()
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[upstream] [health check] [session checker] [OnCheck] "+
+			"check result: %v, isStop: %v, check id: %d, host: %v", checkResult, isStop, id, c.Host.AddressString())
+	}
+	if isStop {
+		return
 	}
 
-	select {
-	case c.resp <- checkResp:
-	case <-c.stop: // avoid goroutine leak https://github.com/mosn/mosn/issues/2336
+	if checkResult {
+		c.HandleSuccess()
+	} else {
+		select {
+		case <-ctx.Done():
+			c.HandleFailure(types.FailureNetwork)
+		default:
+			c.HandleFailure(types.FailureActive)
+		}
 	}
 }
 
-func (c *sessionChecker) OnTimeout() {
+func (c *sessionChecker) isStop() bool {
 	select {
-	case c.timeout <- true:
 	case <-c.stop: // avoid goroutine leak https://github.com/mosn/mosn/issues/2336
+		return true
+	default:
+		return false
 	}
 }
