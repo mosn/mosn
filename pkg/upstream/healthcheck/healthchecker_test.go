@@ -20,7 +20,6 @@ package healthcheck
 import (
 	"encoding/json"
 	"fmt"
-	"mosn.io/mosn/pkg/metrics"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -29,6 +28,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 )
 
