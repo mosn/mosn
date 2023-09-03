@@ -49,3 +49,26 @@ func TestDelayInjectMarshal(t *testing.T) {
 		t.Fatalf("unexpected output: %s", string(b))
 	}
 }
+
+func TestHealthCheckWorkpoolJsonMarshal(t *testing.T) {
+	hcwp := &HealthCheckWorkpool{
+		HealthCheckWorkpoolConfig: HealthCheckWorkpoolConfig{
+			Size:             100,
+			PreAlloc:         true,
+			MaxBlockingTasks: 10,
+			Nonblocking:      true,
+			DisablePurge:     true,
+		},
+		ExpiryDuration: 10 * time.Minute,
+	}
+
+	dataMarshal, err := json.Marshal(hcwp)
+	if err != nil {
+		t.Errorf("marshal healthcheck workpool error: %v", err)
+		return
+	}
+	dataMarshalStr := string(dataMarshal)
+	if !strings.Contains(dataMarshalStr, `"expiry_duration":"10m0s"`) {
+		t.Errorf("marshal healthcheck workpool, want expiry_duration 10m but got: %s", dataMarshalStr)
+	}
+}

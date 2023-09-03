@@ -45,6 +45,48 @@ type HealthCheckConfig struct {
 	CommonCallbacks      []string               `json:"common_callbacks,omitempty"` // HealthCheck support register some common callbacks that are not related to specific cluster
 }
 
+// HealthCheckWorkpoolConfig
+// options can refer ants.Options
+type HealthCheckWorkpoolConfig struct {
+	// Size goroutine work pool size
+	Size int `json:"size"`
+	// ExpiryDuration is a period for the scavenger goroutine to clean up those expired workers,
+	// the scavenger scans all workers every `ExpiryDuration` and clean up those workers that haven't been
+	// used for more than `ExpiryDuration`.
+	ExpiryDurationConfig api.DurationConfig `json:"expiry_duration,omitempty"`
+	// PreAlloc indicates whether to make memory pre-allocation when initializing Pool.
+	PreAlloc bool `json:"pre_alloc,omitempty"`
+	// Max number of goroutine blocking on pool.Submit.
+	// 0 (default value) means no such limit.
+	MaxBlockingTasks int `json:"max_blocking_tasks,omitempty"`
+	// When Nonblocking is true, Pool.Submit will never be blocked.
+	// ErrPoolOverload will be returned when Pool.Submit cannot be done at once.
+	// When Nonblocking is true, MaxBlockingTasks is inoperative.
+	Nonblocking bool `json:"nonblocking,omitempty"`
+	// When DisablePurge is true, workers are not purged and are resident.
+	DisablePurge bool `json:"disable_purge,omitempty"`
+}
+
+type HealthCheckWorkpool struct {
+	HealthCheckWorkpoolConfig
+	ExpiryDuration time.Duration `json:"-"`
+}
+
+// MarshalJSON Marshal implement a json.Marshaler
+func (hc HealthCheckWorkpool) MarshalJSON() (b []byte, err error) {
+	hc.HealthCheckWorkpoolConfig.ExpiryDurationConfig.Duration = hc.ExpiryDuration
+	return json.Marshal(hc.HealthCheckWorkpoolConfig)
+}
+
+// UnmarshalJSON Marshal implement a json.Marshaler
+func (hc *HealthCheckWorkpool) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &hc.HealthCheckWorkpoolConfig); err != nil {
+		return err
+	}
+	hc.ExpiryDuration = hc.ExpiryDurationConfig.Duration
+	return nil
+}
+
 type HostConfig struct {
 	Address        string          `json:"address,omitempty"`
 	Hostname       string          `json:"hostname,omitempty"`

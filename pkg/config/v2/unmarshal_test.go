@@ -19,6 +19,8 @@ package v2
 
 import (
 	"encoding/json"
+	"mosn.io/api"
+	"reflect"
 	"testing"
 	"time"
 
@@ -456,5 +458,39 @@ func TestUDPProxyUnmarshal(t *testing.T) {
 			r.DestinationPort == "8080") {
 			t.Error("route failed")
 		}
+	}
+}
+
+func TestHealthCheckWorkpoolJsonUnmarshal(t *testing.T) {
+	hcConfig := `{
+		"size": 100,
+		"expiry_duration":"10m",
+		"pre_alloc": true,
+		"max_blocking_tasks":10,
+		"nonblocking":true,
+		"disable_purge":true
+	}`
+
+	hcwp := &HealthCheckWorkpool{}
+	err := json.Unmarshal([]byte(hcConfig), &hcwp)
+	if err != nil {
+		t.Errorf("unmarhsal healthcheck workpool config err: %v", err)
+		return
+	}
+	wantHcwp := &HealthCheckWorkpool{
+		HealthCheckWorkpoolConfig: HealthCheckWorkpoolConfig{
+			Size: 100,
+			ExpiryDurationConfig: api.DurationConfig{
+				Duration: 10 * time.Minute,
+			},
+			PreAlloc:         true,
+			MaxBlockingTasks: 10,
+			Nonblocking:      true,
+			DisablePurge:     true,
+		},
+		ExpiryDuration: 10 * time.Minute,
+	}
+	if !reflect.DeepEqual(wantHcwp, hcwp) {
+		t.Errorf("want unmarshal healthcheck workpool config: %#v, but got :%#v", wantHcwp, hcwp)
 	}
 }

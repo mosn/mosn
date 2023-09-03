@@ -26,24 +26,35 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
+// TODO healtcheck workpool could dynamic scale base on types.Host count
 var workpool *ants.Pool
 var oneInitPool sync.Once
 
 // InitCheckWorkPool init health check work pool
 // In a large-scale types.Host scenario, the goroutine worker pool can reduce the number of
 // goroutines used for health checking, and reduce the consumption of memory and go runtime scheduling
-func InitCheckWorkPool(size int, options ...ants.Option) error {
+func InitCheckWorkPool(conf *v2.HealthCheckWorkpool) error {
+	poolOptions := ants.Options{
+		ExpiryDuration:   conf.ExpiryDuration,
+		PreAlloc:         conf.PreAlloc,
+		MaxBlockingTasks: conf.MaxBlockingTasks,
+		Nonblocking:      conf.Nonblocking,
+		DisablePurge:     conf.DisablePurge,
+	}
 	var err error
 	oneInitPool.Do(func() {
+		var options []ants.Option
+		options = append(options, ants.WithOptions(poolOptions))
 		options = append(options, ants.WithPanicHandler(func(i interface{}) {
 			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [session checker] panic %v\n%s", i, string(debug.Stack()))
 		}))
-		workpool, err = ants.NewPool(size, options...)
+		workpool, err = ants.NewPool(conf.Size, options...)
 	})
 	if err != nil {
 		return err

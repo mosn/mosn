@@ -21,7 +21,9 @@ import (
 	admin "mosn.io/mosn/pkg/admin/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/upstream/healthcheck"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
@@ -35,6 +37,15 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 	InitializePlugin(c)
 	InitializeWasm(c)
 	InitializeThirdPartCodec(c)
+	// init healthcheck workpool
+	if c.HealthCheckWorkpool != nil {
+		err := healthcheck.InitCheckWorkPool(c.HealthCheckWorkpool)
+		if err != nil {
+			log.StartLogger.Errorf("[mosn] [DefaultInitStage] init healtchcheck workpool failed: %+v, config: %#v", err, c.HealthCheckWorkpool)
+		} else {
+			log.StartLogger.Infof("[mosn] [DefaultInitStage] init healtchcheck workpool success, config: %#v", c.HealthCheckWorkpool)
+		}
+	}
 }
 
 // Default Pre-start Stage wrappers
