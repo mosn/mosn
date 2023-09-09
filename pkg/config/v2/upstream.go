@@ -54,11 +54,11 @@ type HealthCheckWorkpoolConfig struct {
 	// the scavenger scans all workers every `ExpiryDuration` and clean up those workers that haven't been
 	// used for more than `ExpiryDuration`.
 	ExpiryDurationConfig api.DurationConfig `json:"expiry_duration,omitempty"`
-	// PreAlloc indicates whether to make memory pre-allocation when initializing Pool.
-	PreAlloc bool `json:"pre_alloc,omitempty"`
 	// Max number of goroutine blocking on pool.Submit.
 	// 0 (default value) means no such limit.
 	MaxBlockingTasks int `json:"max_blocking_tasks,omitempty"`
+	// PreAlloc indicates whether to make memory pre-allocation when initializing Pool.
+	PreAlloc bool `json:"pre_alloc,omitempty"`
 	// When Nonblocking is true, Pool.Submit will never be blocked.
 	// ErrPoolOverload will be returned when Pool.Submit cannot be done at once.
 	// When Nonblocking is true, MaxBlockingTasks is inoperative.
@@ -73,7 +73,7 @@ type HealthCheckWorkpool struct {
 }
 
 // MarshalJSON Marshal implement a json.Marshaler
-func (hc HealthCheckWorkpool) MarshalJSON() (b []byte, err error) {
+func (hc HealthCheckWorkpool) MarshalJSON() ([]byte, error) {
 	hc.HealthCheckWorkpoolConfig.ExpiryDurationConfig.Duration = hc.ExpiryDuration
 	return json.Marshal(hc.HealthCheckWorkpoolConfig)
 }

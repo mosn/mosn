@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/panjf2000/ants/v2"
+	ants "github.com/panjf2000/ants/v2"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -97,8 +97,8 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker, wor
 var firstInterval = time.Second
 
 func (c *sessionChecker) Start() {
-	// TODO use time wheel
-	c.checkTimer.Store(utils.NewTimer(c.HealthChecker.initialDelay, c.putCheckTask))
+	t := utils.NewTimer(c.HealthChecker.initialDelay, c.putCheckTask) // TODO use time wheel
+	c.checkTimer.Store(t)
 }
 
 func (c *sessionChecker) Stop() {
