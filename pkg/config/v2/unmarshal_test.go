@@ -19,12 +19,12 @@ package v2
 
 import (
 	"encoding/json"
-	"mosn.io/api"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 )
 
 func TestClusterMarshal(t *testing.T) {
