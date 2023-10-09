@@ -230,8 +230,8 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	case api.OnConnect:
 	case api.Connected:
 		p.readCallbacks.Connection().SetReadDisable(false)
-	case api.ConnectTimeout:
 		p.onConnectionSuccess()
+	case api.ConnectTimeout:
 		p.finalizeUpstreamConnectionStats()
 
 		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
