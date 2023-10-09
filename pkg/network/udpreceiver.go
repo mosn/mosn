@@ -78,7 +78,6 @@ func readMsgLoop(lctx context.Context, l *listener) {
 		proxyKey := GetProxyMapKey(conn.LocalAddr().String(), rAddr.String())
 		if dc, ok := ProxyMap.Load(proxyKey); !ok {
 			if l.reuseport {
-				// if optval != 0 {
 				dialer := &net.Dialer{
 					Control:   Control,
 					LocalAddr: l.packetConn.LocalAddr(),
