@@ -647,7 +647,8 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		// notice only server side connection set the default value
 		switch conn.LocalAddr().Network() {
 		case "udp":
-			conn.SetIdleTimeout(types.DefaultUDPReadTimeout, types.DefaultUDPIdleTimeout)
+			// upstream connection will start a idler checker
+			// conn.SetIdleTimeout(types.DefaultUDPReadTimeout, types.DefaultUDPIdleTimeout)
 		default:
 			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
