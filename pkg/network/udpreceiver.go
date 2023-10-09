@@ -77,10 +77,23 @@ func readMsgLoop(lctx context.Context, l *listener) {
 
 		proxyKey := GetProxyMapKey(conn.LocalAddr().String(), rAddr.String())
 		if dc, ok := ProxyMap.Load(proxyKey); !ok {
-			fd, _ := conn.File()
-			clientConn, _ := net.FilePacketConn(fd)
-
-			l.cb.OnAccept(clientConn.(*net.UDPConn), l.IsOriginalDst(), rAddr, nil, buf.Bytes()[0:n], nil)
+			if l.reuseport {
+				// if optval != 0 {
+				dialer := &net.Dialer{
+					Control:   Control,
+					LocalAddr: l.packetConn.LocalAddr(),
+				}
+				clientConn, err := dialer.Dial("udp", rAddr.String())
+				if err != nil {
+					log.DefaultLogger.Errorf("connect udp failed, err:%v", err)
+					continue
+				}
+				l.cb.OnAccept(clientConn.(*net.UDPConn), l.IsOriginalDst(), nil, nil, buf.Bytes()[0:n], nil)
+			} else {
+				fd, _ := conn.File()
+				clientConn, _ := net.FilePacketConn(fd)
+				l.cb.OnAccept(clientConn.(*net.UDPConn), l.IsOriginalDst(), rAddr, nil, buf.Bytes()[0:n], nil)
+			}
 		} else {
 			c := dc.(api.Connection)
 			c.OnRead(buf)

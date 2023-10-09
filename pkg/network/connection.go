@@ -935,6 +935,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		rawc.CloseRead()
 	}
 
+
 	if c.network == "udp" && c.RawConn().RemoteAddr() == nil {
 		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
 		DelUDPProxyMap(key)

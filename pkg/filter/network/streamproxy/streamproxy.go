@@ -230,7 +230,6 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	case api.OnConnect:
 	case api.Connected:
 		p.readCallbacks.Connection().SetReadDisable(false)
-		p.onConnectionSuccess()
 	case api.ConnectTimeout:
 		p.finalizeUpstreamConnectionStats()
 
@@ -283,14 +282,6 @@ func (p *proxy) onUpstreamEventStats(event api.ConnectionEvent) {
 		host.HostStats().UpstreamConnectionActive.Dec(1)
 		host.HostStats().UpstreamConnectionClose.Inc(1)
 	}
-}
-
-func (p *proxy) onConnectionSuccess() {
-	// In udp proxy, each upstream connection needs a idle checker
-	if p.network == "udp" {
-		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
-	}
-	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
 
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {

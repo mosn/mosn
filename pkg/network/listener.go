@@ -70,6 +70,7 @@ type listener struct {
 	name                    string
 	localAddress            net.Addr
 	bindToPort              bool
+	reuseport               bool
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	OriginalDst             v2.OriginalDstType
@@ -93,6 +94,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		OriginalDst:             lc.OriginalDst,
 		network:                 lc.Network,
+		reuseport:               lc.ReusePort,
 		config:                  lc,
 	}
 
@@ -406,6 +408,9 @@ func (l *listener) listen(lctx context.Context) error {
 	switch l.network {
 	case "udp":
 		lc := net.ListenConfig{}
+		if l.reuseport {
+			lc.Control = Control
+		}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
 		}
