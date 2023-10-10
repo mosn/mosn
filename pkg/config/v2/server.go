@@ -63,7 +63,8 @@ type ListenerConfig struct {
 	Type                  ListenerType        `json:"type,omitempty"`
 	AddrConfig            string              `json:"address,omitempty"`
 	BindToPort            bool                `json:"bind_port,omitempty"`
-	ReusePort             bool                `json:"reuseport,omitempty"` // recommended to use in UDP bidirectional data transmission scenarios.
+	// recommended to use in UDP bidirectional data transmission scenarios.
+	ReusePort             bool                `json:"reuseport,omitempty"`
 	Network               string              `json:"network,omitempty"`
 	OriginalDst           OriginalDstType     `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`

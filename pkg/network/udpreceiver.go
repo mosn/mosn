@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/libp2p/go-reuseport"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
@@ -79,7 +80,7 @@ func readMsgLoop(lctx context.Context, l *listener) {
 		if dc, ok := ProxyMap.Load(proxyKey); !ok {
 			if l.reuseport {
 				dialer := &net.Dialer{
-					Control:   Control,
+					Control:   reuseport.Control,
 					LocalAddr: l.packetConn.LocalAddr(),
 				}
 				clientConn, err := dialer.Dial("udp", rAddr.String())

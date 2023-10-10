@@ -28,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/libp2p/go-reuseport"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -409,7 +410,7 @@ func (l *listener) listen(lctx context.Context) error {
 	case "udp":
 		lc := net.ListenConfig{}
 		if l.reuseport {
-			lc.Control = Control
+			lc.Control = reuseport.Control
 		}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
