@@ -46,7 +46,7 @@ import (
 
 // Network related const
 const (
-	DefaultReadBufferSize = 1 << 7
+	DefaultReadBufferSize    = 1 << 7
 	DefaultUDPReadBufferSize = 4096
 
 	NetBufferDefaultSize     = 0
