@@ -80,7 +80,7 @@ type CheckerWorkerPool interface {
 	IsClosed() bool
 	// SubmitTask submit a task to worker pool
 	// if work queue is full return
-	SubmitTask(WorkTask) error
+	SubmitTask(task WorkTask) error
 }
 
 // WorkTask upstream host healtch checker worker pool
@@ -186,7 +186,7 @@ type sessionChecker struct {
 	//
 	checkID uint64
 	stop    atomic.Int32
-	ctx     context.Context
+	ctx     context.Context // nolint
 	stopCtx context.CancelFunc
 	//checkTimer    *utils.Timer
 	checkTimer    atomic.Value // value is checkTimer
@@ -211,8 +211,10 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker, wor
 
 var firstInterval = time.Second
 
+// Start
+// TODO use time wheel
 func (c *sessionChecker) Start() {
-	t := utils.NewTimer(c.HealthChecker.initialDelay, c.putCheckTask) // TODO use time wheel
+	t := utils.NewTimer(c.HealthChecker.initialDelay, c.putCheckTask)
 	c.checkTimer.Store(t)
 }
 
@@ -224,9 +226,9 @@ func (c *sessionChecker) Stop() {
 	c.checkTimer.Load().(*utils.Timer).Stop()
 }
 
+// TODO If a task is waiting in the queue for a long time，should drop directly ?
 func (c *sessionChecker) putCheckTask() {
 	if c.workpool != nil && !c.workpool.IsClosed() {
-		// TODO If a task is waiting in the queue for a long time，should drop directly ?
 		err := c.workpool.SubmitTask(c.OnCheck)
 		if err != nil {
 			log.DefaultLogger.Warnf("[upstream] [health check] [session checker] [putCheckTask] "+
