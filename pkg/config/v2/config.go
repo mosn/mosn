@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
-
 	"mosn.io/api"
 )
 
@@ -41,12 +40,13 @@ type MOSNConfig struct {
 	Node                 json.RawMessage      `json:"node,omitempty"`              // node info for pilot
 	RawAdmin             *Admin               `json:"admin,omitempty"`             // admin
 	Debug                PProfConfig          `json:"pprof,omitempty"`
-	Pid                  string               `json:"pid,omitempty"`                 // pid file
-	UDSDir               string               `json:"uds_dir,omitempty"`             // unix domain socket directory
-	Plugin               PluginConfig         `json:"plugin,omitempty"`              // plugin config
-	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"`    // third part codec config
-	Extends              []ExtendConfig       `json:"extends,omitempty"`             // extend config
-	Wasms                []WasmPluginConfig   `json:"wasm_global_plugins,omitempty"` // wasm config
+	Pid                  string               `json:"pid,omitempty"`                   // pid file
+	UDSDir               string               `json:"uds_dir,omitempty"`               // unix domain socket directory
+	Plugin               PluginConfig         `json:"plugin,omitempty"`                // plugin config
+	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"`      // third part codec config
+	Extends              []ExtendConfig       `json:"extends,omitempty"`               // extend config
+	Wasms                []WasmPluginConfig   `json:"wasm_global_plugins,omitempty"`   // wasm config
+	HealthCheckWorkpool  *HealthCheckWorkpool `json:"health_check_workpool,omitempty"` // healthcheck work pool config
 }
 
 // PProfConfig is used to start a pprof server for debug

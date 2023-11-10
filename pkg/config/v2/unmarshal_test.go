@@ -19,10 +19,12 @@ package v2
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 )
 
 func TestClusterMarshal(t *testing.T) {
@@ -456,5 +458,37 @@ func TestUDPProxyUnmarshal(t *testing.T) {
 			r.DestinationPort == "8080") {
 			t.Error("route failed")
 		}
+	}
+}
+
+func TestHealthCheckWorkpoolJsonUnmarshal(t *testing.T) {
+	hcConfig := `{
+		"size": 100,
+		"expiry_duration":"10m",
+		"pre_alloc": true,
+		"work_queue_size":10,
+		"disable_purge":true
+	}`
+
+	hcwp := &HealthCheckWorkpool{}
+	err := json.Unmarshal([]byte(hcConfig), &hcwp)
+	if err != nil {
+		t.Errorf("unmarhsal healthcheck workpool config err: %v", err)
+		return
+	}
+	wantHcwp := &HealthCheckWorkpool{
+		HealthCheckWorkpoolConfig: HealthCheckWorkpoolConfig{
+			Size: 100,
+			ExpiryDurationConfig: api.DurationConfig{
+				Duration: 10 * time.Minute,
+			},
+			PreAlloc:       true,
+			WokerQueueSize: 10,
+			DisablePurge:   true,
+		},
+		ExpiryDuration: 10 * time.Minute,
+	}
+	if !reflect.DeepEqual(wantHcwp, hcwp) {
+		t.Errorf("want unmarshal healthcheck workpool config: %#v, but got :%#v", wantHcwp, hcwp)
 	}
 }

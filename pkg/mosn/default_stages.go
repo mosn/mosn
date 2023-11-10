@@ -22,6 +22,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/stagemanager"
+	"mosn.io/mosn/pkg/upstream/healthcheck"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
@@ -35,6 +36,7 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 	InitializePlugin(c)
 	InitializeWasm(c)
 	InitializeThirdPartCodec(c)
+	InitHealthCheckerWorkPool(c)
 }
 
 // Default Pre-start Stage wrappers
@@ -54,4 +56,11 @@ func DefaultStartStage(mosn stagemanager.Application) {
 	// admin server should register after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
+}
+
+func DefaultStopStage(mosn stagemanager.Application) {
+	pool := healthcheck.GetWorkPool()
+	if !pool.IsClosed() {
+		pool.Close()
+	}
 }

@@ -28,6 +28,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -51,6 +52,7 @@ func (r *testResult) testCallback(host types.Host, changed bool, isHealthy bool)
 	} else {
 		atomic.AddUint32(&c.unchanged, 1)
 	}
+	log.DefaultLogger.Infof("testCallback, add: %v, changed: %v, isHealthy: %v", addr, changed, isHealthy)
 }
 
 type testCase struct {
@@ -68,8 +70,10 @@ func TestHealthCheck(t *testing.T) {
 	result := &testResult{
 		results: map[string]*testCounter{},
 	}
+	metrics.ResetAll()
 	// add common callbacks
 	RegisterCommonCallbacks("test", result.testCallback)
+	defer UnregisterCommonCallbacks("test")
 	testCases := []testCase{
 		testCase{
 			ServiceName: "test_success",

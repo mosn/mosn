@@ -18,8 +18,8 @@
 package healthcheck
 
 import (
+	"context"
 	"net"
-	"time"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -37,16 +37,17 @@ type TCPDialSession struct {
 	addr string
 }
 
-func (s *TCPDialSession) CheckHealth() bool {
+func (s *TCPDialSession) CheckHealth(ctx context.Context) bool {
+	d := net.Dialer{}
 	// default dial timeout, maybe already timeout by checker
-	conn, err := net.DialTimeout("tcp", s.addr, 30*time.Second)
+	conn, err := d.DialContext(ctx, "tcp", s.addr)
 	if err != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [health check] [tcpdial session] dial tcp for host %s error: %v", s.addr, err)
 		}
 		return false
 	}
-	conn.Close()
+	_ = conn.Close()
 	return true
 }
 

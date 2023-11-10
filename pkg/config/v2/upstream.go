@@ -45,6 +45,46 @@ type HealthCheckConfig struct {
 	CommonCallbacks      []string               `json:"common_callbacks,omitempty"` // HealthCheck support register some common callbacks that are not related to specific cluster
 }
 
+// HealthCheckWorkpoolConfig
+// options can refer ants.Options
+type HealthCheckWorkpoolConfig struct {
+	// Size goroutine work pool size
+	Size int `json:"size"`
+	// ExpiryDuration is a period for the scavenger goroutine to clean up those expired workers,
+	// the scavenger scans all workers every `ExpiryDuration` and clean up those workers that haven't been
+	// used for more than `ExpiryDuration`.
+	ExpiryDurationConfig api.DurationConfig `json:"expiry_duration,omitempty"`
+	// WokerQueueSize healthchcker work queue size, defaul size 100
+	WokerQueueSize int `json:"work_queue_size,omitempty"`
+	// PreAlloc indicates whether to make memory pre-allocation when initializing Pool.
+	PreAlloc bool `json:"pre_alloc,omitempty"`
+	// When DisablePurge is true, workers are not purged and are resident.
+	DisablePurge bool `json:"disable_purge,omitempty"`
+}
+
+type HealthCheckWorkpool struct {
+	HealthCheckWorkpoolConfig
+	ExpiryDuration time.Duration `json:"-"`
+}
+
+// MarshalJSON Marshal implement a json.Marshaler
+func (hc HealthCheckWorkpool) MarshalJSON() ([]byte, error) {
+	hc.HealthCheckWorkpoolConfig.ExpiryDurationConfig.Duration = hc.ExpiryDuration
+	return json.Marshal(hc.HealthCheckWorkpoolConfig)
+}
+
+// UnmarshalJSON Marshal implement a json.Marshaler
+func (hc *HealthCheckWorkpool) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &hc.HealthCheckWorkpoolConfig); err != nil {
+		return err
+	}
+	if hc.HealthCheckWorkpoolConfig.WokerQueueSize <= 0 {
+		hc.HealthCheckWorkpoolConfig.WokerQueueSize = 100 // set default size
+	}
+	hc.ExpiryDuration = hc.ExpiryDurationConfig.Duration
+	return nil
+}
+
 type HostConfig struct {
 	Address        string          `json:"address,omitempty"`
 	Hostname       string          `json:"hostname,omitempty"`

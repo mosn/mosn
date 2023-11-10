@@ -58,3 +58,8 @@ func RegisterCommonCallbacks(name string, cb types.HealthCheckCb) bool {
 	}
 	return true
 }
+
+func UnregisterCommonCallbacks(name string) bool {
+	_, loaded := commonCallbacks.LoadAndDelete(name)
+	return loaded
+}

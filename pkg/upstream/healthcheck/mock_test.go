@@ -18,6 +18,7 @@
 package healthcheck
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -37,10 +38,15 @@ type mockSession struct {
 	host types.Host
 }
 
-func (s *mockSession) CheckHealth() bool {
+func (s *mockSession) CheckHealth(ctx context.Context) bool {
 	if mh, ok := s.host.(*mockHost); ok {
 		if mh.delay > 0 {
 			time.Sleep(mh.delay)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err() == nil
+		default:
 		}
 	}
 	return s.host.Health()
