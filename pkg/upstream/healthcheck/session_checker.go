@@ -186,7 +186,7 @@ type sessionChecker struct {
 	//
 	checkID uint64
 	stop    int32
-	ctx     context.Context // nolint
+	ctx     context.Context //nolint
 	stopCtx context.CancelFunc
 	//checkTimer    *utils.Timer
 	checkTimer    atomic.Value // value is checkTimer
@@ -226,7 +226,7 @@ func (c *sessionChecker) Stop() {
 	c.checkTimer.Load().(*utils.Timer).Stop()
 }
 
-// TODO If a task is waiting in the queue for a long time，should drop directly ?
+// TODO If a task is waiting in the queue for a long time，should drop directly
 func (c *sessionChecker) putCheckTask() {
 	if c.workpool != nil && !c.workpool.IsClosed() {
 		err := c.workpool.SubmitTask(c.OnCheck)
