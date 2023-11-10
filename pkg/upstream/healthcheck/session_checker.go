@@ -185,7 +185,7 @@ type sessionChecker struct {
 	HealthChecker *healthChecker
 	//
 	checkID uint64
-	stop    atomic.Int32
+	stop    int32
 	ctx     context.Context // nolint
 	stopCtx context.CancelFunc
 	//checkTimer    *utils.Timer
@@ -219,7 +219,7 @@ func (c *sessionChecker) Start() {
 }
 
 func (c *sessionChecker) Stop() {
-	if !c.stop.CompareAndSwap(0, 1) {
+	if !atomic.CompareAndSwapInt32(&c.stop, 0, 1) {
 		return
 	}
 	c.stopCtx()
@@ -317,7 +317,7 @@ func (c *sessionChecker) OnCheck() {
 }
 
 func (c *sessionChecker) isStop() bool {
-	if c.stop.Load() == 0 {
+	if atomic.LoadInt32(&c.stop) == 0 {
 		return false
 	} else {
 		return true
