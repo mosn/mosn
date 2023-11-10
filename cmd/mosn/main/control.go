@@ -206,6 +206,7 @@ var (
 			stm.AppendStartStage(mosn.DefaultStartStage)
 			// after-stop
 			stm.AppendAfterStopStage(holmes.Stop)
+			stm.AppendAfterStopStage(mosn.DefaultStopStage)
 			// execute all stages
 			stm.RunAll()
 			return nil

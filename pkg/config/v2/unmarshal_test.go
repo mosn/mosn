@@ -466,8 +466,7 @@ func TestHealthCheckWorkpoolJsonUnmarshal(t *testing.T) {
 		"size": 100,
 		"expiry_duration":"10m",
 		"pre_alloc": true,
-		"max_blocking_tasks":10,
-		"nonblocking":true,
+		"work_queue_size":10,
 		"disable_purge":true
 	}`
 
@@ -483,10 +482,9 @@ func TestHealthCheckWorkpoolJsonUnmarshal(t *testing.T) {
 			ExpiryDurationConfig: api.DurationConfig{
 				Duration: 10 * time.Minute,
 			},
-			PreAlloc:         true,
-			MaxBlockingTasks: 10,
-			Nonblocking:      true,
-			DisablePurge:     true,
+			PreAlloc:       true,
+			WokerQueueSize: 10,
+			DisablePurge:   true,
 		},
 		ExpiryDuration: 10 * time.Minute,
 	}

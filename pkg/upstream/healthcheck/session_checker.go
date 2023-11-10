@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"context"
+	"errors"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -32,29 +33,37 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// TODO healtcheck workpool could dynamic scale base on types.Host count
-var workpool *ants.Pool
+// TODO healtcheck workpool size could dynamic scale base on types.Host count
+var workpool CheckerWorkerPool
 var oneInitPool sync.Once
+
+var (
+	ErrWorkerPoolClosed    = errors.New("worker pool closed")
+	ErrWorkerPoolQueueFull = errors.New("worker pool queue full")
+)
 
 // InitCheckWorkPool init health check work pool
 // In a large-scale types.Host scenario, the goroutine worker pool can reduce the number of
 // goroutines used for health checking, and reduce the consumption of memory and go runtime scheduling
 func InitCheckWorkPool(conf *v2.HealthCheckWorkpool) error {
 	poolOptions := ants.Options{
-		ExpiryDuration:   conf.ExpiryDuration,
-		PreAlloc:         conf.PreAlloc,
-		MaxBlockingTasks: conf.MaxBlockingTasks,
-		Nonblocking:      conf.Nonblocking,
-		DisablePurge:     conf.DisablePurge,
+		ExpiryDuration: conf.ExpiryDuration,
+		PreAlloc:       conf.PreAlloc,
+		Nonblocking:    false,
+		DisablePurge:   conf.DisablePurge,
 	}
 	var err error
 	oneInitPool.Do(func() {
 		var options []ants.Option
 		options = append(options, ants.WithOptions(poolOptions))
 		options = append(options, ants.WithPanicHandler(func(i interface{}) {
-			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [session checker] panic %v\n%s", i, string(debug.Stack()))
+			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [InitCheckWorkPool] panic %v\n%s", i, string(debug.Stack()))
 		}))
-		workpool, err = ants.NewPool(conf.Size, options...)
+		pool, err := ants.NewPool(conf.Size, options...)
+		if err == nil {
+			workpool = newSimpleCheckerWorkerPool(pool, conf.WokerQueueSize)
+			workpool.Start()
+		}
 	})
 	if err != nil {
 		return err
@@ -62,8 +71,110 @@ func InitCheckWorkPool(conf *v2.HealthCheckWorkpool) error {
 	return nil
 }
 
+type CheckerWorkerPool interface {
+	// Start work pool dispatch
+	Start()
+	// Close work pool
+	Close()
+	// IsClosed work pool whether closed
+	IsClosed() bool
+	// SubmitTask submit a task to worker pool
+	// if work queue is full return
+	SubmitTask(WorkTask) error
+}
+
+// WorkTask upstream host healtch checker worker pool
+type WorkTask func()
+
+func newSimpleCheckerWorkerPool(workpool *ants.Pool, size int) CheckerWorkerPool {
+	p := &simpleCheckerWorkerPool{
+		stopEvent: make(chan struct{}),
+		pool:      workpool,
+	}
+	if size <= 0 {
+		size = 100 // not allow less 0, set default 100
+	}
+	p.workerQueue = make(chan WorkTask, size)
+	return p
+}
+
+type simpleCheckerWorkerPool struct {
+	stopEvent   chan struct{}
+	workerQueue chan WorkTask
+	pool        *ants.Pool
+}
+
+func (sp *simpleCheckerWorkerPool) Close() {
+	if sp.IsClosed() {
+		return
+	}
+	close(sp.stopEvent)
+	sp.pool.Release()
+}
+
+func (sp *simpleCheckerWorkerPool) IsClosed() bool {
+	select {
+	case <-sp.stopEvent:
+		return true
+	default:
+		return false
+	}
+}
+
+func (sp *simpleCheckerWorkerPool) SubmitTask(task WorkTask) error {
+	select {
+	case <-sp.stopEvent:
+		return ErrWorkerPoolClosed
+	case sp.workerQueue <- task:
+		return nil
+	default:
+		return ErrWorkerPoolQueueFull
+	}
+}
+
+func (sp *simpleCheckerWorkerPool) Start() {
+	utils.GoWithRecover(sp.dispatch, func(r interface{}) {
+		log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [start workpool dispatch] panic %v\n%s", r, string(debug.Stack()))
+		time.Sleep(time.Second * 3)
+		sp.Start()
+	})
+}
+
+func (sp *simpleCheckerWorkerPool) dispatch() {
+	defer sp.cleanTasks()
+	var err error
+	var task WorkTask
+	for {
+		select {
+		case <-sp.stopEvent:
+			return
+		case task = <-sp.workerQueue:
+		}
+		if task == nil {
+			continue
+		}
+		err = sp.pool.Submit(task)
+		if err != nil {
+			log.DefaultLogger.Warnf("[upstream] [health check] [simpleCheckerWorkerPool] submit check task error: %+v", err)
+		}
+		task = nil // drop check task
+	}
+}
+
+func (sp *simpleCheckerWorkerPool) cleanTasks() {
+CleanTasks:
+	for {
+		select {
+		case <-sp.workerQueue:
+			continue
+		default:
+			break CleanTasks
+		}
+	}
+}
+
 // GetWorkPool could dynamic set pool size according to the size of the types.Cluster or types.Host
-func GetWorkPool() *ants.Pool {
+func GetWorkPool() CheckerWorkerPool {
 	return workpool
 }
 
@@ -74,21 +185,25 @@ type sessionChecker struct {
 	HealthChecker *healthChecker
 	//
 	checkID uint64
-	stop    chan struct{}
+	stop    atomic.Int32
+	ctx     context.Context
+	stopCtx context.CancelFunc
 	//checkTimer    *utils.Timer
 	checkTimer    atomic.Value // value is checkTimer
 	unHealthCount uint32
 	healthCount   uint32
 	checkingState uint32 // 0: not-checking, 1: checking
-	workpool      *ants.Pool
+	workpool      CheckerWorkerPool
 }
 
-func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker, workpool *ants.Pool) *sessionChecker {
+func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker, workpool CheckerWorkerPool) *sessionChecker {
+	ctx, cancel := context.WithCancel(context.Background())
 	c := &sessionChecker{
 		Session:       s,
 		Host:          h,
 		HealthChecker: hc,
-		stop:          make(chan struct{}),
+		ctx:           ctx,
+		stopCtx:       cancel,
 		workpool:      workpool,
 	}
 	return c
@@ -102,13 +217,17 @@ func (c *sessionChecker) Start() {
 }
 
 func (c *sessionChecker) Stop() {
-	close(c.stop)
+	if !c.stop.CompareAndSwap(0, 1) {
+		return
+	}
+	c.stopCtx()
 	c.checkTimer.Load().(*utils.Timer).Stop()
 }
 
 func (c *sessionChecker) putCheckTask() {
-	if c.workpool != nil {
-		err := c.workpool.Submit(c.OnCheck)
+	if c.workpool != nil && !c.workpool.IsClosed() {
+		// TODO If a task is waiting in the queue for a long time，should drop directly ?
+		err := c.workpool.SubmitTask(c.OnCheck)
 		if err != nil {
 			log.DefaultLogger.Warnf("[upstream] [health check] [session checker] [putCheckTask] "+
 				"submit check task error: %+v, check id: %d", err, atomic.LoadUint64(&c.checkID))
@@ -159,6 +278,9 @@ func (c *sessionChecker) OnCheck() {
 	defer func() {
 		atomic.StoreUint32(&c.checkingState, 0)
 	}()
+	if c.isStop() { // checker has been close
+		return
+	}
 	var isStop bool
 	// record current id
 	id := atomic.AddUint64(&c.checkID, 1)
@@ -167,7 +289,7 @@ func (c *sessionChecker) OnCheck() {
 			"begin new checkign, check id: %d, host: %v", id, c.Host.AddressString())
 	}
 	c.HealthChecker.stats.attempt.Inc(1)
-	ctx, cancel := context.WithTimeout(context.Background(), c.HealthChecker.timeout)
+	ctx, cancel := context.WithTimeout(c.ctx, c.HealthChecker.timeout)
 	defer cancel()
 	checkResult := c.Session.CheckHealth(ctx)
 
@@ -193,10 +315,9 @@ func (c *sessionChecker) OnCheck() {
 }
 
 func (c *sessionChecker) isStop() bool {
-	select {
-	case <-c.stop: // avoid goroutine leak https://github.com/mosn/mosn/issues/2336
-		return true
-	default:
+	if c.stop.Load() == 0 {
 		return false
+	} else {
+		return true
 	}
 }

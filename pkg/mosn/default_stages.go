@@ -21,7 +21,6 @@ import (
 	admin "mosn.io/mosn/pkg/admin/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/upstream/healthcheck"
 )
@@ -37,15 +36,7 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 	InitializePlugin(c)
 	InitializeWasm(c)
 	InitializeThirdPartCodec(c)
-	// init healthcheck workpool
-	if c.HealthCheckWorkpool != nil {
-		err := healthcheck.InitCheckWorkPool(c.HealthCheckWorkpool)
-		if err != nil {
-			log.StartLogger.Errorf("[mosn] [DefaultInitStage] init healtchcheck workpool failed: %+v, config: %#v", err, c.HealthCheckWorkpool)
-		} else {
-			log.StartLogger.Infof("[mosn] [DefaultInitStage] init healtchcheck workpool success, config: %#v", c.HealthCheckWorkpool)
-		}
-	}
+	InitHealthCheckerWorkPool(c)
 }
 
 // Default Pre-start Stage wrappers
@@ -65,4 +56,11 @@ func DefaultStartStage(mosn stagemanager.Application) {
 	// admin server should register after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
+}
+
+func DefaultStopStage(mosn stagemanager.Application) {
+	pool := healthcheck.GetWorkPool()
+	if !pool.IsClosed() {
+		pool.Close()
+	}
 }

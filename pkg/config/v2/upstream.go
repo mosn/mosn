@@ -54,15 +54,10 @@ type HealthCheckWorkpoolConfig struct {
 	// the scavenger scans all workers every `ExpiryDuration` and clean up those workers that haven't been
 	// used for more than `ExpiryDuration`.
 	ExpiryDurationConfig api.DurationConfig `json:"expiry_duration,omitempty"`
-	// Max number of goroutine blocking on pool.Submit.
-	// 0 (default value) means no such limit.
-	MaxBlockingTasks int `json:"max_blocking_tasks,omitempty"`
+	// WokerQueueSize healthchcker work queue size, defaul size 100
+	WokerQueueSize int `json:"work_queue_size,omitempty"`
 	// PreAlloc indicates whether to make memory pre-allocation when initializing Pool.
 	PreAlloc bool `json:"pre_alloc,omitempty"`
-	// When Nonblocking is true, Pool.Submit will never be blocked.
-	// ErrPoolOverload will be returned when Pool.Submit cannot be done at once.
-	// When Nonblocking is true, MaxBlockingTasks is inoperative.
-	Nonblocking bool `json:"nonblocking,omitempty"`
 	// When DisablePurge is true, workers are not purged and are resident.
 	DisablePurge bool `json:"disable_purge,omitempty"`
 }
@@ -82,6 +77,9 @@ func (hc HealthCheckWorkpool) MarshalJSON() ([]byte, error) {
 func (hc *HealthCheckWorkpool) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &hc.HealthCheckWorkpoolConfig); err != nil {
 		return err
+	}
+	if hc.HealthCheckWorkpoolConfig.WokerQueueSize <= 0 {
+		hc.HealthCheckWorkpoolConfig.WokerQueueSize = 100 // set default size
 	}
 	hc.ExpiryDuration = hc.ExpiryDurationConfig.Duration
 	return nil

@@ -35,6 +35,7 @@ import (
 	"mosn.io/mosn/pkg/server/pid"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/healthcheck"
 	"mosn.io/mosn/pkg/wasm"
 )
 
@@ -172,4 +173,17 @@ func readProtocolPlugin(path, loadFuncName string) error {
 	}
 
 	return nil
+}
+
+// InitHealthCheckerWorkPool init healthcheck workpool
+func InitHealthCheckerWorkPool(conf *v2.MOSNConfig) {
+	poolConf := conf.HealthCheckWorkpool
+	if poolConf != nil {
+		err := healthcheck.InitCheckWorkPool(poolConf)
+		if err != nil {
+			log.StartLogger.Errorf("[mosn] [InitHealthCheckerWorkerPool] init healtchcheck workpool failed: %+v, config: %#v", err, poolConf)
+		} else {
+			log.StartLogger.Infof("[mosn] [InitHealthCheckerWorkerPool] init healtchcheck workpool success, config: %#v", poolConf)
+		}
+	}
 }

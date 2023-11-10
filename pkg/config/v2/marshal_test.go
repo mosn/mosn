@@ -53,11 +53,10 @@ func TestDelayInjectMarshal(t *testing.T) {
 func TestHealthCheckWorkpoolJsonMarshal(t *testing.T) {
 	hcwp := &HealthCheckWorkpool{
 		HealthCheckWorkpoolConfig: HealthCheckWorkpoolConfig{
-			Size:             100,
-			PreAlloc:         true,
-			MaxBlockingTasks: 10,
-			Nonblocking:      true,
-			DisablePurge:     true,
+			Size:           100,
+			PreAlloc:       true,
+			WokerQueueSize: 10,
+			DisablePurge:   true,
 		},
 		ExpiryDuration: 10 * time.Minute,
 	}
