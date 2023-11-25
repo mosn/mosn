@@ -21,26 +21,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/propagation"
 	"os"
 	"time"
 
-	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/http"
-	mosntrace "mosn.io/mosn/pkg/trace"
-
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/http"
+	mosntrace "mosn.io/mosn/pkg/trace"
 )
 
 const (

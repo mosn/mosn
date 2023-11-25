@@ -19,16 +19,15 @@ package otel
 
 import (
 	"context"
+	"time"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
-	"mosn.io/mosn/pkg/protocol/http"
-	"net"
-	"time"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/http"
 )
 
 type Span struct {
@@ -55,27 +54,21 @@ func (s *Span) ParentSpanId() string {
 
 // SetRequestInfo record current request info to Span
 func (s *Span) SetRequestInfo(reqInfo api.RequestInfo) {
-
 	s.otelSpan.SetAttributes(attribute.Int("http.response.status_code", reqInfo.ResponseCode()))
 
-	if tcpAddr, ok := reqInfo.DownstreamLocalAddress().(*net.TCPAddr); ok {
-		s.otelSpan.SetAttributes(attribute.String("server.address", tcpAddr.IP.String()))
-		s.otelSpan.SetAttributes(attribute.Int("server.port", tcpAddr.Port))
+	if a := reqInfo.DownstreamLocalAddress(); a != nil {
+		s.otelSpan.SetAttributes(attribute.String("downstream.local.address", a.String()))
 	}
 
-	if tcpAddr, ok := reqInfo.DownstreamRemoteAddress().(*net.TCPAddr); ok {
-		s.otelSpan.SetAttributes(attribute.String("client.address", tcpAddr.IP.String()))
-		s.otelSpan.SetAttributes(attribute.Int("client.port", tcpAddr.Port))
+	if a := reqInfo.DownstreamRemoteAddress(); a != nil {
+		s.otelSpan.SetAttributes(attribute.String("downstream.remote.address", a.String()))
 	}
-
 }
 
 func (s *Span) SetRequestHeader(header http.RequestHeader) {
-
 	s.otelSpan.SetAttributes(attribute.String("network.protocol.name", string(header.Protocol())))
 	s.otelSpan.SetAttributes(semconv.HTTPMethod(string(header.Method())))
 	s.otelSpan.SetAttributes(semconv.HTTPURL(string(header.RequestURI())))
-
 }
 
 func (s *Span) FinishSpan() {
@@ -89,19 +82,27 @@ func (s *Span) InjectContext(requestHeaders api.HeaderMap, _ api.RequestInfo) {
 /* unsupported method */
 
 func (s *Span) SetOperation(operation string) {
-	log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SetOperation [%s]", operation)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SetOperation [%s]", operation)
+	}
 }
 
 func (s *Span) SetTag(key uint64, value string) {
-	log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SetTag [%d]-[%s]", key, value)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SetTag [%d]-[%s]", key, value)
+	}
 }
 
 func (s *Span) Tag(key uint64) string {
-	log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported Tag [%d]-[%s]", key)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported Tag [%d]-[%s]", key)
+	}
 	return ""
 }
 
 func (s *Span) SpawnChild(operationName string, _ time.Time) api.Span {
-	log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SpawnChild [%s]", operationName)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported SpawnChild [%s]", operationName)
+	}
 	return nil
 }
