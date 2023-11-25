@@ -23,7 +23,6 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -67,8 +66,8 @@ func (s *Span) SetRequestInfo(reqInfo api.RequestInfo) {
 
 func (s *Span) SetRequestHeader(header http.RequestHeader) {
 	s.otelSpan.SetAttributes(attribute.String("network.protocol.name", string(header.Protocol())))
-	s.otelSpan.SetAttributes(semconv.HTTPMethod(string(header.Method())))
-	s.otelSpan.SetAttributes(semconv.HTTPURL(string(header.RequestURI())))
+	s.otelSpan.SetAttributes(attribute.Key("http.method").String(string(header.Method())))
+	s.otelSpan.SetAttributes(attribute.Key("http.url").String(string(header.RequestURI())))
 }
 
 func (s *Span) FinishSpan() {

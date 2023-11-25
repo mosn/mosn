@@ -32,7 +32,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.14.0"
 	"go.opentelemetry.io/otel/trace"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -71,10 +71,10 @@ func (t *Tracer) Start(ctx context.Context, request interface{}, startTime time.
 	sp, nctx, pctx := t.getSpan(ctx, header, startTime)
 	log.DefaultLogger.Infof("[otel] [tracer] [http1] traceId: %s, spanId: %s.", sp.SpanContext().TraceID().String(), sp.SpanContext().SpanID().String())
 
-	span := Span{otelSpan: sp, nctx: nctx, pctx: pctx}
+	span := &Span{otelSpan: sp, nctx: nctx, pctx: pctx}
 	span.SetRequestHeader(header)
 
-	return &span
+	return span
 }
 
 func (t *Tracer) getSpan(ctx context.Context, header http.RequestHeader, startTime time.Time) (trace.Span, context.Context, context.Context) {
