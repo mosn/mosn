@@ -19,6 +19,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"syscall"
@@ -127,6 +128,76 @@ func testBase(t *testing.T, addr net.Addr) {
 func TestListenerTCPStart(t *testing.T) {
 	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:10101")
 	testBase(t, addr)
+}
+
+func TestListenerUDPStart(t *testing.T) {
+	addr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:10101")
+	cfg := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:       "test_listener",
+			Network:    addr.Network(),
+			BindToPort: true,
+			ReusePort:  true,
+		},
+		PerConnBufferLimitBytes: 1024,
+		Addr:                    addr,
+	}
+	ln := GetListenerFactory()(cfg)
+
+	el := &mockEventListener{}
+	ln.SetListenerCallbacks(el)
+	go ln.Start(nil, false) // start
+	time.Sleep(3 * time.Second)
+	listen := func(t *testing.T) bool {
+		conn, err := net.ListenUDP("udp", addr)
+		if conn != nil {
+			conn.Close()
+		}
+		if err != nil {
+			fmt.Errorf("listen to %s failed, %v", addr.String(), err)
+			return false
+		} else {
+			return true
+		}
+
+	}
+	if listen(t) {
+		t.Error("listener start check failed because still can be listened")
+	}
+	// duplicate start, will be ignored, return directly
+	for i := 0; i < 10; i++ {
+		ch := make(chan struct{})
+		go func() {
+			ln.Start(nil, false)
+			close(ch)
+		}()
+		select {
+		case <-ch:
+		case <-time.After(500 * time.Millisecond):
+			t.Fatal("start not be ignored")
+		}
+	}
+	// close listener
+	if err := ln.Close(nil); err != nil {
+		t.Errorf("Close listener failed, %v", err)
+	}
+	time.Sleep(3 * time.Second)
+	if !listen(t) {
+		t.Error("listener closed, but still can not be listened")
+	}
+	// start, but not restart, will be failed
+	go ln.Start(nil, false)
+	time.Sleep(time.Second)
+	if !listen(t) {
+		t.Error("listener start, but should not be started")
+	}
+	// restart
+	go ln.Start(nil, true)
+	time.Sleep(time.Second)
+	if listen(t) {
+		t.Error("listener restart check failed because it still can be listened")
+	}
+	ln.Close(context.Background())
 }
 
 func TestListenerUDSStart(t *testing.T) {
