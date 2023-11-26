@@ -158,7 +158,7 @@ func (c *TracerConfig) GetServiceName() string {
 }
 
 func (c *TracerConfig) GetResource() (*resource.Resource, error) {
-	attributes := make([]attribute.KeyValue, 0)
+	attributes := make([]attribute.KeyValue, 0, len(c.ConfigMap)+1)
 	attributes = append(attributes, attribute.String("service.name", c.GetServiceName()))
 
 	if c.ConfigMap != nil {
@@ -167,8 +167,7 @@ func (c *TracerConfig) GetResource() (*resource.Resource, error) {
 		}
 	}
 
-	return resource.Merge(resource.Default(), resource.NewWithAttributes(
-		semconv.SchemaURL,
+	return resource.Merge(resource.Default(), resource.NewSchemaless(
 		attributes...,
 	))
 }
