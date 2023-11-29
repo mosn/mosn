@@ -286,8 +286,8 @@ func (p *proxy) onUpstreamEventStats(event api.ConnectionEvent) {
 }
 
 func (p *proxy) onConnectionSuccess() {
-	// In udp proxy, each upstream connection needs a idle checker
-	if p.network == "udp" {
+	// In udp proxy, upstream connection needs a idle checker if reuseport not set
+	if p.network == "udp" && p.readCallbacks.Connection().RawConn().RemoteAddr() == nil {
 		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
 	}
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())

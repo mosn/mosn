@@ -526,7 +526,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 
 	ac := newActiveConnection(al, conn)
 
-	if conn.LocalAddr().Network() == "udp" {
+	if conn.LocalAddr().Network() == "udp" && conn.RawConn().RemoteAddr() == nil {
 		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 
