@@ -39,7 +39,7 @@ func (h HTTPHeadersCarrier) Keys() []string {
 	keys := make([]string, 0)
 	h.request.Range(func(key, value string) bool {
 		keys = append(keys, key)
-		return false
+		return true
 	})
 
 	return keys
