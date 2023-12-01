@@ -94,7 +94,7 @@ func (s *Span) SetTag(key uint64, value string) {
 
 func (s *Span) Tag(key uint64) string {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported Tag [%d]-[%s]", key)
+		log.DefaultLogger.Debugf("[otel] [tracer] [span] Unsupported Tag [%d]", key)
 	}
 	return ""
 }
