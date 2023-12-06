@@ -257,3 +257,31 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 	close(ch)
 	wg.Wait()
 }
+
+func TestKeepAliveFastFail(t *testing.T) {
+	// Enable fast failure with a heartbeat interval of 20ms when fast failure is triggered.
+	RefreshKeepaliveConfig(KeepaliveConfig{
+		TickCountIfFail:  1,
+		TickCountIfSucc:  1,
+		FailCountToClose: 6,
+		FastFail:         true,
+		FastSendInterval: 20 * time.Millisecond,
+	})
+	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
+
+	// create a mock server that delays the response by 50ms and has a heartbeat timeout of 10ms
+	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond)
+	defer tc.Server.Close()
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
+
+	// initiate a heartbeat packet, triggering fast failure upon timeout.
+	go tc.KeepAlive.SendKeepAlive()
+
+	// total of 6 fast check failures will take 6 * 20ms = 120ms. Waiting for failure here
+	time.Sleep(200 * time.Millisecond)
+
+	if testStats.success != 0 || testStats.timeout != 6 {
+		t.Error("keep alive handle status not expected", testStats)
+	}
+}
