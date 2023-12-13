@@ -107,12 +107,12 @@ func getDnsType(dnsType v2.DnsLookupFamily) uint16 {
 
 func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFamily) *[]DnsResponse {
 	dnsQueryType := getDnsType(dnsLookupFamily)
-	msg := new(dns.Msg)
 	addrs := dr.clientConfig.NameList(dnsAddr)
 	var dnsRsp []DnsResponse
 	for _, server := range dr.clientConfig.Servers {
 		//try from first server by default
 		for _, addr := range addrs {
+			msg := new(dns.Msg)
 			msg.SetQuestion(addr, dnsQueryType)
 			// 1. SetEdns0 appends a EDNS0 OPT RR to the message, in case server side response message truncated
 			// 2. It also adjusts client side buffer size

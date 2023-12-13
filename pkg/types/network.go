@@ -124,8 +124,17 @@ type Listener interface {
 	// GetListenerCallbacks set a listener event listener
 	GetListenerCallbacks() ListenerEventListener
 
-	// Shutdown stop accepting new connections and graceful stop the existing connections
-	Shutdown() error
+	// Shutdown stop accepting new connections or closes the Listener, and then gracefully
+	// closes existing connections
+	//
+	// In the hot upgrade scenario, the Shutdown method only stops accepting new connections
+	// but does not close the Listener. The new Mosn can still handle some newly established
+	// connections after taking over the Listener.
+	//
+	// In non-hot upgrade scenarios, the Shutdown method will first close the Listener to directly
+	// reject the establishment of new connections. This is because if only new connection
+	// processing is stopped, the requests on these connections cannot be processed in the future.
+	Shutdown(lctx context.Context) error
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
@@ -232,7 +241,7 @@ type ConnectionHandler interface {
 
 	// GracefulStopListeners stops accept connections from all listeners the ConnectionHandler has.
 	// and graceful stop all the existing connections.
-	GracefulStopListeners() error
+	GracefulStopListeners(lctx context.Context) error
 
 	// CloseListeners closes listeners immediately
 	CloseListeners()

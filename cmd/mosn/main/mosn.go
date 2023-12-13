@@ -65,6 +65,7 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	_ "mosn.io/mosn/pkg/trace/jaeger"
+	_ "mosn.io/mosn/pkg/trace/otel"
 	_ "mosn.io/mosn/pkg/trace/skywalking"
 	_ "mosn.io/mosn/pkg/trace/skywalking/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/http"

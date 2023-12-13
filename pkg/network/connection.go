@@ -46,7 +46,8 @@ import (
 
 // Network related const
 const (
-	DefaultReadBufferSize = 1 << 7
+	DefaultReadBufferSize    = 1 << 7
+	DefaultUDPReadBufferSize = 4096
 
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
@@ -208,7 +209,7 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	if conn.network == "udp" {
 		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf := val.([]byte)
-			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
+			conn.readBuffer = buffer.GetIoBuffer(conn.getUDPReadBufferSize())
 			conn.readBuffer.Write(buf)
 			conn.updateReadBufStats(int64(conn.readBuffer.Len()), int64(conn.readBuffer.Len()))
 		}
@@ -550,12 +551,20 @@ func (c *connection) setReadDeadline() {
 	}
 }
 
+func (c *connection) getUDPReadBufferSize() int {
+	if c.defaultReadBufferSize != 0 && c.defaultReadBufferSize != DefaultReadBufferSize {
+		return c.defaultReadBufferSize
+	} else {
+		return DefaultUDPReadBufferSize
+	}
+}
+
 func (c *connection) doRead() (err error) {
 	if c.readBuffer == nil {
 		switch c.network {
 		case "udp":
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
-			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
+			c.readBuffer = buffer.GetIoBuffer(c.getUDPReadBufferSize())
 		default: // unix or tcp
 			c.readBuffer = buffer.GetIoBuffer(c.defaultReadBufferSize)
 		}

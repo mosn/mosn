@@ -28,9 +28,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/libp2p/go-reuseport"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
@@ -69,6 +71,7 @@ type listener struct {
 	name                    string
 	localAddress            net.Addr
 	bindToPort              bool
+	reuseport               bool
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	OriginalDst             v2.OriginalDstType
@@ -92,6 +95,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		OriginalDst:             lc.OriginalDst,
 		network:                 lc.Network,
+		reuseport:               lc.ReusePort,
 		config:                  lc,
 	}
 
@@ -222,13 +226,40 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 	})
 }
 
-// Shutdown stop accepting new connections and graceful close the existing connections
-func (l *listener) Shutdown() error {
-	changed, err := l.stopAccept()
-	if changed {
-		l.cb.OnShutdown()
+// Shutdown stop accepting new connections or closes the Listener, and then gracefully
+// closes existing connections
+
+// In the hot upgrade scenario, the Shutdown method only stops accepting new connections
+// but does not close the Listener. The new Mosn can still handle some newly established
+// connections after taking over the Listener.
+//
+// In non-hot upgrade scenarios, the Shutdown method will first close the Listener to
+// directly reject the establishment of new connections. This is because if only new
+// connection processing is stopped, the requests on these connections cannot be processed in the future.
+func (l *listener) Shutdown(lctx context.Context) error {
+	// #2220: An exception may occur when a new connection in the gracefully shutdown during non-hot upgrade
+	// If current state is upgrading, it means old Mosn exits after new Mosn starts successfully.
+	if stagemanager.GetState() == stagemanager.Upgrading {
+		// If it is upgrade, stop accept new connection only,
+		changed, err := l.stopAccept()
+		if changed {
+			l.cb.OnShutdown()
+		}
+		return err
+	} else {
+		// If it is not upgrade, close the listener first to avoid new connection establishment.
+		// These newly established connections will not be processed by mosn before listener closed, and the requests on the connection will timeout.
+
+		// Close listener should not close existsing connections.
+		err := l.Close(lctx)
+
+		if l.bindToPort {
+			// Close the existing connections if it support graceful close.
+			l.cb.OnShutdown()
+		}
+
+		return err
 	}
-	return err
 }
 
 // stopAccept just stop accepting new connections
@@ -340,6 +371,11 @@ func (l *listener) IsOriginalDst() bool {
 func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
+
+	if l.state == ListenerClosed {
+		return nil
+	}
+
 	l.state = ListenerClosed
 
 	if !l.bindToPort {
@@ -373,11 +409,18 @@ func (l *listener) listen(lctx context.Context) error {
 	switch l.network {
 	case "udp":
 		lc := net.ListenConfig{}
+		if l.reuseport {
+			lc.Control = reuseport.Control
+		}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
 		}
 		l.packetConn = rconn
 	case "unix":
+		// delete the unix socket file prior to binding, only 'failsafe' way
+		if err := os.Remove(l.localAddress.String()); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove unix socket file: %v", err)
+		}
 		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
 			return err
 		}
