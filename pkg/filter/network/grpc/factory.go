@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"runtime/debug"
 	"sync"
@@ -108,7 +107,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		// add recover, or process will be crashed if handler cause a panic
 		if r := recover(); r != nil {
 			log.DefaultLogger.Alertf(types.ErrorKeyProxyPanic, "[grpc] [unary] grpc unary handle panic: %v, method: %s, stack:%s", r, info.FullMethod, string(debug.Stack()))
-			err = fmt.Errorf("[grpc] [unary] grpc unary handle panic: %v, method: %s", r, info.FullMethod)
+			err = errors.New("grpc unary occur panic")
 		}
 	}()
 	sfc := streamfilter.GetDefaultStreamFilterChain()
