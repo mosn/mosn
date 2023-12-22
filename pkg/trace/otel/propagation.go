@@ -31,7 +31,7 @@ func (h HTTPHeadersCarrier) Get(key string) (value string) {
 }
 
 func (h HTTPHeadersCarrier) Set(key, value string) {
-	h.request.Add(key, value)
+	h.request.Set(key, value)
 }
 
 func (h HTTPHeadersCarrier) Keys() []string {
