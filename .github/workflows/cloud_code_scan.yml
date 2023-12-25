@@ -1,6 +1,11 @@
 name: Alipay Cloud Devops Codescan
 on:
   pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 jobs:
   stc:   # Code security scanning
     runs-on: ubuntu-latest
