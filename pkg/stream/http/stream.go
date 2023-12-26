@@ -298,8 +298,9 @@ func (conn *clientStreamConnection) serve() {
 				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 				reason := conn.resetReason
 				if reason == "" {
-					switch err.(type) {
-					case *fasthttp.ErrSmallBuffer:
+					var errSmallBuffer *fasthttp.ErrSmallBuffer
+					switch {
+					case errors.As(err, &errSmallBuffer):
 						// response header size over max_header_size limit, set reason types.StreamLocalReset
 						reason = types.StreamLocalReset
 					default:
