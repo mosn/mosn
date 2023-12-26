@@ -298,7 +298,13 @@ func (conn *clientStreamConnection) serve() {
 				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 				reason := conn.resetReason
 				if reason == "" {
-					reason = types.StreamRemoteReset
+					switch err.(type) {
+					case *fasthttp.ErrSmallBuffer:
+						// response header size over max_header_size limit, set reason types.StreamLocalReset
+						reason = types.StreamLocalReset
+					default:
+						reason = types.StreamRemoteReset
+					}
 				}
 				s.ResetStream(reason)
 			}
