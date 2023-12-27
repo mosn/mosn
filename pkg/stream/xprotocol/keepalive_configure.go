@@ -33,8 +33,9 @@ type KeepaliveConfig struct {
 	TickCountIfSucc uint32
 	// if hb fails in a line, and count = fail_count_to_close, close this connection
 	FailCountToClose uint32
-
-	FastFail         bool
+	// whether to enable fast failure for heartbeat detection
+	FastFail bool
+	// the interval between heartbeat detections when fast failure for heartbeat detection is triggered
 	FastSendInterval time.Duration
 }
 
