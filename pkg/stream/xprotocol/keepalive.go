@@ -351,6 +351,8 @@ func (f *fastKeepAliveTask) safeFastSendKeepAliveLoop() {
 		ticker = time.NewTicker(c.FastSendInterval)
 	)
 
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-f.stopKeepAlive:
