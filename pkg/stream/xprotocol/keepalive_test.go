@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -50,8 +51,9 @@ func (s *testStats) Record(status types.KeepAliveStatus) {
 
 // use bolt v1 to test keep alive
 type testCase struct {
-	KeepAlive *xprotocolKeepAlive
-	Server    *mockServer
+	KeepAlive  *xprotocolKeepAlive
+	Server     *mockServer
+	ClientConn types.ClientConnection
 }
 
 func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase {
@@ -87,8 +89,9 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 	keepAlive := NewKeepAlive(codec, (&bolt.XCodec{}).NewXProtocol(ctx), keepTimeout)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
-		KeepAlive: keepAlive.(*xprotocolKeepAlive),
-		Server:    srv,
+		KeepAlive:  keepAlive.(*xprotocolKeepAlive),
+		Server:     srv,
+		ClientConn: conn.Connection,
 	}
 
 }
@@ -256,4 +259,40 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 	}
 	close(ch)
 	wg.Wait()
+}
+
+func TestKeepAliveFastFail(t *testing.T) {
+	// Enable fast failure with a heartbeat interval of 20ms when fast failure is triggered.
+	RefreshKeepaliveConfig(KeepaliveConfig{
+		TickCountIfFail:  1,
+		TickCountIfSucc:  1,
+		FailCountToClose: 6,
+		FastFail:         true,
+		FastSendInterval: 20 * time.Millisecond,
+	})
+	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
+
+	// create a mock server that delays the response by 50ms and has a heartbeat timeout of 10ms
+	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond)
+	defer tc.KeepAlive.Stop()
+	defer tc.Server.Close()
+
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
+
+	// initiate a heartbeat packet, triggering fast failure upon timeout.
+	go tc.KeepAlive.SendKeepAlive()
+
+	// total of 6 fast check failures will take 6 * 20ms = 120ms. Waiting for failure here
+	time.Sleep(200 * time.Millisecond)
+
+	if testStats.success != 0 || testStats.timeout != 6 {
+		t.Error("keep alive handle status not expected", testStats)
+	}
+
+	connState := tc.ClientConn.State()
+	if connState != api.ConnClosed {
+		t.Error("client connection status not expected, client connection should be closed", testStats)
+	}
+
 }
