@@ -36,6 +36,8 @@ type KeepaliveConfig struct {
 	// whether to enable fast failure for heartbeat detection
 	FastFail bool
 	// the interval between heartbeat detections when fast failure for heartbeat detection is triggered
+	// this property should be set to a value greater than 0 to have any meaning.
+	// if set to an invalid value, it will be automatically set to 1s by default.
 	FastSendInterval time.Duration
 }
 
@@ -56,5 +58,8 @@ func init() {
 
 // RefreshKeepaliveConfig refresh the keepalive config
 func RefreshKeepaliveConfig(c KeepaliveConfig) {
+	if c.FastFail && c.FastSendInterval <= 0 {
+		c.FastSendInterval = time.Second
+	}
 	xprotoKeepaliveConfig.Store(c)
 }
