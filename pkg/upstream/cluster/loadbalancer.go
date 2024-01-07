@@ -660,8 +660,19 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().ChoiceCount
 		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
-		lb.clientErrorBias = info.LbConfig().ClientErrorBias
-		lb.serverErrorBias = info.LbConfig().ServerErrorBias
+
+		if info.LbConfig().ClientErrorBias != nil {
+			lb.clientErrorBias = *info.LbConfig().ClientErrorBias
+		} else {
+			lb.clientErrorBias = defaultClientErrorBias
+		}
+
+		if info.LbConfig().ServerErrorBias != nil {
+			lb.serverErrorBias = *info.LbConfig().ServerErrorBias
+		} else {
+			lb.serverErrorBias = defaultServerErrorBias
+		}
+
 	} else {
 		lb.choice = defaultChoice
 		lb.activeRequestBias = defaultActiveRequestBias

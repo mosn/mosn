@@ -32,11 +32,11 @@ type LbConfig struct {
 
 	// The larger the client error bias,
 	// the smaller the reduction effect of the client error on the success rate
-	ClientErrorBias float64 `json:"client_error_bias,omitempty"`
+	ClientErrorBias *float64 `json:"client_error_bias,omitempty"`
 
 	// The larger the server error bias,
 	// the smaller the reduction effect of the server error on the success rate
-	ServerErrorBias float64 `json:"server_error_bias,omitempty"`
+	ServerErrorBias *float64 `json:"server_error_bias,omitempty"`
 }
 
 type HashPolicy struct {
