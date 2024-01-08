@@ -61,7 +61,7 @@ func TestLeastActiveConnectionLoadBalancer_ChooseHost(t *testing.T) {
 	verify := func(t *testing.T, info types.ClusterInfo, delta float64) {
 		bias := 1.0
 		if info != nil && info.LbConfig() != nil {
-			bias = info.LbConfig().ActiveRequestBias
+			bias = *info.LbConfig().ActiveRequestBias
 		}
 
 		hosts := createHostsetWithStats(exampleHostConfigs(), "test")
@@ -99,16 +99,18 @@ func TestLeastActiveConnectionLoadBalancer_ChooseHost(t *testing.T) {
 		verify(t, nil, 1e-4)
 	})
 	t.Run("low bias", func(t *testing.T) {
+		activeRequestBias := 0.5
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
-				ActiveRequestBias: 0.5,
+				ActiveRequestBias: &activeRequestBias,
 			},
 		}, 1e-4)
 	})
 	t.Run("high bias", func(t *testing.T) {
+		activeRequestBias := 1.5
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
-				ActiveRequestBias: 1.5,
+				ActiveRequestBias: &activeRequestBias,
 			},
 		}, 1e-4)
 	})
