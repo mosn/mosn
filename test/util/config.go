@@ -348,10 +348,3 @@ func CreateXWeightProxyMesh(addr string, proto types.ProtocolName, clusters []*W
 
 	return NewMOSNConfig([]v2.Listener{listener}, cmconfig)
 }
-
-func GetConfigValue[T any](configOption *T, defaultValue T) T {
-	if configOption != nil {
-		return *configOption
-	}
-	return defaultValue
-}

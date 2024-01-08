@@ -20,8 +20,6 @@ package cluster
 import (
 	"math"
 
-	"mosn.io/mosn/test/util"
-
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -35,8 +33,8 @@ type leastActiveConnectionLoadBalancer struct {
 func newLeastActiveConnectionLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveConnectionLoadBalancer{}
 
-	lb.choice = util.GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-	lb.activeConnectionBias = util.GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+	lb.activeConnectionBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb

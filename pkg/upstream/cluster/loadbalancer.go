@@ -25,8 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/test/util"
-
 	"github.com/trainyao/go-maglev"
 
 	"mosn.io/api"
@@ -253,8 +251,8 @@ type leastActiveRequestLoadBalancer struct {
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 
-	lb.choice = util.GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-	lb.activeRequestBias = util.GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+	lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
@@ -656,10 +654,10 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
-	lb.choice = util.GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-	lb.activeRequestBias = util.GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
-	lb.clientErrorBias = util.GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
-	lb.serverErrorBias = util.GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
+	lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+	lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	lb.clientErrorBias = GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+	lb.serverErrorBias = GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 
 	if info != nil {
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
@@ -807,4 +805,11 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	}
 
 	return duration * biasedActiveRequest / successRate
+}
+
+func GetConfigValue[T any](configOption *T, defaultValue T) T {
+	if configOption != nil {
+		return *configOption
+	}
+	return defaultValue
 }
