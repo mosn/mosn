@@ -251,8 +251,10 @@ type leastActiveRequestLoadBalancer struct {
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 
-	lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-	lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	if info != nil {
+		lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	}
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
@@ -654,12 +656,11 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
-	lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-	lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
-	lb.clientErrorBias = GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
-	lb.serverErrorBias = GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
-
 	if info != nil {
+		lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.clientErrorBias = GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+		lb.serverErrorBias = GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
 	}
 
