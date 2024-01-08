@@ -251,9 +251,12 @@ type leastActiveRequestLoadBalancer struct {
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
 
-	if info != nil {
-		lb.choice = GetConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = GetConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	if info == nil || info.LbConfig() == nil {
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
+	} else {
+		lb.choice = loadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = loadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 	}
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
@@ -656,11 +659,16 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
-	if info != nil {
-		lb.choice = GetConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = GetConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
-		lb.clientErrorBias = GetConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
-		lb.serverErrorBias = GetConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
+	if info == nil || info.LbConfig() == nil {
+		lb.choice = defaultChoice
+		lb.activeRequestBias = defaultActiveRequestBias
+		lb.clientErrorBias = defaultClientErrorBias
+		lb.serverErrorBias = defaultServerErrorBias
+	} else {
+		lb.choice = loadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = loadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.clientErrorBias = loadConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+		lb.serverErrorBias = loadConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
 	}
 
@@ -808,14 +816,16 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	return duration * biasedActiveRequest / successRate
 }
 
-func GetConfigValueFloat64(configOption *float64, defaultValue float64) float64 {
+// loadConfigValueFloat64 If it is nil after JSON.Unmarshal, it will be set to default value
+func loadConfigValueFloat64(configOption *float64, defaultValue float64) float64 {
 	if configOption != nil {
 		return *configOption
 	}
 	return defaultValue
 }
 
-func GetConfigValueUint32(configOption *uint32, defaultValue uint32) uint32 {
+// loadConfigValueUint32 If it is nil after JSON.Unmarshal, it will be set to default value
+func loadConfigValueUint32(configOption *uint32, defaultValue uint32) uint32 {
 	if configOption != nil {
 		return *configOption
 	}
