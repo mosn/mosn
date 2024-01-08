@@ -255,8 +255,8 @@ func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 		lb.choice = defaultChoice
 		lb.activeRequestBias = defaultActiveRequestBias
 	} else {
-		lb.choice = loadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = loadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.choice = LoadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = LoadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 	}
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
@@ -665,10 +665,10 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 		lb.clientErrorBias = defaultClientErrorBias
 		lb.serverErrorBias = defaultServerErrorBias
 	} else {
-		lb.choice = loadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = loadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
-		lb.clientErrorBias = loadConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
-		lb.serverErrorBias = loadConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
+		lb.choice = LoadConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = LoadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.clientErrorBias = LoadConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+		lb.serverErrorBias = LoadConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 	}
 
 	if info != nil {
@@ -819,16 +819,20 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	return duration * biasedActiveRequest / successRate
 }
 
-// loadConfigValueFloat64 If it is nil after JSON.Unmarshal, it will be set to default value
-func loadConfigValueFloat64(configOption *float64, defaultValue float64) float64 {
+// LoadConfigValueFloat64 If it is nil after JSON.Unmarshal, it will be set to default value
+//
+//lint:ignore unparam reason for ignoring
+func LoadConfigValueFloat64(configOption *float64, defaultValue float64) float64 {
 	if configOption != nil {
 		return *configOption
 	}
 	return defaultValue
 }
 
-// loadConfigValueUint32 If it is nil after JSON.Unmarshal, it will be set to default value
-func loadConfigValueUint32(configOption *uint32, defaultValue uint32) uint32 {
+// LoadConfigValueUint32 If it is nil after JSON.Unmarshal, it will be set to default value
+//
+//lint:ignore unparam reason for ignoring
+func LoadConfigValueUint32(configOption *uint32, defaultValue uint32) uint32 {
 	if configOption != nil {
 		return *configOption
 	}
