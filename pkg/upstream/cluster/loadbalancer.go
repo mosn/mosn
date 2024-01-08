@@ -20,6 +20,7 @@ package cluster
 import (
 	"math"
 	"math/rand"
+	"mosn.io/mosn/test/util"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -250,13 +251,10 @@ type leastActiveRequestLoadBalancer struct {
 
 func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
-	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().ChoiceCount
-		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
-	} else {
-		lb.choice = defaultChoice
-		lb.activeRequestBias = defaultActiveRequestBias
-	}
+
+	lb.choice = util.GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+	lb.activeRequestBias = util.GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
 	return lb
 }
@@ -657,28 +655,10 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	lb.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
-	if info != nil && info.LbConfig() != nil {
-		lb.choice = info.LbConfig().ChoiceCount
-		lb.activeRequestBias = info.LbConfig().ActiveRequestBias
-
-		if info.LbConfig().ClientErrorBias != nil {
-			lb.clientErrorBias = *info.LbConfig().ClientErrorBias
-		} else {
-			lb.clientErrorBias = defaultClientErrorBias
-		}
-
-		if info.LbConfig().ServerErrorBias != nil {
-			lb.serverErrorBias = *info.LbConfig().ServerErrorBias
-		} else {
-			lb.serverErrorBias = defaultServerErrorBias
-		}
-
-	} else {
-		lb.choice = defaultChoice
-		lb.activeRequestBias = defaultActiveRequestBias
-		lb.clientErrorBias = defaultClientErrorBias
-		lb.serverErrorBias = defaultServerErrorBias
-	}
+	lb.choice = util.GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
+	lb.activeRequestBias = util.GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+	lb.clientErrorBias = util.GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+	lb.serverErrorBias = util.GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 
 	if info != nil {
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
