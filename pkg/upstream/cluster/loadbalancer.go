@@ -252,8 +252,8 @@ func newLeastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 	lb := &leastActiveRequestLoadBalancer{}
 
 	if info != nil {
-		lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.choice = GetConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = GetConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 	}
 
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightChooseHost, lb.hostWeight)
@@ -657,10 +657,10 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 	lb.EdfLoadBalancer = newEdfLoadBalancer(info, hosts, lb.unweightedChoose, lb.hostWeight)
 
 	if info != nil {
-		lb.choice = GetConfigValue(info.LbConfig().ChoiceCount, defaultChoice)
-		lb.activeRequestBias = GetConfigValue(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
-		lb.clientErrorBias = GetConfigValue(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
-		lb.serverErrorBias = GetConfigValue(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
+		lb.choice = GetConfigValueUint32(info.LbConfig().ChoiceCount, defaultChoice)
+		lb.activeRequestBias = GetConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
+		lb.clientErrorBias = GetConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
+		lb.serverErrorBias = GetConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
 	}
 
@@ -808,7 +808,14 @@ func (lb *peakEwmaLoadBalancer) unweightedPeakEwmaScore(h types.Host) float64 {
 	return duration * biasedActiveRequest / successRate
 }
 
-func GetConfigValue[T any](configOption *T, defaultValue T) T {
+func GetConfigValueFloat64(configOption *float64, defaultValue float64) float64 {
+	if configOption != nil {
+		return *configOption
+	}
+	return defaultValue
+}
+
+func GetConfigValueUint32(configOption *uint32, defaultValue uint32) uint32 {
 	if configOption != nil {
 		return *configOption
 	}
