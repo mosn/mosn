@@ -669,6 +669,9 @@ func newPeakEwmaLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.
 		lb.activeRequestBias = loadConfigValueFloat64(info.LbConfig().ActiveRequestBias, defaultActiveRequestBias)
 		lb.clientErrorBias = loadConfigValueFloat64(info.LbConfig().ClientErrorBias, defaultClientErrorBias)
 		lb.serverErrorBias = loadConfigValueFloat64(info.LbConfig().ServerErrorBias, defaultServerErrorBias)
+	}
+
+	if info != nil {
 		lb.defaultDuration = info.ConnectTimeout() + info.IdleTimeout()
 	}
 
