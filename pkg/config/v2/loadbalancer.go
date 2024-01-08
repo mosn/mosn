@@ -24,19 +24,19 @@ import (
 type LbConfig struct {
 	// The number of random healthy hosts from which
 	// the host with the fewest active requests will be chosen.
-	ChoiceCount uint32 `json:"choice_count,omitempty"`
+	ChoiceCount *uint32 `json:"choice_count,omitempty"`
 
 	// The larger the active request bias is, the more aggressively active requests
 	// will lower the effective weight when all host weights are not equal.
-	ActiveRequestBias float64 `json:"active_request_bias,omitempty"`
+	ActiveRequestBias *float64 `json:"active_request_bias,omitempty"`
 
 	// The larger the client error bias,
 	// the smaller the reduction effect of the client error on the success rate
-	ClientErrorBias float64 `json:"client_error_bias,omitempty"`
+	ClientErrorBias *float64 `json:"client_error_bias,omitempty"`
 
 	// The larger the server error bias,
 	// the smaller the reduction effect of the server error on the success rate
-	ServerErrorBias float64 `json:"server_error_bias,omitempty"`
+	ServerErrorBias *float64 `json:"server_error_bias,omitempty"`
 }
 
 type HashPolicy struct {

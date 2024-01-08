@@ -477,7 +477,7 @@ func TestLeastActiveRequestLoadBalancer_ChooseHost(t *testing.T) {
 	verify := func(t *testing.T, info types.ClusterInfo, delta float64) {
 		bias := 1.0
 		if info != nil && info.LbConfig() != nil {
-			bias = info.LbConfig().ActiveRequestBias
+			bias = *info.LbConfig().ActiveRequestBias
 		}
 
 		hosts := createHostsetWithStats(exampleHostConfigs(), "test")
@@ -517,16 +517,18 @@ func TestLeastActiveRequestLoadBalancer_ChooseHost(t *testing.T) {
 		verify(t, nil, 1e-4)
 	})
 	t.Run("low bias", func(t *testing.T) {
+		activeRequestBias := 0.5
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
-				ActiveRequestBias: 0.5,
+				ActiveRequestBias: &activeRequestBias,
 			},
 		}, 1e-4)
 	})
 	t.Run("high bias", func(t *testing.T) {
+		activeRequestBias := 1.5
 		verify(t, &clusterInfo{
 			lbConfig: &v2.LbConfig{
-				ActiveRequestBias: 1.5,
+				ActiveRequestBias: &activeRequestBias,
 			},
 		}, 1e-4)
 	})
@@ -1116,8 +1118,10 @@ func Test_PeakEwmaLoadBalancer(t *testing.T) {
 	})
 
 	t.Run("should choose average smallest score with biasedActiveRequest in small cluster", func(t *testing.T) {
+		var choiceCount uint32 = 2
+		var activeRequestBias float64 = 3.0
 		info := &clusterInfo{
-			lbConfig: &v2.LbConfig{ChoiceCount: 2, ActiveRequestBias: 3.0},
+			lbConfig: &v2.LbConfig{ChoiceCount: &choiceCount, ActiveRequestBias: &activeRequestBias},
 			stats:    newClusterStats("mock"),
 		}
 
