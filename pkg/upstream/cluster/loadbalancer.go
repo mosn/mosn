@@ -20,11 +20,12 @@ package cluster
 import (
 	"math"
 	"math/rand"
-	"mosn.io/mosn/test/util"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"mosn.io/mosn/test/util"
 
 	"github.com/trainyao/go-maglev"
 

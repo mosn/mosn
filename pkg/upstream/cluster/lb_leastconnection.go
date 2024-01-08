@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"math"
+
 	"mosn.io/mosn/test/util"
 
 	"mosn.io/mosn/pkg/types"
