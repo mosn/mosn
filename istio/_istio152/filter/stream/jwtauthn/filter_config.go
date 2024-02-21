@@ -16,12 +16,12 @@ type FilterConfig interface {
 func NewFilterConfig(config *jwtauthnv3.JwtAuthentication) (FilterConfig, error) {
 	var rulePairs []*MatcherVerifierPair
 	for _, rule := range config.Rules {
-		verifier, err := NewVerifier(rule.Requires, config.Providers, nil, nil)
+		verifier, err := NewVerifier(rule.GetRequires(), config.Providers, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 		rulePairs = append(rulePairs, &MatcherVerifierPair{
-			matcher:  NewMatcher(rule),
+			matcher:  NewMatcher(rule.GetMatch()),
 			verifier: verifier,
 		})
 	}
