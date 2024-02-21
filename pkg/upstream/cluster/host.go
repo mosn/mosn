@@ -49,7 +49,12 @@ type simpleHost struct {
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	// clusterInfo should not be nil
 	// pre resolve address
-	GetOrCreateAddr(config.Address)
+
+	wg.Add(1)
+	utils.GoWithRecover(func(){
+		GetOrCreateAddr(config.Address)
+		wg.Done()
+	}, nil)
 	h := &simpleHost{
 		hostname:      config.Hostname,
 		addressString: config.Address,
