@@ -59,6 +59,26 @@ func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	return frame, err
 }
 
+type xServerCodec struct {
+	sc      *http2.XServerConn
+	preface bool
+	init    bool
+}
+
+func (c *xServerCodec) Name() types.ProtocolName {
+	return protocol.HTTP2
+}
+
+func (c *xServerCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+	ms := model.(*http2.XStream)
+	err := ms.SendResponse()
+	return nil, err
+}
+
+func (c *xServerCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+	return nil, c.sc.Decode(data, 0)
+}
+
 type clientCodec struct {
 	cc *http2.MClientConn
 }

@@ -27,6 +27,10 @@ func ServerProto(sc *http2.MServerConn) api.Protocol {
 	return &serverCodec{sc: sc}
 }
 
+func XServerProto(sc *http2.XServerConn) api.Protocol {
+	return &xServerCodec{sc: sc}
+}
+
 func ClientProto(cc *http2.MClientConn) api.Protocol {
 	return &clientCodec{cc: cc}
 }

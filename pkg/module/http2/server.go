@@ -463,7 +463,7 @@ type serverConn struct {
 	bw               *bufferedWriter // writing to conn
 	handler          http.Handler
 	baseCtx          context.Context
-	framer           *Framer
+	framer           IFramer
 	doneServing      chan struct{}          // closed when serverConn.serve ends
 	readFrameCh      chan readFrameResult   // written by serverConn.readFrames
 	wantWriteFrameCh chan FrameWriteRequest // from handlers -> serve
@@ -563,7 +563,7 @@ type stream struct {
 	reqTrailer http.Header // handler's Request.Trailer
 }
 
-func (sc *serverConn) Framer() *Framer  { return sc.framer }
+func (sc *serverConn) Framer() IFramer  { return sc.framer }
 func (sc *serverConn) CloseConn() error { return sc.conn.Close() }
 func (sc *serverConn) Flush() error     { return sc.bw.Flush() }
 func (sc *serverConn) HeaderEncoder() (*hpack.Encoder, *bytes.Buffer) {
