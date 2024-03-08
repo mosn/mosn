@@ -25,7 +25,6 @@ import (
 	goHttp "net/http"
 	"reflect"
 	"regexp"
-	"strconv"
 	"testing"
 	"time"
 
@@ -255,42 +254,14 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	}
 
 	//regex rewrite test
-	rris := []*RouteRuleImplBase{
-		{
-			regexRewrite: v2.RegexRewrite{
-				Pattern: v2.PatternConfig{
-					Regex: "^/service/([^/]+)(/.*)$",
-				},
-				Substitution: "${2}/instance/${1}",
-			},
-		},
-		{
-			regexRewrite: v2.RegexRewrite{
-				Pattern: v2.PatternConfig{
-					Regex: "one",
-				},
-				Substitution: "two",
-			},
-		},
-		{
-			regexRewrite: v2.RegexRewrite{
-				Pattern: v2.PatternConfig{
-					Regex: "^(.*?)one(.*)$",
-				},
-				Substitution: "${1}two${2}",
-			},
-		},
-		{
-			regexRewrite: v2.RegexRewrite{
-				Pattern: v2.PatternConfig{
-					Regex: "(?i)/xxx/",
-				},
-				Substitution: "/yyy/",
-			},
-		},
+	type regexTestCase struct {
+		name string
+		args args
+		want *finalizeResult
+		rri  *RouteRuleImplBase
 	}
 
-	tests = []testCase{
+	regexTests := []regexTestCase{
 		{
 			name: "case1",
 			args: args{
@@ -304,6 +275,14 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/service/foo/v1/api",
+				},
+			},
+			rri: &RouteRuleImplBase{
+				regexRewrite: v2.RegexRewrite{
+					Pattern: v2.PatternConfig{
+						Regex: "^/service/([^/]+)(/.*)$",
+					},
+					Substitution: "${2}/instance/${1}",
 				},
 			},
 		},
@@ -322,6 +301,14 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
 				},
 			},
+			rri: &RouteRuleImplBase{
+				regexRewrite: v2.RegexRewrite{
+					Pattern: v2.PatternConfig{
+						Regex: "one",
+					},
+					Substitution: "two",
+				},
+			},
 		},
 		{
 			name: "case3",
@@ -335,6 +322,14 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				},
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
+				},
+			},
+			rri: &RouteRuleImplBase{
+				regexRewrite: v2.RegexRewrite{
+					Pattern: v2.PatternConfig{
+						Regex: "^(.*?)one(.*)$",
+					},
+					Substitution: "${1}two${2}",
 				},
 			},
 		},
@@ -352,33 +347,31 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.HeaderOriginalPath: "/aaa/XxX/bbb",
 				},
 			},
+			rri: &RouteRuleImplBase{
+				regexRewrite: v2.RegexRewrite{
+					Pattern: v2.PatternConfig{
+						Regex: "(?i)/xxx/",
+					},
+					Substitution: "/yyy/",
+				},
+			},
 		},
 	}
 
-	testMap := make(map[string]testCase)
-	for _, tt := range tests {
-		testMap[tt.name] = tt
-	}
-
-	for k, rri := range rris {
-
-		regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+	for _, testcase := range regexTests {
+		regexPattern, err := regexp.Compile(testcase.rri.regexRewrite.Pattern.Regex)
 		assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
-		rri.regexPattern = regexPattern
+		testcase.rri.regexPattern = regexPattern
 
-		ops := k
-		tt, ok := testMap["case"+strconv.Itoa(k+1)]
-		if ok {
-			t.Run(tt.name, func(t *testing.T) {
-				ctx := variable.NewVariableContext(context.Background())
-				variable.SetString(ctx, types.VarPath, tt.args.originalPath)
-				headers := protocol.CommonHeader{}
-				rris[ops].FinalizePathHeader(ctx, headers, tt.args.matchedPath)
-				if !tt.want.Check(ctx, headers) {
-					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.originalPath, tt.want)
-				}
-			})
-		}
+		t.Run(testcase.name, func(t *testing.T) {
+			ctx := variable.NewVariableContext(context.Background())
+			variable.SetString(ctx, types.VarPath, testcase.args.originalPath)
+			headers := protocol.CommonHeader{}
+			testcase.rri.FinalizePathHeader(ctx, headers, testcase.args.matchedPath)
+			if !testcase.want.Check(ctx, headers) {
+				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", testcase.args.originalPath, testcase.want)
+			}
+		})
 	}
 }
 
