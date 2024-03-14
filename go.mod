@@ -20,7 +20,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.12
