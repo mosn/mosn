@@ -1116,7 +1116,11 @@ func (s *downStream) appendData(endStream bool) {
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	s.responseSender.AppendData(s.context, data, endStream)
-
+	if v, vErr := variable.Get(s.context, types.VarStreamResponseBytes); vErr == nil {
+		if b, ok := v.(uint64); ok {
+			s.requestInfo.SetBytesSent(b)
+		}
+	}
 	if endStream {
 		s.endStream()
 	}
