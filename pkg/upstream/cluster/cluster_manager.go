@@ -363,6 +363,8 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	return nil
 }
 
+var wg sync.WaitGroup
+
 // EDS Handler
 func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 	snap := c.Snapshot()
@@ -371,6 +373,7 @@ func NewSimpleHostHandler(c types.Cluster, hostConfigs []v2.Host) {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
 
+	wg.Wait()
 	ns := NewHostSet(hosts)
 	if snap.ClusterInfo().SlowStart().Mode != "" {
 		transferHostSetStates(snap.HostSet(), ns)
