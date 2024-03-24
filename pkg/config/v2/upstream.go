@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -258,7 +258,7 @@ func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		for _, f := range files {
-			fileName := path.Join(cc.ClusterConfigPath, f.Name())
+			fileName := filepath.Join(cc.ClusterConfigPath, f.Name())
 			cluster := Cluster{}
 			e := utils.ReadJsonFile(fileName, &cluster)
 			switch e {
@@ -308,14 +308,14 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		fileName = strings.ReplaceAll(fileName, sep, "_")
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
-		fileName = path.Join(cc.ClusterConfigPath, fileName)
+		fileName = filepath.Join(cc.ClusterConfigPath, fileName)
 		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}
 	// delete invalid files
 	for f := range allFiles {
-		os.Remove(path.Join(cc.ClusterConfigPath, f))
+		os.Remove(filepath.Join(cc.ClusterConfigPath, f))
 	}
 	return json.Marshal(cc.ClusterManagerConfigJson)
 }
