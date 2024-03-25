@@ -315,7 +315,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	// delete invalid files
 	for f := range allFiles {
-		os.Remove(filepath.Join(cc.ClusterConfigPath, f))
+		_ = os.Remove(filepath.Join(cc.ClusterConfigPath, f))
 	}
 	return json.Marshal(cc.ClusterManagerConfigJson)
 }
