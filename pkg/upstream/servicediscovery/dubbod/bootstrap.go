@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path"
+	"path/filepath"
 
 	"github.com/go-chi/chi"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -105,7 +105,7 @@ func initAPI() {
 	r.Post("/pub", publish)
 	r.Post("/unpub", unpublish)
 
-	_ = dubbologger.InitLog(path.Join(logPath, "dubbo.log"))
+	_ = dubbologger.InitLog(filepath.Join(logPath, "dubbo.log"))
 
 	// FIXME make port configurable
 	utils.GoWithRecover(func() {

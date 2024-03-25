@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -168,7 +168,7 @@ func TestClusterConfigWithSep(t *testing.T) {
 		t.Fatal(err)
 	}
 	// expected a file exists
-	data, err := ioutil.ReadFile(path.Join(testClusterPath, "cluster_with_sep.json"))
+	data, err := ioutil.ReadFile(filepath.Join(testClusterPath, "cluster_with_sep.json"))
 	if err != nil || !strings.Contains(string(data), clusterName) {
 		t.Fatalf("read cluster file failed, error: %v, data: %s", err, string(data))
 	}

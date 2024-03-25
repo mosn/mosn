@@ -20,7 +20,7 @@ package istio
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,7 +32,7 @@ func TestGetPodLabels(t *testing.T) {
 	err := os.MkdirAll(IstioPodInfoPath, 0755)
 	require.Nil(t, err)
 	data := []byte("labela=1\nlabelb=2\nlabelc=\"c\"")
-	err = ioutil.WriteFile(path.Join(IstioPodInfoPath, "labels"), data, 0644)
+	err = ioutil.WriteFile(filepath.Join(IstioPodInfoPath, "labels"), data, 0644)
 	require.Nil(t, err)
 	labels := GetPodLabels()
 	require.Len(t, labels, 3)

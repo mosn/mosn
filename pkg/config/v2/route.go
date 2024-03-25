@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -238,14 +238,14 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		fileName = strings.ReplaceAll(fileName, sep, "_")
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
-		fileName = path.Join(rc.RouterConfigPath, fileName)
+		fileName = filepath.Join(rc.RouterConfigPath, fileName)
 		if err := utils.WriteFileSafety(fileName, data, 0644); err != nil {
 			return nil, err
 		}
 	}
 	// delete invalid files
 	for f := range allFiles {
-		os.Remove(path.Join(rc.RouterConfigPath, f))
+		_ = os.Remove(filepath.Join(rc.RouterConfigPath, f))
 	}
 	return json.Marshal(rc.RouterConfigurationConfig)
 }
@@ -270,7 +270,7 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		for _, f := range files {
-			fileName := path.Join(cfg.RouterConfigPath, f.Name())
+			fileName := filepath.Join(cfg.RouterConfigPath, f.Name())
 			vh := VirtualHost{}
 			e := utils.ReadJsonFile(fileName, &vh)
 			switch e {

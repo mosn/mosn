@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 	"os/user"
-	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -64,18 +64,18 @@ func (tracer *Tracer) InitLogger(root, ingress, egress string) (e error) {
 				e = err
 				return
 			}
-			root = path.Join(usr.HomeDir, "/logs/tracelog/mosn/")
+			root = filepath.Join(usr.HomeDir, "/logs/tracelog/mosn/")
 		}
 		if ingress == "" || egress == "" {
 			e = errors.New("trace logger file name cannot be empty")
 			return
 		}
-		ingressLogger, err := log.GetOrCreateLogger(path.Join(root, ingress), nil)
+		ingressLogger, err := log.GetOrCreateLogger(filepath.Join(root, ingress), nil)
 		if err != nil {
 			e = err
 			return
 		}
-		egressLogger, err := log.GetOrCreateLogger(path.Join(root, egress), nil)
+		egressLogger, err := log.GetOrCreateLogger(filepath.Join(root, egress), nil)
 		if err != nil {
 			e = err
 			return

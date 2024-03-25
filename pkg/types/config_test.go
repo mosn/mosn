@@ -22,7 +22,7 @@ package types
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -30,26 +30,26 @@ func TestInitDefaultPath(t *testing.T) {
 	// init
 	testPath := "/tmp/mosn_default/conf"
 	os.RemoveAll(testPath)
-	testConfigPath := path.Join(testPath, "testfile.json")
+	testConfigPath := filepath.Join(testPath, "testfile.json")
 	// test
 	InitDefaultPath(testConfigPath, "")
 	// verify
 	// if config is /tmp/mosn_defaulta/conf/config.json
 	// the log should in /tmp/mosn_default/logs/*
 	// the others shoykd in  /tmp/mosn_default/conf*
-	if !(MosnLogBasePath == path.Join("/tmp/mosn_default", "logs") &&
-		MosnConfigPath == path.Join(testPath)) {
+	if !(MosnLogBasePath == filepath.Join("/tmp/mosn_default", "logs") &&
+		MosnConfigPath == filepath.Join(testPath)) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
 	}
 	// invalid config should not changed the value
 	InitDefaultPath("", "")
-	if !(MosnLogBasePath == path.Join("/tmp/mosn_default", "logs") &&
-		MosnConfigPath == path.Join(testPath)) {
+	if !(MosnLogBasePath == filepath.Join("/tmp/mosn_default", "logs") &&
+		MosnConfigPath == filepath.Join(testPath)) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
 	}
 	InitDefaultPath("/tmp", "")
-	if !(MosnLogBasePath == path.Join("/tmp/mosn_default", "logs") &&
-		MosnConfigPath == path.Join(testPath)) {
+	if !(MosnLogBasePath == filepath.Join("/tmp/mosn_default", "logs") &&
+		MosnConfigPath == filepath.Join(testPath)) {
 		t.Errorf("init default path failed: %s, %s", MosnLogBasePath, MosnConfigPath)
 	}
 	// clean
