@@ -245,7 +245,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	}
 	// delete invalid files
 	for f := range allFiles {
-		os.Remove(filepath.Join(rc.RouterConfigPath, f))
+		_ = os.Remove(filepath.Join(rc.RouterConfigPath, f))
 	}
 	return json.Marshal(rc.RouterConfigurationConfig)
 }
