@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -716,7 +716,7 @@ func TestRouterConfigConflict(t *testing.T) {
 
 func TestRouterMarshalWithSep(t *testing.T) {
 	routerName := "router_config_name"
-	routerPath := path.Join("/tmp/routers_path", routerName)
+	routerPath := filepath.Join("/tmp/routers_path", routerName)
 	vhWithSep := "test/vh/with/sep"
 	os.RemoveAll(routerPath)
 	rcfg := &RouterConfiguration{
@@ -735,7 +735,7 @@ func TestRouterMarshalWithSep(t *testing.T) {
 		t.Fatal(err)
 	}
 	// verify
-	data, err := ioutil.ReadFile(path.Join(routerPath, "test_vh_with_sep.json"))
+	data, err := ioutil.ReadFile(filepath.Join(routerPath, "test_vh_with_sep.json"))
 	if err != nil || !strings.Contains(string(data), vhWithSep) {
 		t.Fatalf("read router file failed, error: %v, data: %s", err, string(data))
 	}
