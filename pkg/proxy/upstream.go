@@ -101,9 +101,17 @@ func (r *upstreamRequest) endStream() {
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if r.downStream.processDone() || r.setupRetry {
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] [OnReceive] remote addr: %s, processDone: %v, setupRetry: %v",
+				r.host.AddressString(), r.downStream.processDone(), r.setupRetry)
+		}
 		return
 	}
 	if !atomic.CompareAndSwapUint32(&r.downStream.upstreamResponseReceived, 0, 1) {
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] [OnReceive] remote addr: %s, upstreamResponseReceived: %d",
+				r.host.AddressString(), atomic.LoadUint32(&r.downStream.upstreamResponseReceived))
+		}
 		return
 	}
 

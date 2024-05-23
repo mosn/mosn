@@ -83,6 +83,9 @@ var (
 	// Encode/Decode Exception
 	ErrUnKnownCmdType = errors.New(UnKnownCmdType)
 	ErrUnKnownCmdCode = errors.New(UnKnownCmdCode)
+	ErrBigFrame       = errors.New("Bolt Big Frame")
+
+	BigFrameFlagSize = 1024 * 1024 * 1024 // 1GB
 )
 
 // DefaultSofaRPCHealthCheckConf

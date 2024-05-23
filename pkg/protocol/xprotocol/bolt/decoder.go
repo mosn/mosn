@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
@@ -43,6 +44,14 @@ func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd int
 	contentLen := binary.BigEndian.Uint32(bytes[18:22])
 
 	frameLen := RequestHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
+	if frameLen > BigFrameFlagSize {
+		writeLength := 256
+		if len(bytes) < writeLength {
+			writeLength = len(bytes)
+		}
+		log.Proxy.Errorf(ctx, "[protocol][bolt] [decodeRequest] maybe receive big request frame > %d, data: %v", BigFrameFlagSize, bytes[:writeLength])
+		return nil, ErrBigFrame
+	}
 	if bytesLen < frameLen {
 		return
 	}
@@ -113,6 +122,14 @@ func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, er
 	contentLen := binary.BigEndian.Uint32(bytes[16:20])
 
 	frameLen := ResponseHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
+	if frameLen > BigFrameFlagSize {
+		writeLength := 256
+		if len(bytes) < writeLength {
+			writeLength = len(bytes)
+		}
+		log.Proxy.Errorf(ctx, "[protocol][bolt] [decodeResponse] maybe receive big response frame > %d, data: %v", BigFrameFlagSize, bytes[:writeLength])
+		return nil, ErrBigFrame
+	}
 	if bytesLen < frameLen {
 		return
 	}
