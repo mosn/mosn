@@ -44,14 +44,7 @@ func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd int
 	contentLen := binary.BigEndian.Uint32(bytes[18:22])
 
 	frameLen := RequestHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
-	if frameLen > BigFrameFlagSize {
-		writeLength := 256
-		if len(bytes) < writeLength {
-			writeLength = len(bytes)
-		}
-		log.Proxy.Errorf(ctx, "[protocol][bolt] [decodeRequest] maybe receive big request frame > %d, data: %v", BigFrameFlagSize, bytes[:writeLength])
-		return nil, ErrBigFrame
-	}
+	CheckBigFrame(ctx, ProtocolName, "decodeRequest", frameLen, bytes)
 	if bytesLen < frameLen {
 		return
 	}
@@ -107,6 +100,20 @@ func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd int
 	return request, err
 }
 
+// CheckBigFrame check if the frame is too large
+// if yes, print error log
+func CheckBigFrame(ctx context.Context, protocolName types.ProtocolName, decodeMethod string, frameLen int, frameData []byte) {
+	if frameLen <= BigFrameFlagSize {
+		return
+	}
+	writeLength := 256
+	if len(frameData) < writeLength {
+		writeLength = len(frameData)
+	}
+	log.Proxy.Errorf(ctx, "[protocol][%s] [%s] maybe receive big response frame > %d, "+
+		"current frame len: %d, data: %v", protocolName, decodeMethod, BigFrameFlagSize, frameLen, frameData[:writeLength])
+}
+
 func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	bytesLen := data.Len()
 	bytes := data.Bytes()
@@ -122,14 +129,7 @@ func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, er
 	contentLen := binary.BigEndian.Uint32(bytes[16:20])
 
 	frameLen := ResponseHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
-	if frameLen > BigFrameFlagSize {
-		writeLength := 256
-		if len(bytes) < writeLength {
-			writeLength = len(bytes)
-		}
-		log.Proxy.Errorf(ctx, "[protocol][bolt] [decodeResponse] maybe receive big response frame > %d, data: %v", BigFrameFlagSize, bytes[:writeLength])
-		return nil, ErrBigFrame
-	}
+	CheckBigFrame(ctx, ProtocolName, "decodeResponse", frameLen, bytes)
 	if bytesLen < frameLen {
 		return
 	}
