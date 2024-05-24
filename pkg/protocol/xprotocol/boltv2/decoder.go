@@ -43,6 +43,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	contentLen := binary.BigEndian.Uint32(bytes[20:24])
 
 	frameLen := RequestHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
+	bolt.CheckBigFrame(ctx, ProtocolName, "decodeRequest", frameLen, bytes)
 	if bytesLen < frameLen {
 		return
 	}
@@ -117,6 +118,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	contentLen := binary.BigEndian.Uint32(bytes[18:22])
 
 	frameLen := ResponseHeaderLen + int(classLen) + int(headerLen) + int(contentLen)
+	bolt.CheckBigFrame(ctx, ProtocolName, "decodeResponse", frameLen, bytes)
 	if bytesLen < frameLen {
 		return
 	}
