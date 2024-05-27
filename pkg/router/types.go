@@ -29,15 +29,13 @@ import (
 
 	"github.com/dchest/siphash"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // [sub module] & [function] & msg
-const RouterLogFormat = "[router] [%s] [%s] %v"
+const RouterLogFormat = "[router] [%s] [%s] %+v"
 
 var (
 	ErrNilRouterConfig      = errors.New("router config is nil")
@@ -48,6 +46,12 @@ var (
 	ErrNoVirtualHostPort    = errors.New("virtual host port is invalid")
 	ErrUnexpected           = errors.New("an unexpected error occurs")
 )
+
+var defaultRouteHandlerName = types.DefaultRouteHandler
+
+func GetDefaultRouteHandlerName() string {
+	return defaultRouteHandlerName
+}
 
 type headerFormatter interface {
 	format(ctx context.Context) string
@@ -95,6 +99,7 @@ type retryPolicyImpl struct {
 	retryOn      bool
 	retryTimeout time.Duration
 	numRetries   uint32
+	statusCodes  []uint32
 }
 
 func (p *retryPolicyImpl) RetryOn() bool {
@@ -118,6 +123,13 @@ func (p *retryPolicyImpl) NumRetries() uint32 {
 	return p.numRetries
 }
 
+func (p *retryPolicyImpl) RetryableStatusCodes() []uint32 {
+	if p == nil {
+		return []uint32{}
+	}
+	return p.statusCodes
+}
+
 type shadowPolicyImpl struct {
 	cluster    string
 	runtimeKey string
@@ -134,7 +146,7 @@ func (spi *shadowPolicyImpl) RuntimeKey() string {
 // RouterRuleFactory creates a RouteBase
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
-// The reigister order, is a wrapper of registered factory
+// The register order, is a wrapper of registered factory
 // We register a factory with order, a new factory can replace old registered factory only if the register order
 // ig greater than the old one.
 type routerRuleFactoryOrder struct {
@@ -154,6 +166,7 @@ func (f *handlerFactories) add(name string, h MakeHandlerFunc, isDefault bool) {
 	defer f.mutex.Unlock()
 	f.factories[name] = h
 	if isDefault {
+		defaultRouteHandlerName = name
 		f.defaultFactory = h
 	}
 }
@@ -216,8 +229,10 @@ func (hp *cookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 type sourceIPHashPolicyImpl struct{}
 
 func (hp *sourceIPHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
-	if addr, ok := mosnctx.Get(ctx, types.ContextOriRemoteAddr).(net.Addr); ok {
-		return getHashByAddr(addr)
+	if addrv, err := variable.Get(ctx, types.VariableOriRemoteAddr); err == nil {
+		if addr, ok := addrv.(net.Addr); ok {
+			return getHashByAddr(addr)
+		}
 	}
 	return 0
 }

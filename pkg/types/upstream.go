@@ -133,10 +133,10 @@ type Cluster interface {
 	StopHealthChecking()
 }
 
-// HostPredicate checks wether the host is matched the metadata
+// HostPredicate checks whether the host is matched the metadata
 type HostPredicate func(Host) bool
 
-// HostSet is as set of hosts that contains all of the endpoints for a given
+// HostSet is as set of hosts that contains all the endpoints for a given
 type HostSet interface {
 	// Size return len(hosts) in hostSet
 	Size() int
@@ -144,7 +144,7 @@ type HostSet interface {
 	// Get get hosts[i] in hostSet
 	// The value range of i should be [0, len(hosts) )
 	Get(i int) Host
-	// Range iterate each host in hostSet
+	// Range iterates each host in hostSet
 	Range(func(Host) bool)
 }
 
@@ -153,7 +153,7 @@ type Host interface {
 	api.HostInfo
 
 	// HostStats returns the host stats metrics
-	HostStats() HostStats
+	HostStats() *HostStats
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
@@ -165,13 +165,19 @@ type Host interface {
 	// CreateConnection a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// CreateUDPConnection a udp connection for this host.
+	// CreateUDPConnection an udp connection for this host.
 	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
 	Address() net.Addr
 	// Config creates a host config by the host attributes
 	Config() v2.Host
+
+	// LastHealthCheckPassTime returns the timestamp when host has translated from unhealthy to healthy state
+	LastHealthCheckPassTime() time.Time
+	// SetLastHealthCheckPassTime updates the timestamp when host has translated from unhealthy to healthy state,
+	// or translated from other host
+	SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time)
 }
 
 // ClusterInfo defines a cluster's information
@@ -191,8 +197,10 @@ type ClusterInfo interface {
 	// MaxRequestsPerConn returns a connection's max request
 	MaxRequestsPerConn() uint32
 
+	Mark() uint32
+
 	// Stats returns the cluster's stats metrics
-	Stats() ClusterStats
+	Stats() *ClusterStats
 
 	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager
@@ -203,7 +211,7 @@ type ClusterInfo interface {
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
 
-	// ConectTimeout returns the connect timeout
+	// ConnectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
 
 	// IdleTimeout returns the idle timeout
@@ -213,10 +221,16 @@ type ClusterInfo interface {
 	LbOriDstInfo() LBOriDstInfo
 
 	// Optional configuration for the load balancing algorithm selected by
-	LbConfig() v2.IsCluster_LbConfig
+	LbConfig() *v2.LbConfig
 
 	//  Optional configuration for some cluster description
 	SubType() string
+
+	// SlowStart returns the slow start configurations
+	SlowStart() SlowStart
+
+	// IsClusterPoolEnable returns the cluster pool enable or not
+	IsClusterPoolEnable() bool
 }
 
 // ResourceManager manages different types of Resource
@@ -234,7 +248,7 @@ type ResourceManager interface {
 	Retries() Resource
 }
 
-// Resource is a interface to statistics information
+// Resource is an interface to statistics information
 type Resource interface {
 	CanCreate() bool
 	Increase()
@@ -263,6 +277,7 @@ type HostStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
@@ -292,6 +307,7 @@ type ClusterStats struct {
 	UpstreamRequestFailureEject                    metrics.Counter
 	UpstreamRequestPendingOverflow                 metrics.Counter
 	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationEWMA                    metrics.EWMA
 	UpstreamRequestDurationTotal                   metrics.Counter
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
@@ -302,6 +318,13 @@ type ClusterStats struct {
 type CreateConnectionData struct {
 	Connection ClientConnection
 	Host       Host
+}
+
+type SlowStart struct {
+	Mode              SlowStartMode
+	SlowStartDuration time.Duration
+	Aggression        float64
+	MinWeightPercent  float64
 }
 
 // SimpleCluster is a simple cluster in memory

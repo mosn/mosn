@@ -30,6 +30,12 @@ const (
 // HealthCheckCb is the health check's callback function
 type HealthCheckCb func(host Host, changedState bool, isHealthy bool)
 
+// HealthCheckCb is the health check's callback function
+
+type HealthCheckLog interface {
+	Log(host Host, changedState bool, isHealthy bool)
+}
+
 // HealthChecker is a framework for connection management
 // When NewCluster is called, and the config contains health check related, mosn will create
 // a cluster with health check to make sure load balance always choose the "good" host
@@ -50,7 +56,7 @@ type HealthChecker interface {
 type HealthCheckSession interface {
 	// CheckHealth returns true if session checks the server is ok, or returns false
 	CheckHealth() bool
-	// OnTimeout is called when a check health does not returned after timeout duration
+	// OnTimeout is called when a check health does not return after timeout duration
 	OnTimeout()
 }
 

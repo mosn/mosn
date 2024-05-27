@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 
 	"github.com/c2h5oh/datasize"
+
+	"mosn.io/api"
 )
 
 // MOSNConfig make up mosn to start the mosn project
@@ -49,8 +51,9 @@ type MOSNConfig struct {
 
 // PProfConfig is used to start a pprof server for debug
 type PProfConfig struct {
-	StartDebug bool `json:"debug"`      // If StartDebug is true, start a pprof, default is false
-	Port       int  `json:"port_value"` // If port value is 0, will use 9090 as default
+	StartDebug bool   `json:"debug"`      // If StartDebug is true, start a pprof, default is false
+	Port       int    `json:"port_value"` // If port value is 0, will use 9090 as default
+	Endpoint   string `json:"endpoint"`   // If endpoint is empty, will use "0.0.0.0" as default
 }
 
 // Tracing configuration for a server
@@ -69,6 +72,22 @@ type MetricsConfig struct {
 	ShmSize      datasize.ByteSize `json:"shm_size"`
 	FlushMosn    bool              `json:"flush_mosn"`
 	LazyFlush    bool              `json:"lazy_flush"`
+	SampleConfig SampleConfig      `json:"sample"`
+	EWMAConfig   *EWMAConfig       `json:"ewma,omitempty"`
+}
+
+// SampleConfig for metrics histogram
+type SampleConfig struct {
+	Type          string  `json:"type"`
+	Size          int     `json:"size"`
+	ExpDecayAlpha float64 `json:"exp_decay_alpha"`
+}
+
+// EWMAConfig for configuring EWMA alpha
+type EWMAConfig struct {
+	Alpha    float64             `json:"alpha"`
+	Target   float64             `json:"target"`
+	Duration *api.DurationConfig `json:"duration"`
 }
 
 // PluginConfig for plugin config

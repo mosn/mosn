@@ -23,14 +23,14 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func BenchmarkStringGenerateHash(b *testing.B) {
 	testProtocol := types.ProtocolName("SomeProtocol")
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
@@ -50,7 +50,8 @@ func BenchmarkStringGenerateHash(b *testing.B) {
 }
 
 func BenchmarkIPGenerateHash(b *testing.B) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, &net.TCPAddr{
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})

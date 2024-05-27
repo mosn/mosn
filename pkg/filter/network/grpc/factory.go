@@ -30,14 +30,12 @@ import (
 	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/stagemanager"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/header"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -66,6 +64,10 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 }
 
 func (f *grpcServerFilterFactory) Init(param interface{}) error {
+	var (
+		sw  *registerServerWrapper
+		err error
+	)
 	cfg, ok := param.(*v2.Listener)
 	if !ok {
 		return ErrInvalidConfig
@@ -78,12 +80,16 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	// GetStreamFilters from listener name
 	f.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
 
-	//
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
 		grpc.StreamInterceptor(f.StreamInterceptorFilter),
 	}
-	sw, err := f.handler.New(addr, f.config.GrpcConfig, opts...)
+	if cfg.Network == networkUnix {
+		sw, err = f.handler.NewUnix(addr, f.config.GrpcConfig, opts...)
+	} else {
+		sw, err = f.handler.New(addr, f.config.GrpcConfig, opts...)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -122,9 +128,9 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 	ctx = variable.NewVariableContext(ctx)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, api.ProtocolName(grpcName))
+	_ = variable.Set(ctx, types.VariableDownStreamReqHeaders, requestHeader)
 
 	variable.SetString(ctx, VarGrpcServiceName, info.FullMethod)
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
@@ -187,11 +193,6 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 		log.DefaultLogger.Errorf("invalid grpc server config: %v, error: %v", conf, err)
 		return nil, err
 	}
-	// if OptimizeLocalWrite is true, the connection maybe start a goroutine for connection write,
-	// which maybe cause some errors when grpc write. so we do not allow this
-	if network.OptimizeLocalWrite {
-		return nil, errors.New("grpc does not support local optimize write")
-	}
 	name := cfg.ServerName
 	handler := getRegisterServerHandler(name)
 	if handler == nil {
@@ -228,13 +229,29 @@ type Handler struct {
 
 // New a grpc server with address. Same address returns same server, which can be start only once.
 func (s *Handler) New(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
+	return s.newGRPCServer(addr, networkTcp, conf, options...)
+}
+
+func (s *Handler) NewUnix(addr string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
+	return s.newGRPCServer(addr, networkUnix, conf, options...)
+}
+
+func (s *Handler) newGRPCServer(addr string, network string, conf json.RawMessage, options ...grpc.ServerOption) (*registerServerWrapper, error) {
+	var (
+		ln  *Listener
+		err error
+	)
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	sw, ok := s.servers[addr]
 	if ok {
 		return sw, nil
 	}
-	ln, err := NewListener(addr)
+	if network == networkUnix {
+		ln, err = NewUnixListener(addr)
+	} else {
+		ln, err = NewListener(addr)
+	}
 	if err != nil {
 		log.DefaultLogger.Errorf("create a listener failed: %v", err)
 		return nil, err

@@ -29,26 +29,35 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/rcrowley/go-metrics"
+	"golang.org/x/sys/unix"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
 )
 
 // Network related const
 const (
-	DefaultBufferReadCapacity = 1 << 7
+	DefaultReadBufferSize = 1 << 7
 
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
 
 	DefaultConnectTimeout = 10 * time.Second
+)
+
+const (
+	SO_MARK        = 0x24
+	SOL_IP         = 0x0
+	IP_TRANSPARENT = 0x13
 )
 
 // Factory function for creating server side connection.
@@ -107,6 +116,7 @@ type connection struct {
 	localAddressRestored bool
 	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
+	mark                 uint32
 	tlsMng               types.TLSClientContextManager
 	connCallbacks        []api.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
@@ -115,13 +125,14 @@ type connection struct {
 	filterManager        api.FilterManager
 	network              string
 
-	stopChan           chan struct{}
-	curWriteBufferData []buffer.IoBuffer
-	readBuffer         buffer.IoBuffer
-	writeBuffers       net.Buffers
-	ioBuffers          []buffer.IoBuffer
-	writeBufferChan    chan *[]buffer.IoBuffer
-	transferChan       chan uint64
+	stopChan              chan struct{}
+	curWriteBufferData    []buffer.IoBuffer
+	readBuffer            buffer.IoBuffer
+	defaultReadBufferSize int
+	writeBuffers          net.Buffers
+	ioBuffers             []buffer.IoBuffer
+	writeBufferChan       chan *[]buffer.IoBuffer
+	transferChan          chan uint64
 
 	// readLoop/writeLoop goroutine fields:
 	internalLoopStarted bool
@@ -181,13 +192,21 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		tryMutex:       utils.NewMutex(),
 	}
 
+	conn.defaultReadBufferSize = DefaultReadBufferSize
+	if val, err := variable.Get(ctx, types.VariableConnDefaultReadBufferSize); err == nil && val != nil {
+		size := val.(int)
+		if size > 0 {
+			conn.defaultReadBufferSize = size
+		}
+	}
+
 	// store fd
-	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
+	if val, err := variable.Get(ctx, types.VariableConnectionFd); err == nil && val != nil {
 		conn.file = val.(*os.File)
 	}
 
 	if conn.network == "udp" {
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 			conn.readBuffer.Write(buf)
@@ -196,14 +215,14 @@ func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// transfer old mosn connection
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+	if cval, err := variable.Get(ctx, types.VariableAcceptChan); err == nil && cval != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)
 		}
 
-		ch := val.(chan api.Connection)
+		ch := cval.(chan api.Connection)
 		ch <- conn
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[network] [new server connection] NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
@@ -239,11 +258,11 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 	c.newIdleChecker(readTimeout, idleTimeout)
 }
 
-func (conn *connection) OnConnectionEvent(event api.ConnectionEvent) {
+func (c *connection) OnConnectionEvent(event api.ConnectionEvent) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
 	}
-	for _, listener := range conn.connCallbacks {
+	for _, listener := range c.connCallbacks {
 		listener.OnEvent(event)
 	}
 }
@@ -263,9 +282,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		// shrink read buffer
 		// this shrink logic may happen concurrent with read callback,
 		// so we should protect this under readBufferMux
-		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 			c.readBuffer.Free()
-			c.readBuffer.Alloc(DefaultBufferReadCapacity)
+			c.readBuffer.Alloc(c.defaultReadBufferSize)
 		}
 
 		// if connection is not closed, timer should be reset
@@ -310,9 +329,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				// err != nil
 				if te, ok := err.(net.Error); ok && te.Timeout() {
-					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 						c.readBuffer.Free()
-						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+						c.readBuffer.Alloc(c.defaultReadBufferSize)
 					}
 
 					// should reset timer
@@ -356,45 +375,40 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
-var OptimizeLocalWrite = false
-
-func SetOptimizeLocalWrite(b bool) {
-	OptimizeLocalWrite = b
-}
-
+// this function must return false always, and return true just for test.
 func (c *connection) checkUseWriteLoop() bool {
-	// if OptimizeLocalWrite is false, connection just use write directly.
-	// if OptimizeLocalWrite is true, and connection remote address is loopback
-	// connection will start a goroutine for write
-	if !OptimizeLocalWrite {
-		return false
-	}
-	var ip net.IP
-	switch c.network {
-	case "udp":
-		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
-			ip = udpAddr.IP
-		} else {
-			return false
-		}
-	case "unix":
-		return false
-	case "tcp":
-		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
-			ip = tcpAddr.IP
-		} else {
-			return false
-		}
-	}
-
-	if ip.IsLoopback() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
-				c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
-		}
-		return true
-	}
 	return false
+	/*
+		// if return false, and connection just use write directly.
+		// if return true, and connection remote address is loopback
+		// connection will start a goroutine for write.
+		var ip net.IP
+		switch c.network {
+		case "udp":
+			if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
+				ip = udpAddr.IP
+			} else {
+				return false
+			}
+		case "unix":
+			return false
+		case "tcp":
+			if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
+				ip = tcpAddr.IP
+			} else {
+				return false
+			}
+		}
+
+		if ip.IsLoopback() {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
+					c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
+			}
+			return true
+		}
+		return false
+	*/
 }
 
 func (c *connection) startRWLoop(lctx context.Context) {
@@ -457,9 +471,9 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > c.defaultReadBufferSize {
 							c.readBuffer.Free()
-							c.readBuffer.Alloc(DefaultBufferReadCapacity)
+							c.readBuffer.Alloc(c.defaultReadBufferSize)
 						}
 						continue
 					}
@@ -543,7 +557,7 @@ func (c *connection) doRead() (err error) {
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 		default: // unix or tcp
-			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
+			c.readBuffer = buffer.GetIoBuffer(c.defaultReadBufferSize)
 		}
 	}
 
@@ -720,6 +734,7 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	return nil
 }
 
+// This function will only be called when testing.
 func (c *connection) startWriteLoop() {
 	var needTransfer bool
 	defer func() {
@@ -1128,7 +1143,32 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	if addr == nil {
 		return api.ConnectFailed, errors.New("ClientConnection RemoteAddr is nil")
 	}
-	cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
+
+	dialer := &net.Dialer{
+		Timeout: timeout,
+	}
+
+	if cc.mark != 0 {
+		mark := int(cc.mark)
+		dialer.Control = func(network, address string, c syscall.RawConn) error {
+			var err error
+			if cerr := c.Control(func(fd uintptr) {
+				err = unix.SetsockoptInt(int(fd), unix.SOL_SOCKET, SO_MARK, mark)
+				if err != nil {
+					return
+				}
+			}); cerr != nil {
+				return cerr
+			}
+
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	cc.rawConnection, err = dialer.Dial(cc.network, cc.RemoteAddr().String())
 	if err != nil {
 		if err == io.EOF {
 			// remote conn closed
@@ -1203,4 +1243,8 @@ func (cc *clientConnection) Connect() (err error) {
 		}
 	})
 	return
+}
+
+func (cc *clientConnection) SetMark(mark uint32) {
+	cc.mark = mark
 }

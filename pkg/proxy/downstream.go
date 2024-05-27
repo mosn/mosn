@@ -32,19 +32,17 @@ import (
 
 	uatomic "go.uber.org/atomic"
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/protocol/http"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // types.StreamEventListener
@@ -92,7 +90,7 @@ type downStream struct {
 	downstreamRecvDone bool
 	// upstream req sent
 	upstreamRequestSent bool
-	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
+	// 1. at the end of upstream response 2. by an upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone uatomic.Bool
 	// direct response.  e.g. sendHijack
 	directResponse bool
@@ -125,8 +123,8 @@ type downStream struct {
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span api.Span) *downStream {
 	if span != nil && trace.IsEnabled() {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+		_ = variable.Set(ctx, types.VariableTraceSpan, span)
+		_ = variable.Set(ctx, types.VariableTraceSpankey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -135,7 +133,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, proto)
 
 	stream := &proxyBuffers.stream
 	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
@@ -166,7 +164,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		requestID := mosnctx.Get(stream.context, types.ContextKeyStreamID)
+		requestID, _ := variable.Get(stream.context, types.VariableStreamID)
 		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestID, stream.oneway)
 	}
 	return stream
@@ -220,10 +218,10 @@ func (s *downStream) endStream() {
 
 // Clean up on the very end of the stream: end stream or reset stream
 // Resources to clean up / reset:
-// 	+ upstream request
-// 	+ all timers
-// 	+ all filters
-//  + remove stream in proxy context
+//   - upstream request
+//   - all timers
+//   - all filters
+//   - remove stream in proxy context
 func (s *downStream) cleanStream() {
 	if !atomic.CompareAndSwapUint32(&s.downstreamCleaned, 0, 1) {
 		return
@@ -371,13 +369,14 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
+	_ = variable.Set(s.context, types.VariableDownStreamReqHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 	s.tracks = track.TrackBufferByContext(ctx).Tracks
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive")
+		log.Proxy.Tracef(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
 	}
 
 	id := atomic.LoadUint32(&s.ID)
@@ -594,7 +593,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive send downstream response %+v", s.downstreamRespHeaders)
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive send downstream response")
+				log.Proxy.Tracef(s.context, "[proxy] [downstream] OnReceive send downstream response %+v", s.downstreamRespHeaders)
 			}
 
 			phase++
@@ -629,7 +629,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if s.downstreamRespHeaders != nil {
 				s.printPhaseInfo(phase, id)
 
-				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
+				_ = variable.Set(s.context, types.VariableDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -721,8 +721,10 @@ func (s *downStream) getUpstreamProtocol() types.ProtocolName {
 	}
 
 	// if the upstream protocol is exists in context, it will replace the proxy config's protocol and the route upstream protocol
-	if p, ok := mosnctx.Get(s.context, types.ContextKeyUpStreamProtocol).(api.ProtocolName); ok {
-		proto = p
+	if pv, err := variable.Get(s.context, types.VariableUpstreamProtocol); err == nil {
+		if p, ok := pv.(api.ProtocolName); ok {
+			proto = p
+		}
 	}
 
 	// Auto means same as downstream protocol
@@ -885,7 +887,8 @@ func (s *downStream) receiveData(endStream bool) {
 
 	data := s.downstreamReqDataBuf
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data = %v", data)
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data, len = %v", data.Len())
+		log.Proxy.Tracef(s.context, "[proxy] [downstream] receive data: %v", data)
 	}
 
 	s.requestInfo.SetBytesReceived(s.requestInfo.BytesReceived() + uint64(data.Len()))
@@ -1248,8 +1251,10 @@ func (s *downStream) finishTracing() {
 			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 
-			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if ltype, _ := variable.Get(s.context, types.VariableListenerType); ltype == v2.INGRESS {
+				skv, _ := variable.Get(s.context, types.VariableTraceSpankey)
+				skey := skv.(*trace.SpanKey)
+				trace.DeleteSpanIdGenerator(skey)
 			}
 		} else {
 			if log.Proxy.GetLogLevel() >= log.WARN {
@@ -1488,7 +1493,7 @@ func (s *downStream) giveStream() {
 	}
 
 	// Give buffers to bufferPool
-	if ctx := mbuffer.PoolContext(s.context); ctx != nil {
+	if ctx := buffer.PoolContext(s.context); ctx != nil {
 		ctx.Give()
 	}
 }

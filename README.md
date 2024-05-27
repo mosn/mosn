@@ -81,36 +81,24 @@ See our [contributor guide](CONTRIBUTING.md).
 
 Partners participate in MOSN co-development to make MOSN better.
 
-<div>
+<div class="communnity">
 <table>
   <tbody>
   <tr></tr>
     <tr>
-      <td align="center"  valign="middle">
+      <td width="222px" align="center"  valign="middle">
         <a href="https://www.antfin.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/ant.png">
+          <img width="200px"  src="https://mosn.io/images/community/ant.png">
         </a>
       </td>
-      <td align="center"  valign="middle">
+      <td width="222px" align="center"  valign="middle">
         <a href="https://www.aliyun.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/aliyun.png">
+          <img width="200px"  src="https://mosn.io/images/community/aliyun.png">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.zhipin.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/bosszhipin.png">
-        </a>
-      </td>
-      <td align="center" valign="middle">
-        <a href="https://www.dmall.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/duodian.png">
-        </a>
-      </td>
-      </tr><tr></tr>
-      <tr>
-      <td align="center" valign="middle">
-        <a href="https://www.kanzhun.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/kanzhun.png">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.jd.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/jingdong.png">
         </a>
       </td>
     </tr>
@@ -128,54 +116,93 @@ The MOSN users. Please [leave a comment here](https://github.com/mosn/community/
   <tbody>
   <tr></tr>
     <tr>
-      <td align="center"  valign="middle">
-        <a href="https://www.tenxcloud.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/tenxcloud.png">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.qunar.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/qunar.jpeg">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.zhipin.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/linkedcare.png">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.sf-tech.com.cn/" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/shunfeng.jpeg">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.xiaobaoonline.com/" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/xiaobao.png">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.58.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/58.png">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.wm-motor.com/" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/weima.png">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.futuholdings.com/" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/futu.png">
         </a>
       </td>
     </tr>
     <tr></tr>
     <tr>
-      <td align="center" valign="middle">
+      <td width="222px" align="center" valign="middle">
         <a href="https://www.iqiyi.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/iqiyi.png">
+          <img width="200px"  src="https://mosn.io/images/community/iqiyi.png">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.gaiaworks.cn" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/gaiya.png">
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/bosszhipin.png">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.tydic.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/tianyuandike.png">
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.dmall.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/duodian.png">
         </a>
       </td>
-      <td align="center" valign="middle">
-        <a href="https://www.terminus.io" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/terminus.png">
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.kanzhun.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/kanzhun.png">
         </a>
       </td>
     </tr>
+    <tr></tr>
     <tr>
-      <td align="center" valign="middle">
+      <td width="222px" align="center"  valign="middle">
+        <a href="https://www.tenxcloud.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/tenxcloud.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.meicai.cn/" trget="_blank">
+          <img width="200"  src="https://mosn.io/images/community/meicai.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.xiaobaoonline.com/" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/xiaobao.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.wm-motor.com/" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/weima.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td width="222px" align="center" valign="middle">
         <a href="https://www.tuya.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/tuya.png">
+          <img width="200px"  src="https://mosn.io/images/community/tuya.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.gaiaworks.cn" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/gaiya.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.tydic.com" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/tianyuandike.png">
+        </a>
+      </td>
+      <td width="222px" align="center" valign="middle">
+        <a href="https://www.terminus.io" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/terminus.png">
         </a>
       </td>
     </tr>

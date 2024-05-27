@@ -548,7 +548,7 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 	ch := make(chan api.Connection, 1)
 	// new connection
 	utils.GoWithRecover(func() {
-		listener.GetListenerCallbacks().OnAccept(conn, listener.UseOriginalDst(), nil, ch, dataBuf, nil)
+		listener.GetListenerCallbacks().OnAccept(conn, listener.IsOriginalDst(), nil, ch, dataBuf, nil)
 	}, nil)
 
 	select {

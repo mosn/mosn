@@ -61,6 +61,7 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 		clusterType:          clusterConfig.ClusterType,
 		subType:              clusterConfig.SubType,
 		maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
+		mark:                 clusterConfig.Mark,
 		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 		stats:                newClusterStats(clusterConfig.Name),
 		lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
@@ -68,6 +69,8 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
+		clusterPoolEnable:    clusterConfig.ClusterPoolEnable,
+		lbConfig:             clusterConfig.LbConfig,
 	}
 	// set ConnectTimeout
 	if clusterConfig.ConnectTimeout != nil {
@@ -79,6 +82,30 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 	// set IdleTimeout
 	if clusterConfig.IdleTimeout != nil {
 		info.idleTimeout = clusterConfig.IdleTimeout.Duration
+	}
+
+	// set SlowStart
+	if clusterConfig.SlowStart.Mode != "" {
+		info.slowStart.Mode = types.SlowStartMode(clusterConfig.SlowStart.Mode)
+	}
+
+	if clusterConfig.SlowStart.SlowStartDuration != nil {
+		info.slowStart.SlowStartDuration = clusterConfig.SlowStart.SlowStartDuration.Duration
+	}
+
+	// Aggression must be positive because `y=x^a` where `a<0` is a monotonically decreasing function,
+	// and the initial value approaches infinity.
+	if clusterConfig.SlowStart.Aggression <= 0 {
+		info.slowStart.Aggression = v2.SlowStartDefaultAggression
+	} else {
+		info.slowStart.Aggression = clusterConfig.SlowStart.Aggression
+	}
+
+	// MinWeightPercent must be positive because weighted load balancing only accepts positive weight
+	if clusterConfig.SlowStart.MinWeightPercent <= 0 {
+		info.slowStart.MinWeightPercent = v2.SlowStartDefaultMinWeightPercent
+	} else {
+		info.slowStart.MinWeightPercent = clusterConfig.SlowStart.MinWeightPercent
 	}
 
 	// tls mng
@@ -185,15 +212,18 @@ type clusterInfo struct {
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
 	connBufferLimitBytes uint32
 	maxRequestsPerConn   uint32
+	mark                 uint32
 	resourceManager      types.ResourceManager
-	stats                types.ClusterStats
+	stats                *types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
 	clusterManagerTLS    bool
 	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	idleTimeout          time.Duration
-	lbConfig             v2.IsCluster_LbConfig
+	lbConfig             *v2.LbConfig
+	slowStart            types.SlowStart
+	clusterPoolEnable    bool
 }
 
 func (ci *clusterInfo) Name() string {
@@ -216,7 +246,11 @@ func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
 	return ci.maxRequestsPerConn
 }
 
-func (ci *clusterInfo) Stats() types.ClusterStats {
+func (ci *clusterInfo) Mark() uint32 {
+	return ci.mark
+}
+
+func (ci *clusterInfo) Stats() *types.ClusterStats {
 	return ci.stats
 }
 
@@ -247,12 +281,20 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
 }
 
-func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
+func (ci *clusterInfo) LbConfig() *v2.LbConfig {
 	return ci.lbConfig
 }
 
 func (ci *clusterInfo) SubType() string {
 	return ci.subType
+}
+
+func (ci *clusterInfo) SlowStart() types.SlowStart {
+	return ci.slowStart
+}
+
+func (ci *clusterInfo) IsClusterPoolEnable() bool {
+	return ci.clusterPoolEnable
 }
 
 type clusterSnapshot struct {

@@ -24,8 +24,8 @@ import (
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"

@@ -1,0 +1,79 @@
+{
+  "disable_upgrade" : true,
+  "servers":[
+    {
+      "default_log_path":"stdout",
+      "routers":[
+        {
+          "router_config_name":"server_router",
+          "virtual_hosts":[{
+            "name":"serverHost",
+            "domains": ["*"],
+            "routers": [
+              {
+                "match":{"prefix":"/"},
+                "route":{"cluster_name":"serverCluster"}
+              }
+            ]
+          }]
+        }
+      ],
+      "listeners":[
+        {
+          "name":"serverListener",
+          "address": "127.0.0.1:2046",
+          "bind_port": true,
+          "filter_chains": [{
+            "filters": [
+              {
+                "type": "proxy",
+                "config": {
+                  "downstream_protocol": "Http1",
+                  "upstream_protocol": "Http1",
+                  "router_config_name":"server_router"
+                }
+              }
+            ]
+          }]
+        }
+      ]
+    }
+  ],
+  "cluster_manager":{
+    "clusters":[
+      {
+        "name":"serverCluster",
+        "type": "SIMPLE",
+        "lb_type": "LB_WEIGHTED_ROUNDROBIN",
+        "max_request_per_conn": 1024,
+        "conn_buffer_limit_bytes":32768,
+        "health_check": {
+          "protocol": "http1",
+          "timeout": "1s",
+          "interval": "1s",
+          "healthy_threshold": 1,
+          "service_name": "serverCluster"
+        },
+        "hosts":[
+          { "address":"127.0.0.1:8080", "weight": 1 },
+          { "address":"127.0.0.1:8081", "weight": 2 },
+          { "address":"127.0.0.1:8082", "weight": 3 }
+        ],
+        "slow_start": {
+          "mode": "duration",
+          "slow_start_duration": "30s",
+          "aggression": 1,
+          "min_weight_percent": 0.1
+        }
+      }
+    ]
+  },
+  "admin": {
+    "address": {
+      "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 34902
+      }
+    }
+  }
+}

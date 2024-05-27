@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 )

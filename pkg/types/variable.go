@@ -17,12 +17,21 @@
 
 package types
 
+import (
+	"context"
+	"errors"
+
+	"mosn.io/api"
+	"mosn.io/pkg/variable"
+)
+
 // [Proxy]: the identification of a request info's content
 const (
 	VarStartTime                      string = "start_time"
 	VarRequestReceivedDuration        string = "request_received_duration"
 	VarResponseReceivedDuration       string = "response_received_duration"
 	VarRequestFinishedDuration        string = "request_finished_duration"
+	VarProcessTimeDuration            string = "process_time_duration"
 	VarBytesSent                      string = "bytes_sent"
 	VarBytesReceived                  string = "bytes_received"
 	VarProtocol                       string = "protocol"
@@ -131,3 +140,83 @@ const (
 	VarPrefixHttp2Arg           = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttp2Cookie        = http2ProtocolName + "_" + VarProtocolCookie
 )
+
+// [MOSN]: mosn built-invariables name
+const (
+	VarStreamID                    = "stream_id"
+	VarConnection                  = "connection"
+	VarConnectionID                = "connection_id"
+	VarConnectionPoolIndex         = "connection_pool_index"
+	VarListenerPort                = "listener_port"
+	VarListenerName                = "listener_name"
+	VarListenerType                = "listener_type"
+	VarConnDefaultReadBufferSize   = "conn_default_read_buffer_size"
+	VarNetworkFilterChainFactories = "network_filterchain_factories"
+	VarAccessLogs                  = "access_logs"
+	VarAcceptChan                  = "accept_chan"
+	VarAcceptBuffer                = "accept_buffer"
+	VarConnectionFd                = "connection_fd"
+	VarTraceSpanKey                = "span_key"
+	VarTraceId                     = "trace_id"
+	VarProxyGeneralConfig          = "proxy_general_config"
+	VarConnectionEventListeners    = "connection_event_listeners"
+	VarUpstreamConnectionID        = "upstream_connection_id"
+	VarOriRemoteAddr               = "ori_remote_addr"
+	VarDownStreamProtocol          = "downstream_protocol"
+	VarUpStreamProtocol            = "upstream_protocol"
+	VarDownStreamReqHeaders        = "downstream_req_headers"
+	VarDownStreamRespHeaders       = "downstream_resp_headers"
+	VarTraceSpan                   = "trace_span"
+)
+
+var (
+	VariableStreamID                    = variable.NewVariable(VarStreamID, nil, nil, variable.DefaultSetter, 0)
+	VariableConnection                  = variable.NewVariable(VarConnection, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionID                = variable.NewVariable(VarConnectionID, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionPoolIndex         = variable.NewVariable(VarConnectionPoolIndex, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerPort                = variable.NewVariable(VarListenerPort, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerName                = variable.NewVariable(VarListenerName, nil, nil, variable.DefaultSetter, 0)
+	VariableListenerType                = variable.NewVariable(VarListenerType, nil, nil, variable.DefaultSetter, 0)
+	VariableConnDefaultReadBufferSize   = variable.NewVariable(VarConnDefaultReadBufferSize, nil, nil, variable.DefaultSetter, 0)
+	VariableNetworkFilterChainFactories = variable.NewVariable(VarNetworkFilterChainFactories, nil, nil, variable.DefaultSetter, 0)
+	VariableAccessLogs                  = variable.NewVariable(VarAccessLogs, nil, nil, variable.DefaultSetter, 0)
+	VariableAcceptChan                  = variable.NewVariable(VarAcceptChan, nil, nil, variable.DefaultSetter, 0)
+	VariableAcceptBuffer                = variable.NewVariable(VarAcceptBuffer, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionFd                = variable.NewVariable(VarConnectionFd, nil, nil, variable.DefaultSetter, 0)
+	VariableTraceId                     = variable.NewVariable(VarTraceId, nil, nil, variable.DefaultSetter, 0)
+	VariableProxyGeneralConfig          = variable.NewVariable(VarProxyGeneralConfig, nil, nil, variable.DefaultSetter, 0)
+	VariableConnectionEventListeners    = variable.NewVariable(VarConnectionEventListeners, nil, nil, variable.DefaultSetter, 0)
+	VariableUpstreamConnectionID        = variable.NewVariable(VarUpstreamConnectionID, nil, nil, variable.DefaultSetter, 0)
+	VariableOriRemoteAddr               = variable.NewVariable(VarOriRemoteAddr, nil, nil, variable.DefaultSetter, 0)
+	VariableTraceSpankey                = variable.NewVariable(VarTraceSpanKey, nil, nil, variable.DefaultSetter, 0)
+	VariableDownStreamProtocol          = variable.NewVariable(VarDownStreamProtocol, nil, nil, variable.DefaultSetter, 0)
+	VariableUpstreamProtocol            = variable.NewVariable(VarUpStreamProtocol, nil, nil, variable.DefaultSetter, 0)
+	VariableDownStreamReqHeaders        = variable.NewVariable(VarDownStreamReqHeaders, nil, nil, variable.DefaultSetter, 0)
+	VariableDownStreamRespHeaders       = variable.NewVariable(VarDownStreamRespHeaders, nil, nil, variable.DefaultSetter, 0)
+	VariableTraceSpan                   = variable.NewVariable(VarTraceSpan, nil, nil, variable.DefaultSetter, 0)
+)
+
+func init() {
+	builtinVariables := []variable.Variable{
+		VariableStreamID, VariableConnection, VariableConnectionID, VariableConnectionPoolIndex,
+		VariableListenerPort, VariableListenerName, VariableListenerType, VariableConnDefaultReadBufferSize, VariableNetworkFilterChainFactories,
+		VariableAccessLogs, VariableAcceptChan, VariableAcceptBuffer, VariableConnectionFd,
+		VariableTraceSpankey, VariableTraceId, VariableProxyGeneralConfig, VariableConnectionEventListeners,
+		VariableUpstreamConnectionID, VariableOriRemoteAddr,
+		VariableDownStreamProtocol, VariableUpstreamProtocol, VariableDownStreamReqHeaders, VariableDownStreamRespHeaders, VariableTraceSpan,
+	}
+	for _, v := range builtinVariables {
+		variable.Register(v)
+	}
+	// register protocol resource
+	variable.GetProtocol = func(ctx context.Context) (api.ProtocolName, error) {
+		v, err := variable.Get(ctx, VariableDownStreamProtocol)
+		if err != nil {
+			return api.ProtocolName("-"), err
+		}
+		if proto, ok := v.(api.ProtocolName); ok {
+			return proto, nil
+		}
+		return api.ProtocolName("-"), errors.New("invalid protocol name")
+	}
+}

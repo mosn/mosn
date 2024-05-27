@@ -20,9 +20,10 @@ package router
 import (
 	"context"
 	"errors"
-	"mosn.io/mosn/pkg/variable"
 	"reflect"
 	"testing"
+
+	"mosn.io/pkg/variable"
 )
 
 func Test_getHeaderFormatter(t *testing.T) {

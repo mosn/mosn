@@ -1,5 +1,173 @@
 # 更新日志
 
+## v1.5.0
+
+### 新功能
+
+- EdfLoadBalancer 支持慢启动 (#2178) @jizhuozhi
+- 支持集群独占连接池 (#2281) @yejialiango
+- LeastActiveRequest 和 LeastActiveConnection 负载均衡器支持设置 active_request_bias (#2286) @jizhuozhi
+- 支持配置指标采样器 (#2261) @jizhuozhi
+- 新增 PeakEWMA 负载均衡器 (#2253) @jizhuozhi
+
+### 变更
+
+- README 更新 partners & users (#2245) @doujiang24
+- 更新依赖 (#2242) (#2248) (#2249) @dependabot
+- 升级 MOSN 支持的最低 Go 版本至 1.18 (#2288) @muyuan0
+
+### 优化
+
+- 使用逻辑时钟使 edf 调度器更加稳定 (#2229) @jizhuozhi
+- proxywasm 中缺少 proxy_on_delete 的日志级别从 error 更改为 warn (#2246) @codefromthecrypt
+- 修正 connection 对象接收者命名不同的问题 (#2262) @diannaowa
+- 禁用 workflow 中过于严格的 linters (#2259) @jizhuozhi
+- 当 PR 是未完成状态时不启用 workflow (#2269) @diannaowa
+- 使用指针减少 duffcopy 和 duffzero 开销 (#2272) @jizhuozhi
+- 删除不必要的导入 (#2292) @spacewander
+- CI 增加 goimports 检测 (#2297) @spacewander
+
+### Bug 修复
+
+- 修复健康检查时多个 host 使用同一个 rander 引发的异常 (#2240) @dengqian
+- 修复连接池绑定连接标识错误 (#2263) @antJack 
+- 修复在上下文中将 client stream 协议信息保存到 DownStreamProtocol 的错误 (#2270) @nejisama
+- 修复未使用正确的 Go 版本进行测试 (#2288) @muyuan0
+- 修复无法找到实际值为 '-' 的变量 (#2174) @3062
+- 修复 cluster 证书配置错误导致的空接口异常 (#2291) @3062
+- 修复 leastActiveRequestLoadBalancer 配置中使用了接口类型导致的解析错误 (#2284) @jizhuozhi
+- 修复配置文件 lbConfig 未生效的问题 (#2299) @3062
+- 修复 activeRequestBias 缺少默认值和一些命名大小写错误 (#2298) @jizhuozhi
+
+## v1.4.0
+
+### 新功能
+
+- 支持记录 HTTP 健康检查日志 (#2096) @dengqian
+- 新增最小连接负载均衡器 (#2184) @dengqian
+- 新增 API: 强制断开并重新连接 ADS 服务 (#2183) @dengqian
+- 支持 pprof debug server 配置 endpoint (#2202) @dengqian
+- 集成 mosn.io/envoy-go-extension，参考[文档](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_CN.md) (#2200) @antJack (#2222) @3062
+- 新增 API: 支持覆盖注册 Variable (mosn/pkg#72) @antJack
+- 新增记录 mosn 处理时间的字段的变量 (#2235) @z2z23n0
+- 支持将 cluster idle_timeout 设置为零以表示从不超时 (#2197) @antJack
+
+### 重构
+- import pprof 迁移至 pkg/mosn (#2216) @3062
+
+### 优化
+
+- 减少 proxywasm 基准测试的日志记录 (#2189) @Crypt Keeper
+
+### Bug 修复
+
+- 增大 UDP DNS 解析缓冲区 (#2201) @dengqian
+- 修复平滑升级时未继承 debug server 的问题 (#2204) @dengqian
+- 修复平滑升级失败时，新 mosn 会删除 reconfig.sock 的问题 (#2205) @dengqian
+- 修复 HTTP 健康检查 URL query string 未转译的问题 (#2207) @dengqian
+- 修复 ReqRoundRobin 负载均衡器在索引超过 host 数量时，host 选择失败的问题 (#2209) @dengqian
+- 修复 RDS 创建路由之后，已建连的连接无法找到路由的问题 (#2199) @dengqian (#2210) @3062
+- 修复 Variable.Set 执行后会读取到旧缓存值的问题 (mosn/pkg#73) @antJack
+- 修复 DefaultRoller 未设置时间导致 panic 的问题 (mosn/pkg#74) @dengqian
+- 提前 metrics 初始化时间使其适用于 static config (#2221) @dengqian
+- 修复多个 health checker 共用 rander 导致的并发问题 (#2228) @dengqian
+- 设置 HTTP/1.1 作为发往上游的 HTTP 协议 (#2225) @dengqian
+- 补全缺失的统计信息 (#2215) @3062
+
+## v1.3.0
+
+### 重构
+- 迁移合并 Proxy-Wasm 的实现，并默认启用 wazero (#2172) [@Crypt Keeper](https://github.com/codefromthecrypt)
+
+### 优化
+
+- 优化解析 xDS 透明代理配置：增加对未识别地址的透传配置 (#2171) [@3062](https://github.com/3062)
+- 优化 CI 测试中 golangci 执行流程 (#2166) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2167) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 为 Proxy-Wasm 添加集成基准测试 (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- 升级 MOSN 支持的 Go 的最低版本至 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- 改正 README.md 中的一些问题 (#2161) [@liaolinrong](https://github.com/liaolinrong)
+- 新增基准测试 (#2173) [@3062](https://github.com/3062)
+- subsetLoadBalancer 重用子集条目以优化分配/使用内存 (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
+
+### Bug 修复
+
+- 修复 connpool_binging 在连接 upstream timeout 时出现的 panic 问题 (#2180) [@EraserTime](https://github.com/EraserTime)
+- 修复 cluster LB 算法为 LB_ORIGINAL_DST 时 retryTime 是 0 的问题 (#2170) [@3062](https://github.com/3062)
+- 修复平滑升级失败 (#2129) [@Bryce-Huang](https://github.com/Bryce-huang) (#2193) [@3062](https://github.com/3062)
+- 修改解析 xDS Listener 日志的方式 (#2182) [@3062](https://github.com/3062)
+- 修复示例代码打印错误 (#2190) [@liaolinrong](https://github.com/liaolinrong)
+
+## v1.2.0
+
+### 新功能
+
+- 支持配置 HTTP 重试状态码 (#2097) [@dengqian](https://github.com/dengqian)
+- 新增 dev 容器构建配置与说明 (#2108) [@keqingyuan](https://github.com/keqingyuan)
+- 支持 connpool_binding GoAway (#2115) [@EraserTime](https://github.com/EraserTime)
+- 支持配置 listener 默认读缓存大小 (#2133) [@3062](https://github.com/3062)
+- 支持 proxy-wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
+- 支持基于 iptables tproxy 的透明代理 (#2142) [@3062](https://github.com/3062)
+
+### 重构
+
+- 删除 MOSN 扩展的 context 框架，使用变量机制代替。将 MOSN 中的变量机制(variable)和内存复用框架(buffer)迁移到 mosn.io/pkg 中 (#2055) [@nejisama](https://github.com/nejisama)
+- 迁移 metrics 接口到 mosn.io/api 中 (#2124) [@YIDWang](https://github.com/YIDWang)
+
+### Bug 修复
+
+- 修复部分日志参数缺失 (#2141) [@lawrshen](https://github.com/lawrshen)
+- 通过 error 判断获取的 cookie 是否存在 (#2136) [@greedying](https://github.com/greedying)
+
+## v1.1.0
+
+### 新功能
+
+- TraceLog 支持 zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- 支持云边互联 (#1640) [@CodingSinger](https://github.com/CodingSinger)，细节可以参考[博客](https://mosn.io/blog/posts/mosn-tunnel/)
+- Trace 以 Driver 的形式支持插件化扩展，使用 Skywalking 作为跟踪实现 (#2047) [@YIDWang](https://github.com/YIDWang)
+- xDS 支持 stream filter 解析扩展 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess 扩展实现 xDS 解析逻辑 (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- MakeFile 添加打包 tar 命令 (#1968) [@doujiang24](https://github.com/doujiang24)
+
+### 变更
+
+- 调整连接读超时从 buffer.ConnReadTimeout 到 types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- 修复文档错字 (#2056) (#2057) [@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- 更新 license-checker.yml 的配置文件 (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+- 新增遍历 SubsetLB 的接口 (#2059) (#2061) [@nejisama](https://github.com/nejisama)
+- 添加 tls.Conn 的 SetConfig 接口 (#2088) [@antJack](https://github.com/antJack)
+- 添加 xds-server 作为 MOSN 控制面的示例 (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- 新增 HTTP 请求解析失败时的错误日志 (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- 负载均衡在重试时跳过上一次选择的主机 (#2077) [@dengqian](https://github.com/dengqian)
+- 访问日志支持打印 traceID，connectionID 和 UpstreamConnectionID  (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
+
+### 重构
+
+- 重构 HostSet 的使用方式 (#2036) [@dzdx](https://github.com/dzdx)
+- 更改连接写数据调整为只支持同步写的模式 (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### 优化
+
+- 优化创建 subset 负载均衡的算法，降低内存占用 (#2010) [@dzdx](https://github.com/dzdx)
+- 支持可扩展的集群更新方式操作 (#2048) [@nejisama](https://github.com/nejisama)
+- 优化多证书匹配逻辑：优先匹配 servername，全部 servername 匹配不上以后才按照 ALPN 进行匹配 (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+
+### Bug 修复
+
+- 修复 wasm 示例中的 latest 镜像版本为固定的版本（#2033）[@antJack](https://github.com/antJack)
+- 调整 MOSN 退出时日志关闭执行顺序，修复部分退出日志无法正确输出的问题 (#2034) [@doujiang24](https://github.com/doujiang24)
+- 修复 OriginalDst 匹配成功以后没有正确处理的问题 (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- 修复协议转换场景没有正确处理异常情况的问题，新增协议转换实现规范 (#2062) [@YIDWang](https://github.com/YIDWang)
+- 修复 stream proxy 没有正确处理连接写超时/断开等异常事件 (#2080) [@dengqian](https://github.com/dengqian)
+- 修复连接事件监听时机错误可能引发的 panic 问题 (#2082) [@dengqian](https://github.com/dengqian)
+- 避免在事件监听连接之前发生关闭事件 (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP1/HTTP2 协议在处理时在上下文中保存协议信息 (#2035) [@yidwang](https://github.com/YIDWang)
+- 修复 xDS 推送时可能存在的并发问题 (#2101) [@yzj0911](https://github.com/yzj0911)
+- 找不到 upstream 地址变量时，不再返回空，返回 ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- 修复健康检查不支持 xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- 修正判断上游地址方法 (#2093) [@dengqian](https://github.com/dengqian)
+
+
 ## v1.0.1
 
 ### 变更

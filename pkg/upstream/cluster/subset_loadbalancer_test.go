@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -246,14 +245,14 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 		}
 	}
 }
-func newSubsetLoadBalancers(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) map[string]*subsetLoadBalancer {
+func newSubsetLoadBalancers(lbType types.LoadBalancerType, hosts *hostSet, stats *types.ClusterStats, subsets types.LBSubsetInfo) map[string]*subsetLoadBalancer {
 	return map[string]*subsetLoadBalancer{
 		"default":  newSubsetLoadBalancer(lbType, hosts, stats, subsets),
 		"preIndex": newSubsetLoadBalancerPreIndex(lbType, hosts, stats, subsets),
 	}
 }
 
-func newSubsetLoadBalancerPreIndex(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) *subsetLoadBalancer {
+func newSubsetLoadBalancerPreIndex(lbType types.LoadBalancerType, hosts *hostSet, stats *types.ClusterStats, subsets types.LBSubsetInfo) *subsetLoadBalancer {
 	info := &clusterInfo{
 		lbType:       lbType,
 		stats:        stats,
@@ -263,7 +262,7 @@ func newSubsetLoadBalancerPreIndex(lbType types.LoadBalancerType, hosts *hostSet
 	return lb.(*subsetLoadBalancer)
 }
 
-func newSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) *subsetLoadBalancer {
+func newSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats *types.ClusterStats, subsets types.LBSubsetInfo) *subsetLoadBalancer {
 	info := &clusterInfo{
 		lbType:       lbType,
 		stats:        stats,
@@ -875,19 +874,16 @@ func TestSubsetLoadBalancers(t *testing.T) {
 	})
 }
 
-func benchHostConfigs(hostCount int, keyValues int) []v2.Host {
+func benchHostConfigs(hostCount int, zones int) []v2.Host {
 	ret := make([]v2.Host, 0, hostCount)
-	keyValues = int(math.Max(float64(keyValues), 1))
 	rand.Seed(time.Now().UnixNano())
-	keys := []string{"zone", "physics", "mosn_aig", "mosn_version"}
+	keys := []string{"physics", "mosn_aig", "mosn_version"}
 	for i := 0; i < hostCount; i++ {
-
 		metadata := make(map[string]string)
+		r := rand.Intn(zones)
+		metadata["zone"] = fmt.Sprintf("zone-%d", r)
 		for _, key := range keys {
-			r := rand.Intn(keyValues + 1)
-			if r < keyValues {
-				metadata[key] = fmt.Sprintf("%s-%d", key, r)
-			}
+			metadata[key] = key
 		}
 		host := v2.Host{
 			HostConfig: v2.HostConfig{

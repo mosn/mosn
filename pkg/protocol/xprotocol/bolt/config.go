@@ -22,9 +22,9 @@ import (
 	"encoding/json"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -64,7 +64,7 @@ func ConfigHandler(v interface{}) interface{} {
 func parseConfig(ctx context.Context) Config {
 	config := defaultConfig
 	// get extend config from ctx
-	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if boltConfig, ok := extendConfig[ProtocolName]; ok {
 				if cfg, ok := boltConfig.(Config); ok {

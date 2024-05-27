@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 type ProtocolDelegate func(ctx context.Context, frame api.XFrame, span api.Span)
@@ -69,7 +69,14 @@ func (t *XTracer) Start(ctx context.Context, frame interface{}, startTime time.T
 	}
 
 	// the trace protocol is based on request (downstream)
-	proto := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
+	var proto api.ProtocolName
+	v, err := variable.Get(ctx, types.VariableDownStreamProtocol)
+	if err != nil {
+		return span
+	}
+	if proto, ok = v.(api.ProtocolName); !ok {
+		return span
+	}
 
 	if delegate := GetDelegate(proto); delegate != nil {
 		delegate(ctx, xframe, span)

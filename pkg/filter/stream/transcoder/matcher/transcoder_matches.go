@@ -19,6 +19,7 @@ package matcher
 
 import (
 	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 )
@@ -37,10 +38,10 @@ func MustRegister(matches TransCoderMatchesFunc) {
 
 func DefaultMatches(ctx context.Context, header api.HeaderMap, rules []*TransferRule) (*RuleInfo, bool) {
 	for _, rule := range rules {
-		if rule.Macther == nil {
+		if rule.Matcher == nil {
 			continue
 		}
-		if rule.Macther.Matches(ctx, header) {
+		if rule.Matcher.Matches(ctx, header) {
 			return rule.RuleInfo, true
 		}
 	}

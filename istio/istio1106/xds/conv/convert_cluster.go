@@ -56,20 +56,21 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			LBSubSetConfig:       convertLbSubSetConfig(xdsCluster.GetLbSubsetConfig()),
 			MaxRequestPerConn:    xdsCluster.GetMaxRequestsPerConnection().GetValue(),
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
-			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
+			HealthCheck:          convertHealthChecks(xdsCluster.GetName(), xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			ConnectTimeout:       &api.DurationConfig{Duration: ConvertDuration(xdsCluster.GetConnectTimeout())},
 			// OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Spec:     convertSpec(xdsCluster),
-			TLS:      convertTLS(xdsTLSContext),
-			LbConfig: convertLbConfig(xdsCluster.LbConfig),
+			Spec:      convertSpec(xdsCluster),
+			TLS:       convertTLS(xdsTLSContext),
+			LbConfig:  convertLbConfig(xdsCluster.LbConfig),
+			SlowStart: convertSlowStart(xdsCluster),
 		}
 
 		// TODO: We have not implemented the upstream_bind_config yet
 		// so we need another hack way to solve the infinite loop problem that may be caused by
 		// istio transparent hijacking
 		bindConfig := xdsCluster.GetUpstreamBindConfig()
-		// the addres 127.0.0.6 and port value 0 is used in istio inbound
+		// the address 127.0.0.6 and port value 0 is used in istio inbound
 		if bindConfig.GetSourceAddress().GetAddress() == "127.0.0.6" &&
 			bindConfig.GetSourceAddress().GetPortValue() == 0 {
 			cluster.LBOriDstConfig = v2.LBOriDstConfig{
@@ -91,10 +92,13 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 }
 
 // TODO support more LB converter
-func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+func convertLbConfig(config interface{}) *v2.LbConfig {
 	switch config.(type) {
 	case *envoy_config_cluster_v3.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+		return &v2.LbConfig{
+			ChoiceCount:       config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue(),
+			ActiveRequestBias: config.(*envoy_config_cluster_v3.Cluster_LeastRequestLbConfig).ActiveRequestBias.GetDefaultValue(),
+		}
 	default:
 		return nil
 	}
@@ -312,13 +316,14 @@ func convertSubsetSelectors(xdsSubsetSelectors []*envoy_config_cluster_v3.Cluste
 	return subsetSelectors
 }
 
-func convertHealthChecks(xdsHealthChecks []*envoy_config_core_v3.HealthCheck) v2.HealthCheck {
+func convertHealthChecks(serviceName string, xdsHealthChecks []*envoy_config_core_v3.HealthCheck) v2.HealthCheck {
 	if xdsHealthChecks == nil || len(xdsHealthChecks) == 0 || xdsHealthChecks[0] == nil {
 		return v2.HealthCheck{}
 	}
 
 	return v2.HealthCheck{
 		HealthCheckConfig: v2.HealthCheckConfig{
+			ServiceName:        serviceName,
 			HealthyThreshold:   xdsHealthChecks[0].GetHealthyThreshold().GetValue(),
 			UnhealthyThreshold: xdsHealthChecks[0].GetUnhealthyThreshold().GetValue(),
 		},
@@ -358,5 +363,28 @@ func convertSpec(xdsCluster *envoy_config_cluster_v3.Cluster) v2.ClusterSpecInfo
 	specs = append(specs, spec)
 	return v2.ClusterSpecInfo{
 		Subscribes: specs,
+	}
+}
+
+func convertSlowStart(xdsCluster *envoy_config_cluster_v3.Cluster) v2.SlowStartConfig {
+	var ss *envoy_config_cluster_v3.Cluster_SlowStartConfig
+	if xdsCluster.GetLbPolicy() == envoy_config_cluster_v3.Cluster_LEAST_REQUEST {
+		if xdsCluster.GetLeastRequestLbConfig() != nil && xdsCluster.GetLeastRequestLbConfig().GetSlowStartConfig() != nil {
+			ss = xdsCluster.GetLeastRequestLbConfig().GetSlowStartConfig()
+		}
+	} else if xdsCluster.GetLbPolicy() == envoy_config_cluster_v3.Cluster_ROUND_ROBIN {
+		if xdsCluster.GetRoundRobinLbConfig() != nil && xdsCluster.GetRoundRobinLbConfig().GetSlowStartConfig() != nil {
+			ss = xdsCluster.GetRoundRobinLbConfig().GetSlowStartConfig()
+		}
+	}
+
+	if ss == nil {
+		return v2.SlowStartConfig{}
+	}
+
+	return v2.SlowStartConfig{
+		Mode:              v2.SlowStartDurationMode,
+		SlowStartDuration: &api.DurationConfig{Duration: ss.SlowStartWindow.AsDuration()},
+		Aggression:        ss.GetAggression().GetDefaultValue(),
 	}
 }

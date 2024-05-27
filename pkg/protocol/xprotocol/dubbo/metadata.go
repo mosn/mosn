@@ -26,15 +26,15 @@ var DubboPubMetadata = &Metadata{}
 var DubboSubMetadata = &Metadata{}
 
 // Metadata cache service pub or sub metadata.
-// speed up for decode or encode dubbo peformance.
-// please do not use outside of the dubbo framwork.
+// speed up for decode or encode dubbo performance.
+// please do not use outside of the dubbo framework.
 type Metadata struct {
 	data map[string]*Node
 	mu   sync.RWMutex // protect data internal
 }
 
-// Find cached pub or sub metatada.
-// caller should be check match is true
+// Find cached pub or sub metadata.
+// caller should check match is true
 func (m *Metadata) Find(path, version string) (node *Node, matched bool) {
 	// we found nothing
 	if m.data == nil {
@@ -54,7 +54,7 @@ func (m *Metadata) Find(path, version string) (node *Node, matched bool) {
 
 	node = head.Next
 	// just only once, just return
-	// for dubbo framwork, that's what we're expected.
+	// for dubbo framework, that's what we're expected.
 	if head.count == 1 {
 		m.mu.RLocker().Unlock()
 		return node, true
@@ -130,8 +130,8 @@ func (m *Metadata) Register(path string, node *Node) {
 	m.mu.Unlock()
 }
 
-// Contains check if cached pub or sub metatada strict exists.
-// caller should be check match is true
+// Contains check if cached pub or sub metadata strict exists.
+// caller should check match is true
 func (m *Metadata) Contains(path, version, group string) (node *Node, matched bool) {
 	// we found nothing
 	if m.data == nil {
@@ -151,7 +151,7 @@ func (m *Metadata) Contains(path, version, group string) (node *Node, matched bo
 
 	node = head.Next
 	// just only once, just return
-	// for dubbo framwork, that's what we're expected.
+	// for dubbo framework, that's what we're expected.
 	if head.count == 1 {
 		m.mu.RLocker().Unlock()
 		return node, node.Version == version && node.Group == group

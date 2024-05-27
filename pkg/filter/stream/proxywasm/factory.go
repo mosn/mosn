@@ -28,12 +28,12 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
-	"mosn.io/mosn/pkg/wasm/abi"
-	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
+	wasmABI "mosn.io/mosn/pkg/wasm/abi"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 	"mosn.io/proxy-wasm-go-host/proxywasm/common"
-	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
+	v1Host "mosn.io/proxy-wasm-go-host/proxywasm/v1"
+	v2Host "mosn.io/proxy-wasm-go-host/proxywasm/v2"
 )
 
 const ProxyWasm = "proxywasm"
@@ -43,10 +43,9 @@ func init() {
 }
 
 type FilterConfigFactory struct {
-	proxywasm010.DefaultImportsHandler
-
-	pluginName string
-	config     *filterConfig
+	pluginName    string
+	config        *filterConfig
+	rootContextID int32
 
 	vmConfigBytes     buffer.IoBuffer
 	pluginConfigBytes buffer.IoBuffer
@@ -87,8 +86,9 @@ func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilter
 	config.VmConfig = pw.GetConfig().VmConfig
 
 	factory := &FilterConfigFactory{
-		pluginName: pluginName,
-		config:     config,
+		pluginName:    pluginName,
+		config:        config,
+		rootContextID: config.RootContextID,
 	}
 
 	pw.RegisterPluginHandler(factory)
@@ -104,10 +104,6 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
-}
-
-func (f *FilterConfigFactory) GetRootContextID() int32 {
-	return f.config.RootContextID
 }
 
 func (f *FilterConfigFactory) GetVmConfig() common.IoBuffer {
@@ -160,11 +156,26 @@ func (f *FilterConfigFactory) OnConfigUpdate(config v2.WasmPluginConfig) {
 
 func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 	plugin.Exec(func(instance types.WasmInstance) bool {
-		a := abi.GetABI(instance, proxywasm.ProxyWasmABI_0_1_0)
-		a.SetABIImports(f)
-		exports := a.GetABIExports().(proxywasm.Exports)
+		abi := wasmABI.GetABIList(instance)[0]
+		var exports *exportAdapter
+		if abi.Name() == v1Host.ProxyWasmABI_0_1_0 {
+			// v1
+			imports := &v1Imports{factory: f}
+			imports.DefaultImportsHandler.Instance = instance
+			abi.SetABIImports(imports)
+			exports = &exportAdapter{v1: abi.GetABIExports().(v1Host.Exports)}
+		} else if abi.Name() == v2Host.ProxyWasmABI_0_2_0 {
+			// v2
+			imports := &v2Imports{factory: f}
+			imports.DefaultImportsHandler.Instance = instance
+			abi.SetABIImports(imports)
+			exports = &exportAdapter{v2: abi.GetABIExports().(v2Host.Exports)}
+		} else {
+			log.DefaultLogger.Errorf("[proxywasm][factory] unknown abi list: %v", abi)
+			return false
+		}
 
-		instance.Lock(a)
+		instance.Lock(abi)
 		defer instance.Unlock()
 
 		err := exports.ProxyOnContextCreate(f.config.RootContextID, 0)

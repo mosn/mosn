@@ -19,14 +19,16 @@ package ipaccess
 
 import (
 	"context"
+	"net"
+	"testing"
+	"time"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"net"
-	"testing"
 )
 
 func TestCreateIPAccessFactory(t *testing.T) {
@@ -263,6 +265,14 @@ func (m *MockHost) Config() v2.Host {
 
 func (m *MockHost) SupportTLS() bool {
 	return false
+}
+
+func (m *MockHost) LastHealthCheckPassTime() time.Time {
+	return time.Now()
+}
+
+func (m *MockHost) SetLastHealthCheckPassTime(t time.Time) {
+	// do nothing
 }
 
 type mockConnection struct {

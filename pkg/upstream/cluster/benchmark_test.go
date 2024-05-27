@@ -26,9 +26,9 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func TestMain(m *testing.M) {
@@ -303,7 +303,7 @@ func BenchmarkLeastActiveRequestLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster": ""})
 	hostSet.setFinalHost(hosts)
-	lb := newleastActiveRequestLoadBalancer(nil, hostSet)
+	lb := newLeastActiveRequestLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)
@@ -381,7 +381,8 @@ func BenchmarkMaglevLB(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -406,7 +407,8 @@ func BenchmarkMaglevLBParallel(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -442,7 +444,8 @@ func BenchmarkMaglevLBFallback(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,

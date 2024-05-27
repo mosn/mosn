@@ -19,7 +19,6 @@ package http
 
 import (
 	"context"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,6 +29,7 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -96,7 +96,7 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 		return host, nil, reason
 	}
 
-	mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, c.client.ConnID())
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.client.ConnID())
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
@@ -182,6 +182,21 @@ func (p *connPool) Shutdown() {
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	host := p.Host()
 	if event.IsClose() {
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+
+		switch event {
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
+		}
 
 		if client.closeWithActiveReq {
 			if event == api.LocalClose {
@@ -303,7 +318,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together
+	// bytes total adds all connections' data together
 	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac, ""

@@ -35,14 +35,15 @@ import (
 
 // simpleHost is an implement of types.Host and types.HostInfo
 type simpleHost struct {
-	hostname      string
-	addressString string
-	clusterInfo   atomic.Value // store types.ClusterInfo
-	stats         types.HostStats
-	metaData      api.Metadata
-	tlsDisable    bool
-	weight        uint32
-	healthFlags   *uint64
+	hostname                string
+	addressString           string
+	clusterInfo             atomic.Value // store types.ClusterInfo
+	stats                   *types.HostStats
+	metaData                api.Metadata
+	tlsDisable              bool
+	weight                  uint32
+	healthFlags             *uint64
+	lastHealthCheckPassTime time.Time
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -94,7 +95,7 @@ func (sh *simpleHost) AddressString() string {
 	return sh.addressString
 }
 
-func (sh *simpleHost) HostStats() types.HostStats {
+func (sh *simpleHost) HostStats() *types.HostStats {
 	return sh.stats
 }
 
@@ -115,12 +116,12 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng() != nil && sh.ClusterInfo().TLSMng().Enabled()
 }
 
 func (sh *simpleHost) TLSHashValue() *types.HashValue {
 	// check tls_disable config
-	if sh.tlsDisable || !sh.ClusterInfo().TLSMng().Enabled() {
+	if sh.tlsDisable || sh.ClusterInfo().TLSMng() == nil || !sh.ClusterInfo().TLSMng().Enabled() {
 		return disableTLSHashValue
 	}
 	// check global tls
@@ -139,9 +140,11 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
-	if sh.ClusterInfo().IdleTimeout() > 0 {
-		clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
+	if sh.ClusterInfo().Mark() != 0 {
+		clientConn.SetMark(sh.ClusterInfo().Mark())
 	}
+
+	clientConn.SetIdleTimeout(types.DefaultConnReadTimeout, sh.ClusterInfo().IdleTimeout())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
@@ -161,6 +164,9 @@ func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateC
 
 func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
 	ClearHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
@@ -169,6 +175,9 @@ func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
 
 func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
 	SetHealthFlag(sh.healthFlags, flag)
+	if atomic.LoadUint64(sh.healthFlags) == 0 {
+		sh.SetLastHealthCheckPassTime(time.Now())
+	}
 }
 
 func (sh *simpleHost) HealthFlag() api.HealthFlag {
@@ -179,9 +188,17 @@ func (sh *simpleHost) Health() bool {
 	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
+func (sh *simpleHost) LastHealthCheckPassTime() time.Time {
+	return sh.lastHealthCheckPassTime
+}
+
+func (sh *simpleHost) SetLastHealthCheckPassTime(lastHealthCheckPassTime time.Time) {
+	sh.lastHealthCheckPassTime = lastHealthCheckPassTime
+}
+
 // net.Addr reuse for same address, valid in simple type
 // Update DNS cache using asynchronous mode
-var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var AddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveTCPAddr("tcp", key.(string))
 		if err == nil {
@@ -239,7 +256,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 }
 
 // store resolved UDP addr
-var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+var UDPAddrStore = utils.NewExpiredMap(
 	func(key interface{}) (interface{}, bool) {
 		addr, err := net.ResolveUDPAddr("udp", key.(string))
 		if err == nil {

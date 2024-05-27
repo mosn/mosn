@@ -25,7 +25,7 @@ import (
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	jsoniter "github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
@@ -61,7 +61,6 @@ func (cvt *xdsConverter) listenerRouterHandler(isRds bool, routerConfig *v2.Rout
 	// save rds records, get router config from rds request
 	if isRds {
 		cvt.AppendRouterName(routerConfig.RouterConfigName)
-		return
 	}
 	routersMngIns := router.GetRoutersMangerInstance()
 	if routersMngIns == nil {
@@ -128,13 +127,13 @@ func (cvt *xdsConverter) ConvertDeleteListeners(listeners []*envoy_config_listen
 	}
 
 	// cannot delete by mosn listener name
-	// because a envoy_config_listener_v3.Listener maybe convert to multiple mosn listeners
+	// because an envoy_config_listener_v3.Listener maybe convert to multiple mosn listeners
 	// and we record the envoy_config_listener_v3.Listener
 	EnvoyConfigDeleteListeners(listeners)
 
 }
 
-// ConvertUpdateClusters converts cluster configuration, used to udpate cluster
+// ConvertUpdateClusters converts cluster configuration, used to update cluster
 func (cvt *xdsConverter) ConvertUpdateClusters(clusters []*envoy_config_cluster_v3.Cluster) {
 	mosnClusters := ConvertClustersConfig(clusters)
 	for _, cluster := range mosnClusters {

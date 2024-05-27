@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -100,7 +100,7 @@ func DumpConfig() {
 // if auto_config is enabled, this function never be called
 var transferExtensionFunc func(*v2.MOSNConfig)
 
-// RegisterTransferExtension regists the transferExtensionFunc.
+// RegisterTransferExtension registers the transferExtensionFunc.
 // this function should be called before dump goroutine is started.
 func RegisterTransferExtension(f func(*v2.MOSNConfig)) {
 	transferExtensionFunc = f

@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -56,8 +57,10 @@ type healthChecker struct {
 	healthyThreshold   uint32
 	initialDelay       time.Duration
 	unhealthyThreshold uint32
-	rander             *rand.Rand
+	rander             rand.Rand
+	mux                sync.Mutex
 	hostCheckCallbacks []types.HealthCheckCb
+	logger             types.HealthCheckLog
 }
 
 func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
@@ -96,12 +99,14 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		unhealthyThreshold: unhealthyThreshold,
 		initialDelay:       initialDelay,
 		//runtime and stats
-		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		rander:             *rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},
 		sessionFactory:     f,
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
+		logger:             NewHealthCheckLogger(cfg.EventLogPath),
 	}
+
 	// Add common callbacks when create
 	// common callbacks should be registered and configured
 	for _, name := range cfg.CommonCallbacks {
@@ -136,6 +141,9 @@ func (hc *healthChecker) Stop() {
 }
 
 func (hc *healthChecker) stop() {
+	if hc.hosts == nil {
+		return
+	}
 	hc.hosts.Range(func(h types.Host) bool {
 		hc.stopCheck(h)
 		return true
@@ -163,7 +171,7 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
 func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	newHostsMap := make(map[string]types.Host, new.Size())
-	if new != nil{
+	if new != nil {
 		new.Range(func(newHost types.Host) bool {
 			newHostsMap[newHost.AddressString()] = newHost
 			return true
@@ -171,7 +179,7 @@ func findNewAndDeleteHost(old, new types.HostSet) ([]types.Host, []types.Host) {
 	}
 	// find delete host
 	deleteHosts := make([]types.Host, 0)
-	if old != nil{
+	if old != nil {
 		old.Range(func(oldHost types.Host) bool {
 			_, ok := newHostsMap[oldHost.AddressString()]
 			if ok {
@@ -234,7 +242,9 @@ func (hc *healthChecker) runCallbacks(host types.Host, changed bool, isHealthy b
 func (hc *healthChecker) getCheckInterval() time.Duration {
 	interval := hc.intervalBase
 	if hc.intervalJitter > 0 {
+		hc.mux.Lock()
 		interval += time.Duration(hc.rander.Int63n(int64(hc.intervalJitter)))
+		hc.mux.Unlock()
 	}
 	// TODO: support jitter percentage
 	return interval
@@ -270,4 +280,11 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 	}
 	hc.runCallbacks(host, changed, false)
 
+}
+
+func (hc *healthChecker) log(host types.Host, current_status, changed bool) {
+	if hc.logger == nil {
+		return
+	}
+	hc.logger.Log(host, current_status, changed)
 }

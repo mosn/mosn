@@ -1,0 +1,104 @@
+{
+	"servers":[
+		{
+			"default_log_path":"stdout",
+			"routers": [
+				{
+                    "router_config_name": "tproxy_router",
+                    "virtual_hosts": [
+						{
+							"name": "tproxy_server",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"direct_response": {
+										"status": 200,
+										"body": "this is tproxy_server"
+									}
+								}
+							]
+						}
+                    ]
+                },
+				{
+                    "router_config_name": "general_router",
+                    "virtual_hosts": [
+						{
+							"name": "general_server",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"direct_response": {
+										"status": 200,
+										"body": "this is general_server"
+									}
+								}
+							]
+						}
+                    ]
+                }
+			],
+			"listeners":[
+				{
+					"name":"tproxy_listener",
+					"address": "0.0.0.0:16000",
+                    "bind_port": true,
+					"use_original_dst": "tproxy",
+					"listener_filters": [
+						{
+							"type": "original_dst",
+							"config":{
+								"type": "tproxy"
+							}
+						}
+					],
+					"filter_chains": [
+                        {
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "tproxy_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+				},
+				{
+					"name": "general_listener",
+                    "address": "0.0.0.0:80",
+                    "bind_port": false,
+                    "filter_chains": [
+                        {
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "general_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+				}
+			]
+		}
+	],
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34901
+			}
+		}
+	}
+}

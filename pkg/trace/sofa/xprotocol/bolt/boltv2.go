@@ -21,13 +21,13 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 func Boltv2Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
@@ -44,8 +44,8 @@ func Boltv2Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(sofa.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
-	if lType == nil {
+	lType, err := variable.Get(ctx, types.VariableListenerType)
+	if err != nil || lType == nil {
 		return
 	}
 	spanId, ok := header.Get(sofa.RPC_ID_KEY)

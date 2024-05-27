@@ -117,7 +117,7 @@ func (c *mixerClient) Report(attributes *v1.Attributes) {
 	if c.client == nil {
 		err := c.tryConnect(true)
 		if err != nil {
-			log.DefaultLogger.Errorf("mixer client nil, retry error:%v")
+			log.DefaultLogger.Errorf("mixer client nil, retry error:%v", err)
 			return
 		}
 	}

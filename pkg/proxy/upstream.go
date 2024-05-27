@@ -85,9 +85,13 @@ func (r *upstreamRequest) OnDestroyStream() {}
 
 func (r *upstreamRequest) endStream() {
 	upstreamResponseDurationNs := time.Now().Sub(r.startTime).Nanoseconds()
+
 	r.host.HostStats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
+	r.host.HostStats().UpstreamRequestDurationEWMA.Update(upstreamResponseDurationNs)
 	r.host.HostStats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
+
 	r.host.ClusterInfo().Stats().UpstreamRequestDuration.Update(upstreamResponseDurationNs)
+	r.host.ClusterInfo().Stats().UpstreamRequestDurationEWMA.Update(upstreamResponseDurationNs)
 	r.host.ClusterInfo().Stats().UpstreamRequestDurationTotal.Inc(upstreamResponseDurationNs)
 
 	// todo: record upstream process time in request info
@@ -115,7 +119,8 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive headers: %+v, data: %+v, trailers: %+v", headers, data, trailers)
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive")
+		log.Proxy.Tracef(r.downStream.context, "[proxy] [upstream] OnReceive headers: %+v, data: %+v, trailers: %+v", headers, data, trailers)
 	}
 
 	r.downStream.sendNotify()
@@ -158,7 +163,8 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 		return
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append headers: %+v", r.downStream.downstreamReqHeaders)
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append headers")
+		log.Proxy.Tracef(r.downStream.context, "[proxy] [upstream] append headers: %+v", r.downStream.downstreamReqHeaders)
 	}
 	r.sendComplete = endStream
 
@@ -186,7 +192,8 @@ func (r *upstreamRequest) appendData(endStream bool) {
 		return
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append data:% +v", r.downStream.downstreamReqDataBuf)
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append data, len: %v", r.downStream.downstreamReqDataBuf.Len())
+		log.Proxy.Tracef(r.downStream.context, "[proxy] [upstream] append data: %+v", r.downStream.downstreamReqDataBuf)
 	}
 
 	data := r.downStream.downstreamReqDataBuf

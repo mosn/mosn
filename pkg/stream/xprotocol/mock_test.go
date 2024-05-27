@@ -36,7 +36,7 @@ import (
 func TestMain(m *testing.M) {
 	// register xstream
 	// TODO: framework unit test should not depend on the implementations
-	xprotocol.ResgisterXProtocolAction(NewConnPool, NewStreamFactory, nil)
+	xprotocol.RegisterXProtocolAction(NewConnPool, NewStreamFactory, nil)
 	_ = xprotocol.RegisterXProtocolCodec(&bolt.XCodec{})
 	_ = xprotocol.RegisterXProtocolCodec(&dubbo.XCodec{})
 
@@ -149,6 +149,10 @@ func (ci *mockClusterInfo) Name() string {
 	return ci.name
 }
 
+func (ci *mockClusterInfo) Mark() uint32 {
+	return 0
+}
+
 func (ci *mockClusterInfo) ConnBufferLimitBytes() uint32 {
 	return ci.limit
 }
@@ -163,4 +167,8 @@ func (ci *mockClusterInfo) ConnectTimeout() time.Duration {
 
 func (ci *mockClusterInfo) IdleTimeout() time.Duration {
 	return 0
+}
+
+func (ci *mockClusterInfo) SlowStart() types.SlowStart {
+	return types.SlowStart{}
 }

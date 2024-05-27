@@ -19,6 +19,7 @@ package transcoder
 
 import (
 	"encoding/json"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/matcher"
 	"mosn.io/mosn/pkg/filter/stream/transcoder/simplematcher"
@@ -58,14 +59,14 @@ func parseConfig(cfg interface{}) (*config, error) {
 	}
 	for _, rc := range filterConfig.RuleConfigs {
 		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
-			Macther:  matcher.NewMatcher(rc.MatcherConfig),
+			Matcher:  matcher.NewMatcher(rc.MatcherConfig),
 			RuleInfo: rc.RuleInfo,
 		})
 	}
 
 	if filterConfig.Type != "" {
 		filterConfig.Rules = append(filterConfig.Rules, &matcher.TransferRule{
-			Macther: &simplematcher.SimpleRuleMatcher{},
+			Matcher: &simplematcher.SimpleRuleMatcher{},
 			RuleInfo: &matcher.RuleInfo{
 				Type: filterConfig.Type,
 			},

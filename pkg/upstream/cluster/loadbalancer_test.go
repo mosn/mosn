@@ -21,15 +21,20 @@ import (
 	"context"
 	"math"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/cch123/supermonkey"
 	"github.com/stretchr/testify/assert"
+
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // load should be balanced when node fails
@@ -123,7 +128,7 @@ func testWRRLBCase(t *testing.T, hostNum int, weightFunc func(int) int) {
 		for i := 0; i < hostNum; i++ {
 			addr := hosts[i].AddressString()
 			rate := float64(results[addr]) / float64(subTotal)
-			expected := edfFixedWeight(float64(weightFunc(i))) / allWeight
+			expected := fixHostWeight(float64(weightFunc(i))) / allWeight
 			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
@@ -188,6 +193,136 @@ func TestWRRLB(t *testing.T) {
 		})
 	}
 }
+
+func Test_slowStartDurationFactorFuncWithNowFunc(t *testing.T) {
+	now := time.Now()
+	host := &simpleHost{
+		hostname:                "localhost",
+		addressString:           "127.0.0.1:8080",
+		weight:                  100,
+		lastHealthCheckPassTime: now,
+	}
+
+	check := func(slowStart types.SlowStart, now time.Time, excepted float64) {
+		nowFunc := func() time.Time {
+			return now
+		}
+		f := slowStartDurationFactorFuncWithNowFunc(&clusterInfo{slowStart: slowStart}, host, nowFunc)
+		assert.Equal(t, excepted, f)
+	}
+
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now, 0.1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(5*time.Second), 0.5)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(10*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 10 * time.Second}, now.Add(20*time.Second), 1)
+	check(types.SlowStart{SlowStartDuration: 20 * time.Second}, now.Add(5*time.Second), 0.25)
+
+	// always return 1.0 if given non-positive duration
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, now, 1)
+	check(types.SlowStart{SlowStartDuration: 0 * time.Second}, now.Add(5*time.Second), 1)
+
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, now, 1)
+	check(types.SlowStart{SlowStartDuration: -1 * time.Second}, now.Add(5*time.Second), 1)
+}
+
+type notHostWeightItem struct {
+	weight uint32
+}
+
+func (item notHostWeightItem) Weight() uint32 {
+	return item.weight
+}
+
+func Test_slowStartHostWeightFunc(t *testing.T) {
+	f := 1.0
+	RegisterSlowStartMode("test", func(info types.ClusterInfo, host types.Host) float64 {
+		return f
+	})
+
+	host := &simpleHost{
+		hostname:      "localhost",
+		addressString: "127.0.0.1:8080",
+		weight:        100,
+	}
+	wi := notHostWeightItem{weight: 100}
+
+	hostWeightFunc := func(host WeightItem) float64 {
+		return float64(host.Weight())
+	}
+
+	check := func(host WeightItem, info types.ClusterInfo, except float64, funcShouldBeSame bool) {
+		slowStartHostWeightFunc := slowStartHostWeightFunc(info, hostWeightFunc)
+		if funcShouldBeSame {
+			assert.Equal(t, reflect.ValueOf(hostWeightFunc).Pointer(), reflect.ValueOf(slowStartHostWeightFunc).Pointer())
+		}
+		w := slowStartHostWeightFunc(host)
+		assert.Equal(t, except, w)
+	}
+
+	f = 0
+	// host is not types.host, return directly
+	check(wi, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.1
+	check(host, nil, 100, true)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, true)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "not exists",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, true)
+
+	f = 1
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       v2.SlowStartDefaultAggression,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.01
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       0.1,
+		MinWeightPercent: 0.1,
+	}}, 10, false)
+
+	f = 10
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       1.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 100, false)
+
+	f = 0.1
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       1.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 10, false)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       2.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 31.622776601683793, false)
+
+	check(host, &clusterInfo{slowStart: types.SlowStart{
+		Mode:             "test",
+		Aggression:       3.0,
+		MinWeightPercent: v2.SlowStartDefaultMinWeightPercent,
+	}}, 46.4158883361278, false)
+}
+
 func BenchmarkWRRLbSimple(b *testing.B) {
 	pool := makePool(4)
 	hosts := []types.Host{}
@@ -336,7 +471,88 @@ func TestLARChooseHost(t *testing.T) {
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual = balancer.ChooseHost(nil)
 	assert.Nil(t, actual)
+}
 
+func TestLeastActiveRequestLoadBalancer_ChooseHost(t *testing.T) {
+	verify := func(t *testing.T, info types.ClusterInfo, delta float64) {
+		bias := 1.0
+		if info != nil && info.LbConfig() != nil {
+			bias = info.LbConfig().ActiveRequestBias
+		}
+
+		hosts := createHostsetWithStats(exampleHostConfigs(), "test")
+		i := 0
+		hosts.Range(func(host types.Host) bool {
+			i++
+			h := host.(*mockHost)
+			h.w = uint32(i)
+			h.HostStats().UpstreamRequestActive.Inc(int64(i))
+			return true
+		})
+
+		lb := newLeastActiveRequestLoadBalancer(info, hosts)
+
+		expect := make(map[types.Host]float64)
+		actual := make(map[types.Host]float64)
+		total := 0.0
+
+		hosts.Range(func(h types.Host) bool {
+			weight := h.Weight()
+			activeRequest := h.HostStats().UpstreamRequestActive.Count()
+			expect[h] = float64(weight) / math.Pow(float64(activeRequest+1), bias)
+			total += float64(weight) / math.Pow(float64(activeRequest+1), bias)
+
+			return true
+		})
+
+		for i := 0.0; i < total*100000; i++ {
+			h := lb.ChooseHost(nil)
+			actual[h]++
+		}
+
+		compareDistribution(t, expect, actual, delta)
+	}
+
+	t.Run("no bias", func(t *testing.T) {
+		verify(t, nil, 1e-4)
+	})
+	t.Run("low bias", func(t *testing.T) {
+		verify(t, &clusterInfo{
+			lbConfig: &v2.LbConfig{
+				ActiveRequestBias: 0.5,
+			},
+		}, 1e-4)
+	})
+	t.Run("high bias", func(t *testing.T) {
+		verify(t, &clusterInfo{
+			lbConfig: &v2.LbConfig{
+				ActiveRequestBias: 1.5,
+			},
+		}, 1e-4)
+	})
+}
+
+func compareDistribution(t *testing.T, expect, actual map[types.Host]float64, delta float64) {
+	normalize := func(counter map[types.Host]float64) map[types.Host]float64 {
+		total := 0.0
+		for _, v := range counter {
+			total += v
+		}
+
+		result := make(map[types.Host]float64)
+		for k, v := range counter {
+			result[k] = v / total
+		}
+
+		return result
+	}
+
+	expect = normalize(expect)
+	actual = normalize(actual)
+
+	for h, e := range expect {
+		assert.InDelta(t, e, actual[h], delta)
+	}
 }
 
 func mockRequest(host types.Host, active bool, times int) {
@@ -359,7 +575,8 @@ func Test_maglevLoadBalancer(t *testing.T) {
 			policy: policy,
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -374,6 +591,9 @@ func Test_maglevLoadBalancer(t *testing.T) {
 	// test 0 hash generated by mock route get 9 indexed host
 	assert.Equalf(t, "127.0.0.9", host.AddressString(),
 		"chosen host address string should be 127.0.0.9")
+	host = lb.ChooseHost(lbctx)
+	assert.Equalf(t, "127.0.0.0", host.AddressString(),
+		"chosen host address string should be 127.0.0.0")
 }
 
 func Test_maglevLoadBalancerFallback(t *testing.T) {
@@ -388,17 +608,17 @@ func Test_maglevLoadBalancerFallback(t *testing.T) {
 		t.FailNow()
 	}
 
-	host := mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-7", host.Hostname(), "host name should be 'host-7'") {
+	host, _ := mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	if !assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'") {
 		t.FailNow()
 	}
 
 	// set host-0, host1 unhealthy
-	hostSet.hosts[7].SetHealthFlag(api.FAILED_ACTIVE_HC)
-	hostSet.hosts[6].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[9].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
 
-	host = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-5", host.Hostname(), "host name should be 'host-5'") {
+	host, _ = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	if !assert.Equalf(t, "host-1", host.Hostname(), "host name should be 'host-1'") {
 		t.FailNow()
 	}
 
@@ -406,15 +626,15 @@ func Test_maglevLoadBalancerFallback(t *testing.T) {
 	// create a new host set first
 	hostSet = getMockHostSet(10)
 	// leave only host[9] healthy
-	for i := 0; i < 9; i++ {
+	for i := 2; i < 10; i++ {
 		hostSet.hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
 	}
 	mgv = newMaglevLoadBalancer(nil, hostSet)
-	host = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	host, _ = mgv.(*maglevLoadBalancer).chooseHostFromHostList(2)
 	// host-9 will finally be chosen
-	assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'")
+	assert.Equalf(t, "host-1", host.Hostname(), "host name should be 'host-1'")
 	// assert other 9 hosts is checked healthy
-	assert.Equalf(t, 9, hostSet.healthCheckVisitedCount, "host name should be 'host-0'")
+	assert.Equalf(t, 10, hostSet.healthCheckVisitedCount, "host name should be 'host-1'")
 }
 func getMockClusterInfo() *mockClusterInfo {
 	return &mockClusterInfo{
@@ -428,9 +648,10 @@ func TestReqRRChooseHost(t *testing.T) {
 
 	ctx := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
 	// RR when use
-	for i := 0; i < len(hosts.allHosts); i++ {
+	for i := 0; i < 2*hosts.Size(); i++ {
+		ind := i % hosts.Size()
 		host := balancer.ChooseHost(ctx)
-		assert.Equal(t, host, hosts.allHosts[i])
+		assert.Equal(t, host, hosts.allHosts[ind])
 	}
 
 	ctx0 := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
@@ -805,4 +1026,286 @@ func TestWRRLoadBalancer(t *testing.T) {
 			t.Fatalf("case:%s, expected %s, but got: %s", tc.name, tc.want.AddressString(), h.AddressString())
 		}
 	}
+}
+
+func TestNewLACBalancer(t *testing.T) {
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveConnection}, &hostSet{})
+	assert.NotNil(t, balancer)
+	assert.IsType(t, &leastActiveConnectionLoadBalancer{}, balancer)
+}
+
+func Test_PeakEwmaLoadBalancer(t *testing.T) {
+	log.DefaultLogger.SetLogLevel(log.DEBUG)
+
+	now := time.Time{}
+	supermonkey.Patch(time.Now, func() time.Time {
+		return now
+	})
+
+	info := &clusterInfo{connectTimeout: time.Second, idleTimeout: time.Second}
+
+	t.Run("clusterInfo is nil", func(t *testing.T) {
+		lb := newPeakEwmaLoadBalancer(nil, NewHostSet(mockHostList(0, "", nil)))
+		assert.NotNil(t, lb)
+	})
+
+	t.Run("no host", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(0, "", nil)}
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		assert.False(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 0, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Nil(t, h)
+	})
+
+	t.Run("only 1 host", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(1, "", nil)}
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 1, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "0", h.Hostname())
+	})
+
+	t.Run("only 1 host unhealthy", func(t *testing.T) {
+		hs := &hostSet{allHosts: mockHostList(1, "", nil)}
+		hs.Get(0).SetHealthFlag(api.FAILED_ACTIVE_HC)
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 1, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Nil(t, h)
+	})
+
+	t.Run("should choose average shortest in small cluster", func(t *testing.T) {
+		info := NewClusterInfo(v2.Cluster{}).(*clusterInfo)
+		info.stats = newClusterStats("mock")
+
+		hs := NewHostSet(mockHostList(2, "", info))
+
+		mh := hs.Get(0).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDurationEWMA.Update(1)
+		mh.stats.UpstreamRequestDurationEWMA.Update(2)
+		info.stats.UpstreamRequestDurationEWMA.Update(1)
+		info.stats.UpstreamRequestDurationEWMA.Update(2)
+		mh.stats.UpstreamRequestActive.Inc(1)
+		mh.stats.UpstreamResponseSuccess.Inc(2)
+		mh.stats.UpstreamRequestTotal.Inc(2)
+
+		mh = hs.Get(1).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDurationEWMA.Update(2)
+		info.stats.UpstreamRequestDurationEWMA.Update(2)
+		mh.stats.UpstreamRequestDurationEWMA.Update(4)
+		info.stats.UpstreamRequestDurationEWMA.Update(4)
+		mh.stats.UpstreamRequestActive.Inc(1)
+		mh.stats.UpstreamResponseSuccess.Inc(2)
+		mh.stats.UpstreamRequestTotal.Inc(2)
+
+		// Wait for the EWMA to tick
+		time.Sleep(time.Second)
+
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 2, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "0", h.Hostname())
+	})
+
+	t.Run("should choose average smallest score with biasedActiveRequest in small cluster", func(t *testing.T) {
+		info := &clusterInfo{
+			lbConfig: &v2.LbConfig{ChoiceCount: 2, ActiveRequestBias: 3.0},
+			stats:    newClusterStats("mock"),
+		}
+
+		hs := NewHostSet(mockHostList(2, "", info))
+
+		mh := hs.Get(0).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDurationEWMA.Update(1)
+		mh.stats.UpstreamRequestDurationEWMA.Update(2)
+		info.stats.UpstreamRequestDurationEWMA.Update(1)
+		info.stats.UpstreamRequestDurationEWMA.Update(2)
+		mh.stats.UpstreamRequestActive.Inc(2)
+
+		mh = hs.Get(1).(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		mh.stats.UpstreamRequestDurationEWMA.Update(2)
+		mh.stats.UpstreamRequestDurationEWMA.Update(4)
+		info.stats.UpstreamRequestDurationEWMA.Update(2)
+		info.stats.UpstreamRequestDurationEWMA.Update(4)
+		mh.stats.UpstreamRequestActive.Inc(1)
+
+		// Wait for the EWMA to tick
+		time.Sleep(time.Second)
+
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 2, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		assert.Equal(t, "1", h.Hostname())
+	})
+
+	t.Run("should choose average not worst in large cluster", func(t *testing.T) {
+		info := NewClusterInfo(v2.Cluster{}).(*clusterInfo)
+		info.stats = newClusterStats("mock")
+
+		hs := NewHostSet(mockHostList(9, "", info))
+		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = uint32(rand.Intn(10) + 1)
+			mh.stats = newHostStats("mock", mh.addr)
+			for j, rnd := 0, rand.Intn(10)+1; j < rnd; j++ {
+				duration := int64(rand.Intn(5) + 1)
+				mh.stats.UpstreamRequestDurationEWMA.Update(duration)
+				info.stats.UpstreamRequestDurationEWMA.Update(duration)
+				mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
+			}
+			return true
+		})
+
+		now = now.Add(time.Second)
+
+		lb := newPeakEwmaLoadBalancer(info, hs).(*peakEwmaLoadBalancer)
+		assert.True(t, lb.IsExistsHosts(nil))
+		assert.Equal(t, 9, lb.HostNum(nil))
+		h := lb.ChooseHost(nil)
+		worst := true
+		hs.Range(func(host types.Host) bool {
+			if lb.unweightedPeakEwmaScore(host) > lb.unweightedPeakEwmaScore(h) {
+				worst = false
+				return false
+			}
+			return true
+		})
+		assert.False(t, worst)
+	})
+
+	t.Run("fallback if metrics is disabled", func(t *testing.T) {
+		info := NewClusterInfo(v2.Cluster{}).(*clusterInfo)
+		info.stats = newClusterStats("mock")
+
+		metrics.SetStatsMatcher(true, nil, nil)
+		hs := NewHostSet(mockHostList(10, "", info))
+		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = 1
+			mh.stats = newHostStats("mock", mh.addr)
+			return true
+		})
+		lb := newPeakEwmaLoadBalancer(info, hs)
+
+		hosts := make(map[types.Host]bool)
+		for i := 0; i < 100; i++ {
+			h := lb.ChooseHost(nil)
+			assert.NotNil(t, h)
+			hosts[h] = true
+		}
+		assert.True(t, len(hosts) > 1)
+		metrics.SetStatsMatcher(false, nil, nil)
+	})
+
+	t.Run("iterateChoose fallback if most hosts are unhealthy", func(t *testing.T) {
+		cluster := NewClusterInfo(v2.Cluster{}).(*clusterInfo)
+		cluster.stats = newClusterStats("mock")
+
+		hs := NewHostSet(mockHostList(2, "", cluster))
+		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = 1
+			mh.stats = newHostStats("mock", mh.addr)
+			return true
+		})
+		hs.Get(0).SetHealthFlag(api.FAILED_ACTIVE_HC)
+
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		for i := 0; i < 100; i++ {
+			h := lb.ChooseHost(nil)
+			assert.NotNil(t, h)
+		}
+	})
+
+	t.Run("randomChoose fallback if most hosts are unhealthy", func(t *testing.T) {
+		cluster := NewClusterInfo(v2.Cluster{}).(*clusterInfo)
+		cluster.stats = newClusterStats("mock")
+
+		hs := NewHostSet(mockHostList(10, "", cluster))
+		hs.Range(func(host types.Host) bool {
+			mh := host.(*mockHost)
+			mh.w = 1
+			mh.stats = newHostStats("mock", mh.addr)
+			if rand.Intn(2) == 0 {
+				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
+			}
+			return true
+		})
+		lb := newPeakEwmaLoadBalancer(info, hs)
+		for i := 0; i < 100; i++ {
+			h := lb.ChooseHost(nil)
+			assert.NotNil(t, h)
+		}
+	})
+}
+
+func BenchmarkShortestResponseLoadBalancer_ChooseHost_Weighted(b *testing.B) {
+	b.StopTimer()
+	info := &clusterInfo{connectTimeout: time.Second, idleTimeout: time.Second}
+
+	hs := NewHostSet(mockHostList(10, "", info))
+	hs.Range(func(host types.Host) bool {
+		mh := host.(*mockHost)
+		mh.w = uint32(rand.Intn(10) + 1)
+		mh.stats = newHostStats("mock", mh.addr)
+		for i, n := 0, rand.Intn(1000)+1; i < n; i++ {
+			mh.stats.UpstreamRequestDurationEWMA.Update(int64(rand.Intn(5)))
+			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamRequestTotal.Inc(1)
+			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamConnectionTotal.Inc(1)
+		}
+		return true
+	})
+
+	lb := newPeakEwmaLoadBalancer(info, hs)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		lb.ChooseHost(nil)
+	}
+	b.StopTimer()
+}
+
+func BenchmarkShortestResponseLoadBalancer_ChooseHost_Unweighted(b *testing.B) {
+	b.StopTimer()
+	info := &clusterInfo{connectTimeout: time.Second, idleTimeout: time.Second}
+
+	hs := NewHostSet(mockHostList(10, "", nil))
+	hs.Range(func(host types.Host) bool {
+		mh := host.(*mockHost)
+		mh.w = 1
+		mh.stats = newHostStats("mock", mh.addr)
+		for i, n := 0, rand.Intn(1000)+1; i < n; i++ {
+			mh.stats.UpstreamRequestDurationEWMA.Update(int64(rand.Intn(5)))
+			mh.stats.UpstreamRequestActive.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamResponseSuccess.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamRequestTotal.Inc(1)
+			mh.stats.UpstreamConnectionConFail.Inc(int64(rand.Intn(1)))
+			mh.stats.UpstreamConnectionTotal.Inc(1)
+		}
+		return true
+	})
+
+	lb := newPeakEwmaLoadBalancer(info, hs)
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		lb.ChooseHost(nil)
+	}
+	b.StopTimer()
 }

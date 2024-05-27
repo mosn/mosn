@@ -41,10 +41,6 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 func DefaultPreStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 
-	// after inherit config,
-	// since metrics need the isFromUpgrade flag in Mosn
-	InitializeMetrics(m)
-
 	// start xds client
 	_ = m.StartXdsClient()
 	featuregate.FinallyInitFunc()
@@ -55,7 +51,7 @@ func DefaultPreStartStage(mosn stagemanager.Application) {
 func DefaultStartStage(mosn stagemanager.Application) {
 	m := mosn.(*Mosn)
 	// register admin server
-	// admin server should registered after all prepares action ready
+	// admin server should register after all prepares action ready
 	srv := admin.Server{}
 	srv.Start(m.Config)
 }
