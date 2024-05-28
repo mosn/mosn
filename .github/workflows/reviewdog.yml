@@ -1,5 +1,7 @@
 name: actions
 on:
+  # refer: https://docs.github.com/zh/actions/using-workflows/manually-running-a-workflow
+  workflow_dispatch:
   push:
     branches:
       - master
