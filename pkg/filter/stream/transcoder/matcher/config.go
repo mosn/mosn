@@ -28,7 +28,7 @@ type RuleMatcher interface {
 }
 
 type TransferRuleConfig struct {
-	MatcherConfig *MatcherConfig `json:"macther_config,omitempty"`
+	MatcherConfig *MatcherConfig `json:"matcher_config,omitempty"`
 	RuleInfo      *RuleInfo      `json:"rule_info,omitempty"`
 }
 
@@ -52,6 +52,6 @@ func (ri *RuleInfo) GetType(srcPro api.ProtocolName) string {
 }
 
 type TransferRule struct {
-	Macther  RuleMatcher
+	Matcher  RuleMatcher
 	RuleInfo *RuleInfo
 }

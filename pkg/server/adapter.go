@@ -20,7 +20,7 @@ package server
 import (
 	"fmt"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -40,7 +40,7 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 		listenerAdapterInstance = &ListenerAdapter{
 			connHandlerMap: make(map[string]types.ConnectionHandler),
 			// we set the first handler as the default handler
-			// the handler name should be keeped, so if the handler changed, the default handler changed too.
+			// the handler name should be kept, so if the handler changed, the default handler changed too.
 			defaultName: name,
 		}
 	}

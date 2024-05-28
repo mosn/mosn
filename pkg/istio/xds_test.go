@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 type MockXdsStreamConfig struct {
@@ -157,6 +157,19 @@ func TestXdsClient(t *testing.T) {
 		cfg.failed = 1
 		client, _ := NewAdsClient(&v2.MOSNConfig{})
 		client.Start()
+		time.Sleep(3 * time.Second)
+		_, ok := records["cds-test"]
+		require.True(t, ok)
+		waitStop(client)
+	})
+
+	t.Run("reconnect client once", func(t *testing.T) {
+		records = map[string]struct{}{}
+		EnableReconnect()
+		cfg.failed = 1
+		client, _ := NewAdsClient(&v2.MOSNConfig{})
+		client.Start()
+		client.ReconnectStreamClient()
 		time.Sleep(3 * time.Second)
 		_, ok := records["cds-test"]
 		require.True(t, ok)

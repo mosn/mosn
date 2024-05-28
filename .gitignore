@@ -10,3 +10,7 @@ mosn.pid
 examples/codes/filter/dubbo/install/build/mosn
 configs/mosn_shm_metrics
 vendor/
+
+# istio tar file
+mosn.tar.gz
+__debug_bin

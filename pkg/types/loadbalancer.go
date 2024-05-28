@@ -29,13 +29,21 @@ type LoadBalancerType string
 
 // The load balancer's types
 const (
-	RoundRobin         LoadBalancerType = "LB_ROUNDROBIN"
-	Random             LoadBalancerType = "LB_RANDOM"
-	WeightedRoundRobin LoadBalancerType = "LB_WEIGHTED_ROUNDROBIN"
-	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
-	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
-	Maglev             LoadBalancerType = "LB_MAGLEV"
-	RequestRoundRobin  LoadBalancerType = "LB_REQUEST_ROUNDROBIN"
+	RoundRobin            LoadBalancerType = "LB_ROUNDROBIN"
+	Random                LoadBalancerType = "LB_RANDOM"
+	WeightedRoundRobin    LoadBalancerType = "LB_WEIGHTED_ROUNDROBIN"
+	ORIGINAL_DST          LoadBalancerType = "LB_ORIGINAL_DST"
+	LeastActiveRequest    LoadBalancerType = "LB_LEAST_REQUEST"
+	Maglev                LoadBalancerType = "LB_MAGLEV"
+	RequestRoundRobin     LoadBalancerType = "LB_REQUEST_ROUNDROBIN"
+	LeastActiveConnection LoadBalancerType = "LB_LEAST_CONNECTION"
+	PeakEwma              LoadBalancerType = "LB_PEAK_EWMA"
+)
+
+type SlowStartMode string
+
+const (
+	ModeDuration SlowStartMode = "duration"
 )
 
 // LoadBalancer is a upstream load balancer.

@@ -19,7 +19,7 @@ package proxy
 
 import (
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 var (

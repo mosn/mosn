@@ -27,7 +27,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -37,8 +36,8 @@ import (
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -109,13 +108,14 @@ type proxy struct {
 
 // NewProxy create proxy instance for given v2.Proxy config
 func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
+	aclog, _ := variable.Get(ctx, types.VariableAccessLogs)
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     aclog.([]api.AccessLog),
 	}
 
 	if pi, err := variable.Get(ctx, types.VarProtocolConfig); err == nil {
@@ -130,7 +130,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	lv, _ := variable.Get(ctx, types.VariableListenerName)
+	listenerName := lv.(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
@@ -199,7 +200,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 	return api.Stop
 }
 
-//rpc realize upstream on event
+// rpc realize upstream on event
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.DownstreamConnectionDestroy.Inc(1)

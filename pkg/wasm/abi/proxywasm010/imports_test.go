@@ -19,15 +19,16 @@ package proxywasm010
 
 import (
 	"errors"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/pkg/buffer"
 	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
-	"net/http"
-	"testing"
-	"time"
 )
 
 func TestImportsHandler(t *testing.T) {

@@ -24,14 +24,13 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -47,7 +46,7 @@ type genericProxyFilterConfigFactory struct {
 
 func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	if gfcf.extendConfig != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, gfcf.extendConfig)
+		_ = variable.Set(ctx, types.VariableProxyGeneralConfig, gfcf.extendConfig)
 	}
 
 	// TODO: cache it, use varProtocolConfig instead search with Set API
@@ -119,7 +118,7 @@ func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
 	}
 	// set default proxy router name
 	if proxyConfig.RouterHandlerName == "" {
-		proxyConfig.RouterHandlerName = types.DefaultRouteHandler
+		proxyConfig.RouterHandlerName = router.GetDefaultRouteHandlerName()
 	}
 	if !router.MakeHandlerFuncExists(proxyConfig.RouterHandlerName) {
 		log.DefaultLogger.Alertf(types.ErrorKeyConfigParse, "proxy router handler is not exists, will use default handler instead")

@@ -20,6 +20,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -27,7 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
@@ -70,7 +71,7 @@ type listener struct {
 	bindToPort              bool
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
-	useOriginalDst          bool
+	OriginalDst             v2.OriginalDstType
 	network                 string
 	cb                      types.ListenerEventListener
 	packetConn              net.PacketConn
@@ -89,7 +90,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		bindToPort:              lc.BindToPort,
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
-		useOriginalDst:          lc.UseOriginalDst,
+		OriginalDst:             lc.OriginalDst,
 		network:                 lc.Network,
 		config:                  lc,
 	}
@@ -320,12 +321,20 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener) SetUseOriginalDst(use bool) {
-	l.useOriginalDst = use
+func (l *listener) SetOriginalDstType(t v2.OriginalDstType) {
+	l.OriginalDst = t
 }
 
-func (l *listener) UseOriginalDst() bool {
-	return l.useOriginalDst
+func (l *listener) GetOriginalDstType() v2.OriginalDstType {
+	return l.OriginalDst
+}
+
+func (l *listener) IsOriginalDst() bool {
+	if l.OriginalDst == v2.REDIRECT || l.OriginalDst == v2.TPROXY {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (l *listener) Close(lctx context.Context) error {
@@ -369,6 +378,10 @@ func (l *listener) listen(lctx context.Context) error {
 		}
 		l.packetConn = rconn
 	case "unix":
+		// delete the unix socket file prior to binding, only 'failsafe' way
+		if err := os.Remove(l.localAddress.String()); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove unix socket file: %v", err)
+		}
 		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
 			return err
 		}
@@ -376,6 +389,29 @@ func (l *listener) listen(lctx context.Context) error {
 	case "tcp":
 		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
 			return err
+		}
+
+		if l.OriginalDst == v2.TPROXY {
+			rawConn, err := rawl.(*net.TCPListener).SyscallConn()
+			if err != nil {
+				return err
+			}
+			var controlError error
+			if err := rawConn.Control(func(fd uintptr) {
+				if err = syscall.SetsockoptInt(int(fd), SOL_IP, IP_TRANSPARENT, 1); err != nil {
+					controlError = fmt.Errorf(
+						"failed to set socket opt IP_TRANSPARENT for listener %s: %s",
+						l.localAddress.String(), err.Error(),
+					)
+					log.DefaultLogger.Errorf(controlError.Error())
+				}
+			}); err != nil {
+				return err
+			}
+
+			if controlError != nil {
+				return controlError
+			}
 		}
 		l.rawl = rawl
 	}
@@ -393,7 +429,7 @@ func (l *listener) accept(lctx context.Context) error {
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
 		if l.cb != nil {
-			l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil, nil)
+			l.cb.OnAccept(rawc, l.IsOriginalDst(), nil, nil, nil, nil)
 		}
 	}, nil)
 

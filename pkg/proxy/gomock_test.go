@@ -19,11 +19,14 @@ package proxy
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/golang/mock/gomock"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/ewma"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -32,13 +35,15 @@ import (
 // gomock func wrapper
 func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
 	info := mock.NewMockClusterInfo(ctrl)
-	info.EXPECT().Stats().DoAndReturn(func() types.ClusterStats {
+	info.EXPECT().Stats().DoAndReturn(func() *types.ClusterStats {
 		s := metrics.NewClusterStats("mockcluster")
-		return types.ClusterStats{
+		return &types.ClusterStats{
 			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-			UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
-			UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+			UpstreamRequestDurationEWMA:  s.EWMA(metrics.UpstreamRequestDurationEWMA, ewma.Alpha(math.Exp(-5), time.Second)),
+
+			UpstreamResponseSuccess: s.Counter(metrics.UpstreamResponseSuccess),
+			UpstreamResponseFailed:  s.Counter(metrics.UpstreamResponseFailed),
 		}
 	}).AnyTimes()
 	info.EXPECT().ResourceManager().DoAndReturn(func() types.ResourceManager {
@@ -95,7 +100,7 @@ func gomockStreamSender(ctrl *gomock.Controller) types.StreamSender {
 
 }
 
-//  mock a simple route rule that route a request to a cluster
+// mock a simple route rule that route a request to a cluster
 func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.Route {
 	r := mock.NewMockRoute(ctrl)
 	// mock route rule returns cluster name : mock_cluster
@@ -111,6 +116,7 @@ func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.R
 				rp.EXPECT().RetryOn().Return(false).AnyTimes()
 				rp.EXPECT().TryTimeout().Return(time.Duration(0)).AnyTimes()
 				rp.EXPECT().NumRetries().Return(uint32(3)).AnyTimes()
+				rp.EXPECT().RetryableStatusCodes().Return([]uint32{500}).AnyTimes()
 				return rp
 			}).AnyTimes()
 			return p

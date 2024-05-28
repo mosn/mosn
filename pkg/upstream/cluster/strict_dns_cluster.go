@@ -22,6 +22,7 @@ import (
 	"net"
 	"reflect"
 	"runtime/debug"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -229,6 +230,10 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 			allHosts = append(allHosts, h)
 		}
 	}
+
+	sort.Slice(allHosts, func(i, j int) bool {
+		return allHosts[i].AddressString() < allHosts[j].AddressString()
+	})
 
 	// compare current hosts with allHosts
 	hostNotChanged := hostEqual(NewNoDistinctHostSet(allHosts), sdc.hostSet)

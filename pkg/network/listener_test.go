@@ -20,6 +20,7 @@ package network
 import (
 	"context"
 	"net"
+	"os"
 	"syscall"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 type mockEventListener struct {
@@ -129,6 +130,8 @@ func TestListenerTCPStart(t *testing.T) {
 }
 
 func TestListenerUDSStart(t *testing.T) {
+	_, err := os.Create("/tmp/test.sock")
+	assert.Nil(t, err)
 	addr, _ := net.ResolveUnixAddr("unix", "/tmp/test.sock")
 	testBase(t, addr)
 }

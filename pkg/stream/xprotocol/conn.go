@@ -24,14 +24,13 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // types.DecodeFilter
@@ -106,6 +105,10 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// decode frames
 	for {
 		if buf.Len() == 0 {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[stream] [xprotocol] [Dispatch] buf.Len() == 0, connection %d local addr: %s, remote addr: %s",
+					sc.netConn.ID(), sc.netConn.LocalAddr(), sc.netConn.RemoteAddr())
+			}
 			return
 		}
 		// 1. get stream-level ctx with bufferCtx
@@ -121,6 +124,10 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		// 2.1 no enough data, break loop
 		if frame == nil && err == nil {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[stream] [xprotocol] [Dispatch] continue read data connection %d local addr: %s, remote addr: %s",
+					sc.netConn.ID(), sc.netConn.LocalAddr(), sc.netConn.RemoteAddr())
+			}
 			return
 		}
 
@@ -370,8 +377,9 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xS
 
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, serverStream.id)
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, sc.protocol.Name())
+	serverStream.ctx = ctx
+	_ = variable.Set(serverStream.ctx, types.VariableStreamID, serverStream.id)
+	_ = variable.Set(serverStream.ctx, types.VariableDownStreamProtocol, sc.protocol.Name())
 	serverStream.sc = sc
 
 	return serverStream
@@ -385,8 +393,9 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 
 	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyUpStreamProtocol, sc.protocol.Name())
+	clientStream.ctx = ctx
+	_ = variable.Set(clientStream.ctx, types.VariableStreamID, clientStream.id)
+	_ = variable.Set(clientStream.ctx, types.VariableUpstreamProtocol, sc.protocol.Name())
 	clientStream.sc = sc
 
 	return clientStream

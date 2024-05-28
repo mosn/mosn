@@ -36,9 +36,9 @@ const (
 )
 
 // rewrite the AST to eliminate two problematic sugars:
-// - "|" operator turns into flat (_, _) macro (note that this is applied recursively, e.g.
-//   (a | b) | c is turned into (a, b, c) expansion
-// - "1s" duration string turns into duration("1s") explicit conversion call
+//   - "|" operator turns into flat (_, _) macro (note that this is applied recursively, e.g.
+//     (a | b) | c is turned into (a, b, c) expansion
+//   - "1s" duration string turns into duration("1s") explicit conversion call
 func rewrite(cursor *astutil.Cursor) bool {
 	switch n := cursor.Node().(type) {
 	case *ast.BinaryExpr:

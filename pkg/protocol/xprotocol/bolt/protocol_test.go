@@ -81,7 +81,7 @@ func TestMapping(t *testing.T) {
 			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
 			api.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999: uint32(ResponseStatusUnknown),
+			999999:                    uint32(ResponseStatusUnknown),
 		}
 	)
 

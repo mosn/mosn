@@ -18,7 +18,7 @@
 package seata
 
 import (
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func init() {

@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"mosn.io/api"
@@ -107,16 +108,20 @@ func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host typ
 	if httpCheckConfig.Port > 0 && httpCheckConfig.Port < 65535 {
 		// re-config http check port
 		uri.Host = hostIp + ":" + strconv.Itoa(httpCheckConfig.Port)
-		uri.Path = httpCheckConfig.Path
 	} else {
 		// use rpc port as http check port
 		log.DefaultLogger.Warnf("[upstream] [health check] [httpdial session] httpCheckConfig port config error %+v", httpCheckConfig)
 		uri.Host = host.AddressString()
-		uri.Path = httpCheckConfig.Path
 	}
 
-	if httpCheckConfig.Scheme != "" {
-		uri.Scheme = httpCheckConfig.Scheme
+	ind := strings.IndexByte(httpCheckConfig.Path, '?')
+	if ind < 0 {
+		uri.Path = httpCheckConfig.Path
+	} else {
+		uri.Path = httpCheckConfig.Path[:ind]
+		if len(httpCheckConfig.Path) > ind+1 {
+			uri.RawQuery = httpCheckConfig.Path[ind+1:]
+		}
 	}
 
 	if httpCheckConfig.Timeout.Duration > 0 {

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -83,6 +83,9 @@ var (
 	// Encode/Decode Exception
 	ErrUnKnownCmdType = errors.New(UnKnownCmdType)
 	ErrUnKnownCmdCode = errors.New(UnKnownCmdCode)
+	// BigFrameFlagSize can be used to check if the frame is big
+	// can be reset in main package
+	BigFrameFlagSize = 1024 * 1024 * 1024 // default 1GB
 )
 
 // DefaultSofaRPCHealthCheckConf

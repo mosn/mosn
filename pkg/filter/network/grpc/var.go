@@ -19,9 +19,13 @@ package grpc
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
+const (
+	networkUnix = "unix"
+	networkTcp  = "tcp"
+)
 const (
 	grpcName             = "gRPC"
 	grpcServiceName      = "serviceName"

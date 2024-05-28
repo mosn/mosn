@@ -103,7 +103,10 @@ func TestClusterUnmarshal(t *testing.T) {
 					}
 				}
 			}
-		]
+		],
+		"lbconfig": {
+			"choice_count": 10
+  		}
 	}`
 	b := []byte(clusterConfig)
 	cluster := &Cluster{}

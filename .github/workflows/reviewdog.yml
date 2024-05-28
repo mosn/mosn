@@ -1,50 +1,110 @@
 name: actions
 on:
+  # refer: https://docs.github.com/zh/actions/using-workflows/manually-running-a-workflow
+  workflow_dispatch:
   push:
     branches:
       - master
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 jobs:
+  misc-lint:
+    if: ${{ !github.event.pull_request.draft }}
+    name: runner / misc-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: setup go
+        uses: actions/setup-go@v4
+      - name: run goimports
+        working-directory: ./
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          export PATH=$PATH:$(go env GOPATH)/bin/
+          dirs="$(find . -mindepth 1 -maxdepth 1 -type d ! -name 'istio')"
+          # we don't have a directory contains whitespace, so it is fine to use for loop
+          for dir in $dirs; do
+              diffs=$(goimports -d $dir)
+              if [[ -n $diffs ]]; then
+                  echo "Files are not formatted by goimport:"
+                  echo $diffs
+                  exit 1
+              fi
+          done
+
   golangci-lint:
+    if: ${{ !github.event.pull_request.draft }}
     name: runner / golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v1
+      - name: Check out code
+        uses: actions/checkout@v3
       - name: golangci-lint
-        uses: reviewdog/action-golangci-lint@v1
+        uses: reviewdog/action-golangci-lint@v2
+        if: github.event_name == 'pull_request'
         with:
-          golangci_lint_flags: "--enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,nakedret,exhaustivestruct"
+          golangci_lint_flags: "--skip-dirs=mtls/crypto,module/http2 --enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,exhaustruct,exhaustivestruct,nakedret,ireturn,interfacer,tagliatelle,varnamelen"
           workdir: pkg
 
   test:
+    if: ${{ !github.event.pull_request.draft }}
     name: Test
     runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
+    # A matrix proves the supported range of Go versions work. This must always
+    # include the floor Go version policy of Mosn and the current Go version.
+    # Mosn's floor Go version for libraries is two behind current, e.g. if Go
+    # supports 1.19 and 1.20, Mosn libraries must work on 1.18, 1.19 and 1.20.
+    #
+    # A floor version is required to ensure Mosn can receive security patches.
+    # Without one, dependencies become locked to an old version of Go, which
+    # itself receives no security patch updates.
+    #
+    # Mosn's binary is built with Go's floor version, e.g. if Go supports 1.19
+    # and 1.20, Mosn will build any downloadable executables with 1.19.
+    #
+    # Even if mosn works with a Go version below its supported floor, users
+    # must not depend on this. Mosn and its library dependencies are free to
+    # use features in the supported floor Go version at any time. This remains
+    # true even if mosn library dependencies are not eagerly updated.
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          # FIXME: make CI pass in 1.20, see https://github.com/mosn/mosn/issues/2294
+          #- "golang:1.20"  # Current Go version
+          - "golang:1.19"
+          - "golang:1.18"  # Floor Go version of Mosn == current - 2
 
+    steps:
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
 
       - name: Run Unit tests.
+        env:
+          BUILD_IMAGE: ${{ matrix.go-version }}
         run: make coverage
 
       - name: Coverage
         run: bash <(curl -s https://codecov.io/bash)
           
   test-compatible:
+    if: ${{ !github.event.pull_request.draft }}
     name: Test-compatible
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
 
       - name: Set to compatible version
         run: make istio-1.5.2
@@ -53,61 +113,69 @@ jobs:
         run: make unit-test-istio
 
   integrate:
+    if: ${{ !github.event.pull_request.draft }}
     name: integrate
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
-
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
 
       - name: Run Integrate tests.
         run: make integrate
 
   integrate-netpoll:
+    if: ${{ !github.event.pull_request.draft }}
     name: integrate-netpoll
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
-
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
 
       - name: Run Integrate tests.
         run: make integrate-netpoll
 
   integrate-new:
+    if: ${{ !github.event.pull_request.draft }}
     name: integrate-new
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
-
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
 
       - name: Run New Integrate
         run: make integrate-new
 
   build:
+    if: ${{ !github.event.pull_request.draft }}
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.14.13
-
       - name: Check out code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          cache: true
 
       - name: Run Build.
         run: make build

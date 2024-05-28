@@ -25,8 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // LbCtx is a types.LoadBalancerContext implementation
@@ -98,7 +98,8 @@ func TestChooseHost(t *testing.T) {
 	orilb := newOriginalDstLoadBalancer(nil, hostSet)
 	orihost := "127.0.0.1:8888"
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, oriRemoteAddr)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableOriRemoteAddr, oriRemoteAddr)
 	oriDstCfg := &v2.LBOriDstConfig{
 		UseHeader: false,
 	}

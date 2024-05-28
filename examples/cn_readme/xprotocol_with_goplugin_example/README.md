@@ -54,7 +54,7 @@ type XProtocolCodec interface {
 1.首先要理解报文，基本都离不开报文头和报文体，所有的编解码都围绕报文操作
     如下是示例协议的报文头规则，magic固定为x，作为协议的辨识标志，type指报文的类型，心跳，还是message消息等。
     dir指报文是属于请求还是响应，
-    requestId很好理解，请求与相应的唯一标识。
+    requestId很好理解，请求与响应的唯一标识。
     payloadLength，发送的消息体的长度，非常重要的内容。
     payload bytes，存放具体消息的部分。
 ```
@@ -79,7 +79,7 @@ type XProtocolCodec interface {
       二、byte数组的第一个字节要求符合Magic
       三、dir的类型为req或者resp
 
-decodeRequest方法判断它符合报文之后，交给具体的decodeRequest decodeResponse处理，然后根据报文规则把byte数组内容放入Request Response结构体对象，以便mosn后续使用。
+Decode方法判断它符合报文之后，交给具体的decodeRequest decodeResponse处理，然后根据报文规则把byte数组内容放入Request Response结构体对象，以便mosn后续使用。
 byte流量发出，mosn需要将Request Response结构体对象再还原成byte数组，然后发出，细节请看protocol.go的Encode方法。判断它是req还是说resp，然后encoder.go的具体方法内，依据报文规则，转为byte数组然后由downstream发出。
 
 

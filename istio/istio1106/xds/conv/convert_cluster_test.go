@@ -1,6 +1,8 @@
 package conv
 
 import (
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"testing"
 	"time"
 
@@ -105,4 +107,49 @@ func TestConvertClustersConfig_OriginalDst(t *testing.T) {
 		d, _ := m.MarshalToString(inboundCluster)
 		fmt.Println(d)
 	*/
+}
+
+func Test_convertHealthChecks(t *testing.T) {
+	type args struct {
+		serviceName     string
+		xdsHealthChecks []*envoy_config_core_v3.HealthCheck
+	}
+	tests := []struct {
+		name string
+		args args
+		want v2.HealthCheck
+	}{
+		{
+			name: "convert health checks config",
+			args: args{serviceName: "mosn-test", xdsHealthChecks: []*envoy_config_core_v3.HealthCheck{
+				{HealthyThreshold: &wrappers.UInt32Value{Value: 1},
+					UnhealthyThreshold: &wrappers.UInt32Value{Value: 1},
+					Timeout:            durationpb.New(2 * time.Second),
+					Interval:           durationpb.New(2 * time.Second),
+					IntervalJitter:     durationpb.New(time.Second * 2)},
+			},
+			}, want: v2.HealthCheck{
+				HealthCheckConfig: v2.HealthCheckConfig{
+					ServiceName:        "mosn-test",
+					HealthyThreshold:   1,
+					UnhealthyThreshold: 1,
+				},
+				Timeout:        time.Second * 2,
+				Interval:       time.Second * 2,
+				IntervalJitter: time.Second * 2,
+			},
+		},
+		{
+			name: "don't convert health checks config",
+			args: args{
+				serviceName:     "mosn-test",
+				xdsHealthChecks: nil,
+			}, want: v2.HealthCheck{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, convertHealthChecks(tt.args.serviceName, tt.args.xdsHealthChecks), "convertHealthChecks(%v, %v)", tt.args.serviceName, tt.args.xdsHealthChecks)
+		})
+	}
 }

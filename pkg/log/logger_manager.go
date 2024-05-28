@@ -69,7 +69,7 @@ type ErrorLoggerManager struct {
 	managers            map[string]log.ErrorLogger
 }
 
-//GetAllErrorLogger returns all of ErrorLogger info
+// GetAllErrorLogger returns all of ErrorLogger info
 func (mng *ErrorLoggerManager) GetAllErrorLogger() map[string]string {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
@@ -187,7 +187,7 @@ func InitDefaultLogger(output string, level log.Level) (err error) {
 	return
 }
 
-//GetErrorLoggerInfo get the exists ErrorLogger
+// GetErrorLoggerInfo get the exists ErrorLogger
 func GetErrorLoggersInfo() map[string]string {
 	return errorLoggerManagerInstance.GetAllErrorLogger()
 }

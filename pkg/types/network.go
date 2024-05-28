@@ -26,7 +26,7 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 //
@@ -109,11 +109,14 @@ type Listener interface {
 	// Set limit bytes per connection
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	// Set if listener should use original dst
-	SetUseOriginalDst(use bool)
+	// Set listener original dst type
+	SetOriginalDstType(use v2.OriginalDstType)
+
+	// Get listener original dst type
+	GetOriginalDstType() v2.OriginalDstType
 
 	// Get if listener should use original dst
-	UseOriginalDst() bool
+	IsOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
@@ -185,6 +188,9 @@ type ClientConnection interface {
 
 	// connect to server in a async way
 	Connect() error
+
+	// set SO_MARK with this client Connection
+	SetMark(uint32)
 }
 
 // Default connection arguments
@@ -201,7 +207,7 @@ var (
 type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
-	// update a listener
+	// updates a listener
 	AddOrUpdateListener(lc *v2.Listener) (ListenerEventListener, error)
 
 	//StartListeners starts all listeners the ConnectionHandler has
@@ -213,25 +219,25 @@ type ConnectionHandler interface {
 	// FindListenerByName finds and returns a listener by the listener name
 	FindListenerByName(name string) Listener
 
-	// RemoveListeners find and removes a listener by listener name.
+	// RemoveListeners finds and removes a listener by listener name.
 	RemoveListeners(name string)
 
-	// GracefulStopListener graceful stop a listener by listener name
+	// GracefulStopListener graceful stops a listener by listener name
 	// stop accept connections + graceful stop existing connections
 	GracefulStopListener(lctx context.Context, name string) error
 
-	// GracefulCloseListener graceful close a listener by listener name
+	// GracefulCloseListener graceful closes a listener by listener name
 	// stop accept connections + graceful stop existing connections + close listener
 	GracefulCloseListener(lctx context.Context, name string) error
 
-	// GracefulStopListeners stop accept connections from all listeners the ConnectionHandler has.
+	// GracefulStopListeners stops accept connections from all listeners the ConnectionHandler has.
 	// and graceful stop all the existing connections.
 	GracefulStopListeners() error
 
-	// CloseListeners close listeners immediately
+	// CloseListeners closes listeners immediately
 	CloseListeners()
 
-	// ListListenersFD reports all listeners' fd
+	// ListListenersFile reports all listeners' fd
 	ListListenersFile(lctx context.Context) []*os.File
 
 	// StopConnection Stop Connection

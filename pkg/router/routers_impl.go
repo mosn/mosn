@@ -24,7 +24,7 @@ import (
 	"sort"
 	"strings"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -43,7 +43,7 @@ type routersImpl struct {
 	//key =>*     value => [{9,".test.com",index},{4,".com",index}]
 	portWildcardVirtualHost map[string][]WildcardVirtualHostWithPort
 
-	// stored all vritual host, same as the config order
+	// stored all virtual host, same as the config order
 	virtualHosts []types.VirtualHost
 }
 
@@ -63,14 +63,15 @@ func (a WildcardVirtualHostWithPortSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
-//realization is not the same as normal less, simplify the reverse op
+// realization is not the same as normal less, simplify the reverse op
 func (a WildcardVirtualHostWithPortSlice) Less(i, j int) bool {
 	return a[j].hostLen < a[i].hostLen
 }
 
 func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
@@ -90,7 +91,8 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) ap
 
 func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
@@ -110,7 +112,8 @@ func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap
 
 func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key string, value string) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "")
+		log.DefaultLogger.Tracef(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
 	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {

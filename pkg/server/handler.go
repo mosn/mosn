@@ -20,7 +20,6 @@ package server
 import (
 	"container/list"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -34,11 +33,11 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -46,8 +45,8 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
 )
 
 // ConnectionHandler
@@ -160,10 +159,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
-		rawConfig.UseOriginalDst = lc.UseOriginalDst
-		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
+		rawConfig.OriginalDst = lc.OriginalDst
+		al.listener.SetOriginalDstType(lc.OriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
-
 		al.listener.SetConfig(rawConfig)
 
 		// set update label to true, do not start the listener again
@@ -376,6 +374,7 @@ type activeListener struct {
 	networkFiltersFactories  []api.NetworkFilterChainFactory
 	listenIP                 string
 	listenPort               int
+	defaultReadBufferSize    int
 	conns                    *utils.SyncList
 	handler                  *connHandler
 	stopChan                 chan struct{}
@@ -392,6 +391,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
+		defaultReadBufferSize:    lc.DefaultReadBufferSize,
 		conns:                    utils.NewSyncList(),
 		handler:                  handler,
 		stopChan:                 stopChan,
@@ -483,32 +483,33 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if useOriginalDst {
 		arc.useOriginalDst = true
 		// TODO remove it when Istio deprecate UseOriginalDst.
-		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst(arc.activeListener.listener.GetOriginalDstType()))
 	}
 
 	// connection context support variables too
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	_ = variable.Set(ctx, types.VariableListenerPort, al.listenPort)
+	_ = variable.Set(ctx, types.VariableListenerType, al.listener.Config().Type)
+	_ = variable.Set(ctx, types.VariableListenerName, al.listener.Name())
+	_ = variable.Set(ctx, types.VariableConnDefaultReadBufferSize, al.defaultReadBufferSize)
+	_ = variable.Set(ctx, types.VariableNetworkFilterChainFactories, al.networkFiltersFactories)
+	_ = variable.Set(ctx, types.VariableAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		_ = variable.Set(ctx, types.VariableConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptChan, ch)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		_ = variable.Set(ctx, types.VariableAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		_ = variable.Set(ctx, types.VariableOriRemoteAddr, oriRemoteAddr)
 	}
 
 	if len(listeners) != 0 {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionEventListeners, listeners)
+		_ = variable.Set(ctx, types.VariableConnectionEventListeners, listeners)
 	}
 
 	arc.ctx = ctx
@@ -522,18 +523,12 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	for _, nfcf := range al.networkFiltersFactories {
 		nfcf.CreateFilterChain(ctx, filterManager)
 	}
-	filterManager.InitializeReadFilters()
 
-	if len(filterManager.ListReadFilter()) == 0 &&
-		len(filterManager.ListWriteFilters()) == 0 {
-		// no filter found, close connection
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
-		}
-		conn.Close(api.NoFlush, api.LocalClose)
-		return
-	}
 	ac := newActiveConnection(al, conn)
+
+	if conn.LocalAddr().Network() == "udp" {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	}
 
 	e := al.conns.PushBack(ac)
 	ac.element = e
@@ -544,8 +539,16 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
-		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	filterManager.InitializeReadFilters()
+
+	if len(filterManager.ListReadFilter()) == 0 &&
+		len(filterManager.ListWriteFilters()) == 0 {
+		// no filter found, close connection
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s, but no filters found, closing it", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+		}
+		conn.Close(api.NoFlush, api.LocalClose)
+		return
 	}
 
 	// start conn loops first
@@ -649,22 +652,22 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.SetIdleTimeout(types.DefaultConnReadTimeout, types.DefaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-	if oriRemoteAddr != nil {
+	oriRemoteAddr, err := variable.Get(ctx, types.VariableOriRemoteAddr)
+	if err == nil && oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	listeners := mosnctx.Get(ctx, types.ContextKeyConnectionEventListeners)
-	if listeners != nil {
+	listeners, err := variable.Get(ctx, types.VariableConnectionEventListeners)
+	if err == nil && listeners != nil {
 		for _, listener := range listeners.([]api.ConnectionEventListener) {
 			conn.AddConnectionEventListener(listener)
 		}
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
-	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
+	_ = variable.Set(ctx, types.VariableConnectionID, conn.ID())
+	_ = variable.Set(ctx, types.VariableConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
-	al.OnNewConnection(newCtx, conn)
+	al.OnNewConnection(ctx, conn)
 }
 
 type activeRawConn struct {
@@ -724,14 +727,13 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == fallbackip {
 			localListener = lst
 		}
-
 	}
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val, err := variable.Get(ctx, types.VariableAcceptChan); err == nil && val != nil {
 		ch = val.(chan api.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val, err := variable.Get(ctx, types.VariableAcceptBuffer); err == nil && val != nil {
 			buf = val.([]byte)
 		}
 	}
@@ -741,6 +743,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			log.DefaultLogger.Infof("[server] [conn] found original dest listener :%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf, nil)
+		return
 	}
 
 	if localListener != nil {
@@ -751,7 +754,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		return
 	}
 
-	// If it can’t find any matching listeners and should using the self listener.
+	// If it can’t find any matching listeners and should use the self listener.
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] no listener found for original dest, fallback to listener filter: %s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 	}
@@ -1001,7 +1004,7 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	return listeners, packetConn, uc, nil
 }
 
-func GetInheritConfig() (*v2.MOSNConfig, error) {
+func GetInheritConfig() ([]byte, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.StartLogger.Errorf("[server] GetInheritConfig panic %v", r)
@@ -1042,11 +1045,5 @@ func GetInheritConfig() (*v2.MOSNConfig, error) {
 
 	// log.StartLogger.Infof("[server] inherit mosn config data: %v", string(configData))
 
-	oldConfig := &v2.MOSNConfig{}
-	err = json.Unmarshal(configData, oldConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return oldConfig, nil
+	return configData, nil
 }

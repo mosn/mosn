@@ -32,7 +32,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -112,6 +112,7 @@ func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleIm
 			retryOn:      route.Route.RetryPolicy.RetryOn,
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
+			statusCodes:  route.Route.RetryPolicy.StatusCodes,
 		}
 	}
 	// add hash policy

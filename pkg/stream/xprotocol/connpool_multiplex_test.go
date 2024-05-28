@@ -26,12 +26,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 const testClientNum = 10
@@ -54,7 +53,7 @@ func TestNewMultiplex(t *testing.T) {
 func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	// needs create a mosn context wrapper
 	ctx := variable.NewVariableContext(context.Background())
-	ctxNew := mosnctx.Clone(ctx)
+	ctxNew := variable.NewVariableContext(ctx)
 
 	cl := basicCluster("localhost:8888", []string{"localhost:8888"})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())

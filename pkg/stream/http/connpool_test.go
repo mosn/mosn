@@ -43,6 +43,10 @@ func (ci *fakeClusterInfo) Name() string {
 	return "test"
 }
 
+func (ci *fakeClusterInfo) Mark() uint32 {
+	return 0
+}
+
 type fakeTLSContextManager struct {
 	types.TLSContextManager
 }
@@ -75,14 +79,18 @@ func (ci *fakeClusterInfo) ConnBufferLimitBytes() uint32 {
 	return 0
 }
 
-func (ci *fakeClusterInfo) Stats() types.ClusterStats {
-	return types.ClusterStats{
+func (ci *fakeClusterInfo) Stats() *types.ClusterStats {
+	return &types.ClusterStats{
 		UpstreamRequestPendingOverflow:                 metrics.NewCounter(),
 		UpstreamConnectionRemoteCloseWithActiveRequest: metrics.NewCounter(),
 		UpstreamConnectionTotal:                        metrics.NewCounter(),
 		UpstreamConnectionActive:                       metrics.NewCounter(),
 		UpstreamConnectionConFail:                      metrics.NewCounter(),
 	}
+}
+
+func (ci *fakeClusterInfo) SlowStart() types.SlowStart {
+	return types.SlowStart{}
 }
 
 type fakeResourceManager struct {

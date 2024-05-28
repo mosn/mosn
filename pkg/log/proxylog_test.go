@@ -29,8 +29,7 @@ import (
 
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
-
-	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/pkg/variable"
 )
 
 func TestProxyLog(t *testing.T) {
@@ -45,9 +44,10 @@ func TestProxyLog(t *testing.T) {
 	connId := uint64(rand.Intn(10))
 	upstreamConnID := uint64(rand.Intn(10))
 	targetStr := fmt.Sprintf("[%v,%v,%v]", connId, upstreamConnID, traceId)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
-	ctx = mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, upstreamConnID)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceId, traceId)
+	_ = variable.Set(ctx, types.VariableConnectionID, connId)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
 
 	for i := 0; i < 10; i++ {
 		lg.Infof(ctx, "[unittest] test write, round %d", i)
@@ -78,9 +78,10 @@ func TestProxyLog2(t *testing.T) {
 	connId := uint64(1)
 	upstreamConnID := uint64(2)
 	proxyMsg := fmt.Sprintf("[%d,%d,%s]", connId, upstreamConnID, traceId)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
-	ctx = mosnctx.WithValue(ctx, types.ContextUpstreamConnectionID, upstreamConnID)
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceId, traceId)
+	_ = variable.Set(ctx, types.VariableConnectionID, connId)
+	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, upstreamConnID)
 
 	funcs := []func(ctx context.Context, format string, args ...interface{}){
 		lg.Infof,
@@ -127,7 +128,8 @@ func BenchmarkProxyLog(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -142,7 +144,8 @@ func BenchmarkProxyLogParallel(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, "0abfc19515355177863163255e6d87")
+	ctx := variable.NewVariableContext(context.Background())
+	_ = variable.Set(ctx, types.VariableTraceId, "0abfc19515355177863163255e6d87")
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

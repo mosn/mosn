@@ -1,0 +1,14 @@
+syntax = "proto3";
+package pb;
+option go_package = "../pb";
+
+
+message IpAccess {
+  string default_action = 1;
+  string header = 2;
+  repeated IPS ips = 3;
+}
+message IPS {
+  string action = 1;
+  repeated string addrs = 2;
+}

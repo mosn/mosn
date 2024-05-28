@@ -26,13 +26,13 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // ReadFilter
@@ -43,6 +43,7 @@ type proxy struct {
 	upstreamConnection  types.ClientConnection
 	requestInfo         types.RequestInfo
 	upstreamCallbacks   UpstreamCallbacks
+	clusterInfo         types.ClusterInfo
 	downstreamCallbacks DownstreamCallbacks
 	network             string
 
@@ -53,11 +54,12 @@ type proxy struct {
 }
 
 func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
+	alv, _ := variable.Get(ctx, types.VariableAccessLogs)
 	p := &proxy{
 		config:         NewProxyConfig(config),
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     alv.([]api.AccessLog),
 		ctx:            ctx,
 		network:        net,
 	}
@@ -74,7 +76,8 @@ func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
 
 func (p *proxy) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[%s proxy] [ondata] read data , len = %v", p.network, buffer.Len())
+		log.DefaultLogger.Debugf("[%s proxy] [ondata] read data , len = %v, local addr:%s, upstream addr:%s",
+			p.network, buffer.Len(), p.readCallbacks.Connection().LocalAddr().String(), p.upstreamConnection.RemoteAddr().String())
 	}
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
@@ -112,6 +115,8 @@ func (p *proxy) getUpstreamConnection(ctx types.LoadBalancerContext, snapshot ty
 	}
 }
 
+const defaultConnectRetryTimes = 3
+
 func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
@@ -125,6 +130,7 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
+	p.clusterInfo = clusterInfo
 	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
 
 	if !clusterConnectionResource.CanCreate() {
@@ -139,30 +145,50 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 		ctx:     p.ctx,
 		cluster: clusterInfo,
 	}
-	connectionData := p.getUpstreamConnection(ctx, clusterSnapshot)
-	if connectionData.Connection == nil {
+
+	retryTime := clusterSnapshot.HostNum(nil)
+	if retryTime == 0 {
+		log.DefaultLogger.Errorf("%s cluster: %s proxy connect retryTime is 0", p.network, clusterSnapshot.ClusterInfo().Name())
+	}
+	if retryTime > defaultConnectRetryTimes {
+		retryTime = defaultConnectRetryTimes
+	}
+	var connectionData types.CreateConnectionData
+	connected := false
+	for i := 0; i < retryTime; i++ {
+		connectionData = p.getUpstreamConnection(ctx, clusterSnapshot)
+		if connectionData.Connection == nil {
+			continue
+		}
+		upstreamConnection := connectionData.Connection
+		upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
+		upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
+		p.upstreamConnection = upstreamConnection
+		if err := upstreamConnection.Connect(); err != nil {
+			p.clusterInfo.Stats().UpstreamConnectionRetry.Inc(1)
+			log.DefaultLogger.Errorf("%s proxy connect to upstream failed, err: %v", p.network, err)
+			continue
+		}
+		connected = true
+		break
+	}
+
+	if !connected {
 		p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
-
+		p.clusterInfo.Stats().UpstreamConnectionConFail.Inc(1)
 		return api.Stop
 	}
-	p.readCallbacks.SetUpstreamHost(connectionData.Host)
+
 	clusterConnectionResource.Increase()
-	upstreamConnection := connectionData.Connection
-	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
-	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
-	p.upstreamConnection = upstreamConnection
-	if err := upstreamConnection.Connect(); err != nil {
-		log.DefaultLogger.Debugf("%s proxy connect to upstream failed", p.network)
-		p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
-		p.onInitFailure(NoHealthyUpstream)
-		return api.Stop
-	}
-
+	p.upstreamConnection.SetCollector(p.clusterInfo.Stats().UpstreamBytesReadTotal, p.clusterInfo.Stats().UpstreamBytesWriteTotal)
+	p.readCallbacks.SetUpstreamHost(connectionData.Host)
+	connectionData.Host.HostStats().UpstreamConnectionActive.Inc(1)
+	connectionData.Host.HostStats().UpstreamConnectionTotal.Inc(1)
+	p.clusterInfo.Stats().UpstreamConnectionActive.Inc(1)
+	p.clusterInfo.Stats().UpstreamConnectionTotal.Inc(1)
 	p.requestInfo.OnUpstreamHostSelected(connectionData.Host)
 	p.requestInfo.SetUpstreamLocalAddress(connectionData.Host.AddressString())
-
-	// TODO: update upstream stats
 
 	return api.Continue
 }
@@ -193,7 +219,7 @@ func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 
 func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	switch event {
-	case api.RemoteClose:
+	case api.RemoteClose, api.OnWriteTimeout, api.OnWriteErrClose:
 		p.finalizeUpstreamConnectionStats()
 		p.readCallbacks.Connection().Close(api.FlushWrite, api.RemoteClose)
 
@@ -210,16 +236,52 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 
 		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
 		p.closeUpstreamConnection()
-		p.initializeUpstreamConnection()
 	case api.ConnectFailed:
 		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
 	}
+
+	p.onUpstreamEventStats(event)
 }
 
 func (p *proxy) finalizeUpstreamConnectionStats() {
 	hostInfo := p.readCallbacks.UpstreamHost()
 	if host, ok := hostInfo.(types.Host); ok {
 		host.ClusterInfo().ResourceManager().Connections().Decrease()
+	}
+}
+
+func (p *proxy) onUpstreamEventStats(event api.ConnectionEvent) {
+
+	switch event {
+	case api.RemoteClose:
+		p.clusterInfo.Stats().UpstreamConnectionRemoteClose.Inc(1)
+	case api.LocalClose:
+		p.clusterInfo.Stats().UpstreamConnectionLocalClose.Inc(1)
+	case api.ConnectFailed:
+		p.clusterInfo.Stats().UpstreamConnectionConFail.Inc(1)
+	}
+
+	if event.IsClose() {
+		p.clusterInfo.Stats().UpstreamConnectionActive.Dec(1)
+		p.clusterInfo.Stats().UpstreamConnectionClose.Inc(1)
+	}
+
+	host, ok := p.readCallbacks.UpstreamHost().(types.Host)
+	if !ok {
+		return
+	}
+
+	switch event {
+	case api.RemoteClose:
+		host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+	case api.LocalClose:
+		host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+	case api.ConnectFailed:
+		host.HostStats().UpstreamConnectionConFail.Inc(1)
+	}
+	if event.IsClose() {
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
 	}
 }
 
@@ -233,9 +295,10 @@ func (p *proxy) onConnectionSuccess() {
 
 func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if p.upstreamConnection != nil {
-		if event == api.RemoteClose {
+		switch event {
+		case api.RemoteClose, api.OnWriteTimeout, api.OnWriteErrClose:
 			p.upstreamConnection.Close(api.FlushWrite, api.LocalClose)
-		} else if event == api.LocalClose {
+		case api.LocalClose, api.OnReadErrClose:
 			p.upstreamConnection.Close(api.NoFlush, api.LocalClose)
 		}
 	}

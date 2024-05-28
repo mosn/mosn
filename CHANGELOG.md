@@ -1,5 +1,173 @@
 # Changelog
 
+## v1.5.0
+
+### New Features
+
+- EdfLoadBalancer supports slow start mode (#2178) @jizhuozhi
+- Support cluster exclusive connectionPool (#2281) @yejialiango
+- LeastActiveRequest and LeastActiveConnection load balancers support setting active_request_bias (#2286) @jizhuozhi
+- Support configuration of metric sampler (#2261) @jizhuozhi
+- Add PeakEWMA load balancer (#2253) @jizhuozhi
+
+### Changes
+
+- README update partners & users (#2245) @doujiang24
+- Update dependencies (#2242) (#2248) (#2249) @dependabot
+- Upgrade the floor Go version supported by MOSN to 1.18 (#2288) @muyuan0
+
+### Optimization
+
+- Use logical clock to make edf scheduler more stable (#2229) @jizhuozhi
+- Change log level on missing proxy_on_delete from ERROR to WARN in proxywasm (#2246) @codefromthecrypt
+- Receiver names are different for connection object (#2262) @diannaowa
+- Disable over strict linters in workflow (#2259) @jizhuozhi
+- Disable workflow when PR in draft mode (#2269) @diannaowa
+- Use pointer to avoid overhead of duffcopy and duffzero (#2272) @jizhuozhi
+- Remove unnecessary imports (#2292) @spacewander
+- CI add goimports check (#2297) @spacewander
+
+### Bug fixes
+
+- Fix panic caused by different hosts using the same rander during health check (#2240) @dengqian
+- Fix connpool binding conn id (#2263) @antJack 
+- Fix saved client stream protocol information to DownStreamProtocol in the context (#2270) @nejisama
+- Fix not using the correct Go version for testing (#2288) @muyuan0
+- Fix incorrectly assume the variable not found if the real value is '-' (#2174) @3062
+- Fix nil interface panic caused by cluster certificate configuration error (#2291) @3062
+- Fix parsing error caused by using interface type in the leastActiveRequestLoadBalancer configuration (#2284) @jizhuozhi
+- Fix configuration lbConfig not effective (#2299) @3062
+- Fix activeRequestBias missing default value and some naming case error (#2298) @jizhuozhi
+
+## v1.4.0
+
+### New Features
+
+- Support record HTTP health check log (#2096) @dengqian
+- Add least_connection load balancer (#2184) @dengqian
+- Add API to force reconnect and send ADS request (#2183) @dengqian
+- Support pprof debug server endpoint configure (#2202) @dengqian
+- Integrate with mosn.io/envoy-go-extension, consult [document](https://github.com/mosn/mosn/blob/master/examples/codes/envoy-go-extension/README_EN.md) (#2200) @antJack (#2222) @3062
+- Add API to support override registration (mosn/pkg#72) @antJack
+- Add a field in variables to record mosn processing time (#2235) @z2z23n0
+- Support setting cluster idle_timeout to zero to indicate never timeout (#2197) @antJack
+
+### Refactoring
+- Move pprof import to pkg/mosn (#2216) @3062
+
+### Optimization
+
+- Reduce logging for proxywasm benchmarks (#2189) @Crypt Keeper
+
+### Bug fixes
+
+- Enlarge UDP DNS resolve buffer (#2201) @dengqian
+- Fix the debug server not inherited during smooth upgrade (#2204) @dengqian
+- Fix where new mosn would delete reconfig.sock when smooth upgrade failed (#2205) @dengqian
+- Fix HTTP health check URL with query string will be unescaped (#2207) @dengqian
+- Fix lb ReqRoundRobin fails to choose host when index exceeds hosts length (#2209) @dengqian
+- Fix the problem that after RDS creates a route, the established connection cannot find the route (#2199) @dengqian (#2210) @3062
+- Fix old cache values are read after the execution of Variable.Set (mosn/pkg#73) @antJack
+- Fix panic caused by DefaultRoller not setting time (mosn/pkg#74) @dengqian
+- Advance the timing of metrics initialization to make it work for static config (#2221) @dengqian
+- Fix a concurrency problem caused by multiple health checkers sharing rander (#2228) @dengqian
+- Set HTTP/1.1 as the HTTP protocol to be sent upstream (#2225) @dengqian
+- Completing the missing statistics (#2215) @3062
+
+## v1.3.0
+
+### Refactoring
+- Moves to consolidated Proxy-Wasm implementation and enables wazero by default (#2172) [@Crypt Keeper](https://github.com/codefromthecrypt)
+
+### Optimization
+
+- Optimized parsing xDS transparent proxy configuration: add pass-through configuration for unrecognized addresses (#2171) [@3062](https://github.com/3062)
+- Optimized the golangci execution flow in CI testing  (#2166) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2167) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Add integrated benchmarks for Proxy-Wasm (#2164) [@Crypt Keeper](https://github.com/codefromthecrypt) (#2169) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- Upgrade the minimum version of Go supported by MOSN to 1.17 (#2160) [@Crypt Keeper](https://github.com/codefromthecrypt)
+- Fix some problems in the README.md (#2161) [@liaolinrong](https://github.com/liaolinrong)
+- Add benchmark (#2173) [@3062](https://github.com/3062)
+- subsetLoadBalancer reuse subset entry to optimze alloc/inuse memory (#2119) [@dzdx](https://github.com/dzdx) (#2188) [@liwu](https://github.com/chuailiwu)
+
+### Bug fixes
+
+- Fix a panic problem with connpool_binging when connecting to upstream timeout (#2180) [@EraserTime](https://github.com/EraserTime)
+- Fix the problem that retryTime is 0 when cluster LB algorithm is LB_ORIGINAL_DST (#2170) [@3062](https://github.com/3062)
+- Fix smooth upgrade failed (#2129) [@Bryce-Huang](https://github.com/Bryce-huang) (#2193) [@3062](https://github.com/3062)
+- Modify the way xDS Listener logs are parsed (#2182) [@3062](https://github.com/3062)
+- Fix example print error (#2190) [@liaolinrong](https://github.com/liaolinrong)
+
+## v1.2.0
+
+### New Features
+
+- Support for configuring HTTP retry status codes (#2097) [@dengqian](https://github.com/dengqian)
+- Add dev container build configuration and instructions (#2108) [@keqingyuan](https://github.com/keqingyuan)
+- Support connpool_binding GoAway (#2115) [@EraserTime](https://github.com/EraserTime)
+- Support for configuring the listener defaultReadBufferSize (#2133) [@3062](https://github.com/3062)
+- Support Proxy-Wasm v2 ABI (#2089) [@lawrshen](https://github.com/lawrshen)
+- Support transparent proxy based on iptables tproxy (#2142) [@3062](https://github.com/3062)
+
+### Refactoring
+
+- Remove MOSN's extended context framework and use the variable mechanism instead. Migrate the variable mechanism and memory reuse framework to mosn.io/pkg (#2055) [@nejisama](https://github.com/nejisama)
+- Migrating the metrics interface to mosn.io/api (#2124) [@YIDWang](https://github.com/YIDWang)
+
+### Bug fixes
+
+- Fix some missing log parameters (#2141) [@lawrshen](https://github.com/lawrshen)
+- Determine if the obtained cookie exists by error (#2136) [@greedying](https://github.com/greedying)
+
+## v1.1.0
+
+### New Features
+
+- TraceLog support for zipkin (#2014) [@fibbery](https://github.com/fibbery)
+- Support cloud edge interconnection (#1640) [@CodingSinger](https://github.com/CodingSinger), details can be found in [blog](https://mosn.io/blog/posts/mosn-tunnel/)
+- Trace supports plugin extension in the form of Driver, using SkyWalking as trace implementation (#2047) [@YIDWang](https://github.com/YIDWang)
+- Support Parsing Extended xDS Stream Filter (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- stream filter: ipaccess extension implements xDS parsing logic (#2095) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add package tar command to MakeFile (#1968) [@doujiang24](https://github.com/doujiang24)
+
+### Changes
+
+- Adjust connection read timeout from buffer.ConnReadTimeout to types.DefaultConnReadTimeout (#2051) [@fibbery](https://github.com/fibbery)
+- Fix typo in documentation (#2056) (#2057)[@threestoneliu](https://github.com/threestoneliu) (#2070) [@chenzhiguo](https://github.com/chenzhiguo)
+- Update the configuration file of license-checker.yml (#2071) [@kezhenxu94](https://github.com/kezhenxu94)
+- New interface for traversing SubsetLB (#2059) (#2061) [@nejisama](https://github.com/nejisama)
+- Add SetConfig interface for tls.Conn (#2088) [@antJack](https://github.com/antJack)
+- Add Example of xds-server as MOSN control plane (#2075) [@Bryce-huang](https://github.com/Bryce-huang)
+- Add error log when HTTP request parsing fails (#2085) [@taoyuanyuan](https://github.com/taoyuanyuan) (#2066) [@fibbery](https://github.com/fibbery)
+- Load balancing skips the last selected host on retry  (#2077) [@dengqian](https://github.com/dengqian)
+- Access logs support printing traceID, connectionID and UpstreamConnectionID (#2107) [@Bryce-huang](https://github.com/Bryce-huang)
+
+### Refactoring
+
+- Refactor how HostSet is used (#2036) [@dzdx](https://github.com/dzdx)
+- Change the connection write data to only support synchronous write mode (#2087) [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Optimization
+
+- Optimize the algorithm for creating subset load balancing to reduce memory usage (#2010) [@dzdx](https://github.com/dzdx)
+- Support scalable cluster update method operation (#2048) [@nejisama](https://github.com/nejisama)
+- Optimize multi-certificate matching logic: match servername first, and match ALPN only after all servernames are unmatched (#2053) [@MengJiapeng](https://github.com/MengJiapeng)
+
+### Bug fixes
+
+- Fix the latest image version in the wasm example to be a fixed version (#2033) [@antJack](https://github.com/antJack)
+- Adjust the order of log closing execution when MOSN exits, and fix the problem that some exit logs cannot be output correctly (#2034) [@doujiang24](https://github.com/doujiang24)
+- Fix the problem that OriginalDst was not properly processed after matching successfully (#2058) [@threestoneliu](https://github.com/threestoneliu)
+- Fix the problem that the protocol conversion scene does not handle exceptions correctly, and add the protocol conversion implementation specification (#2062) [@YIDWang](https://github.com/YIDWang)
+- Fix stream proxy not properly handling exception events such as connection write timeout/disconnect (#2080) [@dengqian](https://github.com/dengqian)
+- Fix the panic problem that may be caused by the wrong timing of connection event listening (#2082) [@dengqian](https://github.com/dengqian)
+- Avoid closing event before event listener connection (#2098) [@dengqian](https://github.com/dengqian)
+- HTTP1/HTTP2 protocol save protocol information in context when processing (#2035) [@yidwang](https://github.com/YIDWang)
+- Fix possible concurrency issues when pushing xDS (#2101) [@yzj0911](https://github.com/yzj0911)
+- If the upstream address variable is not found, it no longer returns null and returns ValidNotFound (#2049) [@songzhibin97](https://github.com/songzhibin97)
+- Fix health check does not support xDS (#2084) [@Bryce-huang](https://github.com/Bryce-huang)
+- Fix the method of judging the upstream address (#2093) [@dengqian](https://github.com/dengqian)
+
+
 ## v1.0.1
 
 ### Changes

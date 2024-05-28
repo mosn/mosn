@@ -27,8 +27,8 @@ import (
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // Decoder is heavy and caches to improve performance.
@@ -130,7 +130,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	)
 
 	if ctx != nil {
-		listener = ctx.Value(types.ContextKeyListenerName)
+		listener, _ = variable.Get(ctx, types.VariableListenerName)
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)
@@ -273,7 +273,8 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	return meta, nil
 }
 
-//  more unit test:
+//	more unit test:
+//
 // https://github.com/zonghaishang/dubbo/commit/e0fd702825a274379fb609229bdb06ca0586122e
 func getArgumentCount(desc string) int {
 	len := len(desc)

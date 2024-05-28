@@ -29,5 +29,5 @@ func (m *MosnWrapper) Start() {
 }
 
 func (m *MosnWrapper) Close() {
-	m.m.Close()
+	m.m.Close(false)
 }

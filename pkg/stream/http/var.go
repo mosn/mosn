@@ -24,7 +24,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 const (
@@ -92,7 +92,7 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 
 	length := len(request.Header.Header()) + len(request.Body())
 	if length == 0 {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return strconv.Itoa(length), nil
@@ -132,7 +132,7 @@ func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data in
 	headerValue := request.Header.Peek(headerName[headerIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if headerValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(headerValue), nil
@@ -147,7 +147,7 @@ func httpArgGetter(ctx context.Context, value *variable.IndexedValue, data inter
 	argValue := request.URI().QueryArgs().Peek(argName[argIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if argValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(argValue), nil
@@ -159,9 +159,9 @@ func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data in
 
 	cookieName := data.(string)
 	cookieValue := request.Header.Cookie(cookieName[cookieIndex:])
-	// nil means no kv exists, "" means kv exists, but value is ""
+	// error not nil means that no kv exists
 	if cookieValue == nil {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return string(cookieValue), nil

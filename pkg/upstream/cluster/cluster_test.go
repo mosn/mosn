@@ -20,7 +20,9 @@ package cluster
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
@@ -33,12 +35,24 @@ func _createTestCluster() types.Cluster {
 		LBSubSetConfig: v2.LBSubsetConfig{
 			FallBackPolicy: 1, // AnyEndPoint
 			SubsetSelectors: [][]string{
-				[]string{"version"},
-				[]string{"version", "zone"},
+				{"version"},
+				{"version", "zone"},
 			},
 		},
 	}
 	return NewCluster(clusterConfig)
+}
+
+func TestNewClusterInfoWithDefaultSlowStartConfig(t *testing.T) {
+	clusterConfig := v2.Cluster{
+		Name:      "test_cluster",
+		LbType:    v2.LB_ROUNDROBIN,
+		SlowStart: v2.SlowStartConfig{},
+	}
+	clusterInfo := NewClusterInfo(clusterConfig)
+	assert.Zero(t, clusterInfo.SlowStart().SlowStartDuration)
+	assert.Equal(t, 1.0, clusterInfo.SlowStart().Aggression)        // 1.0 by default
+	assert.Equal(t, 0.10, clusterInfo.SlowStart().MinWeightPercent) // 10% by default
 }
 
 func TestClusterUpdateHosts(t *testing.T) {
@@ -47,9 +61,9 @@ func TestClusterUpdateHosts(t *testing.T) {
 	pool := makePool(100)
 	var hosts []types.Host
 	metas := []api.Metadata{
-		api.Metadata{"version": "1", "zone": "a"},
-		api.Metadata{"version": "1", "zone": "b"},
-		api.Metadata{"version": "2", "zone": "a"},
+		{"version": "1", "zone": "a"},
+		{"version": "1", "zone": "b"},
+		{"version": "2", "zone": "a"},
 		nil, // no meta (in any point)
 	}
 	for _, meta := range metas {

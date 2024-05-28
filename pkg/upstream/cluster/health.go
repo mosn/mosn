@@ -24,7 +24,7 @@ import (
 	"mosn.io/api"
 )
 
-// health flag resue for same address
+// health flag reuse for same address
 // TODO: use one map for all reuse data
 var healthStore = sync.Map{}
 

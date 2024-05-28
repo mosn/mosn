@@ -1,12 +1,3 @@
-// How to use conditional compilation with the go build tool:
-// https://dave.cheney.net/2013/10/12/how-to-use-conditional-compilation-with-the-go-build-tool
-
-// +build wasmer
-
-// The default WASM module is not compiled,
-// and the current unit tests depend on this tag
-// go test -tags wasmer ...
-
 package integrate
 
 import (
@@ -17,7 +8,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
-	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
+	_ "mosn.io/mosn/pkg/wasm/runtime/wazero"
 	testutil "mosn.io/mosn/test/util"
 	"mosn.io/mosn/test/util/mosn"
 )
@@ -59,7 +50,7 @@ func (c *wasmXExtendCase) Start(tls bool) {
 	c.ServerMeshAddr = serverMeshAddr
 
 	// proxy to wasm
-	cfg := testutil.CreateMeshToMeshConfigWithSub(clientMeshAddr, serverMeshAddr, protocol.Xprotocol, protocol.Xprotocol, WasmProtocol, []string{appAddr}, tls)
+	cfg := testutil.CreateMeshToMeshConfigWithSub(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, WasmProtocol, []string{appAddr}, tls)
 	// insert wasm plugin config
 	c.injectWasmConfig(cfg)
 

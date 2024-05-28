@@ -1,3 +1,4 @@
+//go:build BabaSSL
 // +build BabaSSL
 
 package cgosm4

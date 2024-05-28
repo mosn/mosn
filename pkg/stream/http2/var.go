@@ -23,10 +23,9 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 var (
@@ -65,43 +64,51 @@ func init() {
 func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	scheme, err := variable.GetString(ctx, types.VarScheme)
 	if err != nil || scheme == "" {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 	return scheme, nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	hv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
+	if err != nil {
+		return variable.ValueNotFound, variable.ErrValueNotFound
+	}
+	headers, ok := hv.(api.HeaderMap)
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 	headerKey, ok := data.(string)
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	header, found := headers.Get(headerKey[headerIndex:])
 	if !found {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	return header, nil
 }
 
 func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	hv, err := variable.Get(ctx, types.VariableDownStreamReqHeaders)
+	if err != nil {
+		return variable.ValueNotFound, variable.ErrValueNotFound
+	}
+	headers, ok := hv.(api.HeaderMap)
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 	cookieKey, ok := data.(string)
 	if !ok {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	cookiePrefix := fmt.Sprintf("%s=", cookieKey[cookieIndex:])
 	cookieString, found := headers.Get("Cookie")
 	if !found {
-		return variable.ValueNotFound, nil
+		return variable.ValueNotFound, variable.ErrValueNotFound
 	}
 
 	for _, cookieKV := range strings.Split(cookieString, ";") {
@@ -110,5 +117,5 @@ func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interf
 			return strings.TrimSpace(strings.TrimPrefix(kv, cookiePrefix)), nil
 		}
 	}
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, variable.ErrValueNotFound
 }

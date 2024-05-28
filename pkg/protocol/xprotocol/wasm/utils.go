@@ -28,9 +28,9 @@ import (
 //
 // eg: {"key1": "value1", "hello": "world"}
 // 2(pairs number) + 4(key1 length) + 6(value1 length) => { "key1": "value1" } length
-// 				   + 5(hello length) + 5(world length) => { "hello": "world" } length
-// 				   + key1 bytes + nil byte + value1 bytes + nil byte => { "key1": "value1" } bytes
-// 				   + hello bytes + nil byte + world bytes + nil byte => { "hello": "world" } bytes
+//   - 5(hello length) + 5(world length) => { "hello": "world" } length
+//   - key1 bytes + nil byte + value1 bytes + nil byte => { "key1": "value1" } bytes
+//   - hello bytes + nil byte + world bytes + nil byte => { "hello": "world" } bytes
 func EncodeMap(pairs map[string]string) []byte {
 	// pairs number
 	size := 4

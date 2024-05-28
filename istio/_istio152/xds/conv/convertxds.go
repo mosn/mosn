@@ -87,19 +87,24 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener, rh routeHandler) *v2.Li
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           xdsListener.GetName(),
-			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
-			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
-			Inspector:      true,
-			AccessLogs:     convertAccessLogs(xdsListener),
+			Name:       xdsListener.GetName(),
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:  true,
+			AccessLogs: convertAccessLogs(xdsListener),
 		},
 		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
+	if xdsListener.GetUseOriginalDst().GetValue() {
+		listenerConfig.OriginalDst = v2.REDIRECT
+	} else if xdsListener.GetTransparent().GetValue() {
+		listenerConfig.OriginalDst = v2.TPROXY
+	}
+
 	for _, xl := range xdsListener.GetListenerFilters() {
-		if xl.Name == xdswellknown.OriginalDestination {
-			listenerConfig.UseOriginalDst = true
+		if xl.Name == xdswellknown.OriginalDestination && listenerConfig.OriginalDst != v2.TPROXY {
+			listenerConfig.OriginalDst = v2.REDIRECT
 		}
 	}
 
@@ -221,10 +226,10 @@ func convertDnsLookupFamily(family xdsapi.Cluster_DnsLookupFamily) v2.DnsLookupF
 }
 
 // TODO support more LB converter
-func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+func convertLbConfig(config interface{}) *v2.LbConfig {
 	switch config.(type) {
 	case *xdsv2.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+		return &v2.LbConfig{ChoiceCount: config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
 	default:
 		return nil
 	}
@@ -461,6 +466,14 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 		filter.Type = name
 		filter.Config = m
 	default:
+		config, err := api.HandleXDSConfig(name, s)
+		if err != nil {
+			log.DefaultLogger.Infof("[xds] convertStreamFilter, unsupported filter config, name: %s,err=%v", name, err)
+			break
+		}
+		filter.Type = name
+		filter.Config = config
+
 	}
 
 	return filter
