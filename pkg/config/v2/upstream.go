@@ -144,7 +144,7 @@ type KeepAlive struct {
 }
 
 // MarshalJSON Marshal implement a json.Marshaler
-func (ka KeepAlive) MarshalJSON() (b []byte, err error) {
+func (ka KeepAlive) MarshalJSON() ([]byte, error) {
 	ka.KeepAliveConfig.IntervalConfig.Duration = ka.Interval
 	ka.KeepAliveConfig.TimeoutConfig.Duration = ka.Timeout
 	return json.Marshal(ka.KeepAliveConfig)
