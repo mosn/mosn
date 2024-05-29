@@ -140,7 +140,7 @@ type KeepAliveConfig struct {
 type KeepAlive struct {
 	KeepAliveConfig
 	Interval time.Duration `json:"-"`
-	Timeout  time.Duration `json:"-"` // default 1 second
+	Timeout  time.Duration `json:"-"`
 }
 
 // MarshalJSON Marshal implement a json.Marshaler
@@ -154,9 +154,6 @@ func (ka KeepAlive) MarshalJSON() ([]byte, error) {
 func (ka *KeepAlive) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &ka.KeepAliveConfig); err != nil {
 		return err
-	}
-	if ka.KeepAliveConfig.TimeoutConfig.Duration == 0 {
-		ka.KeepAliveConfig.TimeoutConfig.Duration = time.Second
 	}
 	ka.Timeout = ka.KeepAliveConfig.TimeoutConfig.Duration
 	ka.Interval = ka.KeepAliveConfig.IntervalConfig.Duration

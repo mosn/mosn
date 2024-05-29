@@ -42,7 +42,7 @@ func TestInheritConfig(t *testing.T) {
 	}{
 		{
 			name:           "test Inherit Config",
-			testConfigPath: "/tmp/mosn/mosn_admin.json",
+			testConfigPath: t.TempDir() + "mosn_admin.json",
 			mosnConfig:     mosnConfig,
 			inheritFunc: func(c *v2.MOSNConfig) error {
 				// inherit old mosn config
@@ -88,7 +88,7 @@ func TestInheritConfig(t *testing.T) {
 		},
 		{
 			name:           "test Inherit Config with inherit func",
-			testConfigPath: "/tmp/mosn/mosn_admin_1.json",
+			testConfigPath: t.TempDir() + "mosn_admin_1.json",
 			mosnConfig:     mosnConfig,
 			inheritFunc: func(c *v2.MOSNConfig) error {
 				// inherit old mosn config
