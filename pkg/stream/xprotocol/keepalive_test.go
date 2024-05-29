@@ -56,7 +56,7 @@ type testCase struct {
 	ClientConn types.ClientConnection
 }
 
-func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase {
+func newTestCase(t *testing.T, srvTimeout time.Duration, kConfig types.KeepAliveConfig) *testCase {
 	// start a mock server
 	srv, err := newMockServer(srvTimeout)
 	if err != nil {
@@ -86,7 +86,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 		t.Fatal("codec is nil")
 	}
 	// start a keep alive
-	keepAlive := NewKeepAlive(codec, (&bolt.XCodec{}).NewXProtocol(ctx), keepTimeout)
+	keepAlive := NewKeepAliveWithConfig(codec, (&bolt.XCodec{}).NewXProtocol(ctx), kConfig)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive:  keepAlive.(*xprotocolKeepAlive),
@@ -97,7 +97,10 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 }
 
 func TestKeepAlive(t *testing.T) {
-	tc := newTestCase(t, 0, time.Second)
+	kConfig := types.KeepAliveConfig{
+		Timeout: time.Second,
+	}
+	tc := newTestCase(t, 0, kConfig)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -114,7 +117,10 @@ func TestKeepAlive(t *testing.T) {
 
 // when tick count more than 1, should send heart beat every tickCount intervals
 func TestKeepAliveTickMore(t *testing.T) {
-	tc := newTestCase(t, 0*time.Millisecond, 50*time.Millisecond)
+	kConfig := types.KeepAliveConfig{
+		Timeout: 50 * time.Millisecond,
+	}
+	tc := newTestCase(t, 0*time.Millisecond, kConfig)
 	defer tc.Server.Close()
 	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
 
@@ -139,7 +145,10 @@ func TestKeepAliveTickMore(t *testing.T) {
 }
 
 func TestKeepAliveTimeout(t *testing.T) {
-	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond)
+	kConfig := types.KeepAliveConfig{
+		Timeout: 10 * time.Millisecond,
+	}
+	tc := newTestCase(t, 50*time.Millisecond, kConfig)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -156,7 +165,10 @@ func TestKeepAliveTimeout(t *testing.T) {
 }
 
 func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
-	tc := newTestCase(t, 150*time.Millisecond, 20*time.Millisecond)
+	kConfig := types.KeepAliveConfig{
+		Timeout: 20 * time.Millisecond,
+	}
+	tc := newTestCase(t, 150*time.Millisecond, kConfig)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -180,6 +192,9 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 }
 
 func TestKeepAliveIdleFree(t *testing.T) {
+	kConfig := types.KeepAliveConfig{
+		Timeout: time.Second,
+	}
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.ERROR)
 	maxIdleCount = 20
@@ -188,7 +203,7 @@ func TestKeepAliveIdleFree(t *testing.T) {
 		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
-	tc := newTestCase(t, 0, time.Second)
+	tc := newTestCase(t, 0, kConfig)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -210,6 +225,9 @@ func TestKeepAliveIdleFree(t *testing.T) {
 }
 
 func TestKeepAliveIdleFreeWithData(t *testing.T) {
+	kConfig := types.KeepAliveConfig{
+		Timeout: time.Second,
+	}
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.ERROR)
 	maxIdleCount = 40
@@ -218,7 +236,7 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
-	tc := newTestCase(t, 0, time.Second)
+	tc := newTestCase(t, 0, kConfig)
 	defer tc.Server.Close()
 	ch := make(chan struct{})
 	wg := sync.WaitGroup{}
@@ -272,8 +290,11 @@ func TestKeepAliveFastFail(t *testing.T) {
 	})
 	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
 
+	kConfig := types.KeepAliveConfig{
+		Timeout: 10 * time.Millisecond,
+	}
 	// create a mock server that delays the response by 50ms and has a heartbeat timeout of 10ms
-	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond)
+	tc := newTestCase(t, 50*time.Millisecond, kConfig)
 	defer tc.KeepAlive.Stop()
 	defer tc.Server.Close()
 
@@ -295,4 +316,59 @@ func TestKeepAliveFastFail(t *testing.T) {
 		t.Error("client connection status not expected, client connection should be closed", testStats)
 	}
 
+}
+
+func TestKeepAliveSchedule(t *testing.T) {
+	//log.DefaultLogger.SetLogLevel(log.DEBUG)
+	kConfig := types.KeepAliveConfig{
+		Timeout:  20 * time.Millisecond,
+		Interval: 200 * time.Millisecond,
+	}
+	tc := newTestCase(t, 150*time.Millisecond, kConfig)
+	defer tc.KeepAlive.Stop()
+	defer tc.Server.Close()
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
+
+	scheduleSent := make(chan int)
+
+	tc.KeepAlive.afterFunc = func(d time.Duration, f func()) *time.Timer {
+		<-scheduleSent
+		f()
+		return nil
+	}
+	// 5 times timeout, will not close the connection
+	go func() {
+		tc.KeepAlive.StartSchedule()
+	}()
+	for i := 0; i < 5; i++ {
+		go func() {
+			scheduleSent <- 1
+		}()
+	}
+	time.Sleep(time.Millisecond * 100)
+	if testStats.success != 0 || testStats.timeout != 5 {
+		t.Errorf("keep alive handle status not expected: %+v", testStats)
+	}
+	heartbeatFailCount := tc.KeepAlive.heartbeatFailCount.Load()
+	if heartbeatFailCount != 5 {
+		t.Errorf("timeout count not reset by success, count: %d", heartbeatFailCount)
+	}
+
+	// send 4 heartbeats
+	time.Sleep(time.Millisecond * 200)
+
+	// set no delay, will not timeout
+	tc.Server.delay = 0
+	tc.KeepAlive.SendKeepAlive()
+	time.Sleep(time.Millisecond * 20)
+	// stop schedule
+	tc.KeepAlive.Stop()
+	if testStats.success != 1 || testStats.timeout != 5 {
+		t.Errorf("keep alive handle status not expected: %+v", testStats)
+	}
+	heartbeatFailCount = tc.KeepAlive.heartbeatFailCount.Load()
+	if heartbeatFailCount != 0 {
+		t.Errorf("timeout count not reset by success, count: %d", heartbeatFailCount)
+	}
 }

@@ -217,6 +217,10 @@ type ClusterInfo interface {
 	// IdleTimeout returns the idle timeout
 	IdleTimeout() time.Duration
 
+	// KeepAliveConfig returns the keepalive config
+	// maybe return nil
+	KeepAliveConfig() KeepAliveConfig
+
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
 

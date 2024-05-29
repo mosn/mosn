@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -40,6 +41,10 @@ type xprotocolKeepAlive struct {
 	Protocol  api.XProtocol
 	Timeout   time.Duration
 	Callbacks []types.KeepAliveCallback
+	// Interval Use Interval to start a scheduled task to send heartbeat messages.
+	// If the value is 0, the scheduled task is not started
+	Interval  time.Duration
+	afterFunc func(d time.Duration, f func()) *time.Timer // for easy unit test
 
 	heartbeatFailCount atomicex.Uint32 // the number of consecutive heartbeat failures, will be reset after hb succ
 	previousIsSucc     atomicex.Bool   // the previous heartbeat result
@@ -80,6 +85,7 @@ func (kp *xprotocolKeepAlive) loadAndDelete(key uint64) (val *keepAliveTimeout, 
 }
 
 // NewKeepAlive creates a keepalive object
+// Deprecated: please use NewKeepAliveWithConfig instead, this function will be removed in future version
 func NewKeepAlive(codec str.Client, proto api.XProtocol, timeout time.Duration) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
 		Codec:     codec,
@@ -102,10 +108,70 @@ func NewKeepAlive(codec str.Client, proto api.XProtocol, timeout time.Duration) 
 	return kp
 }
 
+// NewKeepAliveWithConfig creates a keepalive object with keepalive config
+func NewKeepAliveWithConfig(codec str.Client, proto api.XProtocol, conf types.KeepAliveConfig) types.KeepAlive {
+	if conf.Timeout <= 0 {
+		conf.Timeout = time.Second // set default timeout
+	}
+	kp := &xprotocolKeepAlive{
+		Codec:     codec,
+		Protocol:  proto,
+		Timeout:   conf.Timeout,
+		Interval:  conf.Interval,
+		afterFunc: time.AfterFunc,
+		Callbacks: make([]types.KeepAliveCallback, 0),
+		stop:      make(chan struct{}),
+		requests:  make(map[uint64]*keepAliveTimeout),
+	}
+
+	// initially set previous heartbeat request success
+	kp.previousIsSucc.Store(true)
+
+	// initially setup sets the heartbeat check fast failure task to nil
+	kp.fastFailTask.Store(nilTask)
+
+	// register keepalive to connection event listener
+	// if connection is closed, keepalive should stop
+	kp.Codec.AddConnectionEventListener(kp)
+	return kp
+}
+
+func (kp *xprotocolKeepAlive) StartSchedule() {
+	if kp.Interval <= 0 {
+		return
+	}
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] [start schedule] conn id:[%d], interval: %v",
+			kp.Codec.ConnID(), kp.Interval)
+	}
+	kp.runSchedule()
+}
+
+func (kp *xprotocolKeepAlive) runSchedule() {
+	kp.afterFunc(kp.Interval, func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.DefaultLogger.Alertf("upstream.keepalive", "[stream] [xprotocol] [keepalive] "+
+					"Schedule send keepalive heartbeat conn id:[%d], panic %v\n%s",
+					kp.Codec.ConnID(), r, string(debug.Stack()))
+			}
+			select {
+			case <-kp.stop:
+				return
+			default:
+				kp.runSchedule()
+			}
+		}()
+		kp.SendKeepAlive()
+	})
+}
+
 // keepalive should stop when connection closed
 func (kp *xprotocolKeepAlive) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		kp.Stop()
+	} else if event == api.Connected {
+		kp.StartSchedule()
 	}
 }
 

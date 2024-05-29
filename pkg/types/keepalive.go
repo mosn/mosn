@@ -41,3 +41,10 @@ const (
 
 // KeepAliveCallback is a callback when keep alive handle response/timeout
 type KeepAliveCallback func(KeepAliveStatus)
+
+type KeepAliveConfig struct {
+	// interval between two keepalive packets
+	Interval time.Duration
+	// timeout for waiting for keepalive response
+	Timeout time.Duration
+}
