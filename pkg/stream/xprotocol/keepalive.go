@@ -153,7 +153,7 @@ func (kp *xprotocolKeepAlive) runSchedule() {
 			if r := recover(); r != nil {
 				log.DefaultLogger.Alertf("upstream.keepalive", "[stream] [xprotocol] [keepalive] "+
 					"Schedule send keepalive heartbeat conn id:[%d], panic %v\n%s",
-					kp.Codec.ConnID(), r, string(debug.Stack()))
+					kp.Codec.ConnID(), r, debug.Stack())
 			}
 			select {
 			case <-kp.stop:
