@@ -103,6 +103,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	KeepAlive            KeepAlive           `json:"keepalive,omitempty"`
 	IdleTimeout          *api.DurationConfig `json:"idle_timeout,omitempty"`
 	LbConfig             *LbConfig           `json:"lbconfig,omitempty"`
 	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
@@ -129,6 +130,34 @@ type SlowStartConfig struct {
 	SlowStartDuration *api.DurationConfig `json:"slow_start_duration,omitempty"`
 	Aggression        float64             `json:"aggression,omitempty"`
 	MinWeightPercent  float64             `json:"min_weight_percent,omitempty"`
+}
+
+type KeepAliveConfig struct {
+	IntervalConfig api.DurationConfig `json:"interval,omitempty"`
+	TimeoutConfig  api.DurationConfig `json:"timeout,omitempty"`
+}
+
+type KeepAlive struct {
+	KeepAliveConfig
+	Interval time.Duration `json:"-"`
+	Timeout  time.Duration `json:"-"`
+}
+
+// MarshalJSON Marshal implement a json.Marshaler
+func (ka KeepAlive) MarshalJSON() ([]byte, error) {
+	ka.KeepAliveConfig.IntervalConfig.Duration = ka.Interval
+	ka.KeepAliveConfig.TimeoutConfig.Duration = ka.Timeout
+	return json.Marshal(ka.KeepAliveConfig)
+}
+
+// UnmarshalJSON implement a json.Unmarshaler
+func (ka *KeepAlive) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &ka.KeepAliveConfig); err != nil {
+		return err
+	}
+	ka.Timeout = ka.KeepAliveConfig.TimeoutConfig.Duration
+	ka.Interval = ka.KeepAliveConfig.IntervalConfig.Duration
+	return nil
 }
 
 // HealthCheck is a configuration of health check
