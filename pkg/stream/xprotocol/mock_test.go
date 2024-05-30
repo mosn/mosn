@@ -109,7 +109,7 @@ func (s *mockServer) HandleConn(conn net.Conn) {
 			if n > 0 {
 				iobuf.Write(buf[:n])
 				for iobuf.Len() > 1 {
-					resp := s.Reply(iobuf)
+					resp := s.Reply(iobuf, conn)
 					if resp != nil {
 						conn.Write(resp)
 					}
@@ -119,23 +119,26 @@ func (s *mockServer) HandleConn(conn net.Conn) {
 	}
 }
 
-func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
-	if s.delay != 0 {
-		time.Sleep(s.delay)
-	}
+func (s *mockServer) Reply(iobuf types.IoBuffer, downstreamConn net.Conn) []byte {
+
 	cmd, _ := s.protocol.Decode(context.Background(), iobuf)
 	if cmd == nil {
 		return nil
 	}
-	xframe := cmd.(api.XFrame)
-	if xframe.IsHeartbeatFrame() {
-		ack := s.protocol.Reply(context.TODO(), xframe)
-		resp, err := s.protocol.Encode(context.Background(), ack)
-		if err != nil {
-			return nil
+	go func() {
+		if s.delay != 0 {
+			time.Sleep(s.delay)
 		}
-		return resp.Bytes()
-	}
+		xframe := cmd.(api.XFrame)
+		if xframe.IsHeartbeatFrame() {
+			ack := s.protocol.Reply(context.TODO(), xframe)
+			resp, err := s.protocol.Encode(context.Background(), ack)
+			if err != nil {
+				return
+			}
+			downstreamConn.Write(resp.Bytes())
+		}
+	}()
 	return nil
 }
 

@@ -21,7 +21,6 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
@@ -215,7 +214,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	proto := p.connpool.codec.NewXProtocol(ctx)
 	if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 		// create keepalive
-		rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
+		rpcKeepAlive := NewKeepAliveWithConfig(ac.codecClient, proto, host.ClusterInfo().KeepAliveConfig())
 		rpcKeepAlive.StartIdleTimeout()
 
 		ac.SetHeartBeater(rpcKeepAlive)
