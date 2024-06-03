@@ -22,7 +22,6 @@ import (
 	"errors"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/stream"
@@ -186,7 +185,7 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 	proto := p.connpool.codec.NewXProtocol(ctx)
 	if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 		// create keepalive
-		rpcKeepAlive := NewKeepAlive(ac.codecClient, proto, time.Second)
+		rpcKeepAlive := NewKeepAliveWithConfig(ac.codecClient, proto, host.ClusterInfo().KeepAliveConfig())
 		rpcKeepAlive.StartIdleTimeout()
 
 		ac.SetHeartBeater(rpcKeepAlive)

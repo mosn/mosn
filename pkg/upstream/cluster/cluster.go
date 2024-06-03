@@ -78,6 +78,11 @@ func NewClusterInfo(clusterConfig v2.Cluster) types.ClusterInfo {
 	} else {
 		info.connectTimeout = network.DefaultConnectTimeout
 	}
+	// set keepalive
+	{
+		info.keepAliveConfig.Interval = clusterConfig.KeepAlive.Interval
+		info.keepAliveConfig.Timeout = clusterConfig.KeepAlive.Timeout
+	}
 
 	// set IdleTimeout
 	if clusterConfig.IdleTimeout != nil {
@@ -220,6 +225,7 @@ type clusterInfo struct {
 	clusterManagerTLS    bool
 	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
+	keepAliveConfig      types.KeepAliveConfig
 	idleTimeout          time.Duration
 	lbConfig             *v2.LbConfig
 	slowStart            types.SlowStart
@@ -271,6 +277,10 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 
 func (ci *clusterInfo) ConnectTimeout() time.Duration {
 	return ci.connectTimeout
+}
+
+func (ci *clusterInfo) KeepAliveConfig() types.KeepAliveConfig {
+	return ci.keepAliveConfig
 }
 
 func (ci *clusterInfo) IdleTimeout() time.Duration {
