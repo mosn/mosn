@@ -58,7 +58,17 @@ func (f *StreamConnFactory) CreateClientStream(context context.Context, connecti
 
 func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+	var config StreamConfig
+	if pgc := mosnctx.Get(context, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(StreamConfig); ok {
+			config = extendConfig
+		}
+	}
+	if config.Http2UseStandardLib {
+		return newXServerStreamConnection(context, connection, serverCallbacks)
+	}
 	return newServerStreamConnection(context, connection, serverCallbacks)
+
 }
 
 func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
@@ -143,11 +153,13 @@ func (s *stream) GetStream() types.Stream {
 }
 
 type StreamConfig struct {
-	Http2UseStream bool `json:"http2_use_stream,omitempty"`
+	Http2UseStream      bool `json:"http2_use_stream,omitempty"`
+	Http2UseStandardLib bool `json:"http_2_use_standard_lib,omitempty"`
 }
 
 var defaultStreamConfig = StreamConfig{
-	Http2UseStream: false,
+	Http2UseStream:      false,
+	Http2UseStandardLib: false,
 }
 
 func streamConfigHandler(v interface{}) interface{} {
