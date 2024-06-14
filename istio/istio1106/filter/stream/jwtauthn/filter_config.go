@@ -21,7 +21,7 @@ func NewFilterConfig(config *jwtauthnv3.JwtAuthentication) (FilterConfig, error)
 			return nil, err
 		}
 		rulePairs = append(rulePairs, &MatcherVerifierPair{
-			matcher:  NewMatcher(rule),
+			matcher:  NewMatcher(rule.GetMatch()),
 			verifier: verifier,
 		})
 	}

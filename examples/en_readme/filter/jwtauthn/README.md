@@ -15,7 +15,7 @@ go build
 + examples code path
 
 ```
-${targetpath} = ${projectpath}/examples/codes/http-sample/
+${targetpath} = ${projectpath}/examples/codes/filter/jwtauthn/
 ```
 
 + Move the target to example code path
