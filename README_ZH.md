@@ -92,6 +92,11 @@ MOSN 可以和 Istio 集成构建 Service Mesh，也可以作为独立的四、�
         </a>
       </td>
       <td width="222px" align="center"  valign="middle">
+        <a href="https://help.aliyun.com/zh/mesh/user-guide/quick-use-of-mini-mesh?spm=a2c4g.11186623.0.i3" target="_blank">
+          <img width="200px"  src="https://mosn.io/images/community/shuke.png">
+        </a>
+      </td>
+      <td width="222px" align="center"  valign="middle">
         <a href="https://www.aliyun.com" target="_blank">
           <img width="200px"  src="https://mosn.io/images/community/aliyun.png">
         </a>
