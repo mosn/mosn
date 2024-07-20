@@ -124,5 +124,5 @@ func (proto tarsProtocol) EnableWorkerPool() bool {
 }
 
 func (proto tarsProtocol) GenerateRequestID(streamID *uint64) uint64 {
-	return atomic.AddUint64(streamID, 1)
+	return uint64(int32(atomic.AddUint64(streamID, 1)))
 }
