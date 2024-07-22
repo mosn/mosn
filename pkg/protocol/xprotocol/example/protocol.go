@@ -131,5 +131,6 @@ func (proto proto) EnableWorkerPool() bool {
 }
 
 func (proto proto) GenerateRequestID(streamID *uint64) uint64 {
-	return atomic.AddUint64(streamID, 1)
+	// fix bug for issue: https://github.com/mosn/mosn/issues/2403
+	return uint64(uint32(atomic.AddUint64(streamID, 1)))
 }
