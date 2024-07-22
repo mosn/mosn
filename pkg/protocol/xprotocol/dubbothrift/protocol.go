@@ -48,6 +48,7 @@ import (
  *   string - service name
  *   long   - dubbo request id
  */
+
 var MagicTag = []byte{0xda, 0xbc}
 
 type thriftProtocol struct{}
