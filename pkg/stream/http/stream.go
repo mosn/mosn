@@ -33,15 +33,16 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
-	"mosn.io/pkg/variable"
 )
 
 // TODO: move it to main
@@ -509,7 +510,7 @@ func (conn *serverStreamConnection) serve() {
 		maxRequestBodySize := conn.config.MaxRequestBodySize
 
 		// 2. blocking read using fasthttp.Request.Read
-		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
+		err := parseRequest(conn.br, request, maxRequestBodySize)
 		if err == nil {
 			// 3. 'Expect: 100-continue' request handling.
 			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
@@ -602,6 +603,22 @@ func (conn *serverStreamConnection) serve() {
 
 		conn.contextManager.Next()
 	}
+}
+
+func parseRequest(br *bufio.Reader, request *fasthttp.Request, maxRequestBodySize int) error {
+	request.Reset()
+	if err := request.Header.Read(br); err != nil {
+		return err
+	}
+
+	if request.MayContinue() {
+		// 'Expect: 100-continue' header found. Let the caller deciding
+		// whether to read request body or
+		// to return StatusExpectationFailed.
+		return nil
+	}
+
+	return request.ContinueReadBody(br, maxRequestBodySize, false)
 }
 
 func (conn *serverStreamConnection) ActiveStreamsNum() int {
