@@ -41,16 +41,24 @@ func SetHealthFlag(p *uint64, flag api.HealthFlag) {
 	if p == nil {
 		return
 	}
-	f := atomic.LoadUint64(p)
-	f |= uint64(flag)
-	atomic.StoreUint64(p, f)
+	for {
+		oldFlag := atomic.LoadUint64(p)
+		newFlag := oldFlag | uint64(flag)
+		if atomic.CompareAndSwapUint64(p, oldFlag, newFlag) {
+			return
+		}
+	}
 }
 
 func ClearHealthFlag(p *uint64, flag api.HealthFlag) {
 	if p == nil {
 		return
 	}
-	f := atomic.LoadUint64(p)
-	f &= ^uint64(flag)
-	atomic.StoreUint64(p, f)
+	for {
+		oldFlag := atomic.LoadUint64(p)
+		newFlag := oldFlag & ^uint64(flag)
+		if atomic.CompareAndSwapUint64(p, oldFlag, newFlag) {
+			return
+		}
+	}
 }
