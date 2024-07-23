@@ -24,12 +24,12 @@ func NewVerifier(require *jwtauthnv3.JwtRequirement, providers map[string]*jwtau
 	}
 
 	var providerName string
-	switch {
-	case require.GetProviderName() != "":
+	switch require.RequiresType.(type) {
+	case *jwtauthnv3.JwtRequirement_ProviderName:
 		providerName = require.GetProviderName()
-	case require.GetRequiresAny() != nil:
+	case *jwtauthnv3.JwtRequirement_RequiresAny:
 		return newAnyVerifier(require.GetRequiresAny().GetRequirements(), providers, fetcher)
-	case require.GetAllowMissing() != nil:
+	case *jwtauthnv3.JwtRequirement_AllowMissing:
 		return newAllowMissingVerifier(require, parentProviders, fetcher), nil
 	}
 
