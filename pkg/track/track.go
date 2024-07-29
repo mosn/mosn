@@ -42,6 +42,15 @@ func (t *Tracks) Begin() {
 	}
 }
 
+func (t *Tracks) ResponseBegin() {
+	if t == nil || t.disabled {
+		return
+	}
+	if t.times[ResponseStartTimestamp].IsZero() {
+		t.times[ResponseStartTimestamp] = time.Now()
+	}
+}
+
 func (t *Tracks) StartTrack(phase TrackPhase) {
 	if t == nil || t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
