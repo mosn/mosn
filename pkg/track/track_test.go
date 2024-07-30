@@ -121,7 +121,7 @@ func TestTrack3(t *testing.T) {
 	onlyRequest := strings.Split(strings.Trim(s, "[]"), ",")
 	assert.Equal(t, 0, len(onlyRequest[1]))
 
-	track.ResponseBegin()
+	track.BeginTimestampPhase(ResponseStartTimestamp)
 	s = track.GetTrackTimestamp()
 	requestAndResponse := strings.Split(strings.Trim(s, "[]"), ",")
 	assert.NotEqual(t, 0, len(requestAndResponse[1]))

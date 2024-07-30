@@ -42,12 +42,12 @@ func (t *Tracks) Begin() {
 	}
 }
 
-func (t *Tracks) ResponseBegin() {
-	if t == nil || t.disabled {
+func (t *Tracks) BeginTimestampPhase(phase TimestampPhase) {
+	if t == nil || t.disabled || phase >= MaxTimestampPhase || phase <= NoTimestampPhase {
 		return
 	}
-	if t.times[ResponseStartTimestamp].IsZero() {
-		t.times[ResponseStartTimestamp] = time.Now()
+	if t.times[phase].IsZero() {
+		t.times[phase] = time.Now()
 	}
 }
 
