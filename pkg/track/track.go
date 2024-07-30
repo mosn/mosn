@@ -42,6 +42,15 @@ func (t *Tracks) Begin() {
 	}
 }
 
+func (t *Tracks) BeginTimestampPhase(phase TimestampPhase) {
+	if t == nil || t.disabled || phase >= MaxTimestampPhase || phase <= NoTimestampPhase {
+		return
+	}
+	if t.times[phase].IsZero() {
+		t.times[phase] = time.Now()
+	}
+}
+
 func (t *Tracks) StartTrack(phase TrackPhase) {
 	if t == nil || t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return

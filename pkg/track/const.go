@@ -40,6 +40,8 @@ const (
 
 type TimestampPhase int
 
+const NoTimestampPhase TimestampPhase = -1
+
 const (
 	RequestStartTimestamp TimestampPhase = iota
 	ResponseStartTimestamp
