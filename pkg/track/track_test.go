@@ -19,8 +19,11 @@ package track
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type phaseCase struct {
@@ -109,4 +112,17 @@ func BenchmarkTrack(b *testing.B) {
 			track.EndTrack(p)
 		}
 	}
+}
+
+func TestTrack3(t *testing.T) {
+	track := Tracks{}
+	track.Begin()
+	s := track.GetTrackTimestamp()
+	onlyRequest := strings.Split(strings.Trim(s, "[]"), ",")
+	assert.Equal(t, 0, len(onlyRequest[1]))
+
+	track.BeginTimestampPhase(ResponseStartTimestamp)
+	s = track.GetTrackTimestamp()
+	requestAndResponse := strings.Split(strings.Trim(s, "[]"), ",")
+	assert.NotEqual(t, 0, len(requestAndResponse[1]))
 }
