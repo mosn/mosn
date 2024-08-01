@@ -1,5 +1,20 @@
 # 更新日志
 
+## v1.6.1
+
+### 新功能
+
+- 在 keepalive 模块中主持主动发送心跳 (#2397) [@alpha-baby](https://github.com/alpha-baby)
+
+### 优化
+
+- 为了定位问题增加更多的日志输出 (#2392) [@alpha-baby](https://github.com/alpha-baby)
+- 在 track 模块中增加方法，支持设置不同阶段的开始时间戳 [@chuailiwu](https://github.com/chuailiwu)
+
+### Bug 修复
+
+- 修复 xprotocol 模块中 clientStreamIDBase 变量带来的精度损失 (#2404) [@alpha-baby](https://github.com/alpha-baby)
+
 ## v1.6.0
 
 ### 新功能
