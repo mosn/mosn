@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.6.1
+
+### New Features
+
+- actively sends heartbeat request on keepalive module (#2397) [@alpha-baby](https://github.com/alpha-baby)
+
+### Optimization
+
+- add more log output for troubleshooting (#2392) [@alpha-baby](https://github.com/alpha-baby)
+- Add a method in the 'track' module to support setting timestamp for the start of different phases. [@chuailiwu](https://github.com/chuailiwu)
+
+### Bug fixes
+
+- precision loss for xprotocol clientStreamIDBase (#2404) [@alpha-baby](https://github.com/alpha-baby)
+
 ## v1.6.0
 
 ### New Features
