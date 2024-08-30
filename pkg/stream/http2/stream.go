@@ -49,6 +49,10 @@ func init() {
 	protocol.RegisterProtocol(protocol.HTTP2, NewConnPool, &StreamConnFactory{}, protocol.GetStatusCodeMapping{})
 }
 
+const (
+	DefaultStreamId = 0
+)
+
 type StreamConnFactory struct{}
 
 func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
@@ -634,6 +638,7 @@ type clientStreamConnection struct {
 	streams                       map[uint32]*clientStream
 	mClientConn                   *http2.MClientConn
 	streamConnectionEventListener types.StreamConnectionEventListener
+	pingMutex 					  sync.RWMutex
 }
 
 func (conn *clientStreamConnection) GoAway() {
@@ -746,6 +751,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	stream.sc = conn
 	stream.receiver = receiver
 	stream.conn = conn.conn
+	stream.id = uint32(protocol.GenerateID())
 	if useStream, err := variable.Get(ctx, types.VarHttp2RequestUseStream); err == nil {
 		if h2UseStream, ok := useStream.(bool); ok {
 			stream.reqUseStream = h2UseStream
@@ -775,6 +781,14 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	}
 
 	if rsp == nil && trailer == nil && data == nil && !endStream && lastStream == 0 {
+		if f.Header().Type == http2.FramePing && f.(*http2.PingFrame).IsAck(){
+			conn.mutex.Lock()
+			stream := conn.streams[DefaultStreamId]
+			_ = variable.Set(stream.ctx, types.VariableStreamID, stream.id)
+			stream.receiver.OnReceive(stream.ctx, nil, nil, nil)
+			delete(conn.streams, DefaultStreamId)
+			conn.mutex.Unlock()
+		}
 		return
 	}
 
@@ -1024,6 +1038,14 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers api.Head
 }
 
 func (s *clientStream) AppendPing(context context.Context) {
+	// we need to protect AppendPing is executed once at the same time. to avoid concurrent problem for stream of stream id 0.
+	s.sc.pingMutex.Lock()
+	defer s.sc.pingMutex.Unlock()
+
+	s.sc.mutex.Lock()
+	// in network, we need to store ping stream id as 0 in conn streams, to avoid be duplicated with other stream id.
+	s.sc.streams[DefaultStreamId] = s
+	s.sc.mutex.Unlock()
 	err := s.sc.mClientConn.Ping(context)
 	if err != nil {
 		log.Proxy.Errorf(s.ctx, "http2 client ping error = %v", err)
