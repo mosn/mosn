@@ -39,7 +39,7 @@ type poolMultiplex struct {
 	activeClients          []sync.Map // TODO: do not need map anymore
 	currentCheckAndInitIdx int64
 
-	shutdown bool // pool is already shutdown
+	shutdown uint32 // pool is already shutdown
 }
 
 var (
@@ -89,7 +89,7 @@ func (p *poolMultiplex) init(sub types.ProtocolName, index int) {
 		defer p.clientMux.Unlock()
 
 		// if the pool is already shut down, do nothing directly return
-		if p.shutdown {
+		if atomic.LoadUint32(&p.shutdown) == 1 {
 			return
 		}
 		ctx := context.Background() // TODO: a new context ?
@@ -194,20 +194,22 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		host.ClusterInfo().ResourceManager().Requests().Increase()
 	}
 
+	// this is for avoiding race:
+	// check if pool is shutdown or active client state is GoAway again, after created new stream,
+	// to avoid continue sending request to upstream, since the connection may be closing in another goroutine.
+	if atomic.LoadUint32(&p.shutdown) == 1 || atomic.LoadUint32(&activeClient.state) == GoAway {
+		streamEncoder.GetStream().ResetStream(types.StreamLocalReset)
+		return host, nil, types.ConnectionFailure
+	}
+
 	return host, streamEncoder, ""
 }
 
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *poolMultiplex) Shutdown() {
 	utils.GoWithRecover(func() {
-		{
-			p.clientMux.Lock()
-			if p.shutdown {
-				p.clientMux.Unlock()
-				return
-			}
-			p.shutdown = true
-			p.clientMux.Unlock()
+		if !atomic.CompareAndSwapUint32(&p.shutdown, 0, 1) {
+			return
 		}
 
 		for i := 0; i < len(p.activeClients); i++ {
@@ -215,6 +217,9 @@ func (p *poolMultiplex) Shutdown() {
 				ac, _ := v.(*activeClientMultiplex)
 				if ac.keepAlive != nil {
 					ac.keepAlive.keepAlive.Stop()
+				}
+				if ac.codecClient.ActiveRequestsNum() == 0 {
+					ac.codecClient.Close()
 				}
 				return true
 			}
@@ -369,7 +374,8 @@ func (ac *activeClientMultiplex) OnDestroyStream() {
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
-	if atomic.LoadUint32(&ac.state) == GoAway && ac.codecClient.ActiveRequestsNum() == 0 {
+	if (atomic.LoadUint32(&ac.pool.shutdown) == 1 || atomic.LoadUint32(&ac.state) == GoAway) &&
+		ac.codecClient.ActiveRequestsNum() == 0 {
 		ac.codecClient.Close()
 	}
 }
