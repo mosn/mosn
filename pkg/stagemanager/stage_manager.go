@@ -420,7 +420,7 @@ func (stm *StageManager) Stop() {
 func StartNewServer() error {
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
+		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
 
 	// Fork exec a new server
