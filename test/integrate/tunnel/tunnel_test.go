@@ -159,7 +159,7 @@ func forkMeshAgentServer(value string) int {
 	log.DefaultLogger.Infof("try to fork %v", value)
 	execSpec := &syscall.ProcAttr{
 		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
+		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
 
 	// Fork exec the new version of your server

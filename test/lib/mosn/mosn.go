@@ -31,7 +31,7 @@ func NewMosnOperator(binpath, cfgpath string) *MosnOperator {
 func (op *MosnOperator) Start(params ...string) error {
 	spec := &syscall.ProcAttr{
 		Env:   os.Environ(),
-		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
+		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
 	defaultParams := []string{op.binPath, "start", "-c", op.configPath}
 	if len(params) > 0 {
