@@ -1932,7 +1932,7 @@ func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data buf
 	}
 
 	var hc headersOrContinuation = hf
-	frag := make([][]byte, 1)
+	frag := make([][]byte, 0, 1)
 	msize := 0
 	for {
 		frag = append(frag, hc.HeaderBlockFragment())
