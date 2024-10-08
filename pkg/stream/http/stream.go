@@ -669,6 +669,8 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	//if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
 	if endStream {
 		headers.SetMethod(http.MethodGet)
+		// https://github.com/mosn/mosn/issues/2218
+		headers.Del(fasthttp.HeaderTransferEncoding)
 	} else {
 		headers.SetMethod(http.MethodPost)
 	}
