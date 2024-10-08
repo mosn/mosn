@@ -19,10 +19,13 @@ package http
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,6 +55,7 @@ func init() {
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
 const defaultMaxHeaderSize = 8 * 1024
+const defaultPerStreamBodySize = 1 << 20
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -133,6 +137,7 @@ type streamConnection struct {
 	bufChan    chan buffer.IoBuffer
 	endRead    chan struct{}
 	connClosed chan bool
+	useStream  bool
 
 	br *bufio.Reader
 }
@@ -237,7 +242,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
 	}
-
+	csc.useStream = parseStreamConfig(ctx).Http1UseStream
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
@@ -287,12 +292,16 @@ func (conn *clientStreamConnection) serve() {
 		if request.Header.IsHead() {
 			s.response.SkipBody = true
 		}
-
-		// 1. blocking read using fasthttp.Response.Read
-		err := s.response.Read(conn.br)
+		var httpRspUseStream bool
+		if useStream, err := variable.Get(s.ctx, types.VarHttpResponseUseStream); err == nil {
+			if httpUseStream, ok := useStream.(bool); ok {
+				httpRspUseStream = httpUseStream
+			}
+		}
+		err := s.response.Header.Read(conn.br)
 		if err != nil {
 			if s != nil {
-				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
+				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response header error: %s", err)
 				reason := conn.resetReason
 				if reason == "" {
 					reason = types.StreamRemoteReset
@@ -302,26 +311,350 @@ func (conn *clientStreamConnection) serve() {
 			return
 		}
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
+		// 1. handle response
+		if conn.useStream || httpRspUseStream {
+			handleStreamResponse(conn)
+		} else {
+			handleBlockedResponse(conn)
 		}
-
-		// 2. response processing
+		// 2. set client stream reset flag
 		resetConn := false
 		if s.response.ConnectionClose() {
 			resetConn = true
 		}
-
 		// 3. local reset if header 'Connection: close' exists
 		if resetConn {
 			// goaway the connpool
 			s.connection.streamConnectionEventListener.OnGoAway()
 		}
+	}
+}
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
+// handleStreamResponse: http stream response
+func handleStreamResponse(conn *clientStreamConnection) {
+	s := conn.stream
+	startStreamResponse := func(cs *clientStream) {
+		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
+		cs.recData = buffer.NewPipeBuffer(0)
+		cs.receiver.OnReceive(cs.ctx, mosnhttp.ResponseHeader{ResponseHeader: &s.response.Header}, cs.recData, nil)
+	}
+
+	sendStreamResponse := func(cs *clientStream) error {
+		return writeBodyToPipe(conn.br, 0, s.response.Header.ContentLength(), func(data []byte) error {
+			if _, err := cs.recData.Write(data); err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+	finishStreamResponse := func(cs *clientStream) {
+		cs.recData.CloseWithError(io.EOF)
+		// destroy stream
+		cs.stream.DestroyStream()
+	}
+
+	startStreamResponse(s)
+	if err := sendStreamResponse(s); err != nil {
+		log.Proxy.Errorf(s.connection.context, "[stream] [http] [stream response] client stream write buffer: %s", err)
+		reason := conn.resetReason
+		if reason == "" {
+			reason = types.StreamRemoteReset
+		}
+		s.ResetStream(reason)
+		return
+	}
+	finishStreamResponse(s)
+}
+
+// handleBlockedResponse: http blocked response
+func handleBlockedResponse(conn *clientStreamConnection) {
+	s := conn.stream
+	_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, false)
+
+	err := s.response.ReadBody(conn.br, 0)
+	if err != nil {
+		if s != nil {
+			log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
+			reason := conn.resetReason
+			if reason == "" {
+				reason = types.StreamRemoteReset
+			}
+			s.ResetStream(reason)
+		}
+		return
+	}
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
+	}
+
+	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+		s.handleResponse()
+	}
+}
+
+// copy from fasthttp github.com/valyala/fasthttp@v1.40.0/http.go:1374
+func writeBodyToPipe(r *bufio.Reader, maxBodySize int, contentLength int, writeFunc func([]byte) error) (err error) {
+	buf := make([]byte, 0)
+	if contentLength >= 0 {
+		err = writeFixedBody(r, contentLength, maxBodySize, buf, writeFunc)
+	} else if contentLength == -1 {
+		err = writeBodyChunked(r, maxBodySize, buf, writeFunc)
+	} else {
+		err = writeBodyIdentity(r, maxBodySize, buf, writeFunc)
+	}
+	return err
+}
+
+var ErrBodyTooLarge = errors.New("body too large")
+
+func writeFixedBody(r *bufio.Reader, contentLength int, maxBodySize int, dst []byte, writeFunc func(data []byte) error) error {
+	if maxBodySize > 0 && contentLength > maxBodySize {
+		return ErrBodyTooLarge
+	}
+	_, err := writeBodyFixedSize(r, dst, contentLength, writeFunc)
+	return err
+}
+
+func writeBodyFixedSize(r *bufio.Reader, dst []byte, n int, writeFunc func(data []byte) error) ([]byte, error) {
+	if n == 0 {
+		return dst, nil
+	}
+
+	offset := len(dst)
+	dstLen := offset + n
+	if cap(dst) < dstLen {
+		b := make([]byte, round2(dstLen))
+		copy(b, dst)
+		dst = b
+	}
+	dst = dst[:dstLen]
+
+	for {
+		nn, err := r.Read(dst[offset:])
+		if nn <= 0 {
+			if err != nil {
+				if err == io.EOF {
+					err = io.ErrUnexpectedEOF
+				}
+				return dst[:offset], err
+			}
+			panic(fmt.Sprintf("BUG: bufio.Read() returned (%d, nil)", nn))
+		}
+		if err = writeFunc((dst)[offset : offset+nn]); err != nil {
+			return dst, err
+		}
+		offset += nn
+		if offset == dstLen {
+			return dst, nil
 		}
 	}
+}
+
+func writeBodyIdentity(r *bufio.Reader, maxBodySize int, dst []byte, writeFunc func(data []byte) error) error {
+	dst = dst[:cap(dst)]
+	if len(dst) == 0 {
+		dst = make([]byte, 1024)
+	}
+	offset := 0
+	for {
+		nn, err := r.Read(dst[offset:])
+		if nn <= 0 {
+			return handleError(err, nn)
+		}
+		if err = writeFunc((dst)[offset : offset+nn]); err != nil {
+			return err
+		}
+		offset += nn
+		if maxBodySize > 0 && offset > maxBodySize {
+			return ErrBodyTooLarge
+		}
+		dst = expandBufferIfNeeded(dst, offset, maxBodySize)
+	}
+}
+
+func handleError(err error, nn int) error {
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}
+	log.DefaultLogger.Fatalf(fmt.Sprintf("BUG: bufio.Read() returned (%d, nil)", nn))
+	return nil
+}
+
+func expandBufferIfNeeded(dst []byte, offset int, maxBodySize int) []byte {
+	if len(dst) == offset {
+		n := round2(2 * offset)
+		if maxBodySize > 0 && n > maxBodySize {
+			n = maxBodySize + 1
+		}
+		b := make([]byte, n)
+		copy(b, dst)
+		dst = b
+	}
+	return dst
+}
+
+var strCRLF = []byte("\r\n")
+
+func writeBodyChunked(r *bufio.Reader, maxBodySize int, dst []byte, writeFunc func(data []byte) error) error {
+	if len(dst) > 0 {
+		log.DefaultLogger.Fatalf("BUG: expected zero-length buffer")
+	}
+
+	for {
+		chunkSize, err := parseChunkSize(r)
+		if err != nil {
+			return err
+		}
+		if chunkSize == 0 {
+			chunkEnd := buildChunkEnd()
+			if err = writeFunc(chunkEnd); err != nil {
+				return errors.New("cannot write chunk end: " + err.Error())
+			}
+			return nil
+		}
+
+		dst, err = handleChunk(r, maxBodySize, dst, chunkSize, writeFunc)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+func handleChunk(r *bufio.Reader, maxBodySize int, dst []byte, chunkSize int, writeFunc func(data []byte) error) ([]byte, error) {
+	if maxBodySize > 0 && len(dst)+chunkSize > maxBodySize {
+		return dst, ErrBodyTooLarge
+	}
+
+	chunkHeader := buildChunkHeader(chunkSize)
+	if err := writeFunc(chunkHeader); err != nil {
+		return dst, errors.New("cannot write chunk header: " + err.Error())
+	}
+
+	strCRLFLen := len(strCRLF)
+	dst, err := writeBodyFixedSize(r, dst, chunkSize+strCRLFLen, writeFunc)
+	if err != nil {
+		return dst, err
+	}
+
+	if !bytes.Equal(dst[len(dst)-strCRLFLen:], strCRLF) {
+		return dst, errors.New("cannot find crlf at the end of chunk")
+	}
+
+	return dst[:len(dst)-strCRLFLen], nil
+}
+
+func buildChunkEnd() []byte {
+	chunkEnd := buildChunkHeader(0)
+	chunkEnd = append(chunkEnd, strCRLF...)
+	return chunkEnd
+}
+
+func buildChunkHeader(chunkSize int) []byte {
+	chunkHeader := make([]byte, 0, 16)
+	chunkHeader = strconv.AppendInt(chunkHeader, int64(chunkSize), 16)
+	chunkHeader = append(chunkHeader, strCRLF...)
+	return chunkHeader
+}
+
+func parseChunkSize(r *bufio.Reader) (int, error) {
+	n, err := readHexInt(r)
+	if err != nil {
+		return -1, err
+	}
+	for {
+		c, err := r.ReadByte()
+		if err != nil {
+			return -1, fmt.Errorf("cannot read '\r' char at the end of chunk size: %w", err)
+		}
+		// Skip chunk extension after chunk size.
+		// Add support later if anyone needs it.
+		if c != '\r' {
+			continue
+		}
+		if err := r.UnreadByte(); err != nil {
+			return -1, fmt.Errorf("cannot unread '\r' char at the end of chunk size: %w", err)
+
+		}
+		break
+	}
+	err = readCrLf(r)
+	if err != nil {
+		return -1, err
+	}
+	return n, nil
+}
+
+const (
+	maxHexIntChars = 15
+	hex2intTable   = "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x00\x01\x02\x03\x04\x05\x06\a\b\t\x10\x10\x10\x10\x10\x10\x10\n\v\f\r\x0e\x0f\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\n\v\f\r\x0e\x0f\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
+)
+
+func readHexInt(r *bufio.Reader) (int, error) {
+	var k, i, n int
+	for {
+		c, err := r.ReadByte()
+		if err != nil {
+			if err == io.EOF && i > 0 {
+				return n, nil
+			}
+			return -1, err
+		}
+		k = int(hex2intTable[c])
+		if k == 16 {
+			if i == 0 {
+				return -1, errors.New("empty hex number")
+			}
+			if err := r.UnreadByte(); err != nil {
+				return -1, err
+			}
+			return n, nil
+		}
+		if i >= maxHexIntChars {
+			return -1, errors.New("too large hex number")
+		}
+		n = (n << 4) | k
+		i++
+	}
+}
+
+func readCrLf(r *bufio.Reader) error {
+	for _, exp := range []byte{'\r', '\n'} {
+		c, err := r.ReadByte()
+		if err != nil {
+			return fmt.Errorf("cannot read %q char at the end of chunk size: %w", exp, err)
+		}
+		if c != exp {
+			return fmt.Errorf("unexpected char %q at the end of chunk size. Expected %q", c, exp)
+		}
+	}
+	return nil
+}
+
+func round2(n int) int {
+	if n <= 0 {
+		return 0
+	}
+
+	x := uint32(n - 1)
+	x |= x >> 1
+	x |= x >> 2
+	x |= x >> 4
+	x |= x >> 8
+	x |= x >> 16
+
+	// Make sure we don't return 0 due to overflow, even on 32 bit systems
+	if x >= uint32(math.MaxInt32) {
+		return math.MaxInt32
+	}
+
+	return int(x + 1)
 }
 
 func (conn *clientStreamConnection) GoAway() {}
@@ -375,8 +708,9 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 }
 
 type StreamConfig struct {
-	MaxHeaderSize      int `json:"max_header_size,omitempty"`
-	MaxRequestBodySize int `json:"max_request_body_size,omitempty"`
+	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
+	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
+	Http1UseStream     bool `json:"http1_use_stream,omitempty"`
 }
 
 var defaultStreamConfig = StreamConfig{
@@ -385,6 +719,7 @@ var defaultStreamConfig = StreamConfig{
 	MaxHeaderSize: defaultMaxHeaderSize,
 	// 0 is means no limit request body size
 	MaxRequestBodySize: 0,
+	Http1UseStream:     false,
 }
 
 // SetDefaultStreamConfig can change the default config for http.
@@ -393,6 +728,7 @@ var defaultStreamConfig = StreamConfig{
 func SetDefaultStreamConfig(c StreamConfig) {
 	defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
 	defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
+	defaultStreamConfig.Http1UseStream = c.Http1UseStream
 }
 
 func streamConfigHandler(v interface{}) interface{} {
@@ -645,6 +981,7 @@ type stream struct {
 	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
 	request  *fasthttp.Request
 	response *fasthttp.Response
+	recData  types.IoBuffer
 
 	receiver types.StreamReceiveListener
 }
@@ -828,8 +1165,17 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 }
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
+	s.recData = data
+	var httpStreamResponse bool
+	if sr, err := variable.Get(context, types.VarHttpResponseUseStream); err == nil {
+		if isStreamResponse, ok := sr.(bool); ok {
+			httpStreamResponse = isStreamResponse
+		}
+	}
 	// SetBodyRaw sets response body and could avoid copying it
-	s.response.SetBodyRaw(data.Bytes())
+	if !httpStreamResponse {
+		s.response.SetBodyRaw(data.Bytes())
+	}
 
 	if endStream {
 		s.endStream()
@@ -868,7 +1214,18 @@ func (s *serverStream) endStream() {
 	}
 	defer s.DestroyStream()
 
-	s.doSend()
+	var httpRspUseStream bool
+	if useStream, err := variable.Get(s.ctx, types.VarHttpResponseUseStream); err == nil {
+		if httpUseStream, ok := useStream.(bool); ok {
+			httpRspUseStream = httpUseStream
+		}
+	}
+	if !httpRspUseStream {
+		s.doSend()
+	} else {
+		s.doSendStream()
+	}
+
 	s.responseDoneChan <- true
 
 	if resetConn {
@@ -880,6 +1237,33 @@ func (s *serverStream) endStream() {
 	s.connection.mutex.Lock()
 	s.connection.stream = nil
 	s.connection.mutex.Unlock()
+}
+
+func (s *serverStream) writeData() error {
+	var sawEOF bool
+	var receivedBytes uint64
+	bufp := buffer.GetBytes(defaultPerStreamBodySize)
+	defer buffer.PutBytes(bufp)
+	buf := *bufp
+	for !sawEOF {
+		n, err := s.recData.Read(buf)
+		if err == io.EOF {
+			sawEOF = true
+		} else if err != nil {
+			return err
+		}
+		data := buf[:n]
+		log.Proxy.Debugf(s.ctx, "[stream] [http] [stream response] receive data: %s", string(data))
+		if err = s.connection.conn.Write(buffer.NewIoBufferBytes(data)); err != nil {
+			log.Proxy.Errorf(s.stream.ctx, "[stream] [http] [stream response] send server response error: %+v", err)
+		} else if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] [stream response] send server response, requestId = %v", s.stream.id)
+		}
+
+		receivedBytes += uint64(len(data))
+		_ = variable.Set(s.ctx, types.VarStreamResponseBytes, receivedBytes)
+	}
+	return nil
 }
 
 func (s *serverStream) ReadDisable(disable bool) {
@@ -902,6 +1286,22 @@ func (s *serverStream) doSend() {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
 		}
+	}
+}
+
+func (s *serverStream) doSendStream() {
+	// stream response write header first
+	if _, err := s.response.Header.WriteTo(s.connection); err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] [stream response] send server response header error: %+v", err)
+	} else if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] [stream response] send server response header, requestId = %v", s.stream.id)
+	}
+
+	// write data
+	if err := s.writeData(); err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] [stream response] send server response data error: %+v", err)
+	} else if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] [stream response] send server response data, requestId = %v", s.stream.id)
 	}
 }
 
