@@ -29,6 +29,7 @@ import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
+	datasource "mosn.io/mosn/pkg/filter/stream/flowcontrol/data_source"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -49,14 +50,15 @@ var (
 
 // Config represents the flow control configurations.
 type Config struct {
-	AppName      string                   `json:"app_name"`
-	CallbackName string                   `json:"callback_name"`
-	LogPath      string                   `json:"log_path"`
-	GlobalSwitch bool                     `json:"global_switch"`
-	Monitor      bool                     `json:"monitor"`
-	KeyType      api.ProtocolResourceName `json:"limit_key_type"`
-	Action       Action                   `json:"action"`
-	Rules        []*flow.Rule             `json:"rules"`
+	AppName              string                            `json:"app_name"`
+	CallbackName         string                            `json:"callback_name"`
+	LogPath              string                            `json:"log_path"`
+	GlobalSwitch         bool                              `json:"global_switch"`
+	Monitor              bool                              `json:"monitor"`
+	KeyType              api.ProtocolResourceName          `json:"limit_key_type"`
+	Action               Action                            `json:"action"`
+	Rules                []*flow.Rule                      `json:"rules"`
+	DynamicDataResources []*datasource.DynamicDataResource `json:"dynamic_data_resources"`
 }
 
 // Action represents the direct response of request after limited.
@@ -71,8 +73,9 @@ func init() {
 
 // StreamFilterFactory represents the stream filter factory.
 type StreamFilterFactory struct {
-	config      *Config
-	trafficType base.TrafficType
+	config             *Config
+	trafficType        base.TrafficType
+	dataSourceFactorys map[datasource.ResourceType]datasource.DataSourceFactory
 }
 
 // CreateFilterChain add the flow control stream filter to filter chain.
@@ -123,24 +126,71 @@ func loadConfig(conf map[string]interface{}) (*Config, error) {
 	return flowControlCfg, nil
 }
 
+func (f *StreamFilterFactory) initFlowRules(flowControlCfg *Config) error {
+	if len(flowControlCfg.Rules) > 0 {
+		_, err := flow.LoadRules(flowControlCfg.Rules)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, dynamicResources := range flowControlCfg.DynamicDataResources {
+		dataSourceFactory, ok := f.dataSourceFactorys[datasource.ResourceType(dynamicResources.ResourceType)]
+		if !ok {
+			dc, ok := datasource.GetDataSourceFactoryCreator(datasource.ResourceType(dynamicResources.ResourceType))
+			if !ok {
+				log.DefaultLogger.Warnf("flowcontrol %s  data source doesn't support now", dynamicResources.ResourceType)
+				continue
+			}
+
+			var err error
+			dataSourceFactory, err = dc(flowControlCfg.AppName)
+			if err != nil {
+				log.DefaultLogger.Errorf("flowcontrol create %s data source factory error: %v", dynamicResources.ResourceType, err)
+				return err
+			}
+
+			f.dataSourceFactorys[datasource.ResourceType(dynamicResources.ResourceType)] = dataSourceFactory
+		}
+
+		dataSource, err := dataSourceFactory.CreateDataSource(dynamicResources.Config)
+		if err != nil {
+			log.DefaultLogger.Errorf("flowcontrol create %s data source error: %v", dynamicResources.ResourceType, err)
+			return err
+		}
+
+		err = dataSource.InitFlowRules()
+		if err != nil {
+			log.DefaultLogger.Errorf("flowcontrol %s data source init flowrules error: %v", dynamicResources.ResourceType, err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	flowControlCfg, err := loadConfig(conf)
 	if err != nil {
 		return nil, err
 	}
-	_, err = flow.LoadRules(flowControlCfg.Rules)
+
+	factory := &StreamFilterFactory{
+		config:             flowControlCfg,
+		trafficType:        parseTrafficType(conf),
+		dataSourceFactorys: make(map[datasource.ResourceType]datasource.DataSourceFactory),
+	}
+
+	err = factory.initFlowRules(flowControlCfg)
 	if err != nil {
-		log.DefaultLogger.Errorf("update rules failed")
+		log.DefaultLogger.Errorf("init flow rules failed")
 		return nil, err
 	}
 	initOnce.Do(func() {
 		// TODO: can't support dynamically update at present, should be optimized
 		initSentinel(flowControlCfg.AppName, flowControlCfg.LogPath)
 	})
-	factory := &StreamFilterFactory{
-		config:      flowControlCfg,
-		trafficType: parseTrafficType(conf),
-	}
+
 	return factory, nil
 }
 

@@ -90,3 +90,7 @@ blocked
 request count: 3
 blocked
 ```
+
+### Dynamic Data Source
+
+if want to use config center as source of flow control rules, refer to dynamic-data-source/README.md

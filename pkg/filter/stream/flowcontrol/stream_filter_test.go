@@ -380,7 +380,7 @@ func TestStreamFilter_Append(t *testing.T) {
 	header := mockRPCHeader("testingService", "sum")
 	ctx := context.Background()
 
-	filter.BlockError = base.NewBlockError(base.BlockTypeFlow)
+	filter.BlockError = base.NewBlockError(base.WithBlockType(base.BlockTypeFlow))
 	assert.Equal(t, api.StreamFilterStop, filter.Append(ctx, header, nil, nil))
 
 	// clear block error, nil block error and Entry
