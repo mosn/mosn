@@ -90,3 +90,7 @@ blocked
 request count: 3
 blocked
 ```
+
+### 动态数据源
+
+如果想使用第三方配置中心作为动态数据源，可参考当前目录dynamic-data-resource下使用说明
