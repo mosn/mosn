@@ -345,6 +345,12 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 				ac.client.ConnID())
 		}
 		ac.closeConn = true
+	} else if reason == types.StreamRemoteReset && !ac.closed {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [http] stream remote reset, blow client away also, Connection = %d",
+				ac.client.ConnID())
+		}
+		ac.closeConn = true
 	}
 }
 
