@@ -334,12 +334,19 @@ func (conn *clientStreamConnection) serve() {
 func handleStreamResponse(conn *clientStreamConnection) {
 	s := conn.stream
 	startStreamResponse := func(cs *clientStream) {
+		header := mosnhttp.ResponseHeader{&s.response.Header}
+
+		statusCode := header.StatusCode()
+		status := strconv.Itoa(statusCode)
+		// inherit upstream's response status
+		_ = variable.SetString(s.ctx, types.VarHeaderStatus, status)
+
 		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
 		s.connection.mutex.Lock()
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 		cs.recData = buffer.NewPipeBuffer(0)
-		cs.receiver.OnReceive(cs.ctx, mosnhttp.ResponseHeader{ResponseHeader: &s.response.Header}, cs.recData, nil)
+		cs.receiver.OnReceive(cs.ctx, header, cs.recData, nil)
 	}
 
 	sendStreamResponse := func(cs *clientStream) error {
