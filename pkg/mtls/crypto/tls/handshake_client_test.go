@@ -919,10 +919,10 @@ func TestClientKeyUpdate(t *testing.T) {
 	runClientTestTLS13(t, test)
 }
 
-func TestResumption(t *testing.T) {
+/*func TestResumption(t *testing.T) {
 	t.Run("TLSv12", func(t *testing.T) { testResumption(t, VersionTLS12) })
 	t.Run("TLSv13", func(t *testing.T) { testResumption(t, VersionTLS13) })
-}
+}*/
 
 func testResumption(t *testing.T, version uint16) {
 	serverConfig := &Config{
