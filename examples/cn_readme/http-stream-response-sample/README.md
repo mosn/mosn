@@ -1,9 +1,9 @@
-## 使用 MOSN 作为 HTTP Ingress 代理(流式响应)
+## 使用 MOSN 作为 HTTP Ingress 代理
 
 ## 简介
 
 + 该样例工程演示了如何配置使得MOSN作为标准Http协议的 Ingress 代理
-+ MOSN之间的协议是HTTP1, 注意配置"http1_use_stream": true
++ MOSN之间的协议是HTTP1
 + 为了演示方便，服务端MOSN监听2048端口（可配置）,收到请求以后转发给Server
 
 ## 准备

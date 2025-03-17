@@ -137,7 +137,6 @@ type streamConnection struct {
 	bufChan    chan buffer.IoBuffer
 	endRead    chan struct{}
 	connClosed chan bool
-	useStream  bool
 
 	br *bufio.Reader
 }
@@ -242,7 +241,6 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
 	}
-	csc.useStream = parseStreamConfig(ctx).Http1UseStream
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
@@ -307,7 +305,7 @@ func (conn *clientStreamConnection) serve() {
 		}
 
 		// 1. handle response
-		if s.response.Header.ContentLength() < 0 && conn.useStream {
+		if s.response.Header.ContentLength() == -1 {
 			conn.handleStreamResponse()
 		} else {
 			conn.handleBlockedResponse()

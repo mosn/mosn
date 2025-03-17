@@ -40,10 +40,7 @@
 									"config": {
 										"downstream_protocol": "Http1",
 										"upstream_protocol": "Http1",
-										"router_config_name": "client_router",
-										"extend_config": {
-											"http1_use_stream": true
-										}
+										"router_config_name": "client_router"
 									}
 								}
 							]
