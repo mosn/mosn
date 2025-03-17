@@ -1,9 +1,9 @@
-## Use MOSN as HTTP Ingress Proxy
+## Use MOSN as HTTP Ingress Proxy（stream response）
 
 ## Introduction
 
 + This sample project demonstrates how to configure MOSN as a HTTP Ingress Proxy.
-+ Protocol between MOSN is HTTP1.
++ Protocol between MOSN is HTTP1. Pay attention to configuring 'http1_use_stream': true
 + For the convenience of demonstration, the server MOSN listens on port 2048 (configurable) and forwards the request to the server after receiving it
  
 ## Preparation
