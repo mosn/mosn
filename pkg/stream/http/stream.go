@@ -334,7 +334,7 @@ func (conn *clientStreamConnection) serve() {
 func handleStreamResponse(conn *clientStreamConnection) {
 	s := conn.stream
 	startStreamResponse := func(cs *clientStream) {
-		header := mosnhttp.ResponseHeader{&s.response.Header}
+		header := mosnhttp.ResponseHeader{ResponseHeader: &s.response.Header}
 
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
@@ -352,7 +352,8 @@ func handleStreamResponse(conn *clientStreamConnection) {
 	sendStreamResponse := func(cs *clientStream) error {
 		return writeBodyToPipe(conn.br, 0, s.response.Header.ContentLength(), func(data []byte) error {
 			if _, err := cs.recData.Write(data); err != nil {
-				return err
+				return fmt.Errorf("failed to write to IoBuffer: %w", err)
+
 			}
 			return nil
 		})
@@ -444,7 +445,7 @@ func writeBodyFixedSize(r *bufio.Reader, dst []byte, n int, writeFunc func(data 
 		nn, err := r.Read(dst[offset:])
 		if nn <= 0 {
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					err = io.ErrUnexpectedEOF
 				}
 				return dst[:offset], err
@@ -485,7 +486,7 @@ func writeBodyIdentity(r *bufio.Reader, maxBodySize int, dst []byte, writeFunc f
 
 func handleError(err error, nn int) error {
 	if err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil
 		}
 		return err
@@ -619,7 +620,7 @@ func readHexInt(r *bufio.Reader) (int, error) {
 				return -1, errors.New("empty hex number")
 			}
 			if err := r.UnreadByte(); err != nil {
-				return -1, err
+				return -1, fmt.Errorf("failed to unread byte: %w", err)
 			}
 			return n, nil
 		}
@@ -1254,7 +1255,7 @@ func (s *serverStream) writeData() error {
 	buf := *bufp
 	for !sawEOF {
 		n, err := s.recData.Read(buf)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			sawEOF = true
 		} else if err != nil {
 			return err
