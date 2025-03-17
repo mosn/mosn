@@ -292,12 +292,7 @@ func (conn *clientStreamConnection) serve() {
 		if request.Header.IsHead() {
 			s.response.SkipBody = true
 		}
-		var httpRspUseStream bool
-		if useStream, err := variable.Get(s.ctx, types.VarHttpResponseUseStream); err == nil {
-			if httpUseStream, ok := useStream.(bool); ok {
-				httpRspUseStream = httpUseStream
-			}
-		}
+
 		err := s.response.Header.Read(conn.br)
 		if err != nil {
 			if s != nil {
@@ -312,10 +307,10 @@ func (conn *clientStreamConnection) serve() {
 		}
 
 		// 1. handle response
-		if conn.useStream || httpRspUseStream {
-			handleStreamResponse(conn)
+		if s.response.Header.ContentLength() < 0 && conn.useStream {
+			conn.handleStreamResponse()
 		} else {
-			handleBlockedResponse(conn)
+			conn.handleBlockedResponse()
 		}
 		// 2. set client stream reset flag
 		resetConn := false
@@ -331,7 +326,7 @@ func (conn *clientStreamConnection) serve() {
 }
 
 // handleStreamResponse: http stream response
-func handleStreamResponse(conn *clientStreamConnection) {
+func (conn *clientStreamConnection) handleStreamResponse() {
 	s := conn.stream
 	startStreamResponse := func(cs *clientStream) {
 		header := mosnhttp.ResponseHeader{ResponseHeader: &s.response.Header}
@@ -378,7 +373,7 @@ func handleStreamResponse(conn *clientStreamConnection) {
 }
 
 // handleBlockedResponse: http blocked response
-func handleBlockedResponse(conn *clientStreamConnection) {
+func (conn *clientStreamConnection) handleBlockedResponse() {
 	s := conn.stream
 	_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, false)
 
@@ -1264,12 +1259,16 @@ func (s *serverStream) writeData() error {
 		log.Proxy.Debugf(s.ctx, "[stream] [http] [stream response] receive data: %s", string(data))
 		if err = s.connection.conn.Write(buffer.NewIoBufferBytes(data)); err != nil {
 			log.Proxy.Errorf(s.stream.ctx, "[stream] [http] [stream response] send server response error: %+v", err)
+			return err
 		} else if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] [stream response] send server response, requestId = %v", s.stream.id)
+			conn := s.connection.conn
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] [stream response] send server response, requestId=%v, connId=%d, LocalAddr=%s, RemoteAddr=%s", s.stream.id, conn.ID(), conn.LocalAddr().String(), conn.RemoteAddr().String())
 		}
 
 		receivedBytes += uint64(len(data))
-		_ = variable.Set(s.ctx, types.VarStreamResponseBytes, receivedBytes)
+		if err = variable.Set(s.ctx, types.VarStreamResponseBytes, receivedBytes); err != nil {
+			log.Proxy.Errorf(s.stream.ctx, "[stream] [http] [stream response] variable %s set error: %+v", types.VarStreamResponseBytes, err)
+		}
 	}
 	return nil
 }

@@ -20,14 +20,13 @@ package stream
 import (
 	"context"
 
-	"mosn.io/pkg/variable"
-
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // stream.Client
