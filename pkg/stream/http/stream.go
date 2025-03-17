@@ -709,9 +709,8 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 }
 
 type StreamConfig struct {
-	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
-	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
-	Http1UseStream     bool `json:"http1_use_stream,omitempty"`
+	MaxHeaderSize      int `json:"max_header_size,omitempty"`
+	MaxRequestBodySize int `json:"max_request_body_size,omitempty"`
 }
 
 var defaultStreamConfig = StreamConfig{
@@ -720,7 +719,6 @@ var defaultStreamConfig = StreamConfig{
 	MaxHeaderSize: defaultMaxHeaderSize,
 	// 0 is means no limit request body size
 	MaxRequestBodySize: 0,
-	Http1UseStream:     false,
 }
 
 // SetDefaultStreamConfig can change the default config for http.
@@ -729,7 +727,6 @@ var defaultStreamConfig = StreamConfig{
 func SetDefaultStreamConfig(c StreamConfig) {
 	defaultStreamConfig.MaxHeaderSize = c.MaxHeaderSize
 	defaultStreamConfig.MaxRequestBodySize = c.MaxRequestBodySize
-	defaultStreamConfig.Http1UseStream = c.Http1UseStream
 }
 
 func streamConfigHandler(v interface{}) interface{} {
