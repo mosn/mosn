@@ -97,6 +97,9 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	}
 
 	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.client.ConnID())
+	if c.host.Connection.RemoteAddr() != nil {
+		_ = variable.SetString(ctx, types.VariableUpstreamOriRemoteAddr, c.host.Connection.RemoteAddr().String())
+	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)

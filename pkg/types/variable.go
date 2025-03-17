@@ -48,6 +48,7 @@ const (
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
 	VarProtocolConfig                 string = "protocol_config"
+	VarStreamResponseBytes            string = "stream_response_bytes"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"
@@ -118,6 +119,7 @@ const (
 	VarHttpRequestPath         = httpProtocolName + "_" + VarProtocolRequestPath
 	VarHttpRequestPathOriginal = httpProtocolName + "_" + VarProtocolRequestPathOriginal
 	VarHttpRequestArg          = httpProtocolName + "_" + VarProtocolRequestArg
+	VarHttpResponseUseStream   = httpProtocolName + "_" + VarProtocolResponseUseStream
 	VarPrefixHttpHeader        = httpProtocolName + "_" + VarProtocolRequestHeader
 	VarPrefixHttpArg           = httpProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttpCookie        = httpProtocolName + "_" + VarProtocolCookie
@@ -164,6 +166,7 @@ const (
 	VarOriRemoteAddr               = "ori_remote_addr"
 	VarDownStreamProtocol          = "downstream_protocol"
 	VarUpStreamProtocol            = "upstream_protocol"
+	VarUpStreamOriRemoteAddr       = "upstream_ori_remote_addr"
 	VarDownStreamReqHeaders        = "downstream_req_headers"
 	VarDownStreamRespHeaders       = "downstream_resp_headers"
 	VarTraceSpan                   = "trace_span"
@@ -191,6 +194,7 @@ var (
 	VariableTraceSpankey                = variable.NewVariable(VarTraceSpanKey, nil, nil, variable.DefaultSetter, 0)
 	VariableDownStreamProtocol          = variable.NewVariable(VarDownStreamProtocol, nil, nil, variable.DefaultSetter, 0)
 	VariableUpstreamProtocol            = variable.NewVariable(VarUpStreamProtocol, nil, nil, variable.DefaultSetter, 0)
+	VariableUpstreamOriRemoteAddr       = variable.NewVariable(VarUpStreamOriRemoteAddr, nil, nil, variable.DefaultSetter, 0)
 	VariableDownStreamReqHeaders        = variable.NewVariable(VarDownStreamReqHeaders, nil, nil, variable.DefaultSetter, 0)
 	VariableDownStreamRespHeaders       = variable.NewVariable(VarDownStreamRespHeaders, nil, nil, variable.DefaultSetter, 0)
 	VariableTraceSpan                   = variable.NewVariable(VarTraceSpan, nil, nil, variable.DefaultSetter, 0)
@@ -203,7 +207,7 @@ func init() {
 		VariableAccessLogs, VariableAcceptChan, VariableAcceptBuffer, VariableConnectionFd,
 		VariableTraceSpankey, VariableTraceId, VariableProxyGeneralConfig, VariableConnectionEventListeners,
 		VariableUpstreamConnectionID, VariableOriRemoteAddr,
-		VariableDownStreamProtocol, VariableUpstreamProtocol, VariableDownStreamReqHeaders, VariableDownStreamRespHeaders, VariableTraceSpan,
+		VariableDownStreamProtocol, VariableUpstreamProtocol, VariableUpstreamOriRemoteAddr, VariableDownStreamReqHeaders, VariableDownStreamRespHeaders, VariableTraceSpan,
 	}
 	for _, v := range builtinVariables {
 		variable.Register(v)
