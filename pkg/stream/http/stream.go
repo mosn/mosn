@@ -351,8 +351,11 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 			return nil
 		})
 	}
-	finishStreamResponse := func(cs *clientStream) {
-		cs.recData.CloseWithError(io.EOF)
+	finishStreamResponse := func(cs *clientStream, err error) {
+		if err == nil {
+			err = io.EOF
+		}
+		cs.recData.CloseWithError(err)
 		// destroy stream
 		cs.stream.DestroyStream()
 	}
@@ -365,9 +368,10 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 			reason = types.StreamRemoteReset
 		}
 		s.ResetStream(reason)
+		finishStreamResponse(s, err)
 		return
 	}
-	finishStreamResponse(s)
+	finishStreamResponse(s, nil)
 }
 
 // handleBlockedResponse: http blocked response
@@ -1075,9 +1079,9 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	// SetBodyRaw sets response body and could avoid copying it
 	if s.response.Header.ContentLength() == -1 {
-		s.response.SetBodyRaw(data.Bytes())
-	} else {
 		s.response.SetBodyStream(data, -1)
+	} else {
+		s.response.SetBodyRaw(data.Bytes())
 	}
 
 	if endStream {
