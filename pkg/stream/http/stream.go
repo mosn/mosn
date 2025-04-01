@@ -58,7 +58,8 @@ const defaultMaxHeaderSize = 8 * 1024
 const defaultPerStreamBodySize = 1 << 20
 
 var (
-	errConnClose = errors.New("connection closed")
+	errConnClose     = errors.New("connection closed")
+	errStreamDestory = errors.New("stream destroyed")
 
 	strHTTP11           = "HTTP/1.1"
 	strResponseContinue = []byte("HTTP/1.1 100 Continue\r\n\r\n")
@@ -312,7 +313,7 @@ func (conn *clientStreamConnection) serve() {
 		}
 		// 2. set client stream reset flag
 		resetConn := false
-		if s.response.ConnectionClose() {
+		if s.response != nil && s.response.ConnectionClose() {
 			resetConn = true
 		}
 		// 3. local reset if header 'Connection: close' exists
@@ -344,6 +345,9 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 
 	sendStreamResponse := func(cs *clientStream) error {
 		return writeBodyToPipe(conn.br, 0, s.response.Header.ContentLength(), func(data []byte) error {
+			if cs.recData == nil {
+				return errStreamDestory
+			}
 			if _, err := cs.recData.Write(data); err != nil {
 				return fmt.Errorf("failed to write to IoBuffer: %w", err)
 
@@ -362,14 +366,21 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 
 	startStreamResponse(s)
 	if err := sendStreamResponse(s); err != nil {
-		log.Proxy.Errorf(s.connection.context, "[stream] [http] [stream response] client stream write buffer: %s", err)
-		reason := conn.resetReason
-		if reason == "" {
-			reason = types.StreamRemoteReset
+		if err == errStreamDestory {
+			conn.streamConnectionEventListener.OnGoAway()
+			conn.Reset(types.StreamConnectionTermination)
+			return
+		} else {
+			log.Proxy.Errorf(s.connection.context, "[stream] [http] [stream response] client stream write buffer: %s", err)
+			reason := conn.resetReason
+			if reason == "" {
+				reason = types.StreamRemoteReset
+			}
+			s.ResetStream(reason)
+			finishStreamResponse(s, err)
+			return
 		}
-		s.ResetStream(reason)
-		finishStreamResponse(s, err)
-		return
+
 	}
 	finishStreamResponse(s, nil)
 }
