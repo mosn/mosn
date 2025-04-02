@@ -305,22 +305,24 @@ func (conn *clientStreamConnection) serve() {
 			return
 		}
 
-		// 1. handle response
+		// 1. set client stream reset flag
+		resetConn := false
+		if s.response != nil && s.response.ConnectionClose() {
+			resetConn = true
+		}
+		// 2. local reset if header 'Connection: close' exists
+		if resetConn {
+			// goaway the connpool
+			s.connection.streamConnectionEventListener.OnGoAway()
+		}
+
+		// 3. handle response
 		if s.response.Header.ContentLength() == -1 {
 			conn.handleStreamResponse()
 		} else {
 			conn.handleBlockedResponse()
 		}
-		// 2. set client stream reset flag
-		resetConn := false
-		if s.response != nil && s.response.ConnectionClose() {
-			resetConn = true
-		}
-		// 3. local reset if header 'Connection: close' exists
-		if resetConn {
-			// goaway the connpool
-			s.connection.streamConnectionEventListener.OnGoAway()
-		}
+
 	}
 }
 
