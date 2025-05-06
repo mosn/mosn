@@ -355,6 +355,8 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 	}
 
 	defer func() {
+		// notify proxy:downstream upstream goroutine receive stream response data end,
+		// proxy:downstream goroutine could clean stream
 		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
 		_ = variable.Set(s.ctx, types.VarHttpResponseEndStream, true)
 		s.receiver.OnReceive(s.ctx, nil, nil, nil)
@@ -1105,7 +1107,7 @@ func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer,
 	}
 
 	if endStream {
-		s.endStream()
+		return s.endStream()
 	}
 
 	return nil
@@ -1116,7 +1118,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 	return nil
 }
 
-func (s *serverStream) endStream() {
+func (s *serverStream) endStream() error {
 	resetConn := false
 
 	// Response.Write() skips writing body if set to true.
@@ -1141,7 +1143,7 @@ func (s *serverStream) endStream() {
 	}
 	defer s.DestroyStream()
 
-	s.doSend()
+	err := s.doSend()
 	s.responseDoneChan <- true
 
 	if resetConn {
@@ -1153,6 +1155,7 @@ func (s *serverStream) endStream() {
 	s.connection.mutex.Lock()
 	s.connection.stream = nil
 	s.connection.mutex.Unlock()
+	return err
 }
 func (s *serverStream) ReadDisable(disable bool) {
 	if disable {
@@ -1166,15 +1169,17 @@ func (s *serverStream) ReadDisable(disable bool) {
 	}
 }
 
-func (s *serverStream) doSend() {
+func (s *serverStream) doSend() error {
 
 	if _, err := s.response.WriteTo(s.connection); err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
+		return err
 	} else {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
 		}
 	}
+	return nil
 }
 
 func (s *serverStream) handleRequest(ctx context.Context) {

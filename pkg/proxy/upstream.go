@@ -30,6 +30,8 @@ import (
 	"mosn.io/pkg/variable"
 )
 
+var DefaultStreamResponseWaitTimeout = time.Second * 30
+
 // types.StreamEventListener
 // types.StreamReceiveListener
 // types.PoolEventListener
@@ -53,13 +55,22 @@ type upstreamRequest struct {
 	// list element
 	element *list.Element
 
+	//use for stream response, example http chunked response
 	streamResponse        bool
 	streamResponseEndChan chan struct{}
 }
 
 func (r *upstreamRequest) waitStreamResponseEnd() {
-	if r.streamResponse {
-		<-r.streamResponseEndChan
+	if !r.streamResponse {
+		return
+	}
+	timer := time.NewTimer(DefaultStreamResponseWaitTimeout)
+	defer timer.Stop()
+	select {
+	case _, _ = <-r.streamResponseEndChan:
+	case <-timer.C:
+		log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] [waitStreamResponseEnd] remote addr: %s, wait timeout: %v",
+			r.host.AddressString(), DefaultStreamResponseWaitTimeout)
 	}
 	return
 }
@@ -124,7 +135,11 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 			if httpEndStream, ok := endStream.(bool); ok {
 				if httpEndStream {
 					r.downStream.upstreamProcessDone.Store(true)
-					close(r.streamResponseEndChan)
+					select {
+					case _, _ = <-r.streamResponseEndChan:
+					default:
+						close(r.streamResponseEndChan)
+					}
 					return
 				}
 			}

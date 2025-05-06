@@ -243,7 +243,7 @@ func (s *downStream) cleanStream() {
 		s.upstreamRequest.resetStream()
 	}
 
-	if s.upstreamRequest != nil && s.upstreamRequest.streamResponse {
+	if s.upstreamRequest != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd start, proxyId: %d", s.ID)
 		}
@@ -1127,11 +1127,9 @@ func (s *downStream) appendData(endStream bool) {
 
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
-	s.responseSender.AppendData(s.context, data, endStream)
-	if v, vErr := variable.Get(s.context, types.VarStreamResponseBytes); vErr == nil {
-		if b, ok := v.(uint64); ok {
-			s.requestInfo.SetBytesSent(b)
-		}
+	err := s.responseSender.AppendData(s.context, data, endStream)
+	if err == nil && s.upstreamRequest != nil {
+		s.upstreamProcessDone.Store(true)
 	}
 	if endStream {
 		s.endStream()
