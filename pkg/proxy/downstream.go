@@ -243,6 +243,10 @@ func (s *downStream) cleanStream() {
 		s.upstreamRequest.resetStream()
 	}
 
+	if s.upstreamRequest != nil && s.upstreamRequest.streamResponse {
+		s.upstreamRequest.waitStreamResponseEnd()
+	}
+
 	// clean up timers
 	s.cleanUp()
 
@@ -1111,7 +1115,9 @@ func (s *downStream) appendHeaders(endStream bool) {
 }
 
 func (s *downStream) appendData(endStream bool) {
-	s.upstreamProcessDone.Store(endStream)
+	if !s.upstreamRequest.streamResponse {
+		s.upstreamProcessDone.Store(endStream)
+	}
 
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))

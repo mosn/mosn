@@ -226,6 +226,13 @@ type clientStreamConnection struct {
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
+func (c *clientStreamConnection) OnResetStream(reason types.StreamResetReason) {
+	_ = c.streamConnection.conn.Close(api.NoFlush, api.LocalClose)
+}
+
+func (c *clientStreamConnection) OnDestroyStream() {
+}
+
 func newClientStreamConnection(ctx context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
@@ -338,12 +345,19 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 		_ = variable.SetString(s.ctx, types.VarHeaderStatus, status)
 
 		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
+		_ = variable.Set(s.ctx, types.VarHttpResponseEndStream, false)
 		s.connection.mutex.Lock()
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 		cs.recData = buffer.NewPipeBuffer(0)
 		cs.receiver.OnReceive(cs.ctx, header, cs.recData, nil)
 	}
+
+	defer func() {
+		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
+		_ = variable.Set(s.ctx, types.VarHttpResponseEndStream, true)
+		s.receiver.OnReceive(s.ctx, nil, nil, nil)
+	}()
 
 	sendStreamResponse := func(cs *clientStream) error {
 		return writeBodyToPipe(conn.br, 0, s.response.Header.ContentLength(), func(data []byte) error {
@@ -368,7 +382,7 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 
 	startStreamResponse(s)
 	if err := sendStreamResponse(s); err != nil {
-		if err == errStreamDestory {
+		if errors.Is(err, errStreamDestory) {
 			conn.streamConnectionEventListener.OnGoAway()
 			conn.Reset(types.StreamConnectionTermination)
 			return
@@ -599,6 +613,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 		receiver: receiver,
 	}
 	s.connection = conn
+	s.stream.AddEventListener(conn)
 
 	conn.mutex.Lock()
 	conn.stream = s

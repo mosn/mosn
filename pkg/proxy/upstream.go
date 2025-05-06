@@ -27,6 +27,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
 
 // types.StreamEventListener
@@ -51,6 +52,16 @@ type upstreamRequest struct {
 
 	// list element
 	element *list.Element
+
+	streamResponse        bool
+	streamResponseEndChan chan struct{}
+}
+
+func (r *upstreamRequest) waitStreamResponseEnd() {
+	if r.streamResponse {
+		<-r.streamResponseEndChan
+	}
+	return
 }
 
 // reset upstream request in proxy context
@@ -100,6 +111,26 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	if useStream, err := variable.Get(ctx, types.VarHttpResponseUseStream); err == nil {
+		if httpUseStream, ok := useStream.(bool); ok {
+			r.streamResponse = httpUseStream
+		}
+		if r.streamResponse && r.streamResponseEndChan == nil {
+			r.streamResponseEndChan = make(chan struct{}, 1)
+		}
+	}
+	if r.streamResponse {
+		if endStream, err := variable.Get(ctx, types.VarHttpResponseEndStream); err == nil {
+			if httpEndStream, ok := endStream.(bool); ok {
+				if httpEndStream {
+					r.downStream.upstreamProcessDone.Store(true)
+					close(r.streamResponseEndChan)
+					return
+				}
+			}
+		}
+
+	}
 	if r.downStream.processDone() || r.setupRetry {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] [OnReceive] remote addr: %s, processDone: %v, setupRetry: %v",
