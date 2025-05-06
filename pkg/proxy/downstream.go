@@ -244,7 +244,13 @@ func (s *downStream) cleanStream() {
 	}
 
 	if s.upstreamRequest != nil && s.upstreamRequest.streamResponse {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd start, proxyId: %d", s.ID)
+		}
 		s.upstreamRequest.waitStreamResponseEnd()
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd start, proxyId: %d", s.ID)
+		}
 	}
 
 	// clean up timers

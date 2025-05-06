@@ -227,7 +227,9 @@ type clientStreamConnection struct {
 }
 
 func (c *clientStreamConnection) OnResetStream(reason types.StreamResetReason) {
-	_ = c.streamConnection.conn.Close(api.NoFlush, api.LocalClose)
+	if c.streamConnection.conn != nil {
+		_ = c.streamConnection.conn.Close(api.NoFlush, api.LocalClose)
+	}
 }
 
 func (c *clientStreamConnection) OnDestroyStream() {
