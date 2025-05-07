@@ -69,8 +69,7 @@ func (r *upstreamRequest) waitStreamResponseEnd() {
 	select {
 	case _, _ = <-r.streamResponseEndChan:
 	case <-timer.C:
-		log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] [waitStreamResponseEnd] remote addr: %s, wait timeout: %v",
-			r.host.AddressString(), DefaultStreamResponseWaitTimeout)
+		log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] [waitStreamResponseEnd] wait timeout: %v", DefaultStreamResponseWaitTimeout)
 	}
 	return
 }

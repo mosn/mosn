@@ -249,7 +249,7 @@ func (s *downStream) cleanStream() {
 		}
 		s.upstreamRequest.waitStreamResponseEnd()
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd start, proxyId: %d", s.ID)
+			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd end, proxyId: %d", s.ID)
 		}
 	}
 
@@ -1134,6 +1134,9 @@ func (s *downStream) appendData(endStream bool) {
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
 	err := s.responseSender.AppendData(s.context, data, endStream)
+	if err != nil {
+		log.Proxy.Errorf(s.context, "append data error: %s", err)
+	}
 	if err == nil && s.upstreamRequest != nil && s.upstreamRequest.streamResponse && endStream {
 		s.upstreamProcessDone.Store(true)
 	}
@@ -1148,6 +1151,9 @@ func (s *downStream) appendTrailers() {
 	}
 	trailers := s.downstreamRespTrailers
 	err := s.responseSender.AppendTrailers(s.context, trailers)
+	if err != nil {
+		log.Proxy.Errorf(s.context, "append trailers error: %s", err)
+	}
 	if err == nil && s.upstreamRequest != nil && s.upstreamRequest.streamResponse {
 		s.upstreamProcessDone.Store(true)
 	}
