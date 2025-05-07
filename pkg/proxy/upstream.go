@@ -134,7 +134,6 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 		if endStream, err := variable.Get(ctx, types.VarResponseEndStream); err == nil {
 			if httpEndStream, ok := endStream.(bool); ok {
 				if httpEndStream {
-					//r.downStream.upstreamProcessDone.Store(true)
 					select {
 					case _, _ = <-r.streamResponseEndChan:
 					default:
@@ -144,8 +143,8 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 				}
 			}
 		}
-
 	}
+
 	if r.downStream.processDone() || r.setupRetry {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] [OnReceive] remote addr: %s, processDone: %v, setupRetry: %v",
