@@ -177,7 +177,7 @@ type clientStreamReceiverWrapper struct {
 
 func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	var httpRspUseStream bool
-	if useStream, err := variable.Get(ctx, types.VarHttpResponseUseStream); err == nil {
+	if useStream, err := variable.Get(ctx, types.VarResponseUseStream); err == nil {
 		if httpUseStream, ok := useStream.(bool); ok {
 			httpRspUseStream = httpUseStream
 		}

@@ -122,7 +122,7 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if useStream, err := variable.Get(ctx, types.VarHttpResponseUseStream); err == nil {
+	if useStream, err := variable.Get(ctx, types.VarResponseUseStream); err == nil {
 		if httpUseStream, ok := useStream.(bool); ok {
 			r.streamResponse = httpUseStream
 		}
@@ -131,10 +131,10 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 		}
 	}
 	if r.streamResponse {
-		if endStream, err := variable.Get(ctx, types.VarHttpResponseEndStream); err == nil {
+		if endStream, err := variable.Get(ctx, types.VarResponseEndStream); err == nil {
 			if httpEndStream, ok := endStream.(bool); ok {
 				if httpEndStream {
-					r.downStream.upstreamProcessDone.Store(true)
+					//r.downStream.upstreamProcessDone.Store(true)
 					select {
 					case _, _ = <-r.streamResponseEndChan:
 					default:

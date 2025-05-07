@@ -109,6 +109,12 @@ const (
 	VarProtocolResponseEndStream   = "response_end_stream"
 )
 
+const (
+	CommonProtocolName   = "Common"
+	VarResponseUseStream = CommonProtocolName + "_" + VarProtocolResponseUseStream
+	VarResponseEndStream = CommonProtocolName + "_" + VarProtocolResponseEndStream
+)
+
 // [Protocol]: http1
 const (
 	// the httpProtocolName value is protocol.HTTP1
@@ -120,8 +126,6 @@ const (
 	VarHttpRequestPath         = httpProtocolName + "_" + VarProtocolRequestPath
 	VarHttpRequestPathOriginal = httpProtocolName + "_" + VarProtocolRequestPathOriginal
 	VarHttpRequestArg          = httpProtocolName + "_" + VarProtocolRequestArg
-	VarHttpResponseUseStream   = httpProtocolName + "_" + VarProtocolResponseUseStream
-	VarHttpResponseEndStream   = httpProtocolName + "_" + VarProtocolResponseEndStream
 	VarPrefixHttpHeader        = httpProtocolName + "_" + VarProtocolRequestHeader
 	VarPrefixHttpArg           = httpProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttpCookie        = httpProtocolName + "_" + VarProtocolCookie

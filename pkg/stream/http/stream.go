@@ -345,8 +345,8 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 		// inherit upstream's response status
 		_ = variable.SetString(s.ctx, types.VarHeaderStatus, status)
 
-		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
-		_ = variable.Set(s.ctx, types.VarHttpResponseEndStream, false)
+		_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
+		_ = variable.Set(s.ctx, types.VarResponseEndStream, false)
 		s.connection.mutex.Lock()
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
@@ -357,8 +357,8 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 	defer func() {
 		// notify proxy:downstream upstream goroutine receive stream response data end,
 		// proxy:downstream goroutine could clean stream
-		_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, true)
-		_ = variable.Set(s.ctx, types.VarHttpResponseEndStream, true)
+		_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
+		_ = variable.Set(s.ctx, types.VarResponseEndStream, true)
 		s.receiver.OnReceive(s.ctx, nil, nil, nil)
 	}()
 
@@ -398,7 +398,7 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 // handleBlockedResponse: http blocked response
 func (conn *clientStreamConnection) handleBlockedResponse() {
 	s := conn.stream
-	_ = variable.Set(s.ctx, types.VarHttpResponseUseStream, false)
+	_ = variable.Set(s.ctx, types.VarResponseUseStream, false)
 
 	err := s.response.ReadBody(conn.br, 0)
 	if err != nil {
