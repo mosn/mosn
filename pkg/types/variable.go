@@ -204,6 +204,8 @@ var (
 	VariableDownStreamReqHeaders        = variable.NewVariable(VarDownStreamReqHeaders, nil, nil, variable.DefaultSetter, 0)
 	VariableDownStreamRespHeaders       = variable.NewVariable(VarDownStreamRespHeaders, nil, nil, variable.DefaultSetter, 0)
 	VariableTraceSpan                   = variable.NewVariable(VarTraceSpan, nil, nil, variable.DefaultSetter, 0)
+	VariableResponseUseStream           = variable.NewVariable(VarResponseUseStream, nil, nil, variable.DefaultSetter, 0)
+	VariableResponseEndStream           = variable.NewVariable(VarResponseEndStream, nil, nil, variable.DefaultSetter, 0)
 )
 
 func init() {
@@ -214,6 +216,7 @@ func init() {
 		VariableTraceSpankey, VariableTraceId, VariableProxyGeneralConfig, VariableConnectionEventListeners,
 		VariableUpstreamConnectionID, VariableOriRemoteAddr,
 		VariableDownStreamProtocol, VariableUpstreamProtocol, VariableUpstreamOriRemoteAddr, VariableDownStreamReqHeaders, VariableDownStreamRespHeaders, VariableTraceSpan,
+		VariableResponseUseStream, VariableResponseEndStream,
 	}
 	for _, v := range builtinVariables {
 		variable.Register(v)
