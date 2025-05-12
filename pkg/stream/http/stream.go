@@ -225,15 +225,6 @@ type clientStreamConnection struct {
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
-func (c *clientStreamConnection) OnResetStream(reason types.StreamResetReason) {
-	if c.streamConnection.conn != nil {
-		_ = c.streamConnection.conn.Close(api.NoFlush, api.LocalClose)
-	}
-}
-
-func (c *clientStreamConnection) OnDestroyStream() {
-}
-
 func newClientStreamConnection(ctx context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
 	connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
@@ -607,7 +598,6 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 		receiver: receiver,
 	}
 	s.connection = conn
-	s.stream.AddEventListener(conn)
 
 	conn.mutex.Lock()
 	conn.stream = s
