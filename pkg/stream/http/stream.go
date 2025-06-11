@@ -291,6 +291,8 @@ func (conn *clientStreamConnection) serve() {
 			s.response.SkipBody = true
 		}
 
+		// copy form github.com/valyala/fasthttp@v1.40.0/http.go:1335  ReadLimitBody response.resetSkipHeader()
+		s.response.ResetBody()
 		err := s.response.Header.Read(conn.br)
 		if err != nil {
 			if s != nil {
@@ -302,6 +304,20 @@ func (conn *clientStreamConnection) serve() {
 				s.ResetStream(reason)
 			}
 			return
+		} else if s.response.Header.StatusCode() == http.StatusContinue {
+			// copy form github.com/valyala/fasthttp@v1.40.0/http.go:1335
+			// Read the next response according to http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html .
+			if err = s.response.Header.Read(conn.br); err != nil {
+				if s != nil {
+					log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response header error(StatusCode=StatusContinue): %s", err)
+					reason := conn.resetReason
+					if reason == "" {
+						reason = types.StreamRemoteReset
+					}
+					s.ResetStream(reason)
+				}
+				return
+			}
 		}
 
 		// 1. set client stream reset flag
@@ -323,6 +339,21 @@ func (conn *clientStreamConnection) serve() {
 		}
 
 	}
+}
+
+// copy form github.com/valyala/fasthttp@v1.40.0/header.go:258
+func mustSkipContentLength(h *fasthttp.ResponseHeader) bool {
+	// From http/1.1 specs:
+	// All 1xx (informational), 204 (no content), and 304 (not modified) responses MUST NOT include a message-body
+	statusCode := h.StatusCode()
+
+	// Fast path.
+	if statusCode < 100 || statusCode == http.StatusOK {
+		return false
+	}
+
+	// Slow path.
+	return statusCode == http.StatusNotModified || statusCode == http.StatusNoContent || statusCode < 200
 }
 
 // handleStreamResponse: http stream response
@@ -390,18 +421,21 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 func (conn *clientStreamConnection) handleBlockedResponse() {
 	s := conn.stream
 	_ = variable.Set(s.ctx, types.VarResponseUseStream, false)
-
-	err := s.response.ReadBody(conn.br, 0)
-	if err != nil {
-		if s != nil {
+	if !(s.response.SkipBody || mustSkipContentLength(&s.response.Header)) {
+		err := s.response.ReadBody(conn.br, 0)
+		if err != nil {
 			log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 			reason := conn.resetReason
 			if reason == "" {
 				reason = types.StreamRemoteReset
 			}
 			s.ResetStream(reason)
+			return
 		}
-		return
+	} else {
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] skip receive response body, requestId = %v", s.stream.id)
+		}
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
