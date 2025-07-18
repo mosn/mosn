@@ -172,7 +172,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespDataBuf = data
 	r.downStream.downstreamRespTrailers = trailers
 
-	if data != nil {
+	if r.streamResponse && data != nil {
 		r.downStream.streamResponseCloser.Store(StreamResponseCloser(func(err error) { // TODO: new interface
 			data.CloseWithError(err)
 		}))
