@@ -119,6 +119,8 @@ type downStream struct {
 	snapshot types.ClusterSnapshot
 
 	phase types.Phase
+
+	streamResponseCloser atomic.Value // Close() interface{}
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span api.Span) *downStream {
@@ -362,6 +364,10 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 		log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	}
 	s.resetReason.Store(reason)
+	CloserInterface := s.streamResponseCloser.Load()
+	if Closer, ok := CloserInterface.(StreamResponseCloser); ok {
+		Closer(fmt.Errorf("downstram reset reason: %s", reason))
+	}
 
 	s.sendNotify()
 }
