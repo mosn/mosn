@@ -32,6 +32,8 @@ import (
 
 var DefaultStreamResponseWaitTimeout = time.Second * 30
 
+type StreamResponseCloser func(err error)
+
 // types.StreamEventListener
 // types.StreamReceiveListener
 // types.PoolEventListener
@@ -169,6 +171,12 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespHeaders = headers
 	r.downStream.downstreamRespDataBuf = data
 	r.downStream.downstreamRespTrailers = trailers
+
+	if r.streamResponse && data != nil {
+		r.downStream.streamResponseCloser.Store(StreamResponseCloser(func(err error) { // TODO: new interface
+			data.CloseWithError(err)
+		}))
+	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive")
