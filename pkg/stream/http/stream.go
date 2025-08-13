@@ -379,9 +379,11 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 	defer func() {
 		// notify proxy:downstream upstream goroutine receive stream response data end,
 		// proxy:downstream goroutine could clean stream
-		_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
-		_ = variable.Set(s.ctx, types.VarResponseEndStream, true)
-		s.receiver.OnReceive(s.ctx, nil, nil, nil)
+		if s.receiver != nil {
+			_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
+			_ = variable.Set(s.ctx, types.VarResponseEndStream, true)
+			s.receiver.OnReceive(s.ctx, nil, nil, nil)
+		}
 	}()
 
 	sendStreamResponse := func(cs *clientStream) error {
@@ -394,17 +396,20 @@ func (conn *clientStreamConnection) handleStreamResponse() {
 		})
 	}
 	finishStreamResponse := func(cs *clientStream, err error) {
-		if err == nil {
-			err = io.EOF
+		//startStreamResponse has allocated recData
+		if cs.recData != nil {
+			if err == nil {
+				err = io.EOF
+			}
+			cs.recData.CloseWithError(err)
+			// destroy stream
+			cs.stream.DestroyStream()
 		}
-		cs.recData.CloseWithError(err)
-		// destroy stream
-		cs.stream.DestroyStream()
 	}
 
 	startStreamResponse(s)
 	if err := sendStreamResponse(s); err != nil {
-		log.Proxy.Errorf(s.connection.context, "[stream] [http] [stream response] client stream write buffer: %s", err)
+		log.Proxy.Errorf(s.ctx, "[stream] [http] [stream response] client stream write buffer: %s", err)
 		reason := conn.resetReason
 		if reason == "" {
 			reason = types.StreamRemoteReset
