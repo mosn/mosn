@@ -103,8 +103,24 @@ func (b *subsetLoadBalancerBuilder) initIndex() {
 			i++
 			return true
 		})
+		b.safeCheckKeyValueSize(key, len(valueMap))
 	}
 	b.indexer = indexer
+}
+
+func (b *subsetLoadBalancerBuilder) safeCheckKeyValueSize(key string, valueSize int) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.DefaultLogger.Errorf("Try check key value size panic: %v", err)
+		}
+	}()
+	subsetKeyThresholdConfig := LoadSubsetKeyThresholdConfig()
+	if subsetKeyThresholdConfig.IsEnableLogging() {
+		thresholds := subsetKeyThresholdConfig.GetThresholds(key)
+		if valueSize > thresholds {
+			log.DefaultLogger.Errorf("[UnexpectedSubsetKey] Cluster Named: %s, subset key %s count %d exceeds threshold %d", b.info.Name(), key, valueSize, thresholds)
+		}
+	}
 }
 
 func (b *subsetLoadBalancerBuilder) createSubsets() types.LbSubsetMap {
