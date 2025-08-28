@@ -18,7 +18,9 @@
 package cluster
 
 import (
-	"sync/atomic"
+	"sync"
+
+	"go.uber.org/atomic"
 )
 
 func init() {
@@ -66,4 +68,44 @@ func UpdateSubsetKeyThresholdConfig(config SubsetKeyThresholdConfig) {
 
 func LoadSubsetKeyThresholdConfig() SubsetKeyThresholdConfig {
 	return subsetKeyThresholdConfig.Load().(SubsetKeyThresholdConfig)
+}
+
+// SubsetKeyThresholdListener is an interface that defines a listener for monitoring subset key thresholds.
+type SubsetKeyThresholdListener interface {
+	// Notify is called when the key's count exceeds the threshold.
+	Notify(clusterName string, key string, count int, threshold int)
+}
+
+var subsetKeyThresholdListenerManager = &SubsetKeyThresholdListenerManager{}
+
+func LoadSubsetKeyThresholdListenerManager() *SubsetKeyThresholdListenerManager {
+	return subsetKeyThresholdListenerManager
+}
+
+type SubsetKeyThresholdListenerManager struct {
+	writeLock sync.Mutex
+	listeners atomic.Value
+}
+
+func (sm *SubsetKeyThresholdListenerManager) RegisterSubsetKeyThresholdListener(ln SubsetKeyThresholdListener) {
+	sm.writeLock.Lock()
+	defer sm.writeLock.Unlock()
+	value := sm.listeners.Load()
+	if value == nil {
+		value = make([]SubsetKeyThresholdListener, 0)
+	}
+	listeners := value.([]SubsetKeyThresholdListener)
+	listeners = append(listeners, ln)
+	sm.listeners.Store(listeners)
+}
+
+func (sm *SubsetKeyThresholdListenerManager) Notify(clusterName string, key string, count int, threshold int) {
+	value := sm.listeners.Load()
+	if value == nil {
+		return
+	}
+	listeners := value.([]SubsetKeyThresholdListener)
+	for _, listener := range listeners {
+		listener.Notify(clusterName, key, count, threshold)
+	}
 }
