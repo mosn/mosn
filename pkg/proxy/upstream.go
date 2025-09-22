@@ -27,7 +27,12 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/variable"
 )
+
+var DefaultStreamResponseWaitTimeout = time.Second * 30
+
+type StreamResponseCloser func(err error)
 
 // types.StreamEventListener
 // types.StreamReceiveListener
@@ -51,6 +56,24 @@ type upstreamRequest struct {
 
 	// list element
 	element *list.Element
+
+	//use for stream response, example http chunked response
+	streamResponse        bool
+	streamResponseEndChan chan struct{}
+}
+
+func (r *upstreamRequest) waitStreamResponseEnd() {
+	if !r.streamResponse {
+		return
+	}
+	timer := time.NewTimer(DefaultStreamResponseWaitTimeout)
+	defer timer.Stop()
+	select {
+	case _, _ = <-r.streamResponseEndChan:
+	case <-timer.C:
+		log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] [waitStreamResponseEnd] wait timeout: %v", DefaultStreamResponseWaitTimeout)
+	}
+	return
 }
 
 // reset upstream request in proxy context
@@ -100,6 +123,29 @@ func (r *upstreamRequest) endStream() {
 // types.StreamReceiveListener
 // Method to decode upstream's response message
 func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	if useStream, err := variable.Get(ctx, types.VarResponseUseStream); err == nil {
+		if httpUseStream, ok := useStream.(bool); ok {
+			r.streamResponse = httpUseStream
+		}
+		if r.streamResponse && r.streamResponseEndChan == nil {
+			r.streamResponseEndChan = make(chan struct{}, 1)
+		}
+	}
+	if r.streamResponse {
+		if endStream, err := variable.Get(ctx, types.VarResponseEndStream); err == nil {
+			if httpEndStream, ok := endStream.(bool); ok {
+				if httpEndStream {
+					select {
+					case _, _ = <-r.streamResponseEndChan:
+					default:
+						close(r.streamResponseEndChan)
+					}
+					return
+				}
+			}
+		}
+	}
+
 	if r.downStream.processDone() || r.setupRetry {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] [OnReceive] remote addr: %s, processDone: %v, setupRetry: %v",
@@ -125,6 +171,12 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespHeaders = headers
 	r.downStream.downstreamRespDataBuf = data
 	r.downStream.downstreamRespTrailers = trailers
+
+	if r.streamResponse && data != nil {
+		r.downStream.streamResponseCloser.Store(StreamResponseCloser(func(err error) { // TODO: new interface
+			data.CloseWithError(err)
+		}))
+	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] OnReceive")

@@ -62,7 +62,9 @@ func (p *poolPingPong) NewStream(ctx context.Context, receiver types.StreamRecei
 		return host, nil, reason
 	}
 	_ = variable.Set(ctx, types.VariableUpstreamConnectionID, c.codecClient.ConnID())
-
+	if c.host.Connection.RemoteAddr() != nil {
+		_ = variable.SetString(ctx, types.VariableUpstreamOriRemoteAddr, c.host.Connection.RemoteAddr().String())
+	}
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
 	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream

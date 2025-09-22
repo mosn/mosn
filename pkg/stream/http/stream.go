@@ -19,10 +19,13 @@ package http
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,6 +55,7 @@ func init() {
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
 const defaultMaxHeaderSize = 8 * 1024
+const defaultPerStreamBodySize = 1 << 20
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -237,7 +241,6 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		streamConnectionEventListener: streamConnCallbacks,
 		requestSent:                   make(chan bool, 1),
 	}
-
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 8192.
 	maxResponseHeaderSize := 0
@@ -288,11 +291,12 @@ func (conn *clientStreamConnection) serve() {
 			s.response.SkipBody = true
 		}
 
-		// 1. blocking read using fasthttp.Response.Read
-		err := s.response.Read(conn.br)
+		// copy form github.com/valyala/fasthttp@v1.40.0/http.go:1335  ReadLimitBody response.resetSkipHeader()
+		s.response.ResetBody()
+		err := s.response.Header.Read(conn.br)
 		if err != nil {
 			if s != nil {
-				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
+				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response header error: %s", err)
 				reason := conn.resetReason
 				if reason == "" {
 					reason = types.StreamRemoteReset
@@ -300,28 +304,323 @@ func (conn *clientStreamConnection) serve() {
 				s.ResetStream(reason)
 			}
 			return
+		} else if s.response.Header.StatusCode() == http.StatusContinue {
+			// copy form github.com/valyala/fasthttp@v1.40.0/http.go:1335
+			// Read the next response according to http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html .
+			if err = s.response.Header.Read(conn.br); err != nil {
+				if s != nil {
+					log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response header error(StatusCode=StatusContinue): %s", err)
+					reason := conn.resetReason
+					if reason == "" {
+						reason = types.StreamRemoteReset
+					}
+					s.ResetStream(reason)
+				}
+				return
+			}
 		}
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
-		}
-
-		// 2. response processing
+		// 1. set client stream reset flag
 		resetConn := false
-		if s.response.ConnectionClose() {
+		if s.response != nil && s.response.ConnectionClose() {
 			resetConn = true
 		}
-
-		// 3. local reset if header 'Connection: close' exists
+		// 2. local reset if header 'Connection: close' exists
 		if resetConn {
 			// goaway the connpool
 			s.connection.streamConnectionEventListener.OnGoAway()
 		}
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
+		// 3. handle response
+		if s.response.Header.ContentLength() == -1 {
+			conn.handleStreamResponse()
+		} else {
+			conn.handleBlockedResponse()
+		}
+
+	}
+}
+
+// copy form github.com/valyala/fasthttp@v1.40.0/header.go:258
+func mustSkipContentLength(h *fasthttp.ResponseHeader) bool {
+	// From http/1.1 specs:
+	// All 1xx (informational), 204 (no content), and 304 (not modified) responses MUST NOT include a message-body
+	statusCode := h.StatusCode()
+
+	// Fast path.
+	if statusCode < 100 || statusCode == http.StatusOK {
+		return false
+	}
+
+	// Slow path.
+	return statusCode == http.StatusNotModified || statusCode == http.StatusNoContent || statusCode < 200
+}
+
+// handleStreamResponse: http stream response
+func (conn *clientStreamConnection) handleStreamResponse() {
+	s := conn.stream
+	startStreamResponse := func(cs *clientStream) {
+		header := mosnhttp.ResponseHeader{ResponseHeader: &s.response.Header}
+
+		statusCode := header.StatusCode()
+		status := strconv.Itoa(statusCode)
+		// inherit upstream's response status
+		_ = variable.SetString(s.ctx, types.VarHeaderStatus, status)
+
+		_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
+		_ = variable.Set(s.ctx, types.VarResponseEndStream, false)
+		s.connection.mutex.Lock()
+		s.connection.stream = nil
+		s.connection.mutex.Unlock()
+		cs.recData = buffer.NewPipeBuffer(0)
+		cs.receiver.OnReceive(cs.ctx, header, cs.recData, nil)
+	}
+
+	defer func() {
+		// notify proxy:downstream upstream goroutine receive stream response data end,
+		// proxy:downstream goroutine could clean stream
+		if s.receiver != nil {
+			_ = variable.Set(s.ctx, types.VarResponseUseStream, true)
+			_ = variable.Set(s.ctx, types.VarResponseEndStream, true)
+			s.receiver.OnReceive(s.ctx, nil, nil, nil)
+		}
+	}()
+
+	sendStreamResponse := func(cs *clientStream) error {
+		return writeBodyToPipe(conn.br, 0, s.response.Header.ContentLength(), func(data []byte) error {
+			if _, err := cs.recData.Write(data); err != nil {
+				return fmt.Errorf("failed to write to IoBuffer: %w", err)
+
+			}
+			return nil
+		})
+	}
+	finishStreamResponse := func(cs *clientStream, err error) {
+		//startStreamResponse has allocated recData
+		if cs.recData != nil {
+			if err == nil {
+				err = io.EOF
+			}
+			cs.recData.CloseWithError(err)
+			// destroy stream
+			cs.stream.DestroyStream()
 		}
 	}
+
+	startStreamResponse(s)
+	if err := sendStreamResponse(s); err != nil {
+		log.Proxy.Errorf(s.ctx, "[stream] [http] [stream response] client stream write buffer: %s", err)
+		reason := conn.resetReason
+		if reason == "" {
+			reason = types.StreamRemoteReset
+		}
+		s.ResetStream(reason)
+		finishStreamResponse(s, err)
+		return
+
+	}
+	finishStreamResponse(s, nil)
+}
+
+// handleBlockedResponse: http blocked response
+func (conn *clientStreamConnection) handleBlockedResponse() {
+	s := conn.stream
+	_ = variable.Set(s.ctx, types.VarResponseUseStream, false)
+	if !(s.response.SkipBody || mustSkipContentLength(&s.response.Header)) {
+		err := s.response.ReadBody(conn.br, 0)
+		if err != nil {
+			log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
+			reason := conn.resetReason
+			if reason == "" {
+				reason = types.StreamRemoteReset
+			}
+			s.ResetStream(reason)
+			return
+		}
+	} else {
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] skip receive response body, requestId = %v", s.stream.id)
+		}
+	}
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
+	}
+
+	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+		s.handleResponse()
+	}
+}
+
+// copy from fasthttp github.com/valyala/fasthttp@v1.40.0/http.go:1374
+func writeBodyToPipe(r *bufio.Reader, maxBodySize int, contentLength int, writeFunc func([]byte) error) (err error) {
+	return writeBodyChunked(r, maxBodySize, writeFunc)
+}
+
+var ErrBodyTooLarge = errors.New("body too large")
+
+func appendBodyFixedSize(r *bufio.Reader, dst []byte, n int, writeFunc func(data []byte) error) ([]byte, error) {
+	if n == 0 {
+		return dst, nil
+	}
+
+	offset := len(dst)
+	dstLen := offset + n
+	if cap(dst) < dstLen {
+		b := make([]byte, round2(dstLen))
+		copy(b, dst)
+		dst = b
+	}
+	dst = dst[:dstLen]
+
+	for {
+		nn, err := r.Read(dst[offset:])
+		if nn <= 0 {
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					err = io.ErrUnexpectedEOF
+				}
+				return dst[:offset], err
+			}
+			panic(fmt.Sprintf("BUG: bufio.Read() returned (%d, nil)", nn))
+		}
+		offset += nn
+		if offset == dstLen {
+			return dst, nil
+		}
+	}
+}
+
+var strCRLF = []byte("\r\n")
+
+func writeBodyChunked(r *bufio.Reader, maxBodySize int, writeFunc func(data []byte) error) error {
+	for {
+		buf := make([]byte, 0)
+		chunkSize, err := parseChunkSize(r)
+		if err != nil {
+			return err
+		}
+		if chunkSize == 0 {
+			return nil
+		}
+
+		buf, err = handleChunk(r, maxBodySize, buf, chunkSize, writeFunc)
+		if err != nil {
+			return err
+		}
+
+		if err = writeFunc(buf); err != nil {
+			return err
+		}
+	}
+}
+
+func handleChunk(r *bufio.Reader, maxBodySize int, dst []byte, chunkSize int, writeFunc func(data []byte) error) ([]byte, error) {
+	strCRLFLen := len(strCRLF)
+	dst, err := appendBodyFixedSize(r, dst, chunkSize+strCRLFLen, writeFunc)
+	if err != nil {
+		return dst, err
+	}
+
+	if !bytes.Equal(dst[len(dst)-strCRLFLen:], strCRLF) {
+		return dst, errors.New("cannot find crlf at the end of chunk")
+	}
+
+	return dst[:len(dst)-strCRLFLen], nil
+}
+
+func parseChunkSize(r *bufio.Reader) (int, error) {
+	n, err := readHexInt(r)
+	if err != nil {
+		return -1, err
+	}
+	for {
+		c, err := r.ReadByte()
+		if err != nil {
+			return -1, fmt.Errorf("cannot read '\r' char at the end of chunk size: %w", err)
+		}
+		// Skip chunk extension after chunk size.
+		// Add support later if anyone needs it.
+		if c != '\r' {
+			continue
+		}
+		if err := r.UnreadByte(); err != nil {
+			return -1, fmt.Errorf("cannot unread '\r' char at the end of chunk size: %w", err)
+
+		}
+		break
+	}
+	err = readCrLf(r)
+	if err != nil {
+		return -1, err
+	}
+	return n, nil
+}
+
+const (
+	maxHexIntChars = 15
+	hex2intTable   = "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x00\x01\x02\x03\x04\x05\x06\a\b\t\x10\x10\x10\x10\x10\x10\x10\n\v\f\r\x0e\x0f\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\n\v\f\r\x0e\x0f\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
+)
+
+func readHexInt(r *bufio.Reader) (int, error) {
+	var k, i, n int
+	for {
+		c, err := r.ReadByte()
+		if err != nil {
+			if err == io.EOF && i > 0 {
+				return n, nil
+			}
+			return -1, err
+		}
+		k = int(hex2intTable[c])
+		if k == 16 {
+			if i == 0 {
+				return -1, errors.New("empty hex number")
+			}
+			if err := r.UnreadByte(); err != nil {
+				return -1, fmt.Errorf("failed to unread byte: %w", err)
+			}
+			return n, nil
+		}
+		if i >= maxHexIntChars {
+			return -1, errors.New("too large hex number")
+		}
+		n = (n << 4) | k
+		i++
+	}
+}
+
+func readCrLf(r *bufio.Reader) error {
+	for _, exp := range []byte{'\r', '\n'} {
+		c, err := r.ReadByte()
+		if err != nil {
+			return fmt.Errorf("cannot read %q char at the end of chunk size: %w", exp, err)
+		}
+		if c != exp {
+			return fmt.Errorf("unexpected char %q at the end of chunk size. Expected %q", c, exp)
+		}
+	}
+	return nil
+}
+
+func round2(n int) int {
+	if n <= 0 {
+		return 0
+	}
+
+	x := uint32(n - 1)
+	x |= x >> 1
+	x |= x >> 2
+	x |= x >> 4
+	x |= x >> 8
+	x |= x >> 16
+
+	// Make sure we don't return 0 due to overflow, even on 32 bit systems
+	if x >= uint32(math.MaxInt32) {
+		return math.MaxInt32
+	}
+
+	return int(x + 1)
 }
 
 func (conn *clientStreamConnection) GoAway() {}
@@ -645,6 +944,7 @@ type stream struct {
 	// NOTICE: fasthttp ctx and its member not allowed holding by others after request handle finished
 	request  *fasthttp.Request
 	response *fasthttp.Response
+	recData  types.IoBuffer
 
 	receiver types.StreamReceiveListener
 }
@@ -829,10 +1129,14 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	// SetBodyRaw sets response body and could avoid copying it
-	s.response.SetBodyRaw(data.Bytes())
+	if s.response.Header.ContentLength() == -1 {
+		s.response.SetBodyStream(data, -1)
+	} else {
+		s.response.SetBodyRaw(data.Bytes())
+	}
 
 	if endStream {
-		s.endStream()
+		return s.endStream()
 	}
 
 	return nil
@@ -843,7 +1147,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 	return nil
 }
 
-func (s *serverStream) endStream() {
+func (s *serverStream) endStream() error {
 	resetConn := false
 
 	// Response.Write() skips writing body if set to true.
@@ -868,7 +1172,7 @@ func (s *serverStream) endStream() {
 	}
 	defer s.DestroyStream()
 
-	s.doSend()
+	err := s.doSend()
 	s.responseDoneChan <- true
 
 	if resetConn {
@@ -880,8 +1184,8 @@ func (s *serverStream) endStream() {
 	s.connection.mutex.Lock()
 	s.connection.stream = nil
 	s.connection.mutex.Unlock()
+	return err
 }
-
 func (s *serverStream) ReadDisable(disable bool) {
 	if disable {
 		atomic.AddInt32(&s.readDisableCount, 1)
@@ -894,15 +1198,17 @@ func (s *serverStream) ReadDisable(disable bool) {
 	}
 }
 
-func (s *serverStream) doSend() {
+func (s *serverStream) doSend() error {
 
 	if _, err := s.response.WriteTo(s.connection); err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
+		return err
 	} else {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
 		}
 	}
+	return nil
 }
 
 func (s *serverStream) handleRequest(ctx context.Context) {

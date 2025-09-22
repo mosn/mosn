@@ -119,6 +119,8 @@ type downStream struct {
 	snapshot types.ClusterSnapshot
 
 	phase types.Phase
+
+	streamResponseCloser atomic.Value // Close() interface{}
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span api.Span) *downStream {
@@ -243,6 +245,16 @@ func (s *downStream) cleanStream() {
 		s.upstreamRequest.resetStream()
 	}
 
+	if s.upstreamRequest != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd start, proxyId: %d", s.ID)
+		}
+		s.upstreamRequest.waitStreamResponseEnd()
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(s.context, "[proxy] [downstream] upstreamRequest.waitStreamResponseEnd end, proxyId: %d", s.ID)
+		}
+	}
+
 	// clean up timers
 	s.cleanUp()
 
@@ -352,6 +364,10 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 		log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	}
 	s.resetReason.Store(reason)
+	CloserInterface := s.streamResponseCloser.Load()
+	if Closer, ok := CloserInterface.(StreamResponseCloser); ok {
+		Closer(fmt.Errorf("downstram reset reason: %s", reason))
+	}
 
 	s.sendNotify()
 }
@@ -1098,11 +1114,17 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 // ~~~ active stream sender wrapper
 
 func (s *downStream) appendHeaders(endStream bool) {
-	s.upstreamProcessDone.Store(endStream)
+	if s.upstreamRequest != nil && !s.upstreamRequest.streamResponse {
+		s.upstreamProcessDone.Store(endStream)
+	}
 	headers := s.downstreamRespHeaders
 	// Currently, just log the error
-	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
+	err := s.responseSender.AppendHeaders(s.context, headers, endStream)
+	if err != nil {
 		log.Proxy.Errorf(s.context, "append headers error: %s", err)
+	}
+	if err == nil && s.upstreamRequest != nil && s.upstreamRequest.streamResponse && endStream {
+		s.upstreamProcessDone.Store(true)
 	}
 
 	if endStream {
@@ -1111,21 +1133,36 @@ func (s *downStream) appendHeaders(endStream bool) {
 }
 
 func (s *downStream) appendData(endStream bool) {
-	s.upstreamProcessDone.Store(endStream)
+	if s.upstreamRequest != nil && !s.upstreamRequest.streamResponse {
+		s.upstreamProcessDone.Store(endStream)
+	}
 
 	data := s.downstreamRespDataBuf
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
-	s.responseSender.AppendData(s.context, data, endStream)
-
+	err := s.responseSender.AppendData(s.context, data, endStream)
+	if err != nil {
+		log.Proxy.Errorf(s.context, "append data error: %s", err)
+	}
+	if err == nil && s.upstreamRequest != nil && s.upstreamRequest.streamResponse && endStream {
+		s.upstreamProcessDone.Store(true)
+	}
 	if endStream {
 		s.endStream()
 	}
 }
 
 func (s *downStream) appendTrailers() {
-	s.upstreamProcessDone.Store(true)
+	if s.upstreamRequest != nil && !s.upstreamRequest.streamResponse {
+		s.upstreamProcessDone.Store(true)
+	}
 	trailers := s.downstreamRespTrailers
-	s.responseSender.AppendTrailers(s.context, trailers)
+	err := s.responseSender.AppendTrailers(s.context, trailers)
+	if err != nil {
+		log.Proxy.Errorf(s.context, "append trailers error: %s", err)
+	}
+	if err == nil && s.upstreamRequest != nil && s.upstreamRequest.streamResponse {
+		s.upstreamProcessDone.Store(true)
+	}
 	s.endStream()
 }
 
