@@ -163,6 +163,9 @@ func (p *poolBinding) newActiveClient(ctx context.Context) (*activeClientBinding
 
 	_ = variable.Set(connCtx, types.VariableUpstreamConnectionID, ac.host.Connection.ID())
 	_ = variable.Set(connCtx, types.VariableUpstreamProtocol, ac.protocol) // TODO: make sure we need it?
+	if ac.host.Connection.RemoteAddr() != nil {
+		_ = variable.SetString(ctx, types.VariableUpstreamOriRemoteAddr, ac.host.Connection.RemoteAddr().String())
+	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)
 
