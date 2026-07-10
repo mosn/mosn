@@ -157,11 +157,31 @@ func SetClusterManagerTLS(tls v2.TLSConfig) {
 	tryDump()
 }
 
-// DumpJSON marshals the effectiveConfig to bytes
+// redactedPrivateKey is the placeholder written in place of TLS private keys
+// (and other inline secret material) when dumping the effective config through
+// the admin API, so that a config_dump response never leaks TLS private keys.
+const redactedPrivateKey = "***REDACTED***"
+
+// redactTLSConfig clears the inline secret material of a TLSConfig in place.
+func redactTLSConfig(tls *v2.TLSConfig) {
+	if tls == nil {
+		return
+	}
+	// PrivateKey / CACert / CertChain may hold inline PEM secret material.
+	// CertChain and CACert are public by nature but redaction is kept narrow to
+	// the private key to avoid reducing the operational value of a config_dump.
+	if tls.PrivateKey != "" {
+		tls.PrivateKey = redactedPrivateKey
+	}
+}
+
+// DumpJSON marshals the effectiveConfig to bytes.
+// Inline TLS private keys are redacted so that an admin config_dump response
+// never exposes secret material.
 func DumpJSON() ([]byte, error) {
 	configLock.RLock()
 	defer configLock.RUnlock()
-	return json.Marshal(conf)
+	return json.Marshal(redactedCopy(conf))
 }
 
 const (
@@ -189,12 +209,32 @@ func getMOSNConfig(typ string) interface{} {
 	}
 }
 
+// getMOSNConfigRedacted returns a deep-copied, secret-redacted view of the
+// requested config section. It is used by the admin config_dump handler so that
+// inline TLS private keys are never exposed.
+func getMOSNConfigRedacted(typ string) interface{} {
+	switch typ {
+	case CfgTypeMOSN:
+		return redactedMosnConfig(conf.MosnConfig)
+	case CfgTypeRouter:
+		return conf.Routers
+	case CfgTypeCluster:
+		return redactedClusters(conf.Cluster)
+	case CfgTypeListener:
+		return redactedListeners(conf.Listener)
+	case CfgTypeExtend:
+		return conf.ExtendConfigs
+	default:
+		return nil
+	}
+}
+
 func HandleMOSNConfig(typ string, handle func(interface{})) {
 	if handle == nil {
 		return
 	}
 	configLock.RLock()
 	defer configLock.RUnlock()
-	v := getMOSNConfig(typ)
+	v := getMOSNConfigRedacted(typ)
 	handle(v)
 }
