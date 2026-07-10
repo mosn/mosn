@@ -46,6 +46,11 @@ jobs:
         uses: reviewdog/action-golangci-lint@v2
         if: github.event_name == 'pull_request'
         with:
+          # reviewdog/action-golangci-lint@v2 defaults to golangci-lint v2.x, which
+          # removed the v1-style flags below (--enable-all, --skip-dirs,
+          # --exclude-use-default). Pin to the last v1 release so the existing
+          # rule set keeps working. TODO: migrate to a v2 config file.
+          golangci_lint_version: v1.61.0
           golangci_lint_flags: "--skip-dirs=mtls/crypto,module/http2 --enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,exhaustruct,exhaustivestruct,nakedret,ireturn,interfacer,tagliatelle,varnamelen"
           workdir: pkg
 
