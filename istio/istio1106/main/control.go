@@ -235,8 +235,24 @@ var (
 	cmdReload = cli.Command{
 		Name:  "reload",
 		Usage: "reconfiguration",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:   "config, c",
+				Usage:  "load configuration from `FILE`",
+				EnvVar: "MOSN_CONFIG",
+				Value:  "configs/mosn_config.json",
+			},
+		},
 		Action: func(c *cli.Context) error {
-			return nil
+			app := mosn.NewMosn()
+			stm := stagemanager.InitStageManager(c, c.String("config"), app)
+			stm.AppendInitStage(mosn.InitDefaultPath)
+			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
+				// disable upgrade option when mosn reloading
+				// avoiding trigger old mosn turn to state 13.
+				cfg.DisableUpgrade = true
+			})
+			return stm.ReloadMosnProcess()
 		},
 	}
 )

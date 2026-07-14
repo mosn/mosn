@@ -51,6 +51,7 @@ type UpgradeData struct {
 
 type Mosn struct {
 	isFromUpgrade  bool // hot upgrade from old MOSN
+	ReloadProcess  bool // current mosn process is an reload process
 	Upgrade        UpgradeData
 	Clustermanager types.ClusterManager
 	RouterManager  types.RouterManager
