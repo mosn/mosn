@@ -47,7 +47,9 @@ func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 		tlsHash: host.TLSHashValue(),
 	}
 	pool.host.Store(host)
-	return pool
+
+	// TODO: create connPool by the PoolMode pattern
+	return NewPoolMultiplex(pool)
 }
 
 func (p *connPool) TLSHashValue() *types.HashValue {
