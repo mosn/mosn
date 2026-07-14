@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 )
@@ -16,14 +15,14 @@ type Matcher interface {
 }
 
 // NewMatcher creates a new Matcher.
-func NewMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
-	switch rule.GetMatch().PathSpecifier.(type) {
+func NewMatcher(match *routev3.RouteMatch) Matcher {
+	switch match.PathSpecifier.(type) {
 	case *routev3.RouteMatch_Prefix:
-		return newPrefixMatcher(rule)
+		return newPrefixMatcher(match)
 
 	default:
 		// *routev3.RouteMatch_Path
-		return newPathMatcher(rule)
+		return newPathMatcher(match)
 	}
 }
 
@@ -33,17 +32,17 @@ type baseMatcher struct {
 	queryParameters []*routev3.QueryParameterMatcher
 }
 
-func newBaseMatcher(rule *jwtauthnv3.RequirementRule) *baseMatcher {
+func newBaseMatcher(match *routev3.RouteMatch) *baseMatcher {
 	// default case sensitive
 	caseSensitive := true
-	if rule.Match.CaseSensitive != nil {
-		caseSensitive = rule.Match.CaseSensitive.Value
+	if match.CaseSensitive != nil {
+		caseSensitive = match.CaseSensitive.Value
 	}
 
 	return &baseMatcher{
 		caseSensitive:   caseSensitive,
-		headers:         rule.GetMatch().GetHeaders(),
-		queryParameters: rule.GetMatch().GetQueryParameters(),
+		headers:         match.GetHeaders(),
+		queryParameters: match.GetQueryParameters(),
 	}
 }
 
@@ -61,10 +60,10 @@ type prefixMatcher struct {
 	baseMatcher *baseMatcher
 }
 
-func newPrefixMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
-	baseMatcher := newBaseMatcher(rule)
+func newPrefixMatcher(match *routev3.RouteMatch) Matcher {
+	baseMatcher := newBaseMatcher(match)
 	return &prefixMatcher{
-		prefix:      rule.GetMatch().GetPrefix(),
+		prefix:      match.GetPrefix(),
 		baseMatcher: baseMatcher,
 	}
 }
@@ -86,17 +85,15 @@ func (p *prefixMatcher) Matches(headers api.HeaderMap, requestPath string) bool 
 }
 
 type pathMatcher struct {
-	path          string
-	caseSensitive bool
-	baseMatcher   *baseMatcher
+	path        string
+	baseMatcher *baseMatcher
 }
 
-func newPathMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
-	baseMatcher := newBaseMatcher(rule)
+func newPathMatcher(match *routev3.RouteMatch) Matcher {
+	baseMatcher := newBaseMatcher(match)
 	return &pathMatcher{
-		path:          rule.GetMatch().GetPath(),
-		caseSensitive: rule.GetMatch().GetCaseSensitive().Value,
-		baseMatcher:   baseMatcher,
+		path:        match.GetPath(),
+		baseMatcher: baseMatcher,
 	}
 }
 
@@ -105,7 +102,7 @@ func (p *pathMatcher) Matches(headers api.HeaderMap, requestPath string) bool {
 	requestPath = u.Path
 
 	pathMatch := p.path == requestPath
-	if !p.caseSensitive {
+	if !p.baseMatcher.caseSensitive {
 		pathMatch = strings.EqualFold(strings.ToLower(p.path), strings.ToLower(requestPath))
 	}
 	if p.baseMatcher.matchRoutes(headers, requestPath) && pathMatch {
