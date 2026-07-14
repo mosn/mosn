@@ -244,7 +244,8 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	if pgc, err := variable.Get(ctx, types.VariableProxyGeneralConfig); err == nil && pgc != nil {
 		if extendConfig, ok := pgc.(map[api.ProtocolName]interface{}); ok {
 			if http1Config, ok := extendConfig[protocol.HTTP1]; ok {
-				if config, ok := http1Config.(map[string]interface{}); ok {
+				switch config := http1Config.(type) {
+				case map[string]interface{}:
 					if v, ok := config["max_header_size"]; ok {
 						// json.Unmarshal stores float64 for JSON numbers in the interface{}
 						// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
@@ -252,6 +253,8 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 							maxResponseHeaderSize = int(fv)
 						}
 					}
+				case StreamConfig:
+					maxResponseHeaderSize = config.MaxHeaderSize
 				}
 			}
 		}
@@ -295,7 +298,14 @@ func (conn *clientStreamConnection) serve() {
 				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
 				reason := conn.resetReason
 				if reason == "" {
-					reason = types.StreamRemoteReset
+					var errSmallBuffer *fasthttp.ErrSmallBuffer
+					switch {
+					case errors.As(err, &errSmallBuffer):
+						// response header size over max_header_size limit, set reason types.StreamLocalReset
+						reason = types.StreamLocalReset
+					default:
+						reason = types.StreamRemoteReset
+					}
 				}
 				s.ResetStream(reason)
 			}
@@ -712,7 +722,8 @@ func (s *clientStream) endStream() {
 	err := s.doSend()
 
 	if err != nil {
-		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request, connID %d, error: %+v",
+			s.connection.conn.ID(), err)
 
 		if err == types.ErrConnectionHasClosed {
 			s.ResetStream(types.StreamConnectionFailed)
@@ -723,7 +734,8 @@ func (s *clientStream) endStream() {
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send client request, requestId = %v, connID %d",
+			s.stream.id, s.connection.conn.ID())
 	}
 	s.connection.requestSent <- true
 }
