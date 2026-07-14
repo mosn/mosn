@@ -37,7 +37,7 @@ type writeFramer interface {
 // currently implementing priorities), or b) delete this and
 // make the server code a bit more concrete.
 type writeContext interface {
-	Framer() *Framer
+	Framer() IFramer
 	Flush() error
 	CloseConn() error
 	// HeaderEncoder returns an HPACK encoder that writes to the
