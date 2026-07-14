@@ -48,6 +48,7 @@ const (
 	VarRequestedServerName            string = "requested_server_name"
 	VarRouteName                      string = "route_name"
 	VarProtocolConfig                 string = "protocol_config"
+	VarStreamResponseBytes            string = "stream_response_bytes"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"
@@ -118,6 +119,7 @@ const (
 	VarHttpRequestPath         = httpProtocolName + "_" + VarProtocolRequestPath
 	VarHttpRequestPathOriginal = httpProtocolName + "_" + VarProtocolRequestPathOriginal
 	VarHttpRequestArg          = httpProtocolName + "_" + VarProtocolRequestArg
+	VarHttpResponseUseStream   = httpProtocolName + "_" + VarProtocolResponseUseStream
 	VarPrefixHttpHeader        = httpProtocolName + "_" + VarProtocolRequestHeader
 	VarPrefixHttpArg           = httpProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttpCookie        = httpProtocolName + "_" + VarProtocolCookie

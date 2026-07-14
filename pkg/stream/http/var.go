@@ -45,6 +45,7 @@ var (
 		variable.NewStringVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
 		variable.NewStringVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0),
 		variable.NewStringVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
+		variable.NewVariable(types.VarHttpResponseUseStream, nil, nil, variable.DefaultSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
